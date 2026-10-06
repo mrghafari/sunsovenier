@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Eye, EyeOff, Key, RefreshCw, Shield, Mail, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { crmDate, crmText } from "@/lib/crm-localization";
 
 interface PasswordManagementProps {
   customerId: number;
@@ -26,6 +28,7 @@ interface PasswordStatus {
 }
 
 export function PasswordManagement({ customerId, customerEmail, customerName, customerPhone }: PasswordManagementProps) {
+  const { language, direction } = useLanguage();
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [sendNotification, setSendNotification] = useState(true);
@@ -46,8 +49,8 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to fetch password status",
+        title: crmText(language, "error"),
+        description: error.message || crmText(language, "failedFetchPassword"),
         variant: "destructive",
       });
     },
@@ -63,8 +66,8 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
     },
     onSuccess: (data) => {
       toast({
-        title: "Success",
-        description: data.message || "Password changed successfully",
+        title: crmText(language, "success"),
+        description: data.message || crmText(language, "passwordChanged"),
       });
       setChangePasswordOpen(false);
       setNewPassword("");
@@ -73,8 +76,8 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to change password",
+        title: crmText(language, "error"),
+        description: error.message || crmText(language, "failedChangePassword"),
         variant: "destructive",
       });
     },
@@ -90,8 +93,8 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
     },
     onSuccess: (data) => {
       toast({
-        title: "Success",
-        description: data.message || "Random password generated successfully",
+        title: crmText(language, "success"),
+        description: data.message || crmText(language, "passwordGenerated"),
       });
       setGeneratePasswordOpen(false);
       fetchPasswordStatus();
@@ -100,16 +103,16 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
       // Show generated password to admin
       if (data.data?.generatedPassword) {
         toast({
-          title: "Generated Password",
-          description: `New password: ${data.data.generatedPassword}`,
+          title: crmText(language, "generatedPassword"),
+          description: `${crmText(language, "newPassword")}: ${data.data.generatedPassword}`,
           duration: 10000,
         });
       }
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to generate password",
+        title: crmText(language, "error"),
+        description: error.message || crmText(language, "failedGeneratePassword"),
         variant: "destructive",
       });
     },
@@ -123,8 +126,8 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
   const handleChangePassword = () => {
     if (!newPassword.trim()) {
       toast({
-        title: "Error",
-        description: "Password cannot be empty",
+        title: crmText(language, "error"),
+        description: crmText(language, "passwordEmpty"),
         variant: "destructive",
       });
       return;
@@ -132,8 +135,8 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
     
     if (newPassword.length < 6) {
       toast({
-        title: "Error",
-        description: "Password must be at least 6 characters long",
+        title: crmText(language, "error"),
+        description: crmText(language, "passwordMin"),
         variant: "destructive",
       });
       return;
@@ -147,14 +150,14 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full" dir={direction}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Shield className="h-5 w-5" />
-          Password Management
+          {crmText(language, "passwordManagement")}
         </CardTitle>
         <CardDescription>
-          Manage customer password and authentication settings
+          {crmText(language, "managePassword")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -163,7 +166,7 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
           <div className="flex items-center gap-3">
             <Key className="h-5 w-5 text-gray-600" />
             <div>
-              <p className="font-medium">Current Password</p>
+              <p className="font-medium">{crmText(language, "currentPassword")}</p>
               <p className="text-sm text-gray-600">
                 {passwordStatus?.hasPassword ? (
                   <span className="flex items-center gap-2">
@@ -177,7 +180,7 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
                     </Button>
                   </span>
                 ) : (
-                  "No password set"
+                  crmText(language, "noPassword")
                 )}
               </p>
             </div>
@@ -199,25 +202,25 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
             <DialogTrigger asChild>
               <Button variant="outline" className="w-full">
                 <Key className="h-4 w-4 mr-2" />
-                Change Password
+                {crmText(language, "changePassword")}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Change Customer Password</DialogTitle>
+                <DialogTitle>{crmText(language, "changeCustomerPassword")}</DialogTitle>
                 <DialogDescription>
-                  Set a new password for {customerName} ({customerEmail})
+                  {crmText(language, "setPasswordFor")} {customerName} ({customerEmail})
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="new-password">New Password</Label>
+                  <Label htmlFor="new-password">{crmText(language, "newPassword")}</Label>
                   <Input
                     id="new-password"
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
+                    placeholder={crmText(language, "enterNewPassword")}
                   />
                 </div>
                 
@@ -228,7 +231,7 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
                     onCheckedChange={setSendNotification}
                   />
                   <Label htmlFor="send-notification" className="text-sm">
-                    Send password notification
+                    {crmText(language, "sendNotification")}
                   </Label>
                 </div>
                 
@@ -236,12 +239,12 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
                   <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
                     <div className="flex items-center gap-2 mb-1">
                       <Mail className="h-4 w-4" />
-                      <span>Email will be sent to: {customerEmail}</span>
+                      <span>{crmText(language, "emailWillBeSent")}: {customerEmail}</span>
                     </div>
                     {customerPhone && (
                       <div className="flex items-center gap-2">
                         <Smartphone className="h-4 w-4" />
-                        <span>SMS will be sent to: {customerPhone}</span>
+                        <span>{crmText(language, "smsWillBeSent")}: {customerPhone}</span>
                       </div>
                     )}
                   </div>
@@ -252,13 +255,13 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
                     variant="outline"
                     onClick={() => setChangePasswordOpen(false)}
                   >
-                    Cancel
+                    {crmText(language, "cancel")}
                   </Button>
                   <Button
                     onClick={handleChangePassword}
                     disabled={changingPassword}
                   >
-                    {changingPassword ? "Changing..." : "Change Password"}
+                    {changingPassword ? crmText(language, "changing") : crmText(language, "changePassword")}
                   </Button>
                 </div>
               </div>
@@ -270,14 +273,14 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
             <DialogTrigger asChild>
               <Button variant="outline" className="w-full">
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Generate Random Password
+                {crmText(language, "generateRandomPassword")}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Generate Random Password</DialogTitle>
+                <DialogTitle>{crmText(language, "generateRandomPassword")}</DialogTitle>
                 <DialogDescription>
-                  Generate a secure random password for {customerName} ({customerEmail})
+                  {crmText(language, "generateSecurePasswordFor")} {customerName} ({customerEmail})
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -288,7 +291,7 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
                     onCheckedChange={setSendNotification}
                   />
                   <Label htmlFor="send-notification-gen" className="text-sm">
-                    Send password notification
+                    {crmText(language, "sendNotification")}
                   </Label>
                 </div>
                 
@@ -296,19 +299,19 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
                   <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
                     <div className="flex items-center gap-2 mb-1">
                       <Mail className="h-4 w-4" />
-                      <span>Email will be sent to: {customerEmail}</span>
+                      <span>{crmText(language, "emailWillBeSent")}: {customerEmail}</span>
                     </div>
                     {customerPhone && (
                       <div className="flex items-center gap-2">
                         <Smartphone className="h-4 w-4" />
-                        <span>SMS will be sent to: {customerPhone}</span>
+                        <span>{crmText(language, "smsWillBeSent")}: {customerPhone}</span>
                       </div>
                     )}
                   </div>
                 )}
                 
                 <div className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md">
-                  <strong>Note:</strong> A secure 8-character password will be generated containing letters, numbers, and special characters.
+                   <strong>{crmText(language, "note")}:</strong> {crmText(language, "passwordNote")}
                 </div>
                 
                 <div className="flex justify-end space-x-2">
@@ -316,13 +319,13 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
                     variant="outline"
                     onClick={() => setGeneratePasswordOpen(false)}
                   >
-                    Cancel
+                    {crmText(language, "cancel")}
                   </Button>
                   <Button
                     onClick={handleGeneratePassword}
                     disabled={generatingPassword}
                   >
-                    {generatingPassword ? "Generating..." : "Generate Password"}
+                    {generatingPassword ? crmText(language, "generating") : crmText(language, "generatePassword")}
                   </Button>
                 </div>
               </div>
@@ -333,10 +336,10 @@ export function PasswordManagement({ customerId, customerEmail, customerName, cu
         {/* Password Status Info */}
         {passwordStatus && (
           <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
-            <p><strong>Customer:</strong> {customerName}</p>
-            <p><strong>Email:</strong> {customerEmail}</p>
-            <p><strong>Password Status:</strong> {passwordStatus.hasPassword ? "Set" : "Not Set"}</p>
-            <p><strong>Last Updated:</strong> {new Date(passwordStatus.lastPasswordChange).toLocaleString()}</p>
+            <p><strong>{crmText(language, "customer")}:</strong> {customerName}</p>
+            <p><strong>{crmText(language, "email")}:</strong> {customerEmail}</p>
+            <p><strong>{crmText(language, "passwordStatus")}:</strong> {passwordStatus.hasPassword ? crmText(language, "set") : crmText(language, "notSet")}</p>
+            <p><strong>{crmText(language, "lastUpdated")}:</strong> {crmDate(passwordStatus.lastPasswordChange, language)}</p>
           </div>
         )}
       </CardContent>

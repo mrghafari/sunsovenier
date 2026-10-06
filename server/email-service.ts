@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { CONFIG } from './config';
-import { db } from './db';
-import { smtpSettings, emailTemplates } from '../shared/email-schema';
+import { db, pool } from './db';
+import { smtpSettings, emailTemplates, emailCategories } from '../shared/email-schema';
 import { eq, and } from 'drizzle-orm';
 import { getLocalizedMessage, getLocalizedEmailSubject } from './multilingual-messages';
 
@@ -16,8 +16,52 @@ interface EmailOptions {
 }
 
 class EmailService {
+  async listInvoiceSenders(): Promise<Array<{ id: number; fromEmail: string; fromName: string; categoryName: string | null }>> {
+    const { rows } = await pool.query(`
+      SELECT s.id, s.from_email AS "fromEmail", s.from_name AS "fromName",
+        ec.category_name AS "categoryName"
+      FROM smtp_settings s
+      LEFT JOIN email_categories ec ON ec.id = s.category_id
+      WHERE s.is_active = true AND (s.category_id IS NULL OR ec.is_active = true)
+      ORDER BY s.from_email, s.id
+    `);
+    return rows;
+  }
+  async getSenderDetails(category: string) {
+    const config = await this.getSMTPConfig(category);
+    if (!config) return { email: null, direct: false, testStatus: null };
+    const [direct] = await db
+      .select({ id: smtpSettings.id })
+      .from(smtpSettings)
+      .innerJoin(emailCategories, eq(smtpSettings.categoryId, emailCategories.id))
+      .where(and(
+        eq(emailCategories.categoryKey, category),
+        eq(emailCategories.isActive, true),
+        eq(smtpSettings.isActive, true),
+      ))
+      .limit(1);
+    return { email: config.fromEmail, direct: direct?.id === config.id, testStatus: config.testStatus };
+  }
+
   private async getSMTPConfig(category: string = 'admin') {
     try {
+      const [categoryConfig] = await db
+        .select({ smtp: smtpSettings })
+        .from(smtpSettings)
+        .innerJoin(emailCategories, eq(smtpSettings.categoryId, emailCategories.id))
+        .where(
+          and(
+            eq(emailCategories.categoryKey, category),
+            eq(emailCategories.isActive, true),
+            eq(smtpSettings.isActive, true),
+          ),
+        )
+        .limit(1);
+
+      if (categoryConfig?.smtp) {
+        return categoryConfig.smtp;
+      }
+
       // Map category strings to category IDs
       const categoryMap: { [key: string]: number } = {
         'admin': 1,
@@ -89,10 +133,10 @@ class EmailService {
   }
 
   // Get template by number (e.g., "#05", "#13") - NEW METHOD
-  private async getEmailTemplateByNumber(templateNumber: string) {
+  async getEmailTemplateByNumber(templateNumber: string, language?: string) {
     try {
       const { emailStorage } = await import("./email-storage");
-      return await emailStorage.getTemplateByNumber(templateNumber);
+      return await emailStorage.getTemplateByNumber(templateNumber, language);
     } catch (error) {
       console.error(`Error fetching template ${templateNumber}:`, error);
       return null;
@@ -100,9 +144,21 @@ class EmailService {
   }
 
   // Send email using template number - NEW METHOD
-  async sendEmailWithTemplate(templateNumber: string, variables: Record<string, string>, to: string, category: string = 'admin') {
+  async sendEmailWithTemplate(
+    templateNumber: string,
+    variables: Record<string, string>,
+    to: string,
+    category: string = 'admin',
+    language?: string,
+  ) {
     try {
-      const template = await this.getEmailTemplateByNumber(templateNumber);
+      let resolvedLanguage = language;
+      if (!resolvedLanguage) {
+        const { pool } = await import('./db');
+        const { resolveEmailLanguage } = await import('./sms-language');
+        resolvedLanguage = await resolveEmailLanguage(pool, to);
+      }
+      const template = await this.getEmailTemplateByNumber(templateNumber, resolvedLanguage);
       
       if (!template) {
         console.error(`Template ${templateNumber} not found`);
@@ -603,7 +659,7 @@ ${orderData.customerName} عزیز،
       const { transporter, config } = await this.createTransporter(category);
 
       await transporter.sendMail({
-        from: `"Momtaz Chemical" <${config.username}>`,
+        from: `"${config.fromName || 'Momtaz Chemical'}" <${config.fromEmail}>`,
         to: options.to,
         subject: options.subject,
         text: options.text,
@@ -615,6 +671,41 @@ ${orderData.customerName} عزیز،
     } catch (error) {
       console.error('Error sending email:', error);
       return false;
+    }
+  }
+
+  // A successful return means the SMTP server accepted the attachment, not
+  // that the recipient has opened or received the message.
+  async sendPdfAttachment(options: {
+    to: string; subject: string; text: string; filename: string; content: Buffer; senderId: number;
+  }): Promise<void> {
+    const { rows } = await pool.query(`
+      SELECT s.host, s.port, s.username, s.password,
+        s.from_name AS "fromName", s.from_email AS "fromEmail"
+      FROM smtp_settings s
+      LEFT JOIN email_categories ec ON ec.id = s.category_id
+      WHERE s.id = $1 AND s.is_active = true
+        AND (s.category_id IS NULL OR ec.is_active = true)
+    `, [options.senderId]);
+    const config = rows[0];
+    if (!config) throw new Error('Selected SMTP sender is not active');
+    const transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.port === 465,
+      requireTLS: true,
+      auth: { user: config.username, pass: config.password },
+      tls: { rejectUnauthorized: false },
+    });
+    const result = await transporter.sendMail({
+      from: `"${config.fromName || 'Momtaz Chemical'}" <${config.fromEmail}>`,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      attachments: [{ filename: options.filename, content: options.content, contentType: 'application/pdf' }],
+    });
+    if (!result.accepted?.some(address => String(address).toLowerCase() === options.to.toLowerCase())) {
+      throw new Error('SMTP did not accept the invoice recipient');
     }
   }
 }

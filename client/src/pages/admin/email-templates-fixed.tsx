@@ -297,7 +297,7 @@ const EmailTemplatesFixed: React.FC = () => {
                 {isTemplate05 && (
                   <div className="mt-3">
                     <a 
-                      href="/admin/template05-static" 
+                      href="/mrg/template05-static" 
                       className="inline-flex items-center px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
                     >
                       🎨 مشاهده کامل Template #05

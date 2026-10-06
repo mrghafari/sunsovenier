@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Terminal, Play, Pause, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 
 interface TerminalLog {
@@ -11,6 +12,13 @@ interface TerminalLog {
 }
 
 export default function TerminalMonitor() {
+  const { language, direction } = useLanguage();
+  const ui = {
+    en: { minimize:'Minimize', maximize:'Maximize', pause:'Pause', resume:'Resume', clear:'Clear', waiting:'Waiting for system data...', start:'A generated health snapshot will appear automatically', live:'● Generated health snapshot (refresh every 5s)', stopped:'○ Snapshot generation paused', entries:'snapshot entries' },
+    fa: { minimize:'کوچک‌نمایی', maximize:'بزرگ‌نمایی', pause:'مکث', resume:'ادامه', clear:'پاک کردن', waiting:'در انتظار داده‌های سیستم...', start:'خلاصه سلامت تولیدشده به‌صورت خودکار نمایش داده می‌شود', live:'● خلاصه سلامت تولیدشده (به‌روزرسانی هر ۵ ثانیه)', stopped:'○ تولید خلاصه متوقف است', entries:'مورد خلاصه' },
+    ar: { minimize:'تصغير', maximize:'تكبير', pause:'إيقاف مؤقت', resume:'استئناف', clear:'مسح', waiting:'في انتظار بيانات النظام...', start:'ستظهر لقطة صحة مُولّدة تلقائياً', live:'● لقطة صحة مُولّدة (تحديث كل 5 ثوانٍ)', stopped:'○ توليد اللقطة متوقف', entries:'لقطة' },
+    tr: { minimize:'Küçült', maximize:'Büyüt', pause:'Duraklat', resume:'Sürdür', clear:'Temizle', waiting:'Sistem verileri bekleniyor...', start:'Oluşturulan sağlık özeti otomatik görünecek', live:'● Oluşturulan sağlık özeti (5 saniyede bir yenileme)', stopped:'○ Özet oluşturma duraklatıldı', entries:'özet kaydı' }
+  }[language];
   const [isRunning, setIsRunning] = useState(true);
   const [logs, setLogs] = useState<TerminalLog[]>([]);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -29,7 +37,7 @@ export default function TerminalMonitor() {
     if (healthData?.data) {
       const health = healthData.data;
       const metrics = health.metrics;
-      const now = new Date().toLocaleTimeString('en-US', { hour12: false });
+       const now = new Date().toLocaleTimeString(language, { hour12: false });
       
       const newLogs: TerminalLog[] = [
         {
@@ -80,7 +88,7 @@ export default function TerminalMonitor() {
         {
           timestamp: now,
           type: health.services.server.status === 'healthy' ? 'success' : 'error',
-          message: `│ 🖥️  Node.js Server:      ${health.services.server.status.padEnd(10)} Active`
+          message: `│ 🖥️  Node.js Server:      ${health.services.server.status.padEnd(10)} ${health.services.server.message}`
         },
         {
           timestamp: now,
@@ -100,7 +108,7 @@ export default function TerminalMonitor() {
         {
           timestamp: now,
           type: 'info',
-          message: `│ 🌐 Server IP: ${serverConfigData?.config?.serverIp || '0.0.0.0'}`
+          message: `│ 🌐 Server IP: ${serverConfigData?.config?.serverIp || (language === 'fa' ? 'تنظیم نشده' : language === 'ar' ? 'غير مُعد' : language === 'tr' ? 'Yapılandırılmadı' : 'Not configured')}`
         },
         {
           timestamp: now,
@@ -160,17 +168,17 @@ export default function TerminalMonitor() {
         {
           timestamp: now,
           type: 'success',
-          message: `│ 🔗 Total Connections:  ${metrics.databasePool?.totalConnections || 0}`
+          message: `│ 🔗 Total Connections:  ${metrics.databasePool?.totalConnections ?? 'N/A'}`
         },
         {
           timestamp: now,
           type: 'info',
-          message: `│ 💤 Idle Connections:   ${metrics.databasePool?.idleConnections || 0}`
+          message: `│ 💤 Idle Connections:   ${metrics.databasePool?.idleConnections ?? 'N/A'}`
         },
         {
           timestamp: now,
           type: (metrics.databasePool?.waitingClients || 0) > 0 ? 'warning' : 'success',
-          message: `│ ⏳ Waiting Clients:    ${metrics.databasePool?.waitingClients || 0}`
+          message: `│ ⏳ Waiting Clients:    ${metrics.databasePool?.waitingClients ?? 'N/A'}`
         },
         {
           timestamp: now,
@@ -220,22 +228,22 @@ export default function TerminalMonitor() {
         {
           timestamp: now,
           type: 'success',
-          message: `│ 👤 Active Sessions:    ${metrics.activeSessions || 0}`
+          message: `│ 👤 Active Sessions:    ${metrics.activeSessions ?? 'N/A'}`
         },
         {
           timestamp: now,
           type: 'info',
-          message: `│ 📦 Orders Today:       ${metrics.recentOrders?.today || 0}`
+          message: `│ 📦 Orders Today:       ${metrics.recentOrders?.today ?? 'N/A'}`
         },
         {
           timestamp: now,
           type: (metrics.recentOrders?.pending || 0) > 10 ? 'warning' : 'info',
-          message: `│ ⏳ Pending Orders:     ${metrics.recentOrders?.pending || 0}`
+          message: `│ ⏳ Pending Orders:     ${metrics.recentOrders?.pending ?? 'N/A'}`
         },
         {
           timestamp: now,
           type: 'success',
-          message: `│ 🔄 Processing Orders:  ${metrics.recentOrders?.processing || 0}`
+          message: `│ 🔄 Processing Orders:  ${metrics.recentOrders?.processing ?? 'N/A'}`
         },
         {
           timestamp: now,
@@ -261,7 +269,7 @@ export default function TerminalMonitor() {
 
       setLogs(prev => [...prev.slice(-200), ...newLogs]);
     }
-  }, [healthData, serverConfigData]);
+  }, [healthData, serverConfigData, language]);
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -279,11 +287,11 @@ export default function TerminalMonitor() {
     const minutes = Math.floor((seconds % 3600) / 60);
     
     if (days > 0) {
-      return `${days}d ${hours}h ${minutes}m`;
+      return language === 'fa' ? `${days} روز ${hours} ساعت ${minutes} دقیقه` : language === 'ar' ? `${days} يوم ${hours} ساعة ${minutes} دقيقة` : language === 'tr' ? `${days} gün ${hours} saat ${minutes} dk` : `${days}d ${hours}h ${minutes}m`;
     } else if (hours > 0) {
-      return `${hours}h ${minutes}m`;
+      return language === 'fa' ? `${hours} ساعت ${minutes} دقیقه` : language === 'ar' ? `${hours} ساعة ${minutes} دقيقة` : language === 'tr' ? `${hours} saat ${minutes} dk` : `${hours}h ${minutes}m`;
     } else {
-      return `${minutes}m`;
+      return language === 'fa' ? `${minutes} دقیقه` : language === 'ar' ? `${minutes} دقيقة` : language === 'tr' ? `${minutes} dk` : `${minutes}m`;
     }
   };
 
@@ -305,7 +313,7 @@ export default function TerminalMonitor() {
   };
 
   return (
-    <Card className={`border-gray-700 bg-black transition-all duration-300 ${isMaximized ? 'fixed inset-4 z-50 overflow-hidden' : ''}`}>
+    <Card dir={direction} lang={language} className={`border-gray-700 bg-black transition-all duration-300 ${isMaximized ? 'fixed inset-4 z-50 overflow-hidden' : ''}`}>
       <CardContent className={`p-4 ${isMaximized ? 'h-full flex flex-col' : ''}`}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -325,12 +333,12 @@ export default function TerminalMonitor() {
               {isMaximized ? (
                 <>
                   <Minimize2 className="w-3 h-3 ml-1" />
-                  Minimize
+                  {ui.minimize}
                 </>
               ) : (
                 <>
                   <Maximize2 className="w-3 h-3 ml-1" />
-                  Maximize
+                  {ui.maximize}
                 </>
               )}
             </Button>
@@ -344,12 +352,12 @@ export default function TerminalMonitor() {
               {isRunning ? (
                 <>
                   <Pause className="w-3 h-3 ml-1" />
-                  Pause
+                  {ui.pause}
                 </>
               ) : (
                 <>
                   <Play className="w-3 h-3 ml-1" />
-                  Resume
+                  {ui.resume}
                 </>
               )}
             </Button>
@@ -361,7 +369,7 @@ export default function TerminalMonitor() {
               data-testid="button-clear-terminal"
             >
               <Trash2 className="w-3 h-3 ml-1" />
-              Clear
+              {ui.clear}
             </Button>
           </div>
         </div>
@@ -378,8 +386,8 @@ export default function TerminalMonitor() {
           {logs.length === 0 ? (
             <div className="text-green-400/50 text-center py-8">
               <Terminal className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <p>Waiting for system data...</p>
-              <p className="text-xs mt-1">Monitoring will start automatically</p>
+              <p>{ui.waiting}</p>
+              <p className="text-xs mt-1">{ui.start}</p>
             </div>
           ) : (
             logs.map((log, index) => (
@@ -393,10 +401,10 @@ export default function TerminalMonitor() {
 
         <div className="mt-2 flex items-center justify-between text-xs">
           <span className="text-green-600 font-mono">
-            {isRunning ? '● Live monitoring enabled (refresh every 5s)' : '○ Monitoring paused'}
+             {isRunning ? ui.live : ui.stopped}
           </span>
           <span className="text-gray-600 font-mono">
-            {logs.length} log entries
+             {logs.length} {ui.entries}
           </span>
         </div>
       </CardContent>

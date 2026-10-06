@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
+import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import {
 import GlobalRefreshControl from "@/components/GlobalRefreshControl";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
+import { getOrderStatusLabel, resolveOrderStatus } from "@shared/order-status";
+import { formatDeliveryAppointment, getDestinationTimeZone } from "@shared/delivery-timezone";
 
 interface Order {
   id: number;
@@ -31,6 +33,8 @@ interface Order {
   customerEmail: string;
   customerPhone: string;
   customerAddress: string;
+  destinationCountry?: unknown;
+  destinationCity?: string | null;
   orderTotal: number;
   currentStatus: string;
   logisticsNotes?: string;
@@ -42,6 +46,8 @@ interface Order {
   deliveryPersonName?: string;
   deliveryPersonPhone?: string;
   estimatedDeliveryDate?: string;
+  estimatedDeliveryAt?: string | null;
+  estimatedDeliveryTimeZone?: string | null;
   orderDate: string;
   orderItems: Array<{
     productName: string;
@@ -59,19 +65,66 @@ export default function LogisticsOrders() {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [deliveryPersonName, setDeliveryPersonName] = useState("");
   const [deliveryPersonPhone, setDeliveryPersonPhone] = useState("");
-  const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState("");
+  const [estimatedDeliveryLocal, setEstimatedDeliveryLocal] = useState("");
+  const [deliveryTimeZone, setDeliveryTimeZone] = useState("");
+  const [appointmentTouched, setAppointmentTouched] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Get warehouse-approved orders for logistics processing
-  const { data: response = { orders: [] }, isLoading, refetch } = useQuery({
-    queryKey: ['/api/order-management/logistics'],
-    queryFn: () => fetch('/api/order-management/logistics', { 
+  const {
+    data: ordersData,
+    isLoading,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['/api/order-management/logistics', 'infinite'],
+    queryFn: ({ pageParam = 0 }) => fetch(`/api/order-management/logistics?offset=${pageParam}`, {
       credentials: 'include',
       cache: 'no-cache'
-    }).then(res => res.json())
+    }).then(res => {
+      if (!res.ok) throw new Error("خطا در دریافت سفارشات لجستیک");
+      return res.json();
+    }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextOffset : undefined,
   });
   
-  const orders = response.orders || [];
+  const orders = ordersData?.pages.flatMap(page => page.orders || []) || [];
+  const selectedDestinationTimeZone = selectedOrder
+    ? getDestinationTimeZone(selectedOrder.destinationCountry)
+    : null;
+  const selectedDestinationCountry = selectedOrder?.destinationCountry == null
+    ? ""
+    : String(selectedOrder.destinationCountry);
+  const legacyDeliveryDate = selectedOrder?.estimatedDeliveryDate && !selectedOrder.estimatedDeliveryAt
+    ? selectedOrder.estimatedDeliveryDate.slice(0, 10)
+    : null;
+  let appointmentPreview = "";
+  if (selectedOrder?.estimatedDeliveryAt && selectedOrder.estimatedDeliveryTimeZone) {
+    try {
+      appointmentPreview = formatDeliveryAppointment(
+        selectedOrder.estimatedDeliveryAt,
+        selectedOrder.estimatedDeliveryTimeZone,
+        "fa",
+      );
+    } catch {
+      appointmentPreview = "";
+    }
+  }
+
+  const handleScroll = useCallback(() => {
+    if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 700 &&
+      hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
   
   // Debug: Log the first order to check orderNumber field
   if (orders.length > 0) {
@@ -126,7 +179,8 @@ export default function LogisticsOrders() {
       trackingNumber: string;
       deliveryPersonName: string;
       deliveryPersonPhone: string;
-      estimatedDeliveryDate: string;
+      estimatedDeliveryLocal: string;
+      deliveryTimeZone: string;
     }) => {
       return apiRequest(`/api/logistics/orders/${data.orderId}/dispatch`, {
         method: 'POST',
@@ -138,7 +192,7 @@ export default function LogisticsOrders() {
         title: "سفارش ارسال شد",
         description: `کد تحویل ${response.deliveryCode} برای مشتری ارسال شد`
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/logistics/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/order-management/logistics', 'infinite'] });
       setIsDialogOpen(false);
       resetForm();
     },
@@ -152,16 +206,12 @@ export default function LogisticsOrders() {
   });
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'warehouse_approved':
-        return <Badge variant="outline" className="bg-green-50 text-green-700">آماده ارسال</Badge>;
-      case 'logistics_processing':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700">در حال پردازش</Badge>;
-      case 'logistics_dispatched':
-        return <Badge variant="outline" className="bg-purple-50 text-purple-700">ارسال شده</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+    const resolved = resolveOrderStatus({ workflowStatus: status });
+    return (
+      <Badge variant="outline" className={resolved.badgeClass}>
+        {getOrderStatusLabel(resolved, 'fa')}
+      </Badge>
+    );
   };
 
   const resetForm = () => {
@@ -170,7 +220,39 @@ export default function LogisticsOrders() {
     setTrackingNumber("");
     setDeliveryPersonName("");
     setDeliveryPersonPhone("");
-    setEstimatedDeliveryDate("");
+    setEstimatedDeliveryLocal("");
+    setDeliveryTimeZone("");
+    setAppointmentTouched(false);
+  };
+
+  const localDateTimeValue = (date: Date, timeZone: string) => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(date);
+    const part = (type: string) => parts.find((item) => item.type === type)?.value || "";
+    return `${part("year")}-${part("month")}-${part("day")}T${part("hour")}:${part("minute")}`;
+  };
+
+  const tomorrowAtDestination = (timeZone: string) => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const part = (type: string) => parts.find((item) => item.type === type)?.value || "";
+    const tomorrow = new Date(Date.UTC(
+      Number(part("year")),
+      Number(part("month")) - 1,
+      Number(part("day")) + 1,
+    ));
+    return `${tomorrow.toISOString().slice(0, 10)}T09:00`;
   };
 
   const handleOrderDispatch = (order: Order) => {
@@ -180,10 +262,31 @@ export default function LogisticsOrders() {
     setDeliveryPersonName(order.deliveryPersonName || "");
     setDeliveryPersonPhone(order.deliveryPersonPhone || "");
     
-    // Set estimated delivery date to tomorrow if not set
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    setEstimatedDeliveryDate(order.estimatedDeliveryDate || tomorrow.toISOString().split('T')[0]);
+    const destinationZone = getDestinationTimeZone(order.destinationCountry);
+    const savedZone = order.estimatedDeliveryTimeZone || "";
+    const appointmentZone = destinationZone && savedZone !== destinationZone
+      ? destinationZone
+      : savedZone || destinationZone || "";
+    setDeliveryTimeZone(appointmentZone);
+    setAppointmentTouched(false);
+    if (order.estimatedDeliveryAt && appointmentZone) {
+      try {
+        setEstimatedDeliveryLocal(localDateTimeValue(new Date(order.estimatedDeliveryAt), appointmentZone));
+      } catch {
+        setEstimatedDeliveryLocal("");
+      }
+    } else if (order.estimatedDeliveryDate && !order.estimatedDeliveryAt) {
+      // Keep legacy date-only appointments date-only; dispatch requires a deliberate time selection.
+      setEstimatedDeliveryLocal("");
+    } else if (destinationZone) {
+      try {
+        setEstimatedDeliveryLocal(tomorrowAtDestination(destinationZone));
+      } catch {
+        setEstimatedDeliveryLocal("");
+      }
+    } else {
+      setEstimatedDeliveryLocal("");
+    }
     
     setIsDialogOpen(true);
   };
@@ -191,10 +294,19 @@ export default function LogisticsOrders() {
   const handleDispatch = () => {
     if (!selectedOrder) return;
     
-    if (!trackingNumber || !deliveryPersonName || !deliveryPersonPhone) {
+    let validTimeZone = false;
+    if (deliveryTimeZone) {
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone: deliveryTimeZone });
+        validTimeZone = true;
+      } catch {
+        validTimeZone = false;
+      }
+    }
+    if (!trackingNumber || !deliveryPersonName || !deliveryPersonPhone || !estimatedDeliveryLocal || !validTimeZone || !appointmentTouched) {
       toast({
         title: "اطلاعات ناقص",
-        description: "لطفاً تمام فیلدهای ضروری را پر کنید",
+        description: "زمان تحویل را آگاهانه انتخاب و منطقه زمانی معتبر مقصد را همراه با تمام فیلدهای ضروری وارد کنید",
         variant: "destructive"
       });
       return;
@@ -206,7 +318,8 @@ export default function LogisticsOrders() {
       trackingNumber,
       deliveryPersonName,
       deliveryPersonPhone,
-      estimatedDeliveryDate
+      estimatedDeliveryLocal,
+      deliveryTimeZone
     });
   };
 
@@ -316,7 +429,7 @@ export default function LogisticsOrders() {
             </div>
           ) : (
             <div className="space-y-4">
-              {orders.map((order: Order) => (
+      {orders.map((order: Order) => (
                 <div key={order.id} className="border rounded-lg p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
@@ -406,22 +519,32 @@ export default function LogisticsOrders() {
                       <Clock className="h-4 w-4 inline mr-1" />
                       از آماده‌سازی: {Math.floor((new Date().getTime() - new Date(order.warehouseProcessedAt).getTime()) / (1000 * 60 * 60))} ساعت گذشته
                     </div>
-                    <Button onClick={() => handleOrderDispatch(order)}>
+                    <Button
+                      onClick={() => handleOrderDispatch(order)}
+                      disabled={!['warehouse_approved', 'logistics_assigned', 'logistics_processing'].includes(order.currentStatus)}
+                    >
                       {order.currentStatus === 'logistics_dispatched' ? (
                         <>
                           <CheckCircle className="h-4 w-4 mr-2" />
                           ارسال شده
                         </>
-                      ) : (
+                      ) : ['warehouse_approved', 'logistics_assigned', 'logistics_processing'].includes(order.currentStatus) ? (
                         <>
                           <Send className="h-4 w-4 mr-2" />
                           ارسال سفارش
                         </>
+                      ) : (
+                        <>غیرقابل ارسال</>
                       )}
                     </Button>
                   </div>
                 </div>
               ))}
+              {isFetchingNextPage && (
+                <div className="flex items-center justify-center gap-2 py-5 text-sm text-gray-500">
+                  <RefreshCw className="h-4 w-4 animate-spin" /> در حال بارگذاری سفارشات بیشتر...
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -449,8 +572,11 @@ export default function LogisticsOrders() {
                     <span className="font-medium mr-2">{selectedOrder.customerPhone}</span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-gray-600">آدرس:</span>
-                    <span className="font-medium mr-2">{selectedOrder.customerAddress}</span>
+                    <span className="text-gray-600">مقصد سفارش:</span>
+                    <span className="font-medium mr-2">
+                      {selectedOrder.destinationCity || "شهر نامشخص"}
+                      {selectedDestinationCountry ? `، ${selectedDestinationCountry}` : ""}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -466,12 +592,56 @@ export default function LogisticsOrders() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">تاریخ تحویل تخمینی</label>
+                  <label className="block text-sm font-medium mb-2">زمان مراجعه برای تحویل در مقصد *</label>
                   <Input
-                    type="date"
-                    value={estimatedDeliveryDate}
-                    onChange={(e) => setEstimatedDeliveryDate(e.target.value)}
+                    type="datetime-local"
+                    required
+                    value={estimatedDeliveryLocal}
+                    onChange={(e) => {
+                      setEstimatedDeliveryLocal(e.target.value);
+                      setAppointmentTouched(true);
+                    }}
                   />
+                  <p className="mt-1 text-xs text-gray-600">
+                    زمان پیشنهادی را بررسی کرده و برای ثبت موعد جدید، زمان را آگاهانه انتخاب کنید.
+                  </p>
+                  <div className="mt-2 space-y-1 text-xs text-gray-600">
+                    <p>
+                      مقصد: {selectedOrder.destinationCity || "شهر نامشخص"}
+                      {selectedDestinationCountry ? `، ${selectedDestinationCountry}` : ""}
+                    </p>
+                    {selectedDestinationTimeZone ? (
+                      <p>منطقه زمانی مقصد: {selectedDestinationTimeZone}</p>
+                    ) : (
+                      <div className="space-y-1">
+                        <label htmlFor="delivery-time-zone" className="block font-medium">
+                          کشور مقصد قابل‌شناسایی نیست؛ منطقه زمانی IANA مقصد را وارد کنید *
+                        </label>
+                        <Input
+                          id="delivery-time-zone"
+                          value={deliveryTimeZone}
+                          onChange={(e) => {
+                            setDeliveryTimeZone(e.target.value);
+                            setAppointmentTouched(false);
+                          }}
+                          placeholder="مثال: Europe/Paris"
+                          dir="ltr"
+                          required
+                        />
+                        {!deliveryTimeZone && (
+                          <p className="text-amber-700">تا زمان واردکردن منطقه زمانی معتبر، ارسال سفارش ممکن نیست.</p>
+                        )}
+                      </div>
+                    )}
+                    {legacyDeliveryDate && (
+                      <p className="text-amber-700">
+                        موعد قدیمی فقط تاریخ دارد: {legacyDeliveryDate}. زمان برای آن ثبت نشده؛ برای ارسال، زمان جدید را آگاهانه انتخاب کنید.
+                      </p>
+                    )}
+                    {appointmentPreview && (
+                      <p>موعد ثبت‌شده ({selectedOrder.estimatedDeliveryTimeZone}): {appointmentPreview}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -508,7 +678,12 @@ export default function LogisticsOrders() {
               {/* Action Button */}
               <Button 
                 onClick={handleDispatch}
-                disabled={dispatchMutation.isPending}
+                disabled={
+                  dispatchMutation.isPending ||
+                  !estimatedDeliveryLocal ||
+                  !appointmentTouched ||
+                  !deliveryTimeZone
+                }
                 className="w-full"
               >
                 <Send className="h-4 w-4 mr-2" />

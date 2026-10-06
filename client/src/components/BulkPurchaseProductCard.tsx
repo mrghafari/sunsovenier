@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Save, Edit3, Package, DollarSign, Plus, Trash2, Percent } from "lucide-react";
+import { Save, Edit3, Plus, Trash2, Percent } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface DiscountTier {
   minQty: number;
@@ -21,12 +21,57 @@ interface BulkPurchaseProductCardProps {
   onUpdate: () => void;
 }
 
+type BulkLanguage = 'en' | 'ar' | 'tr' | 'fa';
+type BulkTranslation = Partial<Record<BulkLanguage, string>>;
+
+const BULK_TRANSLATIONS: Record<string, BulkTranslation> = {
+  success: { en: 'Success', ar: 'نجاح', tr: 'Başarılı', fa: 'موفقیت' },
+  error: { en: 'Error', ar: 'خطأ', tr: 'Hata', fa: 'خطا' },
+  updated: { en: 'Bulk purchase settings updated successfully', ar: 'تم تحديث إعدادات الشراء بالجملة بنجاح', tr: 'Toplu alım ayarları başarıyla güncellendi', fa: 'تنظیمات خرید عمده با موفقیت به‌روزرسانی شد' },
+  updateFailed: { en: 'Failed to update bulk purchase settings', ar: 'تعذر تحديث إعدادات الشراء بالجملة', tr: 'Toplu alım ayarları güncellenemedi', fa: 'به‌روزرسانی تنظیمات خرید عمده ناموفق بود' },
+  validation: { en: 'Validation Error', ar: 'خطأ في التحقق', tr: 'Doğrulama Hatası', fa: 'خطای اعتبارسنجی' },
+  validQuantity: { en: 'Please enter a valid minimum quantity for bulk purchases', ar: 'يرجى إدخال حد أدنى صالح لكمية الشراء بالجملة', tr: 'Lütfen toplu alımlar için geçerli bir minimum miktar girin', fa: 'لطفاً حداقل مقدار معتبر برای خرید عمده وارد کنید' },
+  validTiers: { en: 'Discount tiers must have valid quantity (>0) and discount (1-100%)', ar: 'يجب أن تحتوي مستويات الخصم على كمية صالحة (>0) وخصم (1-100%)', tr: 'İndirim kademeleri geçerli miktar (>0) ve indirim (%1-100) içermelidir', fa: 'سطوح تخفیف باید مقدار معتبر (>۰) و تخفیف (۱ تا ۱۰۰٪) داشته باشند' },
+  enabled: { en: 'Bulk Enabled', ar: 'الشراء بالجملة مفعّل', tr: 'Toplu Alım Etkin', fa: 'خرید عمده فعال' },
+  disabled: { en: 'Bulk Disabled', ar: 'الشراء بالجملة معطّل', tr: 'Toplu Alım Devre Dışı', fa: 'خرید عمده غیرفعال' },
+  edit: { en: 'Edit', ar: 'تعديل', tr: 'Düzenle', fa: 'ویرایش' },
+  sku: { en: 'SKU', ar: 'رمز المنتج', tr: 'SKU', fa: 'شناسه کالا' },
+  unitPrice: { en: 'Unit Price', ar: 'سعر الوحدة', tr: 'Birim Fiyat', fa: 'قیمت واحد' },
+  stock: { en: 'Stock', ar: 'المخزون', tr: 'Stok', fa: 'موجودی' },
+  category: { en: 'Category', ar: 'الفئة', tr: 'Kategori', fa: 'دسته‌بندی' },
+  notAvailable: { en: 'N/A', ar: 'غير متوفر', tr: 'Yok', fa: 'ناموجود' },
+  enable: { en: 'Enable Bulk Purchases', ar: 'تفعيل الشراء بالجملة', tr: 'Toplu Alımları Etkinleştir', fa: 'فعال‌سازی خرید عمده' },
+  enableHint: { en: 'When enabled, general discounts will NOT apply. Only bulk-specific discounts below will be used.', ar: 'عند التفعيل، لن تنطبق الخصومات العامة. ستُستخدم خصومات الشراء بالجملة أدناه فقط.', tr: 'Etkinleştirildiğinde genel indirimler uygulanmaz. Yalnızca aşağıdaki toplu alım indirimleri kullanılır.', fa: 'با فعال‌سازی، تخفیف‌های عمومی اعمال نمی‌شوند و فقط تخفیف‌های مخصوص خرید عمده زیر استفاده خواهند شد.' },
+  minimumQuantity: { en: 'Minimum Quantity *', ar: 'الحد الأدنى للكمية *', tr: 'Minimum Miktar *', fa: 'حداقل مقدار *' },
+  quantityPlaceholder: { en: 'e.g., 10', ar: 'مثال: 10', tr: 'örn. 10', fa: 'مثلاً ۱۰' },
+  discountTiers: { en: 'Bulk Discount Tiers', ar: 'مستويات خصم الشراء بالجملة', tr: 'Toplu Alım İndirim Kademeleri', fa: 'سطوح تخفیف خرید عمده' },
+  addTier: { en: 'Add Tier', ar: 'إضافة مستوى', tr: 'Kademe Ekle', fa: 'افزودن سطح' },
+  tiersHint: { en: 'These discounts replace the general discount system for this product.', ar: 'تحل هذه الخصومات محل نظام الخصم العام لهذا المنتج.', tr: 'Bu indirimler, bu ürün için genel indirim sisteminin yerini alır.', fa: 'این تخفیف‌ها جایگزین سیستم تخفیف عمومی این محصول می‌شوند.' },
+  minQty: { en: 'Min Qty', ar: 'الحد الأدنى', tr: 'Min. Miktar', fa: 'حداقل تعداد' },
+  discountPercent: { en: 'Discount %', ar: 'الخصم %', tr: 'İndirim %', fa: 'تخفیف ٪' },
+  description: { en: 'Bulk Purchase Description', ar: 'وصف الشراء بالجملة', tr: 'Toplu Alım Açıklaması', fa: 'توضیحات خرید عمده' },
+  descriptionPlaceholder: { en: 'Describe bulk purchase benefits, discounts, or special terms...', ar: 'صِف مزايا الشراء بالجملة أو الخصومات أو الشروط الخاصة...', tr: 'Toplu alım avantajlarını, indirimleri veya özel koşulları açıklayın...', fa: 'مزایا، تخفیف‌ها یا شرایط ویژه خرید عمده را توضیح دهید...' },
+  saving: { en: 'Saving...', ar: 'جارٍ الحفظ...', tr: 'Kaydediliyor...', fa: 'در حال ذخیره...' },
+  save: { en: 'Save Changes', ar: 'حفظ التغييرات', tr: 'Değişiklikleri Kaydet', fa: 'ذخیره تغییرات' },
+  cancel: { en: 'Cancel', ar: 'إلغاء', tr: 'İptal', fa: 'انصراف' },
+  activeSummary: { en: 'Bulk purchases enabled with minimum quantity: {quantity}', ar: 'الشراء بالجملة مفعّل بحد أدنى للكمية: {quantity}', tr: 'Toplu alım etkin, minimum miktar: {quantity}', fa: 'خرید عمده با حداقل مقدار {quantity} فعال است' },
+  tierSummary: { en: 'Bulk Discount Tiers:', ar: 'مستويات خصم الشراء بالجملة:', tr: 'Toplu Alım İndirim Kademeleri:', fa: 'سطوح تخفیف خرید عمده:' },
+  unitsOff: { en: '{quantity}+ units: {discount}% off', ar: '{quantity}+ وحدة: خصم {discount}%', tr: '{quantity}+ birim: %{discount} indirim', fa: '{quantity}+ قلم: {discount}٪ تخفیف' },
+};
+
 export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurchaseProductCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [bulkEnabled, setBulkEnabled] = useState(product.bulkPurchaseEnabled || product.bulk_purchase_enabled || false);
   const [minimumQuantity, setMinimumQuantity] = useState(product.bulkPurchaseMinQuantity || product.bulk_purchase_minimum_quantity || product.bulk_purchase_min_quantity || "");
   const [description, setDescription] = useState(product.bulkPurchaseNotes || product.bulk_purchase_description || product.bulk_purchase_notes || "");
   const { toast } = useToast();
+  const { language, direction } = useLanguage();
+  const tr = (key: string, values: Record<string, string | number> = {}) => {
+    const template = BULK_TRANSLATIONS[key]?.[language] || BULK_TRANSLATIONS[key]?.en || key;
+    return Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, String(value)), template);
+  };
+  const locale = language === 'fa' ? 'fa-IR' : language === 'ar' ? 'ar' : language === 'tr' ? 'tr-TR' : 'en-GB';
+  const formatNumber = (value: number | string) => new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(Number(value));
 
   const parseBulkDiscounts = (): DiscountTier[] => {
     let discounts = product.bulkPurchaseDiscounts || product.bulk_purchase_discounts;
@@ -80,14 +125,14 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
       setIsEditing(false);
       onUpdate();
       toast({
-        title: "Success",
-        description: "Bulk purchase settings updated successfully",
+        title: tr('success'),
+        description: tr('updated'),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to update bulk purchase settings",
+        title: tr('error'),
+        description: error.message || tr('updateFailed'),
         variant: "destructive",
       });
     },
@@ -98,8 +143,8 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
     
     if (bulkEnabled && (!quantity || quantity < 1)) {
       toast({
-        title: "Validation Error",
-        description: "Please enter a valid minimum quantity for bulk purchases",
+        title: tr('validation'),
+        description: tr('validQuantity'),
         variant: "destructive",
       });
       return;
@@ -108,8 +153,8 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
     for (const tier of discountTiers) {
       if (tier.minQty < 1 || tier.discount <= 0 || tier.discount > 1) {
         toast({
-          title: "Validation Error",
-          description: "Discount tiers must have valid quantity (>0) and discount (1-100%)",
+          title: tr('validation'),
+          description: tr('validTiers'),
           variant: "destructive",
         });
         return;
@@ -136,63 +181,48 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
   };
 
   const isBulkActive = product.bulkPurchaseEnabled || product.bulk_purchase_enabled;
+  const savedMinimumQuantity = product.bulkPurchaseMinQuantity || product.bulk_purchase_minimum_quantity || product.bulk_purchase_min_quantity;
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Package className="w-5 h-5 text-blue-600" />
-            <span className="text-lg font-semibold">{product.name}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={bulkEnabled ? "default" : "secondary"}>
-              {bulkEnabled ? "Bulk Enabled" : "Bulk Disabled"}
-            </Badge>
-            {!isEditing && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setIsEditing(true)}
-              >
-                <Edit3 className="w-4 h-4 mr-1" />
-                Edit
-              </Button>
-            )}
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-3 bg-gray-50 rounded-lg">
-          <div>
-            <Label className="text-xs text-gray-500">SKU</Label>
-            <p className="text-sm font-medium">{product.sku}</p>
-          </div>
-          <div>
-            <Label className="text-xs text-gray-500">Unit Price</Label>
-            <p className="text-sm font-medium flex items-center">
-              <DollarSign className="w-3 h-3 mr-1" />
-              {product.unitPrice || product.price}
-            </p>
-          </div>
-          <div>
-            <Label className="text-xs text-gray-500">Stock</Label>
-            <p className="text-sm font-medium">{product.stockQuantity || product.stock_quantity}</p>
-          </div>
-          <div>
-            <Label className="text-xs text-gray-500">Category</Label>
-            <p className="text-sm font-medium">{product.category || "N/A"}</p>
-          </div>
-        </div>
+    <Fragment>
+      <tr dir={direction} className={isEditing ? "bg-blue-50/50" : "hover:bg-slate-50"}>
+        <td className="px-3 py-3">
+          <div className="font-medium text-slate-900">{product.name}</div>
+          <div className="mt-0.5 text-xs text-slate-500">{product.category || tr('notAvailable')}</div>
+        </td>
+        <td className="px-3 py-3 font-mono text-xs text-slate-600">{product.sku || tr('notAvailable')}</td>
+        <td className="px-3 py-3 text-sm">{formatNumber(product.unitPrice || product.price || 0)}</td>
+        <td className="px-3 py-3 text-sm">{formatNumber(product.stockQuantity || product.stock_quantity || 0)}</td>
+        <td className="px-3 py-3">
+          <Badge variant={isBulkActive ? "default" : "secondary"}>
+            {isBulkActive ? tr('enabled') : tr('disabled')}
+          </Badge>
+        </td>
+        <td className="px-3 py-3 text-sm">{savedMinimumQuantity ? formatNumber(savedMinimumQuantity) : "—"}</td>
+        <td className="px-3 py-3 text-sm">
+          {isBulkActive && discountTiers.length > 0
+            ? discountTiers.map((tier) => `${formatNumber(tier.minQty)}+ / ${formatNumber(Math.round(tier.discount * 100))}%`).join("، ")
+            : "—"}
+        </td>
+        <td className="px-3 py-3 text-end">
+          <Button size="sm" variant="outline" onClick={() => isEditing ? handleCancel() : setIsEditing(true)}>
+            <Edit3 className="me-1 h-4 w-4" />
+            {isEditing ? tr('cancel') : tr('edit')}
+          </Button>
+        </td>
+      </tr>
 
-        <div className="space-y-4">
+      {isEditing && (
+        <tr dir={direction} className="bg-slate-50">
+          <td colSpan={8} className="p-4">
+            <div className="space-y-4 rounded-lg border border-blue-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <Label htmlFor={`bulk-enabled-${product.id}`} className="text-sm font-medium">
-                Enable Bulk Purchases
+                {tr('enable')}
               </Label>
               <p className="text-xs text-gray-500 mt-0.5">
-                When enabled, general discounts will NOT apply. Only bulk-specific discounts below will be used.
+                {tr('enableHint')}
               </p>
             </div>
             <Switch
@@ -208,13 +238,13 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <Label htmlFor={`min-quantity-${product.id}`} className="text-sm font-medium">
-                    Minimum Quantity *
+                    {tr('minimumQuantity')}
                   </Label>
                   <Input
                     id={`min-quantity-${product.id}`}
                     type="number"
                     min="1"
-                    placeholder="e.g., 10"
+                    placeholder={tr('quantityPlaceholder')}
                     value={minimumQuantity}
                     onChange={(e) => setMinimumQuantity(e.target.value)}
                     disabled={!isEditing}
@@ -227,7 +257,7 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
                 <div className="flex items-center justify-between">
                   <Label className="text-sm font-medium flex items-center gap-1">
                     <Percent className="w-4 h-4 text-purple-600" />
-                    Bulk Discount Tiers
+                    {tr('discountTiers')}
                   </Label>
                   {isEditing && (
                     <Button
@@ -237,19 +267,19 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
                       className="text-xs"
                     >
                       <Plus className="w-3 h-3 mr-1" />
-                      Add Tier
+                      {tr('addTier')}
                     </Button>
                   )}
                 </div>
                 <p className="text-xs text-gray-500">
-                  These discounts replace the general discount system for this product.
+                  {tr('tiersHint')}
                 </p>
 
                 <div className="space-y-2">
                   {discountTiers.map((tier, index) => (
                     <div key={index} className="flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded-lg">
                       <div className="flex-1">
-                        <Label className="text-xs text-gray-500">Min Qty</Label>
+                         <Label className="text-xs text-gray-500">{tr('minQty')}</Label>
                         <Input
                           type="number"
                           min="1"
@@ -260,7 +290,7 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
                         />
                       </div>
                       <div className="flex-1">
-                        <Label className="text-xs text-gray-500">Discount %</Label>
+                         <Label className="text-xs text-gray-500">{tr('discountPercent')}</Label>
                         <Input
                           type="number"
                           min="1"
@@ -291,11 +321,11 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
 
               <div>
                 <Label htmlFor={`description-${product.id}`} className="text-sm font-medium">
-                  Bulk Purchase Description
+                  {tr('description')}
                 </Label>
                 <Textarea
                   id={`description-${product.id}`}
-                  placeholder="Describe bulk purchase benefits, discounts, or special terms..."
+                  placeholder={tr('descriptionPlaceholder')}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   disabled={!isEditing}
@@ -305,51 +335,27 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
               </div>
             </>
           )}
-        </div>
-
-        {isEditing && (
-          <div className="flex items-center gap-2 pt-4 border-t">
+          <div className="flex items-center gap-2 border-t pt-4">
             <Button
               onClick={handleSave}
               disabled={updateBulkPurchaseMutation.isPending}
               className="flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
-              {updateBulkPurchaseMutation.isPending ? "Saving..." : "Save Changes"}
+              {updateBulkPurchaseMutation.isPending ? tr('saving') : tr('save')}
             </Button>
             <Button
               variant="outline"
               onClick={handleCancel}
               disabled={updateBulkPurchaseMutation.isPending}
             >
-              Cancel
+              {tr('cancel')}
             </Button>
           </div>
-        )}
-
-        {!isEditing && isBulkActive && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
-            <p className="text-sm font-medium text-green-800">
-              Bulk purchases enabled with minimum quantity: {product.bulkPurchaseMinQuantity || product.bulk_purchase_min_quantity}
-            </p>
-            {discountTiers.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-green-700">Bulk Discount Tiers:</p>
-                {discountTiers.map((tier, i) => (
-                  <p key={i} className="text-xs text-green-600">
-                    {tier.minQty}+ units: {Math.round(tier.discount * 100)}% off
-                  </p>
-                ))}
-              </div>
-            )}
-            {(product.bulkPurchaseNotes || product.bulk_purchase_description) && (
-              <p className="text-xs text-green-600 mt-1">
-                {product.bulkPurchaseNotes || product.bulk_purchase_description}
-              </p>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            </div>
+          </td>
+        </tr>
+      )}
+    </Fragment>
   );
 }

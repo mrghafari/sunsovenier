@@ -1,0 +1,174 @@
+ CI_CD_TEST_2026
+ [PWA] Service Worker registered, scope: https://momtazchem.com/
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ Auth check result: 
+/admin:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: 
+ 🔍 [DEBUG] userPermissions.modules: 
+ 🔍 [DEBUG] userPermissions.permissions: 
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: 
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images تصاویر گمشده moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings درگاه پرداخت FIB moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? 
+ 🔍 [DEBUG] geography_analytics button found in allButtons? 
+ 🔍 [DEBUG] ai_settings button found in allButtons? 
+ 🔍 [DEBUG] content_management button found in allButtons? 
+ 🔍 [DEBUG] finance button in filtered? 
+ 🔍 [DEBUG] geography_analytics button in filtered? 
+ 🔍 [DEBUG] ai_settings button in filtered? 
+ 🔍 [DEBUG] content_management button in filtered? 
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: 
+ 🔍 [DEBUG] userPermissions.modules: 
+ 🔍 [DEBUG] userPermissions.permissions: 
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: 
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? 
+ 🔍 [DEBUG] geography_analytics button found in allButtons? 
+ 🔍 [DEBUG] ai_settings button found in allButtons? 
+ 🔍 [DEBUG] content_management button found in allButtons? 
+ 🔍 [DEBUG] finance button in filtered? 
+ 🔍 [DEBUG] geography_analytics button in filtered? 
+ 🔍 [DEBUG] ai_settings button in filtered? 
+ 🔍 [DEBUG] content_management button in filtered? 
+ 🔍 [DEBUG] Site Management component initialized
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🔐 [AUTH] Guest user confirmed
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 📦 [INIT DISPLAY STOCK] Product 624: Stock=978, Cart=0, Display=978
+ 📦 [INIT DISPLAY STOCK] Product 625: Stock=93, Cart=0, Display=93
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=18, Cart=0, Display=18
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 📦 [INIT DISPLAY STOCK] Product 624: Stock=978, Cart=0, Display=978
+ 📦 [INIT DISPLAY STOCK] Product 625: Stock=93, Cart=0, Display=93
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=18, Cart=0, Display=18
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats data: Object
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Current products: Array(3)
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+index-CdSKVKWw.js:61 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-CdSKVKWw.js:61 🎛️ [VISIBILITY] Discount Banner: true
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats data: Object
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Current products: Array(3)
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+/shop:1 [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) null
+index-CdSKVKWw.js:61 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-CdSKVKWw.js:61 🎛️ [VISIBILITY] Discount Banner: true
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats data: Object
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Current products: Array(3)
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+index-CdSKVKWw.js:61 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+index-CdSKVKWw.js:61 🔄 Triggering cart reload after login
+index-CdSKVKWw.js:49 Customer auth check result: Object
+index-CdSKVKWw.js:61 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-CdSKVKWw.js:61 🎛️ [VISIBILITY] Discount Banner: true
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats data: Object
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Current products: Array(3)
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+index-CdSKVKWw.js:49 🔐 User just logged in, resetting cart loaded flag
+index-CdSKVKWw.js:49 🔐 User just logged in, resetting cart loaded flag
+index-CdSKVKWw.js:61 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-CdSKVKWw.js:61 🎛️ [VISIBILITY] Discount Banner: true
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats data: Object
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Current products: Array(3)
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+index-CdSKVKWw.js:61 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+index-CdSKVKWw.js:61 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-CdSKVKWw.js:61 🎛️ [VISIBILITY] Discount Banner: true
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats data: Object
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Current products: Array(3)
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+index-CdSKVKWw.js:49 🛒 Loading persistent cart for customer: 8
+index-CdSKVKWw.js:49 🛒 Loading persistent cart for customer: 8
+index-CdSKVKWw.js:61 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-CdSKVKWw.js:61 🎛️ [VISIBILITY] Discount Banner: true
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats data: Object
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Current products: Array(3)
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+index-CdSKVKWw.js:49 🛒 Loaded cart from database: Object
+index-CdSKVKWw.js:61 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-CdSKVKWw.js:61 🎛️ [VISIBILITY] Discount Banner: true
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Product stats data: Object
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Current products: Array(3)
+index-CdSKVKWw.js:61 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+index-CdSKVKWw.js:49 🛒 Loaded cart from database: Object
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-CdSKVKWw.js:49 Customer auth check result: Object
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-CdSKVKWw.js:49 Customer auth check result: {success: true, customer: {…}}

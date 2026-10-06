@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pkg from "pg";
 const { Pool } = pkg;
-import { eq, desc, sql } from "drizzle-orm";
+import { and, eq, desc, sql } from "drizzle-orm";
 import { simpleSmsTemplates, type InsertSimpleSmsTemplate, type SimpleSmsTemplate } from "../shared/schema";
 
 const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
@@ -11,6 +11,7 @@ export const simpleSmsDb = drizzle({ client: simpleSmsPool, schema: { simpleSmsT
 export interface ISimpleSmsStorage {
   getAllTemplates(): Promise<SimpleSmsTemplate[]>;
   getTemplateById(id: number): Promise<SimpleSmsTemplate | undefined>;
+  getTemplateByKeyAndLanguage(templateKey: string, language: string): Promise<SimpleSmsTemplate | undefined>;
   createTemplate(template: InsertSimpleSmsTemplate): Promise<SimpleSmsTemplate>;
   updateTemplate(id: number, updates: Partial<InsertSimpleSmsTemplate>): Promise<SimpleSmsTemplate>;
   deleteTemplate(id: number): Promise<void>;
@@ -33,6 +34,19 @@ export class SimpleSmsStorage implements ISimpleSmsStorage {
       .where(eq(simpleSmsTemplates.id, id))
       .limit(1);
     
+    return results[0];
+  }
+
+  async getTemplateByKeyAndLanguage(templateKey: string, language: string): Promise<SimpleSmsTemplate | undefined> {
+    const results = await simpleSmsDb
+      .select()
+      .from(simpleSmsTemplates)
+      .where(and(
+        eq(simpleSmsTemplates.templateKey, templateKey),
+        eq(simpleSmsTemplates.language, language),
+        eq(simpleSmsTemplates.isActive, true),
+      ))
+      .limit(1);
     return results[0];
   }
 

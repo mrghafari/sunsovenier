@@ -139,8 +139,12 @@ export class ShowcaseStorage implements IShowcaseStorage {
       if (existingShopProduct) {
         // Update existing shop product, focusing on image sync AND document fields
         await shopStorage.updateShopProduct(existingShopProduct.id, {
-          imageUrls: showcaseProduct.imageUrl ? [showcaseProduct.imageUrl] : [],
-          thumbnailUrl: showcaseProduct.imageUrl || null,
+          imageUrls: Array.isArray(showcaseProduct.imageUrls)
+            ? showcaseProduct.imageUrls as string[]
+            : (showcaseProduct.imageUrl ? [showcaseProduct.imageUrl] : []),
+          thumbnailUrl: showcaseProduct.imageUrl
+            || (Array.isArray(showcaseProduct.imageUrls) ? showcaseProduct.imageUrls[0] as string : null)
+            || null,
           price: showcaseProduct.unitPrice?.toString() || existingShopProduct.price,
           stockQuantity: showcaseProduct.stockQuantity || existingShopProduct.stockQuantity,
           description: showcaseProduct.description || existingShopProduct.description,

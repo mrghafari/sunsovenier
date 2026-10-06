@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { geographicAnalyticsLocalization } from "@/lib/geographic-analytics-localization";
+import { getOrderStatusLabel, resolveOrderStatus } from "../../../../shared/order-status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
 import { MapPin, Package, TrendingUp, Users, DollarSign, ShoppingCart, Calendar, Download, Filter, ArrowUpDown, ArrowUp, ArrowDown, Navigation, Target, Clock, CheckCircle, AlertTriangle, Maximize2, Minimize2 } from "lucide-react";
+import { SalesDeliveryHeatmap } from "@/components/admin/sales-delivery-heatmap";
 
 interface GeographicData {
   region: string;
@@ -45,6 +49,19 @@ interface TimeSeriesData {
   regions: { [key: string]: number };
 }
 
+interface RegionOrder {
+  id: number;
+  orderNumber: string;
+  status: string;
+  totalAmount: number;
+  paymentMethod: string;
+  createdAt: string;
+  customerId: number;
+  customerName: string;
+  phone: string;
+  email: string;
+}
+
 interface GpsDeliveryData {
   id: number;
   deliveryVerificationId: number;
@@ -78,7 +95,32 @@ interface GpsDeliveryStats {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 export default function GeographicAnalytics() {
-  const [dateRange, setDateRange] = useState("30d");
+  const { language, direction } = useLanguage();
+  const t = geographicAnalyticsLocalization[language];
+  const locale = language === "fa" ? "fa-IR" : language === "ar" ? "ar-IQ" : language === "tr" ? "tr-TR" : "en-US";
+  const calendar = language === "fa" ? "persian" : "gregory";
+  const number = (value: number, options?: Intl.NumberFormatOptions) => new Intl.NumberFormat(locale, options).format(value);
+  const currency = (value: number, currencyCode = "USD") => new Intl.NumberFormat(locale, { style: "currency", currency: currencyCode, minimumFractionDigits: 2 }).format(value);
+  const date = (value: string | Date) => new Intl.DateTimeFormat(locale, {
+    calendar,
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+  const chartDate = (value: string | number) => new Intl.DateTimeFormat(locale, {
+    calendar,
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(value));
+  const percentage = (value: number) => new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 }).format(value);
+  const paymentLabel = (value?: string | null) => {
+    if (!value) return "—";
+    const labels: Record<string, string> = {
+      bank_transfer: t.bankTransfer, online: t.onlinePayment, online_payment: t.onlinePayment, cash: t.cashPayment,
+    };
+    return labels[value] || value;
+  };
+  const [dateRange, setDateRange] = useState("1y");
   const [selectedRegion, setSelectedRegion] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState("all");
   const [sortField, setSortField] = useState<string>('');
@@ -87,6 +129,7 @@ export default function GeographicAnalytics() {
   const [gpsSortField, setGpsSortField] = useState<string>('');
   const [gpsSortDirection, setGpsSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isMapMaximized, setIsMapMaximized] = useState(false);
+  const [selectedRegionDetails, setSelectedRegionDetails] = useState<GeographicData | null>(null);
 
   // Sorting function
   const handleSort = (field: string) => {
@@ -120,36 +163,6 @@ export default function GeographicAnalytics() {
     return gpsSortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
   };
 
-  // English translations
-  const t = {
-    title: "Geographic Analytics",
-    subtitle: "Track sales performance by region and product",
-    totalRevenue: "Total Revenue",
-    totalOrders: "Total Orders", 
-    customers: "Customers",
-    regions: "Regions",
-    avgOrderValue: "Average Order Value",
-    export: "Export",
-    loading: "Loading analytics data...",
-    last7Days: "Last 7 Days",
-    last30Days: "Last 30 Days", 
-    last3Months: "Last 3 Months",
-    lastYear: "Last Year",
-    regionalAnalysis: "Regional Analysis",
-    productPerformance: "Product Performance",
-    trends: "Trends",
-    revenueByRegion: "Revenue by Region",
-    ordersByRegion: "Orders by Region",
-    topRegions: "Top Regions",
-    productSales: "Product Sales",
-    revenueDistribution: "Revenue Distribution",
-    topProducts: "Top Products",
-    salesTrends: "Sales Trends Over Time",
-    orders: "Orders",
-    revenue: "Revenue",
-    unitsSold: "Units Sold"
-  };
-
   // Fetch geographic sales data
   const { data: geoResult, isLoading: geoLoading } = useQuery<{data: GeographicData[], summary?: {totalUniqueCustomers: number}}>({
     queryKey: ['/api/analytics/geographic', dateRange, selectedRegion],
@@ -160,11 +173,40 @@ export default function GeographicAnalytics() {
       if (!response.ok) throw new Error('Failed to fetch geographic data');
       const result = await response.json();
       return result || { data: [], summary: { totalUniqueCustomers: 0 } };
-    }
+    },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 60000
   });
 
   const geoData = geoResult?.data || [];
   const totalUniqueCustomers = geoResult?.summary?.totalUniqueCustomers || 0;
+
+  const { data: regionOrders = [], isLoading: regionOrdersLoading } = useQuery<RegionOrder[]>({
+    queryKey: [
+      '/api/analytics/geographic/orders',
+      dateRange,
+      selectedRegionDetails?.country,
+      selectedRegionDetails?.city
+    ],
+    queryFn: async () => {
+      if (!selectedRegionDetails) return [];
+      const params = new URLSearchParams({
+        period: dateRange,
+        country: selectedRegionDetails.country,
+        city: selectedRegionDetails.city
+      });
+      const response = await fetch(`/api/analytics/geographic/orders?${params}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch region orders');
+      const result = await response.json();
+      return result.data || [];
+    },
+    enabled: Boolean(selectedRegionDetails),
+    staleTime: 0
+  });
 
   // Fetch product analytics
   const { data: productData, isLoading: productLoading } = useQuery<ProductAnalytics[]>({
@@ -176,7 +218,10 @@ export default function GeographicAnalytics() {
       if (!response.ok) throw new Error('Failed to fetch product data');
       const result = await response.json();
       return result.data || [];
-    }
+    },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true
   });
 
   // Fetch time series data
@@ -238,14 +283,14 @@ export default function GeographicAnalytics() {
 
   // Fetch GPS heatmap data  
   const gpsHeatmap = useQuery({
-    queryKey: ['/api/gps-delivery/heatmap', 'Iraq'],
+    queryKey: ['/api/gps-delivery/heatmap'],
     queryFn: async () => {
-      const response = await fetch('/api/gps-delivery/heatmap?country=Iraq', {
+      const response = await fetch('/api/gps-delivery/heatmap', {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch GPS heatmap');
       const result = await response.json();
-      console.log('🗺️ [GPS-HEATMAP] Data received:', result);
+      console.log('[GPS-HEATMAP] Data received:', result);
       return result && result.data ? result.data : [];
     }
   });
@@ -383,6 +428,59 @@ export default function GeographicAnalytics() {
 
   const sortedGpsData = getSortedGpsData();
 
+  const handleExport = () => {
+    const escapeCsv = (value: unknown) => {
+      const text = value === null || value === undefined ? '' : String(value);
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+
+    const rows: unknown[][] = [
+      [t.title],
+      [t.period, dateRange],
+      [t.generatedAt, date(new Date())],
+      [],
+      [t.summary],
+      [t.totalRevenue, summaryStats?.totalRevenue || 0],
+      [t.totalOrders, summaryStats?.totalOrders || 0],
+      [t.customers, summaryStats?.totalCustomers || 0],
+      [t.regions, summaryStats?.regionsCount || 0],
+      [t.avgOrderValue, summaryStats?.avgOrderValue || 0],
+      [],
+      [t.regionalAnalysis],
+      [t.country, t.city, t.orders, t.customers, t.revenue, t.avgOrderValue],
+      ...geoData.map((region) => [
+        region.country,
+        region.city,
+        region.totalOrders,
+        region.customerCount,
+        region.totalRevenue,
+        region.avgOrderValue
+      ]),
+      [],
+      [t.salesByRegion],
+      [t.productName, t.category, t.country, t.city, t.unitsSold, t.revenue],
+      ...sortedProductRegionData.map((row) => [
+        row.productName,
+        row.category,
+        row.region || '',
+        row.city || '',
+        row.quantity || 0,
+        row.revenue || 0
+      ])
+    ];
+
+    const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `geographic-analytics-${dateRange}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   if (geoLoading || productLoading || timeLoading || trendsLoading) {
     return (
       <div className="p-6">
@@ -397,7 +495,7 @@ export default function GeographicAnalytics() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div dir={direction} lang={language} className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -413,11 +511,16 @@ export default function GeographicAnalytics() {
               <SelectItem value="7d">{t.last7Days}</SelectItem>
               <SelectItem value="30d">{t.last30Days}</SelectItem>
               <SelectItem value="90d">{t.last3Months}</SelectItem>
-              <SelectItem value="1y">{t.lastYear}</SelectItem>
+               <SelectItem value="1y">{t.lastYear}</SelectItem>
+               <SelectItem value="all">{t.all}</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline">
-            <Download className="w-4 h-4 mr-2" />
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={!geoData.length && !sortedProductRegionData.length}
+          >
+              <Download className="w-4 h-4 me-2" />
             {t.export}
           </Button>
         </div>
@@ -432,12 +535,12 @@ export default function GeographicAnalytics() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${summaryStats.totalRevenue.toFixed(2)}</div>
+              <div className="text-2xl font-bold">{currency(summaryStats.totalRevenue)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+              <CardTitle className="text-sm font-medium">{t.totalOrders}</CardTitle>
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -446,7 +549,7 @@ export default function GeographicAnalytics() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Customers</CardTitle>
+              <CardTitle className="text-sm font-medium">{t.customers}</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -455,7 +558,7 @@ export default function GeographicAnalytics() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Regions</CardTitle>
+              <CardTitle className="text-sm font-medium">{t.regions}</CardTitle>
               <MapPin className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -464,11 +567,11 @@ export default function GeographicAnalytics() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
+              <CardTitle className="text-sm font-medium">{t.avgOrderValue}</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${summaryStats.avgOrderValue.toFixed(2)}</div>
+              <div className="text-2xl font-bold">{currency(summaryStats.avgOrderValue)}</div>
             </CardContent>
           </Card>
         </div>
@@ -476,11 +579,11 @@ export default function GeographicAnalytics() {
 
       <Tabs defaultValue="regions" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="regions">Regional Analysis</TabsTrigger>
-          <TabsTrigger value="products">Product Performance</TabsTrigger>
-          <TabsTrigger value="product-regions">Products by Region</TabsTrigger>
-          <TabsTrigger value="trends">Trends</TabsTrigger>
-          <TabsTrigger value="gps-tracking">GPS Delivery Tracking</TabsTrigger>
+          <TabsTrigger value="regions">{t.regionalAnalysis}</TabsTrigger>
+          <TabsTrigger value="products">{t.productPerformance}</TabsTrigger>
+          <TabsTrigger value="product-regions">{t.productsByRegion}</TabsTrigger>
+          <TabsTrigger value="trends">{t.trends}</TabsTrigger>
+          <TabsTrigger value="gps-tracking">{t.gpsTracking}</TabsTrigger>
         </TabsList>
 
         {/* Regional Analysis */}
@@ -489,7 +592,7 @@ export default function GeographicAnalytics() {
             {/* Revenue by Region Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Revenue by Region</CardTitle>
+                <CardTitle>{t.revenueByRegion}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -497,7 +600,7 @@ export default function GeographicAnalytics() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
                     <YAxis />
-                    <Tooltip formatter={(value: any) => [`$${value.toFixed(2)}`, 'Revenue']} />
+                    <Tooltip formatter={(value: any) => [currency(Number(value)), t.revenue]} />
                     <Bar dataKey="revenue" fill="#8884d8" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -507,7 +610,7 @@ export default function GeographicAnalytics() {
             {/* Orders by Region Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Orders by Region</CardTitle>
+                <CardTitle>{t.ordersByRegion}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -526,28 +629,90 @@ export default function GeographicAnalytics() {
           {/* Top Regions Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Top Performing Regions</CardTitle>
+              <CardTitle>{t.topRegions}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {topRegions.map((region, index) => (
-                  <div key={`${region.country}-${region.city}`} className="flex items-center justify-between p-4 border rounded-lg">
+                  <button
+                    type="button"
+                    key={`${region.country}-${region.city}`}
+                    onClick={() => setSelectedRegionDetails(region)}
+                    className="flex w-full items-center justify-between p-4 border rounded-lg text-left transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
                     <div className="flex items-center gap-4">
                       <Badge variant="secondary">#{index + 1}</Badge>
                       <div>
                         <p className="font-medium">{region.city}, {region.country}</p>
-                        <p className="text-sm text-gray-600">{region.customerCount} customers</p>
+                        <p className="text-sm text-gray-600">{number(region.customerCount)} {t.customers}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">${region.totalRevenue.toFixed(2)}</p>
-                      <p className="text-sm text-gray-600">{region.totalOrders} orders</p>
+                      <p className="font-semibold">{currency(region.totalRevenue)}</p>
+                      <p className="text-sm text-gray-600">{number(region.totalOrders)} {t.orders}</p>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </CardContent>
           </Card>
+
+          <Dialog
+            open={Boolean(selectedRegionDetails)}
+            onOpenChange={(open) => {
+              if (!open) setSelectedRegionDetails(null);
+            }}
+          >
+            <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden flex flex-col">
+              <DialogHeader>
+                <DialogTitle>
+                  {t.ordersIn} {selectedRegionDetails?.city}, {selectedRegionDetails?.country}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="overflow-auto">
+                {regionOrdersLoading ? (
+                  <div className="py-12 text-center text-muted-foreground">{t.loadingOrders}</div>
+                ) : regionOrders.length === 0 ? (
+                  <div className="py-12 text-center text-muted-foreground">{t.noOrders}</div>
+                ) : (
+                  <table className="w-full min-w-[900px] text-sm">
+                    <thead className="sticky top-0 bg-background">
+                      <tr className="border-b">
+                        <th className="p-3 text-start">{t.order}</th>
+                        <th className="p-3 text-start">{t.customer}</th>
+                        <th className="p-3 text-start">{t.contact}</th>
+                        <th className="p-3 text-start">{t.status}</th>
+                        <th className="p-3 text-start">{t.payment}</th>
+                        <th className="p-3 text-end">{t.amount}</th>
+                        <th className="p-3 text-start">{t.date}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {regionOrders.map((order) => (
+                        <tr key={order.id} className="border-b hover:bg-muted/40">
+                          <td className="p-3 font-medium">{order.orderNumber}</td>
+                          <td className="p-3">
+                            <div>{order.customerName}</div>
+                            <div className="text-xs text-muted-foreground">{t.id}: {number(order.customerId)}</div>
+                          </td>
+                          <td className="p-3">
+                            <div>{order.phone || '—'}</div>
+                            <div className="text-xs text-muted-foreground">{order.email || '—'}</div>
+                          </td>
+                          <td className="p-3"><Badge variant="outline">{order.status ? getOrderStatusLabel(resolveOrderStatus({ orderStatus: order.status }), language) : '—'}</Badge></td>
+                          <td className="p-3">{paymentLabel(order.paymentMethod)}</td>
+                          <td className="p-3 text-end font-medium">{currency(order.totalAmount)}</td>
+                          <td className="p-3">
+                            {order.createdAt ? date(order.createdAt) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* Product Performance */}
@@ -556,7 +721,7 @@ export default function GeographicAnalytics() {
             {/* Product Sales Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Product Sales</CardTitle>
+                <CardTitle>{t.productSales}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -574,7 +739,7 @@ export default function GeographicAnalytics() {
             {/* Product Revenue Pie Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Revenue Distribution</CardTitle>
+                <CardTitle>{t.revenueDistribution}</CardTitle>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -591,7 +756,7 @@ export default function GeographicAnalytics() {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: any) => [`$${value.toFixed(2)}`, 'Revenue']} />
+                    <Tooltip formatter={(value: any) => [currency(Number(value)), t.revenue]} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
@@ -602,8 +767,8 @@ export default function GeographicAnalytics() {
           {/* Product Sales Trends Over Time */}
           <Card>
             <CardHeader>
-              <CardTitle>Product Sales Trends Over Time</CardTitle>
-              <p className="text-sm text-gray-600">Track how much each product sold during the selected period</p>
+              <CardTitle>{t.salesTrends}</CardTitle>
+              <p className="text-sm text-gray-600">{t.selectedPeriodHint}</p>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
@@ -617,12 +782,13 @@ export default function GeographicAnalytics() {
                   }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
+                  <XAxis dataKey="date" tickFormatter={chartDate} />
                   <YAxis />
                   <Tooltip 
+                    labelFormatter={chartDate}
                     formatter={(value: any, name: string) => [
-                      name === 'orders' ? `${value} orders` : `$${value.toFixed(2)}`,
-                      name === 'orders' ? 'Orders' : 'Revenue'
+                      name === 'orders' ? `${number(Number(value))} ${t.orders}` : currency(Number(value)),
+                      name === 'orders' ? t.orders : t.revenue
                     ]}
                   />
                   <Line type="monotone" dataKey="orders" stroke="#8884d8" strokeWidth={2} name="orders" />
@@ -635,8 +801,8 @@ export default function GeographicAnalytics() {
           {/* Product Sales by Region - Complete Breakdown */}
           <Card>
             <CardHeader>
-              <CardTitle>Product Sales by Region - Complete Breakdown</CardTitle>
-              <p className="text-sm text-gray-600">Detailed analysis of product performance across different regions</p>
+              <CardTitle>{t.salesByRegion} — {t.completeBreakdown}</CardTitle>
+              <p className="text-sm text-gray-600">{t.detailedAnalysis}</p>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
@@ -647,9 +813,9 @@ export default function GeographicAnalytics() {
                         <div>
                           <h3 className="text-lg font-semibold">{product.name}</h3>
                           <div className="flex items-center gap-4 text-sm text-gray-600">
-                            <Badge variant="outline">{product.category || 'Chemical Product'}</Badge>
-                            <span>Total Sales: {product.totalSales || 0} units</span>
-                            <span>Total Revenue: {(product.revenue || 0).toFixed(2)} IQD</span>
+                            <Badge variant="outline">{product.category || t.chemicalProduct}</Badge>
+                            <span>{t.unitsSold}: {number(product.totalSales || 0)}</span>
+                            <span>{t.totalRevenue}: {number(product.revenue || 0, { minimumFractionDigits: 2 })} IQD</span>
                           </div>
                         </div>
                       </div>
@@ -661,15 +827,15 @@ export default function GeographicAnalytics() {
                             <div key={regionIndex} className="bg-gray-50 p-3 rounded-lg">
                               <h4 className="font-medium text-sm">{region.region} - {region.city}</h4>
                               <div className="flex justify-between text-sm text-gray-600 mt-1">
-                                <span>Quantity: {region.quantity} units</span>
-                                <span>Revenue: {region.revenue.toFixed(2)} IQD</span>
+                                <span>{t.quantity}: {number(region.quantity)} {t.unitsSold}</span>
+                                <span>{t.revenue}: {number(region.revenue, { minimumFractionDigits: 2 })} IQD</span>
                               </div>
                             </div>
                           ))}
                         </div>
                       ) : (
                         <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-600 mb-4">
-                          Regional breakdown data is being consolidated. This product has been sold but specific regional data is not yet available.
+                          {t.noRegionalData}
                         </div>
                       )}
                       
@@ -678,12 +844,13 @@ export default function GeographicAnalytics() {
                         <ResponsiveContainer width="100%" height={200}>
                           <LineChart data={productTrendsData.filter((trend: any) => trend.productName === product.name)}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="date" />
+                            <XAxis dataKey="date" tickFormatter={chartDate} />
                             <YAxis />
                             <Tooltip 
+                              labelFormatter={chartDate}
                               formatter={(value: any, name: string) => [
-                                name === 'quantity' ? `${value} units sold` : `${Number(value).toFixed(2)} IQD revenue`,
-                                name === 'quantity' ? 'Daily Sales' : 'Daily Revenue'
+                                name === 'quantity' ? `${number(Number(value))} ${t.unitsSold}` : `${number(Number(value), { minimumFractionDigits: 2 })} IQD`,
+                                name === 'quantity' ? t.dailySales : t.dailyRevenue
                               ]}
                             />
                             <Line 
@@ -708,7 +875,7 @@ export default function GeographicAnalytics() {
                   ))
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    No product trends data available for the selected period
+                    {t.noProductTrends}
                   </div>
                 )}
               </div>
@@ -718,8 +885,8 @@ export default function GeographicAnalytics() {
           {/* Product Performance Summary */}
           <Card>
             <CardHeader>
-              <CardTitle>Product Performance Summary</CardTitle>
-              <p className="text-sm text-gray-600">Overall sales comparison across all products</p>
+              <CardTitle>{t.summary}</CardTitle>
+              <p className="text-sm text-gray-600">{t.overallProductComparison}</p>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
@@ -757,8 +924,8 @@ export default function GeographicAnalytics() {
           {/* Products with Regional Breakdown */}
           <Card>
             <CardHeader>
-              <CardTitle>Products by Region - Detailed Breakdown</CardTitle>
-              <p className="text-sm text-gray-600">Which products sold how much in which regions</p>
+              <CardTitle>{t.productsByRegion} — {t.completeBreakdown}</CardTitle>
+              <p className="text-sm text-gray-600">{t.productsSoldByRegion}</p>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
@@ -780,7 +947,7 @@ export default function GeographicAnalytics() {
                     
                     {/* Regional breakdown for this product */}
                     <div className="bg-gray-50 rounded-lg p-3">
-                      <h4 className="font-medium mb-3 text-sm">Sales by Region:</h4>
+                      <h4 className="font-medium mb-3 text-sm">{t.salesByRegion}:</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {product.regions && product.regions.length > 0 ? (
                           product.regions.map((region: any) => (
@@ -813,8 +980,8 @@ export default function GeographicAnalytics() {
         <TabsContent value="product-regions" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Product Sales by Region - Complete Breakdown</CardTitle>
-              <p className="text-sm text-gray-600">Detailed view of which products sold where and how much revenue was generated</p>
+              <CardTitle>{t.salesByRegion} — {t.completeBreakdown}</CardTitle>
+              <p className="text-sm text-gray-600">{t.detailedRevenueView}</p>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -893,7 +1060,7 @@ export default function GeographicAnalytics() {
                               {row.region}
                             </div>
                           ) : (
-                            <span className="text-gray-500 italic">No regional data</span>
+                            <span className="text-gray-500 italic">{t.noRegionalData}</span>
                           )}
                         </td>
                         <td className="border border-gray-300 px-4 py-2">
@@ -918,18 +1085,18 @@ export default function GeographicAnalytics() {
         <TabsContent value="trends" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Sales Trends Over Time</CardTitle>
+              <CardTitle>{t.salesTrends}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={timeData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
+                  <XAxis dataKey="date" tickFormatter={chartDate} />
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
-                  <Line yAxisId="left" type="monotone" dataKey="orders" stroke="#8884d8" name="Orders" />
-                  <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#82ca9d" name="Revenue ($)" />
+                  <Tooltip labelFormatter={chartDate} />
+                  <Line yAxisId="left" type="monotone" dataKey="orders" stroke="#8884d8" name={t.orders} />
+                  <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#82ca9d" name={t.revenue} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -941,7 +1108,7 @@ export default function GeographicAnalytics() {
           {gpsLoading || gpsStatsLoading ? (
             <div className="text-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-              <p className="mt-2 text-gray-600">Loading GPS delivery data...</p>
+              <p className="mt-2 text-gray-600">{t.loading}</p>
             </div>
           ) : (
             <>
@@ -950,7 +1117,7 @@ export default function GeographicAnalytics() {
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Total Deliveries</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t.totalOrders}</CardTitle>
                       <Navigation className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
@@ -959,30 +1126,30 @@ export default function GeographicAnalytics() {
                   </Card>
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Successful</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t.successful}</CardTitle>
                       <CheckCircle className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold text-green-600">{gpsStats.successfulDeliveries}</div>
                       <p className="text-xs text-gray-600">
-                        {gpsStats.totalDeliveries > 0 ? 
-                          `${((gpsStats.successfulDeliveries / gpsStats.totalDeliveries) * 100).toFixed(1)}% success rate` : 
-                          'No data'}
+                        {gpsStats.totalDeliveries > 0
+                          ? `${percentage(gpsStats.successfulDeliveries / gpsStats.totalDeliveries)} ${t.match}`
+                          : t.noData}
                       </p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Avg Accuracy</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t.accuracy}</CardTitle>
                       <Target className="h-4 w-4 text-orange-600" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold text-orange-600">{gpsStats.averageAccuracy?.toFixed(1) || '0.0'}m</div>
+                      <div className="text-2xl font-bold text-orange-600">{number(gpsStats.averageAccuracy || 0, { maximumFractionDigits: 1 })}m</div>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Countries</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t.countries}</CardTitle>
                       <MapPin className="h-4 w-4 text-purple-600" />
                     </CardHeader>
                     <CardContent>
@@ -991,7 +1158,7 @@ export default function GeographicAnalytics() {
                   </Card>
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Cities</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t.cities}</CardTitle>
                       <MapPin className="h-4 w-4 text-indigo-600" />
                     </CardHeader>
                     <CardContent>
@@ -1000,7 +1167,7 @@ export default function GeographicAnalytics() {
                   </Card>
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Delivery Staff</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t.deliveryStaff}</CardTitle>
                       <Users className="h-4 w-4 text-teal-600" />
                     </CardHeader>
                     <CardContent>
@@ -1015,9 +1182,9 @@ export default function GeographicAnalytics() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Navigation className="h-5 w-5 text-blue-600" />
-                    Recent GPS Delivery Confirmations
+                    {t.recentGps}
                   </CardTitle>
-                  <p className="text-sm text-gray-600">Latest delivery location confirmations with GPS coordinates</p>
+                  <p className="text-sm text-gray-600">{t.latestGps}</p>
                 </CardHeader>
                 <CardContent>
                   {gpsDeliveries && gpsDeliveries.length > 0 ? (
@@ -1025,7 +1192,7 @@ export default function GeographicAnalytics() {
                       {/* Stats Summary */}
                       <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                         <div className="text-sm text-gray-600">
-                          نمایش {Math.min(20, gpsDeliveries.length)} از {gpsDeliveries.length} تحویل
+                          {t.showMore}: {number(Math.min(20, gpsDeliveries.length))} / {number(gpsDeliveries.length)}
                         </div>
                         {gpsDeliveries.length > 20 && (
                           <button
@@ -1035,13 +1202,13 @@ export default function GeographicAnalytics() {
                               if (expandedTable && toggleButton) {
                                 const isHidden = expandedTable.style.display === 'none' || !expandedTable.style.display;
                                 expandedTable.style.display = isHidden ? 'block' : 'none';
-                                toggleButton.textContent = isHidden ? 'مخفی کردن بقیه' : `نمایش ${gpsDeliveries.length - 20} تحویل بیشتر`;
+                                toggleButton.textContent = isHidden ? t.hideMore : `${t.showMore} ${number(gpsDeliveries.length - 20)}`;
                               }
                             }}
                             id="toggle-gps-button"
                             className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
                           >
-                            نمایش {gpsDeliveries.length - 20} تحویل بیشتر
+                            {t.showMore} {number(gpsDeliveries.length - 20)}
                           </button>
                         )}
                       </div>
@@ -1055,7 +1222,7 @@ export default function GeographicAnalytics() {
                                 onClick={() => handleGpsSort('customerOrderId')}
                               >
                                 <div className="flex items-center gap-2">
-                                  Order ID
+                                  {t.orderId}
                                   {getGpsSortIcon('customerOrderId')}
                                 </div>
                               </th>
@@ -1064,7 +1231,7 @@ export default function GeographicAnalytics() {
                                 onClick={() => handleGpsSort('deliveryPersonName')}
                               >
                                 <div className="flex items-center gap-2">
-                                  Delivery Person
+                                  {t.deliveryPerson}
                                   {getGpsSortIcon('deliveryPersonName')}
                                 </div>
                               </th>
@@ -1073,17 +1240,17 @@ export default function GeographicAnalytics() {
                                 onClick={() => handleGpsSort('city')}
                               >
                                 <div className="flex items-center gap-2">
-                                  Location
+                                  {t.location}
                                   {getGpsSortIcon('city')}
                                 </div>
                               </th>
-                              <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">GPS Coordinates</th>
+                              <th className="border border-gray-300 px-3 py-2 text-start text-sm font-medium">{t.gpsCoordinates}</th>
                               <th 
                                 className="border border-gray-300 px-3 py-2 text-left text-sm font-medium cursor-pointer hover:bg-gray-200 transition-colors"
                                 onClick={() => handleGpsSort('accuracy')}
                               >
                                 <div className="flex items-center gap-2">
-                                  Accuracy
+                                  {t.accuracy}
                                   {getGpsSortIcon('accuracy')}
                                 </div>
                               </th>
@@ -1092,7 +1259,7 @@ export default function GeographicAnalytics() {
                                 onClick={() => handleGpsSort('addressMatched')}
                               >
                                 <div className="flex items-center gap-2">
-                                  Address Match
+                                  {t.addressMatch}
                                   {getGpsSortIcon('addressMatched')}
                                 </div>
                               </th>
@@ -1101,7 +1268,7 @@ export default function GeographicAnalytics() {
                                 onClick={() => handleGpsSort('verificationTime')}
                               >
                                 <div className="flex items-center gap-2">
-                                  Verification Time
+                                  {t.verificationTime}
                                   {getGpsSortIcon('verificationTime')}
                                 </div>
                               </th>
@@ -1133,11 +1300,11 @@ export default function GeographicAnalytics() {
                                       const googleMapsUrl = `https://www.google.com/maps?q=${parseFloat(delivery.latitude)},${parseFloat(delivery.longitude)}&z=15`;
                                       window.open(googleMapsUrl, '_blank');
                                     }}
-                                    title="کلیک برای نمایش در Google Maps"
+                                    title={t.mapAll}
                                   >
-                                    <p className="text-blue-600 hover:text-blue-800">📍 Lat: {parseFloat(delivery.latitude).toFixed(6)}</p>
-                                    <p className="text-blue-600 hover:text-blue-800">📍 Lng: {parseFloat(delivery.longitude).toFixed(6)}</p>
-                                    <div className="text-xs text-gray-500 mt-1">🗺️ کلیک = Google Maps</div>
+                                    <p className="text-blue-600 hover:text-blue-800">Lat: {parseFloat(delivery.latitude).toFixed(6)}</p>
+                                    <p className="text-blue-600 hover:text-blue-800">Lng: {parseFloat(delivery.longitude).toFixed(6)}</p>
+                                    <div className="text-xs text-gray-500 mt-1">{t.mapAll}</div>
                                   </div>
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2">
@@ -1159,7 +1326,7 @@ export default function GeographicAnalytics() {
                                   )}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-xs">
-                                  {new Date(delivery.verificationTime).toLocaleString('en-US')}
+                                  {date(delivery.verificationTime)}
                                 </td>
                               </tr>
                             ))}
@@ -1176,8 +1343,8 @@ export default function GeographicAnalytics() {
                             className="text-sm"
                           >
                             {showAllGpsDeliveries 
-                              ? `نمایش کمتر (20 ردیف اول)`
-                              : `نمایش ${sortedGpsData.length - 20} تحویل بیشتر`
+                              ? `${t.showLess} (${t.rowsFirst})`
+                              : `${t.showMore} ${number(sortedGpsData.length - 20)}`
                             }
                           </Button>
                         </div>
@@ -1186,8 +1353,8 @@ export default function GeographicAnalytics() {
                   ) : (
                     <div className="text-center py-8 text-gray-500">
                       <Navigation className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p className="text-lg font-medium">No GPS delivery data available</p>
-                      <p className="text-sm">GPS tracking data will appear here when delivery confirmations are made</p>
+                      <p className="text-lg font-medium">{t.noGpsData}</p>
+                      <p className="text-sm">{t.gpsWillAppear}</p>
                     </div>
                   )}
                 </CardContent>
@@ -1198,8 +1365,8 @@ export default function GeographicAnalytics() {
                 {/* GPS Delivery Performance Chart */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>GPS Delivery Performance</CardTitle>
-                    <p className="text-sm text-gray-600">Success rate and accuracy by region</p>
+                    <CardTitle>{t.gpsPerformance}</CardTitle>
+                    <p className="text-sm text-gray-600">{t.successByRegion}</p>
                   </CardHeader>
                   <CardContent>
                     {gpsAnalytics.data && gpsAnalytics.data.length > 0 ? (
@@ -1224,21 +1391,21 @@ export default function GeographicAnalytics() {
                           <Tooltip 
                             formatter={(value: any, name: string) => [
                               name === 'deliverySuccessRate' ? `${value}%` : value,
-                              name === 'deliverySuccessRate' ? 'Success Rate' : 
-                              name === 'totalDeliveries' ? 'Total Deliveries' : 
-                              name === 'averageAccuracy' ? 'Average Accuracy (m)' : name
+                              name === 'deliverySuccessRate' ? t.successRate :
+                              name === 'totalDeliveries' ? t.totalDeliveries :
+                              name === 'averageAccuracy' ? `${t.averageAccuracy} (m)` : name
                             ]}
                           />
-                          <Bar dataKey="totalDeliveries" fill="#3b82f6" name="Total Deliveries" />
-                          <Bar dataKey="deliverySuccessRate" fill="#10b981" name="Success Rate %" />
+                          <Bar dataKey="totalDeliveries" fill="#3b82f6" name={t.totalDeliveries} />
+                          <Bar dataKey="deliverySuccessRate" fill="#10b981" name={`${t.successRate} (%)`} />
                         </BarChart>
                       </ResponsiveContainer>
                     ) : (
                       <div className="h-[300px] flex items-center justify-center text-gray-500">
                         <div className="text-center">
                           <Target className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                          <p className="text-lg font-medium">No GPS Analytics Data</p>
-                          <p className="text-sm">Generate analytics to view performance charts</p>
+                          <p className="text-lg font-medium">{t.noGpsAnalytics}</p>
+                          <p className="text-sm">{t.generateAnalytics}</p>
                         </div>
                       </div>
                     )}
@@ -1248,8 +1415,8 @@ export default function GeographicAnalytics() {
                 {/* GPS Accuracy Distribution */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>GPS Accuracy Distribution</CardTitle>
-                    <p className="text-sm text-gray-600">Delivery accuracy by city</p>
+                    <CardTitle>{t.accuracyDistribution}</CardTitle>
+                    <p className="text-sm text-gray-600">{t.accuracyByCity}</p>
                   </CardHeader>
                   <CardContent>
                     {gpsAnalytics.data && gpsAnalytics.data.length > 0 ? (
@@ -1266,9 +1433,9 @@ export default function GeographicAnalytics() {
                             textAnchor="end"
                             height={80}
                           />
-                          <YAxis label={{ value: 'Accuracy (meters)', angle: -90, position: 'insideLeft' }} />
+                          <YAxis label={{ value: t.accuracyMeters, angle: -90, position: 'insideLeft' }} />
                           <Tooltip 
-                            formatter={(value: any) => [`${value}m`, 'Average Accuracy']}
+                            formatter={(value: any) => [`${number(Number(value), { maximumFractionDigits: 1 })}m`, t.averageAccuracy]}
                           />
                           <Line 
                             type="monotone" 
@@ -1283,8 +1450,8 @@ export default function GeographicAnalytics() {
                       <div className="h-[300px] flex items-center justify-center text-gray-500">
                         <div className="text-center">
                           <Navigation className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                          <p className="text-lg font-medium">No Accuracy Data</p>
-                          <p className="text-sm">GPS accuracy data will appear here</p>
+                          <p className="text-lg font-medium">{t.noAccuracy}</p>
+                          <p className="text-sm">{t.accuracyWillAppear}</p>
                         </div>
                       </div>
                     )}
@@ -1295,8 +1462,8 @@ export default function GeographicAnalytics() {
               {/* GPS Heatmap Visualization */}
               <Card>
                 <CardHeader>
-                  <CardTitle>GPS Delivery Heatmap</CardTitle>
-                  <p className="text-sm text-gray-600">Geographic distribution of delivery confirmations</p>
+                  <CardTitle>{t.heatmap}</CardTitle>
+                  <p className="text-sm text-gray-600">{t.heatmapSubtitle}</p>
                 </CardHeader>
                 <CardContent>
                   {gpsHeatmap.data && Array.isArray(gpsHeatmap.data) && gpsHeatmap.data.length > 0 ? (
@@ -1304,47 +1471,49 @@ export default function GeographicAnalytics() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                         <div className="bg-blue-50 p-3 rounded-lg">
                           <div className="text-2xl font-bold text-blue-600">{gpsHeatmap.data.length}</div>
-                          <div className="text-sm text-blue-700">GPS Points</div>
+                          <div className="text-sm text-blue-700">{t.gpsPoints}</div>
                         </div>
                         <div className="bg-green-50 p-3 rounded-lg">
                           <div className="text-2xl font-bold text-green-600">
                             {gpsHeatmap.data.filter((point: any) => point.weight >= 1).length}
                           </div>
-                          <div className="text-sm text-green-700">High Accuracy</div>
+                          <div className="text-sm text-green-700">{t.highAccuracy}</div>
                         </div>
                         <div className="bg-yellow-50 p-3 rounded-lg">
                           <div className="text-2xl font-bold text-yellow-600">
                             {gpsHeatmap.data.filter((point: any) => point.weight < 1).length}
                           </div>
-                          <div className="text-sm text-yellow-700">Needs Review</div>
+                          <div className="text-sm text-yellow-700">{t.needsReview}</div>
                         </div>
                         <div className="bg-purple-50 p-3 rounded-lg">
                           <div className="text-2xl font-bold text-purple-600">
                             {new Set(gpsHeatmap.data.map((point: any) => `${point.lat.toFixed(1)},${point.lng.toFixed(1)}`)).size}
                           </div>
-                          <div className="text-sm text-purple-700">Unique Areas</div>
+                            <div className="text-sm text-purple-700">{t.uniqueAreas}</div>
                         </div>
                       </div>
+
+                      <SalesDeliveryHeatmap points={gpsHeatmap.data} />
                       
                       {/* Delivery Distribution Map */}
-                      <div className="bg-white border rounded-lg p-4">
+                      <div className="hidden bg-white border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-semibold text-gray-800 flex items-center">
                             <MapPin className="h-5 w-5 mr-2 text-blue-600" />
-                            نقشه پراکندگی توزیع تحویل‌ها (Delivery Distribution Map)
+                            {t.distributionMap}
                           </h4>
                           <Dialog open={isMapMaximized} onOpenChange={setIsMapMaximized}>
                             <DialogTrigger asChild>
                               <Button variant="outline" size="sm" className="flex items-center gap-2">
                                 <Maximize2 className="h-4 w-4" />
-                                بزرگنمایی
+                                {t.zoomIn}
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-7xl max-h-[95vh] w-full h-full">
                               <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2">
                                   <MapPin className="h-5 w-5 text-blue-600" />
-                                  نقشه پراکندگی توزیع تحویل‌ها - نمای تمام‌صفحه
+                                  {t.fullscreenMap}
                                 </DialogTitle>
                               </DialogHeader>
                               <div className="flex-1 overflow-hidden">
@@ -1354,25 +1523,25 @@ export default function GeographicAnalytics() {
                                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                                     <div className="bg-blue-50 p-3 rounded-lg text-center">
                                       <div className="text-xl font-bold text-blue-600">{gpsHeatmap.data.length}</div>
-                                      <div className="text-xs text-blue-700">کل نقاط تحویل</div>
+                              <div className="text-xs text-blue-700">{t.gpsPoints}</div>
                                     </div>
                                     <div className="bg-green-50 p-3 rounded-lg text-center">
                                       <div className="text-xl font-bold text-green-600">
                                         {gpsHeatmap.data.filter((p: any) => p.weight >= 1).length}
                                       </div>
-                                      <div className="text-xs text-green-700">تحویل موفق</div>
+                              <div className="text-xs text-green-700">{t.successful}</div>
                                     </div>
                                     <div className="bg-yellow-50 p-3 rounded-lg text-center">
                                       <div className="text-xl font-bold text-yellow-600">
                                         {gpsHeatmap.data.filter((p: any) => p.weight < 1).length}
                                       </div>
-                                      <div className="text-xs text-yellow-700">نیاز به بررسی</div>
+                              <div className="text-xs text-yellow-700">{t.needsReview}</div>
                                     </div>
                                     <div className="bg-purple-50 p-3 rounded-lg text-center">
                                       <div className="text-xl font-bold text-purple-600">
                                         {new Set(gpsHeatmap.data.map((point: any) => `${Math.floor(point.lat)},${Math.floor(point.lng)}`)).size}
                                       </div>
-                                      <div className="text-xs text-purple-700">مناطق مختلف</div>
+                              <div className="text-xs text-purple-700">{t.uniqueAreas}</div>
                                     </div>
                                   </div>
                                   
@@ -1394,7 +1563,7 @@ export default function GeographicAnalytics() {
                                             }
                                           }}
                                           className="w-8 h-8 bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center text-gray-700 shadow-sm"
-                                          title="زوم ورود"
+                                          title={t.zoomIn}
                                         >
                                           <span className="text-lg font-bold">+</span>
                                         </button>
@@ -1411,7 +1580,7 @@ export default function GeographicAnalytics() {
                                             }
                                           }}
                                           className="w-8 h-8 bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center text-gray-700 shadow-sm"
-                                          title="زوم خروج"
+                                          title={t.zoomOut}
                                         >
                                           <span className="text-lg font-bold">-</span>
                                         </button>
@@ -1423,9 +1592,9 @@ export default function GeographicAnalytics() {
                                             }
                                           }}
                                           className="w-8 h-8 bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center text-gray-700 shadow-sm"
-                                          title="بازگشت به نمای اصلی"
+                                          title={t.resetMap}
                                         >
-                                          <span className="text-xs">🏠</span>
+                                          <span className="text-xs">{t.resetMap}</span>
                                         </button>
                                       </div>
                                       
@@ -1574,10 +1743,10 @@ export default function GeographicAnalytics() {
                                                 }}
                                               >
                                                 <title>
-                                                  🎯 منطقه تحویل (کلیک برای نمایش در Google Maps)
-                                                  📊 تعداد نقاط: {cluster.intensity}
-                                                  ⭐ میانگین دقت: {cluster.avgWeight.toFixed(1)}
-                                                  📍 کلیک کنید تا در Google Maps ببینید
+                                                  {t.deliveryArea}
+                                                  {t.pointCount}: {number(cluster.intensity)}
+                                                  {t.averageAccuracyShort}: {number(cluster.avgWeight, { maximumFractionDigits: 1 })}
+                                                  {t.clickMap}
                                                 </title>
                                               </circle>
                                               
@@ -1610,25 +1779,25 @@ export default function GeographicAnalytics() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                           <div className="bg-blue-50 p-3 rounded-lg text-center">
                             <div className="text-xl font-bold text-blue-600">{gpsHeatmap.data.length}</div>
-                            <div className="text-xs text-blue-700">کل نقاط تحویل</div>
+                              <div className="text-xs text-blue-700">{t.gpsPoints}</div>
                           </div>
                           <div className="bg-green-50 p-3 rounded-lg text-center">
                             <div className="text-xl font-bold text-green-600">
                               {gpsHeatmap.data.filter((p: any) => p.weight >= 1).length}
                             </div>
-                            <div className="text-xs text-green-700">تحویل موفق</div>
+                              <div className="text-xs text-green-700">{t.successful}</div>
                           </div>
                           <div className="bg-yellow-50 p-3 rounded-lg text-center">
                             <div className="text-xl font-bold text-yellow-600">
                               {gpsHeatmap.data.filter((p: any) => p.weight < 1).length}
                             </div>
-                            <div className="text-xs text-yellow-700">نیاز به بررسی</div>
+                              <div className="text-xs text-yellow-700">{t.needsReview}</div>
                           </div>
                           <div className="bg-purple-50 p-3 rounded-lg text-center">
                             <div className="text-xl font-bold text-purple-600">
                               {new Set(gpsHeatmap.data.map((point: any) => `${Math.floor(point.lat)},${Math.floor(point.lng)}`)).size}
                             </div>
-                            <div className="text-xs text-purple-700">مناطق مختلف</div>
+                              <div className="text-xs text-purple-700">{t.uniqueAreas}</div>
                           </div>
                         </div>
                         
@@ -1650,7 +1819,7 @@ export default function GeographicAnalytics() {
                                   }
                                 }}
                                 className="w-8 h-8 bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center text-gray-700 shadow-sm"
-                                title="زوم ورود"
+                                title={t.zoomIn}
                               >
                                 <span className="text-lg font-bold">+</span>
                               </button>
@@ -1667,7 +1836,7 @@ export default function GeographicAnalytics() {
                                   }
                                 }}
                                 className="w-8 h-8 bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center text-gray-700 shadow-sm"
-                                title="زوم خروج"
+                                title={t.zoomOut}
                               >
                                 <span className="text-lg font-bold">-</span>
                               </button>
@@ -1679,9 +1848,9 @@ export default function GeographicAnalytics() {
                                   }
                                 }}
                                 className="w-8 h-8 bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center justify-center text-gray-700 shadow-sm"
-                                title="بازگشت به نمای اصلی"
+                                title={t.resetMap}
                               >
-                                <span className="text-xs">🏠</span>
+                                <span className="text-xs">{t.resetMap}</span>
                               </button>
                             </div>
                             
@@ -1838,10 +2007,10 @@ export default function GeographicAnalytics() {
                                       }}
                                     >
                                       <title>
-                                        🎯 منطقه تحویل (کلیک برای نمایش در Google Maps)
-                                        📊 تعداد نقاط: {cluster.intensity}
-                                        ⭐ میانگین دقت: {cluster.avgWeight.toFixed(1)}
-                                        📍 کلیک کنید تا در Google Maps ببینید
+                                        {t.deliveryArea}
+                                        {t.pointCount}: {number(cluster.intensity)}
+                                        {t.averageAccuracyShort}: {number(cluster.avgWeight, { maximumFractionDigits: 1 })}
+                                        {t.clickMap}
                                       </title>
                                     </circle>
                                     
@@ -1904,9 +2073,8 @@ export default function GeographicAnalytics() {
                                     }}
                                   >
                                     <title>
-                                      📍 تحویل در: {point.lat.toFixed(4)}, {point.lng.toFixed(4)} (کلیک برای Google Maps)
-                                      📅 تاریخ: {new Date(point.timestamp).toLocaleDateString('fa-IR')}
-                                      🗺️ کلیک کنید تا در Google Maps ببینید
+                                      {t.location}: {point.lat.toFixed(4)}, {point.lng.toFixed(4)} — {t.mapAll}
+                                      {t.date}: {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(point.timestamp))}
                                     </title>
                                   </circle>
                                 );
@@ -1918,28 +2086,28 @@ export default function GeographicAnalytics() {
                           <div className="p-4 bg-gray-50 border-t">
                             <div className="flex flex-wrap items-center justify-between gap-4">
                               <div className="flex items-center space-x-6">
-                                <h5 className="font-semibold text-gray-800">راهنمای نقشه:</h5>
+                                <h5 className="font-semibold text-gray-800">{t.mapGuide}:</h5>
                                 <div className="flex items-center space-x-4">
                                   <div className="flex items-center">
                                     <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
-                                    <span className="text-sm">تحویل موفق</span>
+                                    <span className="text-sm">{t.successful}</span>
                                   </div>
                                   <div className="flex items-center">
                                     <div className="w-4 h-4 rounded-full bg-yellow-500 mr-2"></div>
-                                    <span className="text-sm">نیاز به بررسی</span>
+                                    <span className="text-sm">{t.needsReview}</span>
                                   </div>
                                   <div className="flex items-center">
                                     <div className="w-6 h-6 rounded-full bg-green-200 border-2 border-green-500 mr-2"></div>
-                                    <span className="text-sm">مناطق پرتراکم</span>
+                                    <span className="text-sm">{t.denseAreas}</span>
                                   </div>
                                 </div>
                               </div>
                               
                               <div className="flex items-center justify-between flex-wrap gap-2">
                                 <div className="text-xs text-gray-600 flex-1">
-                                  💡 کنترل‌ها: اسکرول ماوس = زوم قدرتمند (تا 200x) | کلیک و کشیدن = جابجایی | دکمه‌های + و - = زوم دستی
+                                  {t.mapGuide}: {t.zoomIn} / {t.zoomOut} | {t.resetMap}
                                   <br />
-                                  🎯 نقاط بزرگ‌تر = تراکم بیشتر تحویل | انیمیشن = مناطق فعال | کلیک روی نقاط = Google Maps | دکمه 🏠 = بازگشت به نمای اصلی
+                                  {t.gpsPoints}: {t.denseAreas} | {t.mapAll}
                                 </div>
                                 <button
                                   onClick={() => {
@@ -1951,7 +2119,7 @@ export default function GeographicAnalytics() {
                                   }}
                                   className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors flex-shrink-0"
                                 >
-                                  🗺️ نمایش همه در Google Maps
+                                  {t.mapAll}
                                 </button>
                               </div>
                             </div>
@@ -1959,13 +2127,13 @@ export default function GeographicAnalytics() {
                         </div>
                         
                         <div className="mt-3 text-xs text-gray-600 text-center">
-                          <p>📍 پراکندگی جغرافیایی {gpsHeatmap.data.length} نقطه تحویل در عراق، ایران و ترکیه. کارت‌های سبز: تحویل موفق، زرد: نیاز به بررسی</p>
+                          <p>{t.gpsPoints}: {number(gpsHeatmap.data.length)} — {t.highAccuracy}: {t.successful}; {t.needsReview}: {t.needsReview}</p>
                         </div>
                       </div>
                       
                       {/* Detailed GPS Coordinates List */}
                       <div className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="font-semibold text-gray-800 mb-3">جزئیات مختصات GPS</h4>
+                        <h4 className="font-semibold text-gray-800 mb-3">{t.gpsDetails}</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
                           {gpsHeatmap.data.map((point: any, index: number) => (
                             <div key={index} className="flex items-center justify-between bg-white p-2 rounded border">
@@ -1976,12 +2144,12 @@ export default function GeographicAnalytics() {
                                 <div className="text-sm">
                                   <div className="font-medium">{point.lat.toFixed(4)}, {point.lng.toFixed(4)}</div>
                                   <div className="text-gray-500 text-xs">
-                                    {new Date(point.timestamp).toLocaleDateString('en-US')}
+                                    {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(point.timestamp))}
                                   </div>
                                 </div>
                               </div>
                               <Badge variant={point.weight >= 1 ? "default" : "secondary"} className="text-xs">
-                                {point.weight >= 1 ? "دقیق" : "بررسی"}
+                                {point.weight >= 1 ? t.highAccuracy : t.needsReview}
                               </Badge>
                             </div>
                           ))}
@@ -1989,15 +2157,16 @@ export default function GeographicAnalytics() {
                       </div>
                       
                       <div className="text-xs text-gray-500 mt-4">
-                        <p><strong>Note:</strong> GPS coordinates represent actual delivery confirmation locations in Iraq, Iran, and Turkey. Green indicators show high-accuracy deliveries, yellow indicates locations requiring review.</p>
+                        <p><strong>{t.note}:</strong> {t.latestGps}. {t.highAccuracy}: {t.match}; {t.needsReview}: {t.noMatch}.</p>
                       </div>
                     </div>
                   ) : (
-                    <div className="h-64 flex items-center justify-center text-gray-500">
-                      <div className="text-center">
-                        <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                        <p className="text-lg font-medium">No GPS Heatmap Data</p>
-                        <p className="text-sm">GPS delivery locations will appear here when confirmations are made</p>
+                    <div className="space-y-4">
+                      <SalesDeliveryHeatmap points={[]} />
+                      <div className="rounded-lg border border-dashed bg-gray-50 p-4 text-center text-gray-500">
+                        <MapPin className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                        <p className="font-medium">{t.noHeatmap}</p>
+                        <p className="text-sm">{t.heatmapWillAppear}</p>
                       </div>
                     </div>
                   )}

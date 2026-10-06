@@ -48,10 +48,12 @@ interface AddressFormData {
 
 interface AddressSelectorProps {
   selectedAddressId?: number;
-  onAddressSelect: (address: CustomerAddress) => void;
+  onAddressSelect?: (address: CustomerAddress) => void;
+  /** Profile address-book mode keeps the same CRUD UI without checkout selection behavior. */
+  managementMode?: boolean;
 }
 
-export default function AddressSelector({ selectedAddressId, onAddressSelect }: AddressSelectorProps) {
+export default function AddressSelector({ selectedAddressId, onAddressSelect, managementMode = false }: AddressSelectorProps) {
   const { t, direction } = useLanguage();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -87,13 +89,16 @@ export default function AddressSelector({ selectedAddressId, onAddressSelect }: 
 
   // Fetch customer info for default recipient name
   const { data: customerInfo } = useQuery({
-    queryKey: ['/api/customers/profile'],
+    queryKey: ['/api/customers/me'],
     queryFn: async () => {
-      const response = await fetch('/api/customers/profile', {
+      // The customer portal exposes profile data through GET /me. The
+      // /profile endpoint is the legacy PUT-only update route.
+      const response = await fetch('/api/customers/me', {
         credentials: 'include'
       });
       if (!response.ok) throw new Error(t.address_selector.fetchCustomerInfoError);
-      return response.json();
+      const result = await response.json();
+      return result?.customer ?? result?.data?.customer ?? result?.data ?? result;
     }
   });
 
@@ -294,12 +299,13 @@ export default function AddressSelector({ selectedAddressId, onAddressSelect }: 
 
   const handleAddressSelect = (addressId: string) => {
     const address = addresses.find((addr: CustomerAddress) => addr.id.toString() === addressId);
-    if (address) {
+       if (address && onAddressSelect) {
       onAddressSelect(address);
     }
   };
 
-  // Auto-create address from CRM profile if customer has no addresses
+  // Checkout may offer a legacy-profile fallback. Never recreate deleted entries
+  // while the customer is managing their address book.
   const autoCreateFromProfileMutation = useMutation({
     mutationFn: async () => {
       if (!customerInfo) throw new Error('No customer info available');
@@ -341,23 +347,22 @@ export default function AddressSelector({ selectedAddressId, onAddressSelect }: 
 
   // Auto-create address from CRM when customer has no addresses but has profile data
   useEffect(() => {
-    if (addresses.length === 0 && customerInfo && !autoCreateFromProfileMutation.isPending && !autoCreateFromProfileMutation.isSuccess) {
+     if (!managementMode && addresses.length === 0 && customerInfo && !autoCreateFromProfileMutation.isPending && !autoCreateFromProfileMutation.isSuccess) {
       // Check if customer has enough info to create an address
       const hasAddress = customerInfo.address || customerInfo.city || customerInfo.province;
       const hasName = customerInfo.firstName || customerInfo.lastName;
       
       if (hasAddress && hasName) {
-        console.log('🏠 [ADDRESS] Auto-creating address from CRM profile for customer:', customerInfo.id);
         autoCreateFromProfileMutation.mutate();
       }
     }
-  }, [addresses.length, customerInfo, autoCreateFromProfileMutation.isPending, autoCreateFromProfileMutation.isSuccess]);
+  }, [managementMode, addresses.length, customerInfo, autoCreateFromProfileMutation.isPending, autoCreateFromProfileMutation.isSuccess]);
 
   // Auto-select default address on load
   useEffect(() => {
     if (addresses.length > 0 && !selectedAddressId) {
       const defaultAddress = addresses.find((addr: CustomerAddress) => addr.isDefault) || addresses[0];
-      onAddressSelect(defaultAddress);
+      onAddressSelect?.(defaultAddress);
     }
   }, [addresses, selectedAddressId, onAddressSelect]);
 
@@ -379,7 +384,9 @@ export default function AddressSelector({ selectedAddressId, onAddressSelect }: 
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>{t.address_selector.deliveryAddressTitle}</CardTitle>
-          <CardDescription>{t.address_selector.selectAddressDescription}</CardDescription>
+          <CardDescription>
+            {managementMode ? 'Manage your saved delivery addresses' : t.address_selector.selectAddressDescription}
+          </CardDescription>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -396,7 +403,7 @@ export default function AddressSelector({ selectedAddressId, onAddressSelect }: 
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
+               <div>
                 <Label htmlFor="title">{t.address_selector.addressTitle}</Label>
                 <Input
                   id="title"
@@ -407,7 +414,26 @@ export default function AddressSelector({ selectedAddressId, onAddressSelect }: 
                 />
               </div>
 
-              <div>
+               <div>
+                 <Label htmlFor="phone">{t.checkout_page.phoneNumber}</Label>
+                 <Input
+                   id="phone"
+                   value={formData.phone}
+                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                   required
+                 />
+               </div>
+
+                 <div>
+                   <Label htmlFor="state">{t.checkout_page.province}</Label>
+                   <Input
+                     id="state"
+                     value={formData.state}
+                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                     required
+                   />
+                 </div>
+                 <div>
                 <Label htmlFor="recipientName">{t.address_selector.recipientNameLabel}</Label>
                 <Input
                   id="recipientName"
@@ -415,9 +441,12 @@ export default function AddressSelector({ selectedAddressId, onAddressSelect }: 
                   onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
                   placeholder={t.address_selector.recipientNamePlaceholder}
                   required
-                  disabled
                 />
-                <p className="text-xs text-muted-foreground mt-1">{t.address_selector.recipientNameNote}</p>
+                 <p className="text-xs text-muted-foreground mt-1">
+                   {customerInfo
+                     ? t.address_selector.recipientNameNote
+                     : 'Enter the recipient name for this address.'}
+                 </p>
               </div>
 
               <div>
@@ -505,20 +534,24 @@ export default function AddressSelector({ selectedAddressId, onAddressSelect }: 
           <div className="text-center py-8">
             <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground mb-4">{t.address_selector.noAddressFound}</p>
-            <Button onClick={() => setIsDialogOpen(true)}>
+            <Button onClick={() => {
+              setEditingAddress(null);
+              resetForm();
+              setIsDialogOpen(true);
+            }}>
               <Plus className="h-4 w-4 mr-2" />
               {t.address_selector.addFirstAddress}
             </Button>
           </div>
         ) : (
-          <RadioGroup 
-            value={selectedAddressId?.toString() || ''} 
-            onValueChange={handleAddressSelect}
+             <RadioGroup
+               value={selectedAddressId?.toString() || ''}
+               onValueChange={handleAddressSelect}
             className="space-y-4"
           >
             {addresses.map((address: CustomerAddress) => (
-              <div key={address.id} className="flex items-start space-x-3 space-x-reverse">
-                <RadioGroupItem value={address.id.toString()} id={`address-${address.id}`} />
+              <div key={address.id} className={`flex items-start space-x-3 space-x-reverse ${managementMode ? '' : ''}`}>
+                {!managementMode && <RadioGroupItem value={address.id.toString()} id={`address-${address.id}`} />}
                 <div className="flex-1">
                   <label htmlFor={`address-${address.id}`} className="cursor-pointer">
                     <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
@@ -536,7 +569,7 @@ export default function AddressSelector({ selectedAddressId, onAddressSelect }: 
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => {
+                             onClick={(e) => {
                               e.preventDefault();
                               handleEdit(address);
                             }}
@@ -546,9 +579,11 @@ export default function AddressSelector({ selectedAddressId, onAddressSelect }: 
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => {
+                               onClick={(e) => {
                               e.preventDefault();
-                              deleteAddressMutation.mutate(address.id);
+                                 if (window.confirm('Delete this saved address? This cannot be undone.')) {
+                                   deleteAddressMutation.mutate(address.id);
+                                 }
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -580,7 +615,7 @@ export default function AddressSelector({ selectedAddressId, onAddressSelect }: 
                 </div>
               </div>
             ))}
-          </RadioGroup>
+             </RadioGroup>
         )}
       </CardContent>
     </Card>

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { 
   FileText, 
   Download, 
@@ -47,6 +48,7 @@ interface InvoiceStats {
 
 export default function InvoiceManagement() {
   const { toast } = useToast();
+  const { language } = useLanguage();
   const queryClient = useQueryClient();
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showOfficialForm, setShowOfficialForm] = useState(false);
@@ -129,7 +131,7 @@ export default function InvoiceManagement() {
         description: "Please wait...",
       });
 
-      const response = await fetch(`/api/invoices/${invoice.id}/download`);
+      const response = await fetch(`/api/invoices/${invoice.id}/download?lang=${encodeURIComponent(language)}`);
       
       if (!response.ok) {
         throw new Error('Failed to download invoice');

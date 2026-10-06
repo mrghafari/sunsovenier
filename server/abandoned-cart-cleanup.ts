@@ -1,6 +1,7 @@
 import { CartStorage } from './cart-storage';
 import { CrmStorage } from './crm-storage';
 import { UniversalEmailService } from './universal-email-service';
+import { abandonedCartEmailContent, abandonedCartShopUrl } from './abandoned-cart-email';
 
 class AbandonedCartCleanupService {
   private cartStorage = new CartStorage();
@@ -14,10 +15,10 @@ class AbandonedCartCleanupService {
     console.log('🛒 [CART CLEANUP] Starting abandoned cart cleanup service');
     this.isRunning = true;
     
-    // Run every 30 minutes
+    // Run every minute so short admin-configured timeouts are respected.
     this.intervalId = setInterval(() => {
       this.processAbandonedCarts();
-    }, 30 * 60 * 1000);
+    }, 60 * 1000);
     
     // Run immediately
     setTimeout(() => {
@@ -37,24 +38,47 @@ class AbandonedCartCleanupService {
   async processAbandonedCarts() {
     try {
       console.log('🛒 [CART CLEANUP] Processing abandoned carts...');
+      const { releaseExpiredReservations } = await import("./cart-inventory-reservation");
+      const releasedReservations = await releaseExpiredReservations();
+      if (releasedReservations > 0) {
+        console.log(`🛒 [CART CLEANUP] Released ${releasedReservations} expired inventory reservations`);
+      }
       
       const result = await this.cartStorage.processAbandonedCartCleanup();
       
-      // Process first notifications (1 hour)
+      // Process carts that passed the configured inactivity timeout.
       for (const cart of result.cartsForFirstNotification) {
         await this.sendFirstNotification(cart);
         await this.cartStorage.markCartAsAbandonedWithNotification(cart.id);
       }
       
-      // Process second notifications (3 hours) 
+      // Process carts that passed the configured notification interval.
+      const cartsNotifiedThisRun = new Set<number>();
       for (const cart of result.cartsForSecondNotification) {
-        await this.sendSecondNotification(cart);
+        const notificationCreated = await this.sendSecondNotification(cart);
+        if (notificationCreated) {
+          cartsNotifiedThisRun.add(cart.id);
+        }
       }
       
-      // Delete old carts (2 hours - user requested cleanup for items older than 2 hours)
+      // Permanently delete both the tracked session and the customer-visible persistent cart.
       for (const cart of result.cartsToDelete) {
-        await this.cartStorage.deleteAbandonedCart(cart.id);
-        console.log(`🛒 [CART CLEANUP] Deleted cart ${cart.id} for customer ${cart.customerId} (2+ hours old)`);
+        // When the final notification and deletion thresholds coincide, keep the
+        // cart until the next worker run so the warning is not deleted immediately.
+        if (cartsNotifiedThisRun.has(cart.id)) {
+          console.log(`🛒 [CART CLEANUP] Deferred deletion of cart ${cart.id} until the next run after final notification`);
+          continue;
+        }
+        const { releaseOwnerReservations, ownerKeyForRequest } =
+          await import("./cart-inventory-reservation");
+        if (cart.sessionId) {
+          await releaseOwnerReservations(ownerKeyForRequest(cart.sessionId, cart.customerId));
+          await releaseOwnerReservations(ownerKeyForRequest(cart.sessionId, null));
+        }
+        const deleted = await this.cartStorage.deleteAbandonedCart(cart.id);
+        if (deleted) {
+          console.log(`🛒 [CART CLEANUP] Permanently deleted cart ${cart.id} for customer ${cart.customerId} (${result.timeoutMinutes} minutes inactivity + ${result.autoDeleteAfterHours} hours)`);
+        }
       }
       
       console.log(`🛒 [CART CLEANUP] Processed ${result.firstNotifications} first notifications, ${result.secondNotifications} second notifications, deleted ${result.deletedCarts} carts`);
@@ -64,11 +88,50 @@ class AbandonedCartCleanupService {
     }
   }
 
+  private async createInAppNotification(
+    cart: any,
+    notificationType: 'first' | 'second',
+    title: string,
+    message: string,
+  ): Promise<boolean> {
+    const existingNotifications = await this.cartStorage.getNotificationsForCart(cart.id);
+    if (existingNotifications.some(
+      (notification) => notification.notificationType === notificationType,
+    )) {
+      return false;
+    }
+
+    await this.cartStorage.createNotification({
+      cartSessionId: cart.id,
+      customerId: cart.customerId,
+      notificationType,
+      title,
+      message,
+    });
+    return true;
+  }
+
   async sendFirstNotification(cart: any) {
     try {
+      const title = 'سبد خرید شما منتظر است!';
+      const message = 'محصولات انتخابی شما در سبد خرید منتظر تکمیل خرید هستند. برای ادامه خرید کلیک کنید.';
+      const notificationCreated = await this.createInAppNotification(
+        cart,
+        'first',
+        title,
+        message,
+      );
+      if (!notificationCreated) {
+        console.log(`🛒 [FIRST NOTIFICATION] Notification already exists for cart ${cart.id}`);
+        return;
+      }
+
       // Get customer information  
       const customer = await this.crmStorage.getCrmCustomerById(cart.customerId);
-      if (!customer) return;
+      if (!customer) {
+        console.warn(`🛒 [FIRST NOTIFICATION] Customer ${cart.customerId} not found; in-app notification was created`);
+        return;
+      }
       
       console.log(`🛒 [FIRST NOTIFICATION] Sending to customer ${customer.email} for cart ${cart.id}`);
       
@@ -82,19 +145,21 @@ class AbandonedCartCleanupService {
       }
       
       const customerName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'مشتری گرامی';
-      const cartRestoreUrl = `${process.env.BASE_URL || 'https://momtazchem.com'}/shop/cart?restore=${cart.id}`;
+      const emailLink = abandonedCartEmailContent('سبد خرید شما در انتظار تکمیل است.');
+      const cartRestoreUrl = abandonedCartShopUrl();
       const lastActivity = new Date(cart.lastActivity).toLocaleDateString('fa-IR');
       
       const emailContent = {
         categoryKey: 'customers',
         to: [customer.email],
         subject: `یادآوری: سبد خرید شما در انتظار تکمیل است - ${items.length} محصول`,
-        templateNumber: '#02', // Template for abandoned cart reminder
+        text: emailLink.text,
         html: `<div dir="rtl" style="font-family: Tahoma, Arial, sans-serif;">
           <h2>سلام ${customerName}</h2>
           <p>سبد خرید شما با ${items.length} محصول در انتظار تکمیل است.</p>
           <p>آخرین فعالیت: ${lastActivity}</p>
           <p><a href="${cartRestoreUrl}" style="background-color: #10b981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">ادامه خرید</a></p>
+          <p><a href="${cartRestoreUrl}">${cartRestoreUrl}</a></p>
           <p>با تشکر<br>مؤمتاز شیمی</p>
         </div>`,
         variables: {
@@ -106,8 +171,14 @@ class AbandonedCartCleanupService {
         }
       };
       
-      await UniversalEmailService.sendEmail(emailContent);
-      console.log(`✅ First notification sent successfully to ${customer.email}`);
+      const emailSent = customer.email
+        ? await UniversalEmailService.sendEmail(emailContent)
+        : false;
+      if (emailSent) {
+        console.log(`✅ First notification email sent successfully to ${customer.email}`);
+      } else {
+        console.warn(`⚠️ First notification email was not sent for cart ${cart.id}; in-app notification is available`);
+      }
       
       // Send SMS using Template #2
       await this.sendSMSNotification(customer, cart, 'first');
@@ -117,11 +188,27 @@ class AbandonedCartCleanupService {
     }
   }
 
-  async sendSecondNotification(cart: any) {
+  async sendSecondNotification(cart: any): Promise<boolean> {
     try {
+      const title = 'آخرین فرصت برای تکمیل خرید';
+      const message = 'سبد خرید شما به زودی حذف می‌شود. برای تکمیل خرید وارد فروشگاه شوید.';
+      const notificationCreated = await this.createInAppNotification(
+        cart,
+        'second',
+        title,
+        message,
+      );
+      if (!notificationCreated) {
+        console.log(`🛒 [SECOND NOTIFICATION] Notification already exists for cart ${cart.id}`);
+        return false;
+      }
+
       // Get customer information
       const customer = await this.crmStorage.getCrmCustomerById(cart.customerId);
-      if (!customer) return;
+      if (!customer) {
+        console.warn(`🛒 [SECOND NOTIFICATION] Customer ${cart.customerId} not found; in-app notification was created`);
+        return true;
+      }
       
       console.log(`🛒 [SECOND NOTIFICATION] Final warning to customer ${customer.email} for cart ${cart.id}`);
       
@@ -135,19 +222,21 @@ class AbandonedCartCleanupService {
       }
       
       const customerName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'مشتری گرامی';
-      const cartRestoreUrl = `${process.env.BASE_URL || 'https://momtazchem.com'}/shop/cart?restore=${cart.id}`;
+      const emailLink = abandonedCartEmailContent('سبد خرید شما به زودی حذف می‌شود.');
+      const cartRestoreUrl = abandonedCartShopUrl();
       const lastActivity = new Date(cart.lastActivity).toLocaleDateString('fa-IR');
       
       const emailContent = {
         categoryKey: 'customers',
         to: [customer.email],
         subject: `آخرین فرصت: سبد خرید شما به زودی حذف می‌شود - ${items.length} محصول`,
-        templateNumber: '#02', // Template for abandoned cart reminder
+        text: emailLink.text,
         html: `<div dir="rtl" style="font-family: Tahoma, Arial, sans-serif;">
           <h2>سلام ${customerName}</h2>
           <p><strong>آخرین فرصت!</strong> سبد خرید شما با ${items.length} محصول به زودی حذف می‌شود.</p>
           <p>آخرین فعالیت: ${lastActivity}</p>
           <p><a href="${cartRestoreUrl}" style="background-color: #ef4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">تکمیل خرید</a></p>
+          <p><a href="${cartRestoreUrl}">${cartRestoreUrl}</a></p>
           <p>با تشکر<br>مؤمتاز شیمی</p>
         </div>`,
         variables: {
@@ -160,14 +249,22 @@ class AbandonedCartCleanupService {
         }
       };
       
-      await UniversalEmailService.sendEmail(emailContent);
-      console.log(`✅ Final notification sent successfully to ${customer.email}`);
+      const emailSent = customer.email
+        ? await UniversalEmailService.sendEmail(emailContent)
+        : false;
+      if (emailSent) {
+        console.log(`✅ Final notification email sent successfully to ${customer.email}`);
+      } else {
+        console.warn(`⚠️ Final notification email was not sent for cart ${cart.id}; in-app notification is available`);
+      }
       
       // Send SMS using Template #2
       await this.sendSMSNotification(customer, cart, 'second');
+      return true;
       
     } catch (error) {
       console.error(`🛒 [CART CLEANUP] Error sending second notification for cart ${cart.id}:`, error);
+      return false;
     }
   }
 
@@ -192,13 +289,7 @@ class AbandonedCartCleanupService {
       // For now, we'll log the SMS (can be connected to actual SMS service later)
       console.log(`🛒 [SMS TEMPLATE #2] To: ${customer.phone || customer.email}, Message: ${message}`);
       
-      const emailResult = { success: true }; // Placeholder for actual SMS implementation
-      
-      if (emailResult.success) {
-        console.log(`🛒 [CART CLEANUP] SMS template #2 sent successfully to ${customer.email} (${type} notification)`);
-      } else {
-        console.error(`🛒 [CART CLEANUP] Failed to send SMS template #2 to ${customer.email}`);
-      }
+      console.warn(`🛒 [CART CLEANUP] SMS delivery is not configured; template #2 was not sent (${type} notification)`);
       
     } catch (error) {
       console.error(`🛒 [CART CLEANUP] Error sending SMS notification:`, error);

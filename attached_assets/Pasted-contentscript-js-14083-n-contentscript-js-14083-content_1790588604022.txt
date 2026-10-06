@@ -1,0 +1,145 @@
+contentscript.js:14083 
+n @ contentscript.js:14083
+contentscript.js:14083 
+n @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+1ynllp-shhtw3.js:sourcemap:14 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+   ///////////////////////////
+      /////////////////////
+      
+1ynllp-shhtw3.js:sourcemap:14 Download the Apollo DevTools for a better development experience: https://chrome.google.com/webstore/detail/apollo-client-developer-t/jdkknkkbebbapilgoeccciglkfbmbnfm
+1ynllp-shhtw3.js:sourcemap:14   WARN  [Statsig] The user does not have the required id_type "orgID" for Gate "gate_nexus_environments_v1"
+(anonymous) @ 1ynllp-shhtw3.js:sourcemap:14
+1ynllp-shhtw3.js:sourcemap:14   WARN  [Statsig] The user does not have the required id_type "orgID" for Gate "gate_personal_reps_by_org"
+(anonymous) @ 1ynllp-shhtw3.js:sourcemap:14
+1ynllp-shhtw3.js:sourcemap:14   WARN  [Statsig] The user does not have the required id_type "ownerCustomerID" for Experiment "clerk-whitelabel-auth"
+(anonymous) @ 1ynllp-shhtw3.js:sourcemap:14
+1ynllp-shhtw3.js:sourcemap:14   WARN  [Statsig] The user does not have the required id_type "ownerCustomerID" for Experiment "clerk-whitelabel-auth"
+(anonymous) @ 1ynllp-shhtw3.js:sourcemap:14
+contentscript.js:14083 
+n @ contentscript.js:14083
+contentscript.js:14083 
+n @ contentscript.js:14083
+1ynllp-shhtw3.js:sourcemap:14   WARN  [Statsig] The user does not have the required id_type "ownerCustomerID" for Experiment "clerk-whitelabel-auth"
+(anonymous) @ 1ynllp-shhtw3.js:sourcemap:14
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+1ynllp-shhtw3.js:sourcemap:14 onClick is deprecated, please use onPress
+(anonymous) @ 1ynllp-shhtw3.js:sourcemap:14
+1ynllp-shhtw3.js:sourcemap:14 onClick is deprecated, please use onPress
+(anonymous) @ 1ynllp-shhtw3.js:sourcemap:14
+ 
+n @ chrome-extension://n…tentscript.js:14083
+ 
+n @ chrome-extension://n…tentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ chrome-extension://n…tentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ chrome-extension://n…tentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ chrome-extension://n…tentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ chrome-extension://n…tentscript.js:14083
+ MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ chrome-extension://n…tentscript.js:14083
+ MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ chrome-extension://n…tentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ chrome-extension://n…tentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ chrome-extension://n…tentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ chrome-extension://n…tentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ chrome-extension://n…tentscript.js:14083
+ CI_CD_TEST_2026
+ [PWA] Service Worker registered, scope: https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ Login response: [object Object]
+ Auth check result: [object Object]
+ 
+n @ chrome-extension://n…tentscript.js:14083
+ 
+n @ chrome-extension://n…tentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ chrome-extension://n…tentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ chrome-extension://n…tentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ chrome-extension://n…tentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ chrome-extension://n…tentscript.js:14083
+ CI_CD_TEST_2026
+ [PWA] Service Worker registered, scope: https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ Auth check result: Object
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(38)
+ 🔍 [DEBUG] userPermissions.permissions: Array(38)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(38)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] legal-affairs Legal Affairs & Contracts moduleId: legal_affairs
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ 🔍 [DEBUG] Site Management component initialized
+ Auth check result: Object
+ Auth check result: Object
+ Auth check result: Object

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { ArrowLeft, Loader2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 const productSchema = z.object({
   name: z.string().min(3, "نام محصول باید حداقل 3 کاراکتر باشد"),
   technicalName: z.string().optional(),
+  category: z.string().min(1, "دسته‌بندی محصول الزامی است"),
   sku: z.string().min(3, "SKU الزامی است"),
   barcode: z.string().min(8, "بارکد باید حداقل 8 رقم باشد"),
   stockQuantity: z.number().min(0, "موجودی نمی‌تواند منفی باشد"),
   unitPrice: z.number().min(0, "قیمت نمی‌تواند منفی باشد"),
-  description: z.string().optional(),
+  description: z.string().trim().min(1, "توضیحات محصول الزامی است"),
   transportationTemperature: z.string().optional(),
 });
 
@@ -36,12 +37,13 @@ export default function VendorAddProduct() {
     defaultValues: {
       name: "",
       technicalName: "",
+      category: "",
       sku: "",
       barcode: "",
       stockQuantity: 0,
       unitPrice: 0,
       description: "",
-      transportationTemperature: "",
+      transportationTemperature: "none",
     },
   });
 
@@ -51,7 +53,7 @@ export default function VendorAddProduct() {
         method: "POST",
         body: {
           ...data,
-          status: "active",
+          isActive: true,
         },
       });
     },
@@ -124,6 +126,20 @@ export default function VendorAddProduct() {
                         <FormLabel>نام فنی</FormLabel>
                         <FormControl>
                           <Input placeholder="نام فنی محصول" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>دسته‌بندی محصول *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="مثال: مواد تصفیه آب" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -228,7 +244,7 @@ export default function VendorAddProduct() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>توضیحات</FormLabel>
+                      <FormLabel>توضیحات *</FormLabel>
                       <FormControl>
                         <Textarea
                           placeholder="توضیحات کامل محصول..."

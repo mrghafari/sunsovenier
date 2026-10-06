@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QrCode, BarChart3, Download, Copy, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface BarcodeGeneratorProps {
   productId?: number;
@@ -19,6 +20,111 @@ interface BarcodeGeneratorProps {
   className?: string;
 }
 
+type BarcodeGeneratorCopy = {
+  title: string;
+  barcode: string;
+  qrCode: string;
+  barcodeFormat: string;
+  barcodeData: string;
+  enterBarcodeData: string;
+  generate: string;
+  refresh: string;
+  customBarcode: string;
+  enterCustomBarcode: string;
+  useCustomCode: string;
+  copy: string;
+  download: string;
+  assignToProduct: string;
+  qrCodeData: string;
+  enterQrCodeData: string;
+  generateQrCode: string;
+  quickTemplates: string;
+  productUrl: string;
+  productInfoJson: string;
+  simpleSku: string;
+  usageTips: string;
+  code128Tip: string;
+  eanTip: string;
+  qrTip: string;
+  assignTip: string;
+  barcodeGenerated: string;
+  barcodeCreated: (format: string) => string;
+  qrCodeGenerated: string;
+  qrCodeCreated: string;
+  generationError: string;
+  barcodeFailed: string;
+  qrFailed: string;
+  copied: string;
+  codeCopied: string;
+};
+
+const barcodeGeneratorCopy: Record<'en' | 'fa' | 'ar' | 'tr', BarcodeGeneratorCopy> = {
+  en: {
+    title: "Barcode Generator", barcode: "Barcode", qrCode: "QR Code", barcodeFormat: "Barcode Format",
+    barcodeData: "Barcode Data", enterBarcodeData: "Enter barcode data", generate: "Generate", refresh: "Generate random code",
+    customBarcode: "Custom Barcode", enterCustomBarcode: "Enter custom barcode", useCustomCode: "Use Custom Code",
+    copy: "Copy", download: "Download", assignToProduct: "Assign to Product", qrCodeData: "QR Code Data",
+    enterQrCodeData: "Enter QR code data (URL, text, JSON, etc.)", generateQrCode: "Generate QR Code",
+    quickTemplates: "Quick Templates", productUrl: "Product URL", productInfoJson: "Product Info JSON", simpleSku: "Simple SKU",
+    usageTips: "Usage Tips", code128Tip: "Code 128: Best for alphanumeric data, variable length",
+    eanTip: "EAN-13/EAN-8: Standard retail barcodes with check digits",
+    qrTip: "QR Codes: Can store URLs, JSON data, or plain text",
+    assignTip: "Use “Assign to Product” to link codes to inventory items",
+    barcodeGenerated: "Barcode Generated", barcodeCreated: (format) => `${format} barcode created successfully`,
+    qrCodeGenerated: "QR Code Generated", qrCodeCreated: "QR code created successfully",
+    generationError: "Generation Error", barcodeFailed: "Failed to generate barcode. Check the format and input.",
+    qrFailed: "Failed to generate QR code", copied: "Copied", codeCopied: "Code copied to clipboard"
+  },
+  fa: {
+    title: "تولیدکننده بارکد", barcode: "بارکد", qrCode: "کد QR", barcodeFormat: "قالب بارکد",
+    barcodeData: "داده بارکد", enterBarcodeData: "داده بارکد را وارد کنید", generate: "تولید", refresh: "تولید کد تصادفی",
+    customBarcode: "بارکد سفارشی", enterCustomBarcode: "بارکد سفارشی را وارد کنید", useCustomCode: "استفاده از کد سفارشی",
+    copy: "کپی", download: "دانلود", assignToProduct: "اختصاص به محصول", qrCodeData: "داده کد QR",
+    enterQrCodeData: "داده کد QR را وارد کنید (URL، متن، JSON و غیره)", generateQrCode: "تولید کد QR",
+    quickTemplates: "قالب‌های سریع", productUrl: "URL محصول", productInfoJson: "JSON اطلاعات محصول", simpleSku: "SKU ساده",
+    usageTips: "نکات استفاده", code128Tip: "Code 128: مناسب داده‌های الفبایی‌عددی با طول متغیر",
+    eanTip: "EAN-13/EAN-8: بارکدهای استاندارد خرده‌فروشی با رقم کنترلی",
+    qrTip: "کدهای QR: قابلیت ذخیره URL، داده JSON یا متن ساده را دارند",
+    assignTip: "برای پیوند کدها به اقلام موجودی، از «اختصاص به محصول» استفاده کنید",
+    barcodeGenerated: "بارکد تولید شد", barcodeCreated: (format) => `بارکد ${format} با موفقیت ایجاد شد`,
+    qrCodeGenerated: "کد QR تولید شد", qrCodeCreated: "کد QR با موفقیت ایجاد شد",
+    generationError: "خطا در تولید", barcodeFailed: "تولید بارکد ناموفق بود. قالب و ورودی را بررسی کنید.",
+    qrFailed: "تولید کد QR ناموفق بود", copied: "کپی شد", codeCopied: "کد در کلیپ‌بورد کپی شد"
+  },
+  ar: {
+    title: "مولّد الباركود", barcode: "الباركود", qrCode: "رمز QR", barcodeFormat: "تنسيق الباركود",
+    barcodeData: "بيانات الباركود", enterBarcodeData: "أدخل بيانات الباركود", generate: "إنشاء", refresh: "إنشاء رمز عشوائي",
+    customBarcode: "باركود مخصّص", enterCustomBarcode: "أدخل الباركود المخصّص", useCustomCode: "استخدام الرمز المخصّص",
+    copy: "نسخ", download: "تنزيل", assignToProduct: "تعيين للمنتج", qrCodeData: "بيانات رمز QR",
+    enterQrCodeData: "أدخل بيانات رمز QR (URL أو نص أو JSON أو غير ذلك)", generateQrCode: "إنشاء رمز QR",
+    quickTemplates: "قوالب سريعة", productUrl: "URL المنتج", productInfoJson: "JSON معلومات المنتج", simpleSku: "SKU بسيط",
+    usageTips: "نصائح الاستخدام", code128Tip: "Code 128: الأفضل للبيانات الأبجدية الرقمية ذات الطول المتغيّر",
+    eanTip: "EAN-13/EAN-8: باركودات البيع بالتجزئة القياسية مع أرقام تحقق",
+    qrTip: "رموز QR: يمكنها تخزين عناوين URL أو بيانات JSON أو نص عادي",
+    assignTip: "استخدم «تعيين للمنتج» لربط الرموز بعناصر المخزون",
+    barcodeGenerated: "تم إنشاء الباركود", barcodeCreated: (format) => `تم إنشاء باركود ${format} بنجاح`,
+    qrCodeGenerated: "تم إنشاء رمز QR", qrCodeCreated: "تم إنشاء رمز QR بنجاح",
+    generationError: "خطأ في الإنشاء", barcodeFailed: "تعذّر إنشاء الباركود. تحقّق من التنسيق والإدخال.",
+    qrFailed: "تعذّر إنشاء رمز QR", copied: "تم النسخ", codeCopied: "تم نسخ الرمز إلى الحافظة"
+  },
+  tr: {
+    title: "Barkod Oluşturucu", barcode: "Barkod", qrCode: "QR Kodu", barcodeFormat: "Barkod Biçimi",
+    barcodeData: "Barkod Verisi", enterBarcodeData: "Barkod verisini girin", generate: "Oluştur", refresh: "Rastgele kod oluştur",
+    customBarcode: "Özel Barkod", enterCustomBarcode: "Özel barkodu girin", useCustomCode: "Özel Kodu Kullan",
+    copy: "Kopyala", download: "İndir", assignToProduct: "Ürüne Ata", qrCodeData: "QR Kodu Verisi",
+    enterQrCodeData: "QR kodu verisini girin (URL, metin, JSON vb.)", generateQrCode: "QR Kodu Oluştur",
+    quickTemplates: "Hızlı Şablonlar", productUrl: "Ürün URL'si", productInfoJson: "Ürün Bilgileri JSON", simpleSku: "Basit SKU",
+    usageTips: "Kullanım İpuçları", code128Tip: "Code 128: Alfasayısal veriler ve değişken uzunluk için idealdir",
+    eanTip: "EAN-13/EAN-8: Kontrol basamaklı standart perakende barkodları",
+    qrTip: "QR Kodları: URL, JSON verisi veya düz metin saklayabilir",
+    assignTip: "Kodları envanter öğelerine bağlamak için “Ürüne Ata” seçeneğini kullanın",
+    barcodeGenerated: "Barkod Oluşturuldu", barcodeCreated: (format) => `${format} barkodu başarıyla oluşturuldu`,
+    qrCodeGenerated: "QR Kodu Oluşturuldu", qrCodeCreated: "QR kodu başarıyla oluşturuldu",
+    generationError: "Oluşturma Hatası", barcodeFailed: "Barkod oluşturulamadı. Biçimi ve girdiyi kontrol edin.",
+    qrFailed: "QR kodu oluşturulamadı", copied: "Kopyalandı", codeCopied: "Kod panoya kopyalandı"
+  }
+};
+
 export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
   productId,
   productName,
@@ -26,6 +132,8 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
   onBarcodeGenerated,
   className = ""
 }) => {
+  const { language, direction } = useLanguage();
+  const copy = barcodeGeneratorCopy[language];
   const [barcodeText, setBarcodeText] = useState(sku || '');
   const [barcodeFormat, setBarcodeFormat] = useState('CODE128');
   const [qrText, setQrText] = useState('');
@@ -98,15 +206,15 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
       setGeneratedBarcodes(prev => ({ ...prev, barcode: barcodeText }));
       
       toast({
-        title: "Barcode Generated",
-        description: `${barcodeFormat} barcode created successfully`,
+        title: copy.barcodeGenerated,
+        description: copy.barcodeCreated(barcodeFormat),
         variant: "default"
       });
     } catch (error) {
       console.error('Barcode generation error:', error);
       toast({
-        title: "Generation Error",
-        description: "Failed to generate barcode. Check the format and input.",
+        title: copy.generationError,
+        description: copy.barcodeFailed,
         variant: "destructive"
       });
     }
@@ -128,15 +236,15 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
       setGeneratedBarcodes(prev => ({ ...prev, qr: qrText }));
       
       toast({
-        title: "QR Code Generated",
-        description: "QR code created successfully",
+        title: copy.qrCodeGenerated,
+        description: copy.qrCodeCreated,
         variant: "default"
       });
     } catch (error) {
       console.error('QR code generation error:', error);
       toast({
-        title: "Generation Error",
-        description: "Failed to generate QR code",
+        title: copy.generationError,
+        description: copy.qrFailed,
         variant: "destructive"
       });
     }
@@ -155,8 +263,8 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       toast({
-        title: "Copied",
-        description: "Code copied to clipboard",
+        title: copy.copied,
+        description: copy.codeCopied,
         variant: "default"
       });
     });
@@ -170,19 +278,19 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
   };
 
   return (
-    <Card className={className}>
+    <Card className={className} dir={direction}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <QrCode className="h-5 w-5" />
-          Barcode Generator
+          {copy.title}
           {productName && <Badge variant="outline">{productName}</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="barcode" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="barcode">Barcode</TabsTrigger>
-            <TabsTrigger value="qrcode">QR Code</TabsTrigger>
+            <TabsTrigger value="barcode">{copy.barcode}</TabsTrigger>
+            <TabsTrigger value="qrcode">{copy.qrCode}</TabsTrigger>
           </TabsList>
 
           {/* Barcode Tab */}
@@ -190,7 +298,7 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="barcode-format">Barcode Format</Label>
+                  <Label htmlFor="barcode-format">{copy.barcodeFormat}</Label>
                   <Select value={barcodeFormat} onValueChange={setBarcodeFormat}>
                     <SelectTrigger>
                       <SelectValue />
@@ -206,42 +314,43 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="barcode-text">Barcode Data</Label>
+                  <Label htmlFor="barcode-text">{copy.barcodeData}</Label>
                   <Input
                     id="barcode-text"
                     value={barcodeText}
                     onChange={(e) => setBarcodeText(e.target.value)}
-                    placeholder="Enter barcode data"
+                    placeholder={copy.enterBarcodeData}
                   />
                 </div>
 
                 <div className="flex gap-2">
                   <Button onClick={generateBarcode} className="flex-1">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Generate
+                    <BarChart3 className="h-4 w-4 me-2" />
+                    {copy.generate}
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => setBarcodeText(generateRandomBarcode(barcodeFormat))}
                   >
                     <RefreshCw className="h-4 w-4" />
+                    <span className="sr-only">{copy.refresh}</span>
                   </Button>
                 </div>
 
                 {customBarcode && (
                   <div className="space-y-2">
-                    <Label>Custom Barcode</Label>
+                    <Label>{copy.customBarcode}</Label>
                     <Input
                       value={customBarcode}
                       onChange={(e) => setCustomBarcode(e.target.value)}
-                      placeholder="Enter custom barcode"
+                      placeholder={copy.enterCustomBarcode}
                     />
                     <Button 
                       variant="outline" 
                       onClick={() => setBarcodeText(customBarcode)}
                       className="w-full"
                     >
-                      Use Custom Code
+                      {copy.useCustomCode}
                     </Button>
                   </div>
                 )}
@@ -266,7 +375,8 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
                         size="sm"
                         onClick={() => copyToClipboard(generatedBarcodes.barcode!)}
                       >
-                        <Copy className="h-4 w-4" />
+                          <Copy className="h-4 w-4" />
+                          <span className="sr-only">{copy.copy}</span>
                       </Button>
                     </div>
                     
@@ -277,8 +387,8 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
                         onClick={() => downloadBarcode('barcode')}
                         className="flex-1"
                       >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
+                        <Download className="h-4 w-4 me-2" />
+                        {copy.download}
                       </Button>
                       {onBarcodeGenerated && (
                         <Button
@@ -286,7 +396,7 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
                           onClick={() => assignToProduct('barcode')}
                           className="flex-1"
                         >
-                          Assign to Product
+                          {copy.assignToProduct}
                         </Button>
                       )}
                     </div>
@@ -301,31 +411,31 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="qr-text">QR Code Data</Label>
+                  <Label htmlFor="qr-text">{copy.qrCodeData}</Label>
                   <textarea
                     id="qr-text"
                     value={qrText}
                     onChange={(e) => setQrText(e.target.value)}
-                    placeholder="Enter QR code data (URL, text, JSON, etc.)"
+                    placeholder={copy.enterQrCodeData}
                     className="w-full p-2 border rounded-md resize-none"
                     rows={4}
                   />
                 </div>
 
                 <Button onClick={generateQRCode} className="w-full">
-                  <QrCode className="h-4 w-4 mr-2" />
-                  Generate QR Code
+                  <QrCode className="h-4 w-4 me-2" />
+                  {copy.generateQrCode}
                 </Button>
 
                 <div className="space-y-2">
-                  <Label>Quick Templates</Label>
+                  <Label>{copy.quickTemplates}</Label>
                   <div className="grid grid-cols-1 gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setQrText(`https://example.com/product/${productId}`)}
                     >
-                      Product URL
+                      {copy.productUrl}
                     </Button>
                     <Button
                       variant="outline"
@@ -337,14 +447,14 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
                         type: 'product'
                       }, null, 2))}
                     >
-                      Product Info JSON
+                      {copy.productInfoJson}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setQrText(sku || `SKU${productId?.toString().padStart(4, '0')}`)}
                     >
-                      Simple SKU
+                      {copy.simpleSku}
                     </Button>
                   </div>
                 </div>
@@ -372,7 +482,8 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
                         size="sm"
                         onClick={() => copyToClipboard(generatedBarcodes.qr!)}
                       >
-                        <Copy className="h-4 w-4" />
+                          <Copy className="h-4 w-4" />
+                          <span className="sr-only">{copy.copy}</span>
                       </Button>
                     </div>
                     
@@ -383,8 +494,8 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
                         onClick={() => downloadBarcode('qr')}
                         className="flex-1"
                       >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
+                        <Download className="h-4 w-4 me-2" />
+                        {copy.download}
                       </Button>
                       {onBarcodeGenerated && (
                         <Button
@@ -392,7 +503,7 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
                           onClick={() => assignToProduct('qr')}
                           className="flex-1"
                         >
-                          Assign to Product
+                          {copy.assignToProduct}
                         </Button>
                       )}
                     </div>
@@ -405,12 +516,12 @@ export const BarcodeGenerator: React.FC<BarcodeGeneratorProps> = ({
 
         {/* Usage Instructions */}
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Usage Tips</h4>
+           <h4 className="font-medium text-blue-900 mb-2">{copy.usageTips}</h4>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Code 128: Best for alphanumeric data, variable length</li>
-            <li>• EAN-13/EAN-8: Standard retail barcodes with check digits</li>
-            <li>• QR Codes: Can store URLs, JSON data, or plain text</li>
-            <li>• Use "Assign to Product" to link codes to inventory items</li>
+             <li>• {copy.code128Tip}</li>
+             <li>• {copy.eanTip}</li>
+             <li>• {copy.qrTip}</li>
+             <li>• {copy.assignTip}</li>
           </ul>
         </div>
       </CardContent>

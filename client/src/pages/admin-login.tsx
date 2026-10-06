@@ -55,7 +55,7 @@ export default function AdminLogin() {
       await new Promise(resolve => setTimeout(resolve, 200));
       
       // Navigate to Admin Welcome page first
-      window.location.href = "/admin";
+      window.location.href = "/mrg";
     },
     onError: (error: any) => {
       // Set error message to display under form

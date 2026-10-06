@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { MessageSquare, Shield, Clock, CheckCircle, AlertCircle, Send, Phone } from 'lucide-react';
+import { MessageSquare, Shield, Clock, CheckCircle, AlertCircle, Send, Phone, MapPin, Loader2 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -36,6 +36,9 @@ export default function SmsVerificationComponent({ orderId, orderPhone, customer
   const [verificationCode, setVerificationCode] = useState('');
   const [courierName, setCourierName] = useState('');
   const [verificationNotes, setVerificationNotes] = useState('');
+  const [deliveryLocation, setDeliveryLocation] = useState<GeolocationCoordinates | null>(null);
+  const [locationError, setLocationError] = useState('');
+  const [isCapturingLocation, setIsCapturingLocation] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -69,7 +72,15 @@ export default function SmsVerificationComponent({ orderId, orderPhone, customer
 
   // Verify delivery code
   const verifyDeliveryMutation = useMutation({
-    mutationFn: async (data: { verificationCode: string; customerOrderId: number; courierName: string; verificationNotes?: string }) => {
+    mutationFn: async (data: {
+      verificationCode: string;
+      customerOrderId: number;
+      courierName: string;
+      verificationNotes?: string;
+      latitude: number;
+      longitude: number;
+      accuracy: number;
+    }) => {
       return apiRequest('/api/logistics/verify-delivery', 'POST', data);
     },
     onSuccess: (data) => {
@@ -82,6 +93,8 @@ export default function SmsVerificationComponent({ orderId, orderPhone, customer
         setVerificationCode('');
         setCourierName('');
         setVerificationNotes('');
+        setDeliveryLocation(null);
+        setLocationError('');
         queryClient.invalidateQueries({ queryKey: [`/api/logistics/orders/${orderId}/verification-history`] });
         queryClient.invalidateQueries({ queryKey: ['/api/order-management/logistics'] });
       } else {
@@ -100,6 +113,27 @@ export default function SmsVerificationComponent({ orderId, orderPhone, customer
       });
     },
   });
+
+  const captureDeliveryLocation = () => {
+    setLocationError('');
+    if (!navigator.geolocation) {
+      setLocationError('GPS در این دستگاه پشتیبانی نمی‌شود');
+      return;
+    }
+
+    setIsCapturingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setDeliveryLocation(position.coords);
+        setIsCapturingLocation(false);
+      },
+      () => {
+        setLocationError('دسترسی GPS ممکن نیست. موقعیت مکانی گوشی را فعال و دسترسی را تأیید کنید.');
+        setIsCapturingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
+  };
 
   // Increment delivery attempts
   const incrementAttemptsMutation = useMutation({
@@ -237,6 +271,37 @@ export default function SmsVerificationComponent({ orderId, orderPhone, customer
                           maxLength={4}
                         />
                       </div>
+
+                      <div className="rounded-lg border p-3">
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <div>
+                            <Label>موقعیت GPS محل تحویل</Label>
+                            <p className="text-xs text-muted-foreground">
+                              مختصات گوشی تحویل‌دهنده همراه تأیید نهایی ذخیره می‌شود.
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={captureDeliveryLocation}
+                            disabled={isCapturingLocation}
+                          >
+                            {isCapturingLocation ? (
+                              <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                            ) : (
+                              <MapPin className="h-4 w-4 ml-2" />
+                            )}
+                            {deliveryLocation ? 'ثبت مجدد GPS' : 'دریافت GPS'}
+                          </Button>
+                        </div>
+                        {deliveryLocation && (
+                          <div className="text-sm text-green-700">
+                            موقعیت ثبت شد؛ دقت تقریبی {Math.round(deliveryLocation.accuracy)} متر
+                          </div>
+                        )}
+                        {locationError && <div className="text-sm text-red-600">{locationError}</div>}
+                      </div>
                       
                       <div>
                         <Label htmlFor="courierName">نام پیک/تحویل‌دهنده</Label>
@@ -265,9 +330,12 @@ export default function SmsVerificationComponent({ orderId, orderPhone, customer
                             verificationCode,
                             customerOrderId: orderId,
                             courierName,
-                            verificationNotes
+                             verificationNotes,
+                             latitude: deliveryLocation!.latitude,
+                             longitude: deliveryLocation!.longitude,
+                             accuracy: deliveryLocation!.accuracy,
                           })}
-                          disabled={verifyDeliveryMutation.isPending || !verificationCode.trim() || !courierName.trim()}
+                          disabled={verifyDeliveryMutation.isPending || !verificationCode.trim() || !courierName.trim() || !deliveryLocation}
                           className="bg-green-600 hover:bg-green-700"
                         >
                           تأیید نهایی

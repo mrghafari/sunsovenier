@@ -55,7 +55,7 @@ export function useAuth() {
       queryClient.clear();
       // Wait a bit and redirect to login page
       setTimeout(() => {
-        window.location.href = "/admin/login";
+        window.location.href = "/mrg/login";
       }, 200);
     },
   });

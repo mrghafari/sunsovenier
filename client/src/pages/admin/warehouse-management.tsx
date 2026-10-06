@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
+import { getOrderStatusLabel, resolveOrderStatus } from '@shared/order-status';
 // CRITICAL: All Dialog imports completely removed to eliminate React Portal removeChild errors
 // Using SafeModal instead - NO PORTALS, NO REMOVECHILD ERRORS
 import SafeModal from '@/components/SafeModal';
@@ -44,7 +45,8 @@ import {
   Minus,
   Save,
   Printer,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
@@ -332,7 +334,7 @@ const WarehouseManagement: React.FC = () => {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
-      window.location.href = '/admin/login';
+      window.location.href = '/mrg/login';
     }
   }, [user, authLoading]);
   
@@ -359,7 +361,7 @@ const WarehouseManagement: React.FC = () => {
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => window.location.href = '/admin/login'}
+              onClick={() => window.location.href = '/mrg/login'}
               className="w-full"
             >
               ورود به سیستم
@@ -401,26 +403,43 @@ const WarehouseManagement: React.FC = () => {
   });
 
   // Fetch orders pending warehouse processing (SECURE endpoint)
-  const { data: pendingOrdersData = [], isLoading: pendingOrdersLoading, refetch: refetchPendingOrders } = useQuery({
+  const { data: pendingOrdersData, isLoading: pendingOrdersLoading, refetch: refetchPendingOrders, fetchNextPage: fetchNextPendingPage, hasNextPage: hasNextPendingPage, isFetchingNextPage: isFetchingNextPendingPage } = useInfiniteQuery({
     queryKey: ['/api/warehouse/orders'],
-    queryFn: () => fetch('/api/warehouse/orders', { credentials: 'include' }).then(res => res.json()),
+    queryFn: ({ pageParam = 0 }) => fetch(`/api/warehouse/orders?limit=100&offset=${pageParam}`, { credentials: 'include' }).then(res => res.json()),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.offset + lastPage.limit : undefined,
     staleTime: 10000,
   });
   
   // Fetch orders sent to logistics (SECURE endpoint)
-  const { data: sentOrdersResponse, isLoading: sentOrdersLoading, refetch: refetchSentOrders } = useQuery({
+  const { data: sentOrdersResponse, isLoading: sentOrdersLoading, refetch: refetchSentOrders, fetchNextPage: fetchNextSentPage, hasNextPage: hasNextSentPage, isFetchingNextPage: isFetchingNextSentPage } = useInfiniteQuery({
     queryKey: ['/api/warehouse/sent-orders'],
-    queryFn: () => fetch('/api/warehouse/sent-orders', { credentials: 'include' }).then(res => res.json()),
+    queryFn: ({ pageParam = 0 }) => fetch(`/api/warehouse/sent-orders?limit=100&offset=${pageParam}`, { credentials: 'include' }).then(res => res.json()),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.offset + lastPage.limit : undefined,
     staleTime: 10000,
   });
   
-  const pendingOrders = Array.isArray(pendingOrdersData) ? pendingOrdersData : [];
-  const sentOrders = sentOrdersResponse?.orders || sentOrdersResponse || [];
+  const pendingOrders = pendingOrdersData?.pages.flatMap(page => page.orders || []) || [];
+  const sentOrders = sentOrdersResponse?.pages.flatMap(page => page.orders || []) || [];
   
   // Choose which orders to show based on sub-tab
   const orders = orderSubTab === 'pending' ? pendingOrders : sentOrders;
   const isLoading = orderSubTab === 'pending' ? pendingOrdersLoading : sentOrdersLoading;
   const refetchOrders = orderSubTab === 'pending' ? refetchPendingOrders : refetchSentOrders;
+  const hasNextOrders = orderSubTab === 'pending' ? hasNextPendingPage : hasNextSentPage;
+  const isFetchingNextOrders = orderSubTab === 'pending' ? isFetchingNextPendingPage : isFetchingNextSentPage;
+  const loadMoreOrders = orderSubTab === 'pending' ? fetchNextPendingPage : fetchNextSentPage;
+  const orderListEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = orderListEndRef.current;
+    if (!element || !hasNextOrders) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0]?.isIntersecting && !isFetchingNextOrders) loadMoreOrders();
+    }, { rootMargin: '300px' });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [hasNextOrders, isFetchingNextOrders, loadMoreOrders]);
 
 
   // Fetch unified products for inventory management
@@ -955,17 +974,8 @@ const WarehouseManagement: React.FC = () => {
   }, [isClosingRef, showOrderItems, handleCloseDialog]);
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'warehouse_pending': { color: 'bg-orange-100 text-orange-800', label: '⏳ مرحله ۱: در انتظار بررسی' },
-      'financial_approved': { color: 'bg-yellow-100 text-yellow-800', label: '⏳ مرحله ۱: تأیید مالی - آماده بررسی' },
-      'warehouse_processing': { color: 'bg-blue-100 text-blue-800', label: '⏳ مرحله ۱: در حال بررسی موجودی' },
-      'warehouse_verified': { color: 'bg-purple-100 text-purple-800', label: '✓ مرحله ۲: تأیید موجودی - آماده ارسال' },
-      'warehouse_fulfilled': { color: 'bg-green-100 text-green-800', label: '✓ آماده ارسال' },
-      'warehouse_approved': { color: 'bg-green-600 text-white', label: '✅ ارسال شده به لجستیک' },
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || { color: 'bg-gray-100 text-gray-800', label: status };
-    return <Badge className={config.color}>{config.label}</Badge>;
+    const resolved = resolveOrderStatus({ workflowStatus: status });
+    return <Badge className={resolved.badgeClass}>{getOrderStatusLabel(resolved, 'fa')}</Badge>;
   };
 
   const formatCurrency = (amount: number) => {
@@ -1391,6 +1401,8 @@ const WarehouseManagement: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
+                  <div ref={orderListEndRef} className="h-2" aria-hidden="true" />
+                  {isFetchingNextOrders && <div className="py-3 text-center text-sm text-gray-500"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>}
                 </div>
               )}
             </CardContent>

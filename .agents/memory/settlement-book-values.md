@@ -1,0 +1,93 @@
+---
+name: Settlement book values
+description: Why foreign-currency settlements must not blindly reuse the latest FX rate.
+---
+
+Foreign-currency settlement must clear the actual remaining historical base-currency
+book value of AR and customer prepaid liability, not recalculate both at the newest
+rate. Record the realized FX difference explicitly and close the final residual exactly.
+
+**Why:** A zero customer-currency balance can otherwise leave a nonzero company-base
+balance in the control account, so the native balance looks settled while the GL is wrong.
+
+**How to apply:** Review invoice and prepaid carrying values when implementing
+partial/final settlement, refunds, cheque transfers and chargebacks. Keep unsupported
+FX flows explicitly blocked rather than booking apparently balanced but incorrectly
+valued journals. Activation must wait for that valuation path to be verified.
+
+Treat a customer's same-currency prepaid balance as a pooled liability: allocate
+its remaining actual GL carrying value proportionally, not by invented funding
+lots. AR uses the individual invoice's remaining carrying value. Final settlement
+uses each exact residual rather than rounding a fraction of the original again.
+
+**Why:** Customer prepaid funds are fungible; there is no business agreement
+assigning particular top-ups to particular invoices. Individual invoice debts,
+however, must retain their own historical valuation and settlement history.
+
+**How to apply:** Keep this policy consistent when extending settlement and
+refund handling. Do not silently switch to FIFO funding or current-rate values.
+Revaluation support must maintain invoice-specific carrying values as well as
+the customer-currency control-account balance.
+
+A positive native foreign balance can legitimately have zero remaining base
+carrying value after rounding in a coarse base currency.
+
+**Why:** Base-currency rounding can consume the last base unit before the last
+foreign minor unit. Rejecting its final settlement leaves a real customer-currency
+debt open; fabricating a minimum base unit invents money.
+
+**How to apply:** Allow this only for explicitly proven historical settlement
+lines. Preserve the native amount and exact zero base residual; ordinary journals
+must retain their positive-base and official-rate safeguards.
+
+An uncleared foreign cheque retains its instrument-specific carrying value through
+deposit and clearance. Once cleared into a bank account, its cash is fungible:
+subsequent asset outflows consume the bank/account-currency's pooled remaining
+carrying value proportionally, with exact final residual closure.
+
+**Why:** Moving the same instrument between accounts is not an FX realization;
+after clearance, assuming its original funding value still identifies particular
+bank cash can overdraw the bank's actual remaining book value.
+
+**How to apply:** Keep instrument transfers separate from cleared cash outflows.
+Reopen original invoice allocations at their stored allocated values; value
+recoverable prepaid funds from the remaining pooled liability. Give spent excess
+an explicit historical debt and expose any balancing FX instead of negative cash
+or wallet balances. Block outflows when current balances or chronology cannot be
+reconciled.
+
+A receipt return and a wallet refund are different operations. Returning a whole
+identified receipt restores its original invoice allocations and accounts for its
+original excess; a wallet refund pays available customer prepaid funds and must
+not implicitly undo an invoice or a selected receipt.
+
+**Why:** Reusing a generic refund or independently reversing a receipt journal
+can leave native balances, invoice allocations and the asset ledger inconsistent.
+
+**How to apply:** Require the original receipt identity and coordinated provenance
+for returns. Keep arbitrary wallet payouts and any future partial-return policy
+separate, with their own evidence and allocation rules.
+
+Manual paid expenses must not credit a foreign bank/cash balance at today's
+official rate when its remaining asset carrying value differs. Foreign paid
+expenses require pooled historical-asset proof and explicit realized FX.
+General manual journals remain base-currency only and exclude controlled
+subledger accounts.
+
+**Why:** A generic journal form can otherwise bypass wallet/receivable/inventory
+reconciliation or spend foreign cash using invented base carrying values.
+
+**How to apply:** Do not add currency/party fields to the manual form as a shortcut.
+Extend coordinated posting evidence and realized-FX recognition first; keep
+financial activation closed and preserve the existing operational-module boundary.
+
+Historical expense detail must label its funding-balance snapshot as the balance
+at original posting, not today's available money. Reversal must copy original
+base values exactly, not regenerate them by multiplying a rounded stored rate.
+
+**Why:** A 12-decimal carrying-rate indicator may not reproduce the original
+base rounding or a zero-value native residual; later pool movements also change
+the current balance without changing the original evidence.
+
+**How to apply:** Retain immutable native/base proof and rates, show its original
+date, and block reversals that predate subsequent funding-pool movements.

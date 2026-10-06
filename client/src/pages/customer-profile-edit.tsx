@@ -17,6 +17,14 @@ import { ArrowLeft, Save, Shield, Phone, Mail, Building, MapPin, User } from "lu
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+const normalizeProfileCountry = (country?: string) => {
+  const value = (country || "").trim().toLowerCase();
+  if (["iran", "ir", "ایران", "إيران"].includes(value)) return "ایران";
+  if (["turkey", "turkiye", "türkiye", "tr", "ترکیه", "تركيا"].includes(value)) return "ترکیه";
+  if (["iraq", "iq", "عراق", "العراق"].includes(value)) return "عراق";
+  return country || "";
+};
+
 const EDIT_T = {
   en: {
     backToCrm: "Back to CRM", newCustomer: "Create New Customer (CRM)", editCustomer: "Edit Customer (CRM)",
@@ -25,7 +33,7 @@ const EDIT_T = {
     emailPlaceholder: "Email address", company: "Company name", companyOptional: "Company name (optional)",
     addressInfo: "Address information", country: "Country", province: "Province", city: "City",
     selectProvince: "Select province", selectCity: "Select city", fullAddress: "Full address",
-    secondaryAddress: "Secondary address (optional)", secondaryPlaceholder: "Secondary address or workplace",
+    secondaryAddress: "Other addresses (optional)", secondaryPlaceholder: "Other address or workplace",
     postalCode: "Postal code", additionalContact: "Additional contact information",
     alternatePhone: "Second phone number (optional)", alternatePlaceholder: "Second landline or mobile number",
     businessInfo: "Business information", industry: "Industry", selectIndustry: "Select industry",
@@ -80,7 +88,7 @@ const EDIT_T = {
     emailPlaceholder: "عنوان البريد الإلكتروني", company: "اسم الشركة", companyOptional: "اسم الشركة (اختياري)",
     addressInfo: "معلومات العنوان", country: "الدولة", province: "المحافظة", city: "المدينة",
     selectProvince: "اختر المحافظة", selectCity: "اختر المدينة", fullAddress: "العنوان الكامل",
-    secondaryAddress: "العنوان الثاني (اختياري)", secondaryPlaceholder: "العنوان الثاني أو مكان العمل",
+    secondaryAddress: "عناوين أخرى (اختياري)", secondaryPlaceholder: "عنوان آخر أو مكان العمل",
     postalCode: "الرمز البريدي", additionalContact: "معلومات اتصال إضافية",
     alternatePhone: "رقم الهاتف الثاني (اختياري)", alternatePlaceholder: "رقم الهاتف الأرضي أو المحمول الثاني",
     businessInfo: "معلومات العمل", industry: "مجال النشاط", selectIndustry: "اختر مجال النشاط",
@@ -129,7 +137,7 @@ const EDIT_T = {
     firstName: "Ad", lastName: "Soyad", phone: "Telefon numarası", email: "E-posta", emailPlaceholder: "E-posta adresi",
     company: "Şirket adı", companyOptional: "Şirket adı (isteğe bağlı)", addressInfo: "Adres bilgileri", country: "Ülke",
     province: "İl", city: "Şehir", selectProvince: "İl seçin", selectCity: "Şehir seçin", fullAddress: "Tam adres",
-    secondaryAddress: "İkinci adres (isteğe bağlı)", secondaryPlaceholder: "İkinci adres veya iş yeri", postalCode: "Posta kodu",
+    secondaryAddress: "Diğer adresler (isteğe bağlı)", secondaryPlaceholder: "Diğer adres veya iş yeri", postalCode: "Posta kodu",
     additionalContact: "Ek iletişim bilgileri", alternatePhone: "İkinci telefon numarası (isteğe bağlı)",
     alternatePlaceholder: "İkinci sabit veya mobil telefon", businessInfo: "İşletme bilgileri", industry: "Sektör",
     selectIndustry: "Sektör seçin", businessType: "İşletme türü", selectBusinessType: "İşletme türü seçin", companySize: "Şirket büyüklüğü",
@@ -193,8 +201,8 @@ const PERSIAN_EDIT_T = {
   selectProvince: "انتخاب استان",
   selectCity: "انتخاب شهر",
   fullAddress: "آدرس کامل",
-  secondaryAddress: "آدرس دوم (اختیاری)",
-  secondaryPlaceholder: "آدرس دوم یا محل کار",
+  secondaryAddress: "سایر آدرس‌ها (اختیاری)",
+  secondaryPlaceholder: "آدرس دیگر یا محل کار",
   postalCode: "کد پستی",
   additionalContact: "اطلاعات تماس تکمیلی",
   alternatePhone: "شماره تلفن دوم (اختیاری)",
@@ -295,6 +303,7 @@ const createEditProfileSchema = (t: any) => z.object({
   address: z.string().min(1, t.address + " is required"),
   secondaryAddress: z.string().optional(),
   postalCode: z.string().optional(),
+  secondaryPostalCode: z.string().optional(),
   alternatePhone: z.string().optional(),
   industry: z.string().optional(),
   businessType: z.string().optional(),
@@ -361,45 +370,27 @@ export default function CustomerProfileEdit() {
     enabled: !isCreateMode, // Only fetch if not in create mode
   });
 
-  // Fetch provinces data
+  const [locationCountryCode, setLocationCountryCode] = useState("");
+  const [selectedRegionId, setSelectedRegionId] = useState("");
+
+  // Fetch all selectable locations from the central geography API.
   const { data: provincesData } = useQuery({
-    queryKey: ["/api/iraqi-provinces"],
+    queryKey: ["/api/geography/regions", locationCountryCode],
+    queryFn: () => fetch(`/api/geography/regions?country=${locationCountryCode}`).then(res => res.json()),
     retry: 1,
+    enabled: !!locationCountryCode,
   });
 
-  // State for selected province to filter cities
-  const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(18); // Default to Erbil (ID=18)
-
-  // Fetch cities data based on selected province
   const { data: citiesData } = useQuery({
-    queryKey: ["/api/iraqi-cities", selectedProvinceId],
-    queryFn: () => {
-      const url = selectedProvinceId 
-        ? `/api/iraqi-cities?provinceId=${selectedProvinceId}`
-        : '/api/iraqi-cities';
-      // console.log('🌍 [API] Fetching cities from:', url);
-      return fetch(url).then(res => res.json());
-    },
+    queryKey: ["/api/geography/cities", selectedRegionId],
+    queryFn: () => fetch(`/api/geography/cities?regionId=${selectedRegionId}`).then(res => res.json()),
     retry: 1,
-    enabled: true, // Always enabled to get initial data
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    enabled: !!selectedRegionId,
+    staleTime: 5 * 60 * 1000,
   });
 
   const provinces = (provincesData && typeof provincesData === 'object' && 'data' in provincesData) ? provincesData.data as any[] : [];
-  let cities = (citiesData && typeof citiesData === 'object' && 'data' in citiesData) ? citiesData.data as any[] : [];
-  
-  // Remove duplicates based on nameEnglish and filter by province
-  if (selectedProvinceId && cities.length > 0) {
-    cities = cities.filter((city: any) => city.provinceId === selectedProvinceId);
-  }
-  
-  // Remove duplicates based on nameEnglish field
-  cities = cities.filter((city: any, index: number, arr: any[]) => 
-    arr.findIndex((c: any) => c.nameEnglish === city.nameEnglish) === index
-  );
-  
-  // Debug logging disabled for performance
-  // console.log('🌍 [FILTER] Total cities after deduplication:', cities.length);
+  const cities = (citiesData && typeof citiesData === 'object' && 'data' in citiesData) ? citiesData.data as any[] : [];
 
   const form = useForm<EditProfileForm>({
     resolver: zodResolver(editProfileSchema),
@@ -415,6 +406,7 @@ export default function CustomerProfileEdit() {
       address: "",
       secondaryAddress: "",
       postalCode: "",
+      secondaryPostalCode: "",
       alternatePhone: "",
       industry: "",
       businessType: "",
@@ -442,6 +434,10 @@ export default function CustomerProfileEdit() {
     },
   });
 
+  const selectedCountry = form.watch("country");
+  const isIran = selectedCountry === "ایران";
+  const isIraq = selectedCountry === "عراق";
+
   const smsForm = useForm<SmsVerificationForm>({
     resolver: zodResolver(smsVerificationSchema),
     defaultValues: {
@@ -462,12 +458,13 @@ export default function CustomerProfileEdit() {
         phone: customerData.phone || "",
         email: customerData.email || "",
         company: customerData.company || "",
-        country: customerData.country || "",
+        country: normalizeProfileCountry(customerData.country),
         province: customerData.province || "",
         city: customerData.cityRegion || customerData.city || "", // CRITICAL: Use cityRegion from database
         address: customerData.address || "",
         secondaryAddress: customerData.state || customerData.secondaryAddress || "",
         postalCode: customerData.postalCode || "",
+        secondaryPostalCode: customerData.secondaryPostalCode || "",
         alternatePhone: customerData.alternatePhone || "",
         industry: customerData.industry || "",
         businessType: customerData.businessType || "",
@@ -494,6 +491,7 @@ export default function CustomerProfileEdit() {
         smsEnabled: customerData.smsEnabled || false,
         emailEnabled: customerData.emailEnabled || false,
       });
+      setLocationCountryCode(normalizeProfileCountry(customerData.country) === "ایران" ? "IR" : "IQ");
       
 
     }
@@ -511,12 +509,11 @@ export default function CustomerProfileEdit() {
       );
       
       if (customerProvince) {
-        // Always set the province ID for city filtering
-        setSelectedProvinceId(customerProvince.id);
+        setSelectedRegionId(String(customerProvince.id));
         
         // Set form value if not already set correctly
         const currentFormValue = form.getValues('province');
-        const targetProvinceValue = customerProvince.nameEnglish || customerProvince.name;
+        const targetProvinceValue = customerProvince.namePersian || customerProvince.nameArabic || customerProvince.nameEnglish;
         
         if (currentFormValue !== targetProvinceValue) {
           form.setValue('province', targetProvinceValue, { 
@@ -526,7 +523,7 @@ export default function CustomerProfileEdit() {
         }
       }
     }
-  }, [customer?.customer?.province, provinces.length, form]);
+  }, [customer, provinces, form]);
 
   // CRITICAL FIX: City setting with stable dependencies
   useEffect(() => {
@@ -894,9 +891,27 @@ export default function CustomerProfileEdit() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="required-field">{et.country} <span className="text-red-500">*</span></FormLabel>
-                          <FormControl>
-                           <Input {...field} placeholder={et.country} />
-                          </FormControl>
+                          <Select
+                            value={field.value}
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              form.setValue("province", "");
+                              form.setValue("city", "");
+                              setLocationCountryCode(value === "ایران" ? "IR" : value === "عراق" ? "IQ" : "");
+                              setSelectedRegionId("");
+                            }}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={et.country} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="عراق">عراق / Iraq</SelectItem>
+                              <SelectItem value="ایران">ایران / Iran</SelectItem>
+                              <SelectItem value="ترکیه">ترکیه / Turkey</SelectItem>
+                            </SelectContent>
+                          </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -907,34 +922,36 @@ export default function CustomerProfileEdit() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="required-field">{et.province} <span className="text-red-500">*</span></FormLabel>
-                        <Select 
-                          onValueChange={(value) => {
-                            console.log('🏛️ Province changing to:', value);
-                            field.onChange(value);
-                            // Find the selected province to get its ID for city filtering
-                            const selectedProvince = provinces.find((p: any) => p.nameEnglish === value || p.name === value);
-                            if (selectedProvince) {
-                              setSelectedProvinceId(selectedProvince.id);
-                              console.log('🏛️ Province ID set to:', selectedProvince.id);
-                            }
-                            // Don't clear city automatically - preserve data integrity
-                            console.log('🏛️ City preserved, will filter based on new province');
-                          }} 
-                          value={field.value}
-                        >
+                        {isIran || isIraq ? (
+                          <Select
+                            onValueChange={(value) => {
+                              form.setValue("city", "");
+                              const selectedProvince = provinces.find((province: any) => String(province.id) === value);
+                              if (selectedProvince) {
+                                setSelectedRegionId(String(selectedProvince.id));
+                                field.onChange(selectedProvince.namePersian || selectedProvince.nameArabic || selectedProvince.nameEnglish);
+                              }
+                            }}
+                            value={selectedRegionId}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                 <SelectValue placeholder={et.selectProvince} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {provinces.map((province: any) => (
+                                <SelectItem key={province.id} value={String(province.id)}>
+                                  {province.namePersian} / {province.nameEnglish}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
                           <FormControl>
-                            <SelectTrigger>
-                               <SelectValue placeholder={et.selectProvince} />
-                            </SelectTrigger>
+                            <Input {...field} placeholder={et.province} />
                           </FormControl>
-                          <SelectContent>
-                            {provinces.map((province: any) => (
-                              <SelectItem key={province.id} value={province.nameEnglish}>
-                                {province.nameEnglish} / {province.nameArabic}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -945,55 +962,44 @@ export default function CustomerProfileEdit() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="required-field">{et.city} <span className="text-red-500">*</span></FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          value={field.value}
-                        >
+                        {isIran || isIraq ? (
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                 <SelectValue placeholder={et.selectCity} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {cities.map((city: any) => (
+                                <SelectItem key={city.id} value={city.namePersian}>
+                                  {city.namePersian} / {city.nameEnglish}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
                           <FormControl>
-                            <SelectTrigger>
-                               <SelectValue placeholder={et.selectCity} />
-                            </SelectTrigger>
+                            <Input {...field} placeholder={et.city} />
                           </FormControl>
-                          <SelectContent>
-                            {cities.map((city: any) => (
-                              <SelectItem key={city.id} value={city.nameEnglish}>
-                                {city.nameEnglish} / {city.nameArabic}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
 
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2 required-field">
-                          <MapPin className="h-4 w-4" />
-                           {et.fullAddress} <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                         <Textarea {...field} placeholder={et.fullAddress} rows={3} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
                     <FormField
                       control={form.control}
-                      name="secondaryAddress"
+                      name="address"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{et.secondaryAddress}</FormLabel>
+                          <FormLabel className="flex items-center gap-2 required-field">
+                            <MapPin className="h-4 w-4" />
+                            {et.fullAddress} <span className="text-red-500">*</span>
+                          </FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder={et.secondaryPlaceholder} />
+                            <Input {...field} placeholder={et.fullAddress} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -1004,7 +1010,7 @@ export default function CustomerProfileEdit() {
                       name="postalCode"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{et.postalCode}</FormLabel>
+                          <FormLabel>{et.postalCode} ({et.fullAddress})</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder={et.postalCode} />
                           </FormControl>
@@ -1012,6 +1018,20 @@ export default function CustomerProfileEdit() {
                         </FormItem>
                       )}
                     />
+                  </div>
+
+                  <input type="hidden" {...form.register("secondaryAddress")} />
+                  <input type="hidden" {...form.register("secondaryPostalCode")} />
+                  <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                    <p>{et.secondaryAddress} {et.secondaryPlaceholder}</p>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto px-0 pt-2 text-sm"
+                      onClick={() => setLocation("/customer/profile")}
+                    >
+                      {language === "fa" ? "مدیریت در دفتر آدرس" : language === "ar" ? "إدارة العناوين في دفتر العناوين" : language === "tr" ? "Adres defterinde yönet" : "Manage in address book"}
+                    </Button>
                   </div>
                 </div>
 

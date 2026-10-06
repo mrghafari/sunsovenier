@@ -1,0 +1,102 @@
+App-CWZKzlM0.js:478 🔍 [DEBUG] Form submission - Raw form data: {name: 'Light Solvent', technicalName: undefined, category: 'Paint & Solvents', description: 'This is a high-quality chemical product...', shortDescription: 'This is a high-quality chemical product...', …}
+App-CWZKzlM0.js:478 🔍 [DEBUG] Tags in form data: شیمیایی Type: string
+App-CWZKzlM0.js:478 🔍 [DEBUG] Description in form data: This is a high-quality chemical product...
+App-CWZKzlM0.js:478 🔍 [DEBUG] editingProduct state: 91
+App-CWZKzlM0.js:480 🚀 [DEBUG] Final processed data being sent to API: {
+  "name": "Light Solvent",
+  "category": "Paint & Solvents",
+  "description": "This is a high-quality chemical product...",
+  "shortDescription": "This is a high-quality chemical product...",
+  "priceRange": "",
+  "imageUrl": "/uploads/general-files/1789780737275-912cfb17f2603668.png",
+  "imageUrls": [
+    "/uploads/general-files/1789780737275-912cfb17f2603668.png",
+    "/uploads/general-files/1789781211702-83a3a3204fb2aa1d.png"
+  ],
+  "pdfCatalogUrl": "",
+  "catalogFileName": "",
+  "specifications": {},
+  "features": [],
+  "applications": [],
+  "showCatalogToCustomers": false,
+  "msdsUrl": "",
+  "showMsdsToCustomers": false,
+  "msdsFileName": "",
+  "stockQuantity": 25,
+  "minStockLevel": 10,
+  "maxStockLevel": 1000,
+  "unitPrice": "1",
+  "currency": "USD",
+  "batchNumber": "12",
+  "netWeight": null,
+  "grossWeight": null,
+  "weightUnit": "kg",
+  "weight": "",
+  "barcode": "8649677191615",
+  "sku": "FA-WAT-12",
+  "tags": [
+    "شیمیایی"
+  ],
+  "isActive": true,
+  "syncWithShop": true,
+  "showWhenOutOfStock": false,
+  "isNonChemical": false,
+  "isFlammable": false,
+  "isVariant": false,
+  "displayMode": "3d_model",
+  "model3dKey": "3d-models/1789824673529-0c01e3d0d63b75a3.glb",
+  "model3dFileName": "1771735708706-3f132d6180e03f71.glb",
+  "transportationTemperature": "",
+  "inventoryAddition": 0,
+  "newBatchNumber": null
+}
+App-CWZKzlM0.js:480 📝 [DEBUG] Calling updateProduct with ID: 91
+App-CWZKzlM0.js:480 📝 [DEBUG] updateProduct function exists: function
+queryClient-C76wM52K.js:1  PUT https://momtazchem.com/api/products/91 500 (Internal Server Error)
+Z @ queryClient-C76wM52K.js:1
+mutationFn @ App-CWZKzlM0.js:478
+fn @ queryClient-C76wM52K.js:1
+h @ queryClient-C76wM52K.js:1
+start @ queryClient-C76wM52K.js:1
+execute @ queryClient-C76wM52K.js:1
+await in execute
+mutate @ label-CZmcJWSd.js:1
+(anonymous) @ label-CZmcJWSd.js:1
+Qe @ App-CWZKzlM0.js:480
+De.children.children.children.children.children.onSubmit.qe.handleSubmit.Te.current @ App-CWZKzlM0.js:482
+(anonymous) @ App-CWZKzlM0.js:54
+await in (anonymous)
+mt @ index-agmHE8cx.js:6
+bt @ index-agmHE8cx.js:6
+xt @ index-agmHE8cx.js:6
+xi @ index-agmHE8cx.js:6
+Si @ index-agmHE8cx.js:6
+(anonymous) @ index-agmHE8cx.js:6
+Cl @ index-agmHE8cx.js:9
+ut @ index-agmHE8cx.js:6
+Di @ index-agmHE8cx.js:6
+Mn @ index-agmHE8cx.js:6
+An @ index-agmHE8cx.js:6
+App-CWZKzlM0.js:478 ❌ [DEBUG] Update mutation failed: Error: خطای داخلی سرور
+    at X (queryClient-C76wM52K.js:1:23044)
+    at async Z (queryClient-C76wM52K.js:1:23349)
+onError @ App-CWZKzlM0.js:478
+execute @ queryClient-C76wM52K.js:1
+await in execute
+mutate @ label-CZmcJWSd.js:1
+(anonymous) @ label-CZmcJWSd.js:1
+Qe @ App-CWZKzlM0.js:480
+De.children.children.children.children.children.onSubmit.qe.handleSubmit.Te.current @ App-CWZKzlM0.js:482
+(anonymous) @ App-CWZKzlM0.js:54
+await in (anonymous)
+mt @ index-agmHE8cx.js:6
+bt @ index-agmHE8cx.js:6
+xt @ index-agmHE8cx.js:6
+xi @ index-agmHE8cx.js:6
+Si @ index-agmHE8cx.js:6
+(anonymous) @ index-agmHE8cx.js:6
+Cl @ index-agmHE8cx.js:9
+ut @ index-agmHE8cx.js:6
+Di @ index-agmHE8cx.js:6
+Mn @ index-agmHE8cx.js:6
+An @ index-agmHE8cx.js:6

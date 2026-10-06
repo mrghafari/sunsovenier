@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useCustomerAuth } from './useCustomerAuth';
+import { keepContractCartItems } from '@/lib/contract-cart';
 
 interface CartItem {
   productId: number;
@@ -12,11 +13,40 @@ export function usePersistentCart() {
   const { isAuthenticated, user } = useCustomerAuth();
   const [localCart, setLocalCart] = useState<{[key: number]: number}>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [previousAuth, setPreviousAuth] = useState<boolean>(false);
   const [cartLoaded, setCartLoaded] = useState<boolean>(false);
+  const confirmedCart = useRef<{[key: number]: number}>({});
+  const cartMutationQueue = useRef<Promise<void>>(Promise.resolve());
+  const authCartLoad = useRef<Promise<void> | null>(null);
   
   // Add ref to track mount status
   const mounted = useRef(true);
+
+  type CartReservationError = Error & {
+    status?: number;
+    details?: { productId?: number; requested?: number; available?: number; acceptedCart?: Record<string, number> };
+  };
+
+  // The server is the source of truth for both guest and authenticated cart
+  // quantities. The owner is derived from the server session cookie.
+  const reconcileCartSnapshot = async (nextCart: {[key: number]: number}, persistCart = false) => {
+    const response = await fetch('/api/cart/inventory-reservations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ cart: nextCart, persistCart, includeAvailability: false }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.success === false) {
+      const error = Object.assign(
+        new Error(payload.message || 'موجودی کافی نیست'),
+        { status: response.status, details: payload },
+      ) as CartReservationError;
+      throw error;
+    }
+    return payload;
+  };
   
   useEffect(() => {
     return () => {
@@ -24,14 +54,16 @@ export function usePersistentCart() {
     };
   }, []);
 
-  // Clear cart when user logs out and load guest cart
+  // Preserve the cart when authentication expires or the user logs out.
+  // The same browser session can continue checkout as a guest, so losing
+  // customer authentication must not erase the active cart.
   useEffect(() => {
-    // If user was authenticated but now isn't (logout detected)
     if (previousAuth && !isAuthenticated) {
-      console.log('🔐 User logged out, clearing cart');
-      setLocalCart({});
+      console.log('🔐 Customer authentication ended, preserving cart for guest checkout');
+      if (Object.keys(localCart).length > 0) {
+        localStorage.setItem('cart', JSON.stringify(localCart));
+      }
       setCartLoaded(false);
-      localStorage.removeItem('cart');
     }
     
     // If user is not authenticated, load from localStorage (guest cart)
@@ -41,17 +73,21 @@ export function usePersistentCart() {
         try {
           const parsedCart = JSON.parse(savedCart);
           console.log('🛒 Loading guest cart from localStorage:', parsedCart);
+          confirmedCart.current = parsedCart;
           setLocalCart(parsedCart);
         } catch (error) {
           console.error('Error loading local cart:', error);
+          confirmedCart.current = {};
           setLocalCart({});
         }
       }
+      setIsReady(true);
     }
     
     // If user just logged in, reset cart loaded flag to force reload
     if (!previousAuth && isAuthenticated) {
       console.log('🔐 User just logged in, resetting cart loaded flag');
+      setIsReady(false);
       setCartLoaded(false);
     }
     
@@ -63,6 +99,7 @@ export function usePersistentCart() {
     const loadPersistentCart = async () => {
       if (isAuthenticated && user && user.id && !cartLoaded) {
         setIsLoading(true);
+        setIsReady(false);
         setCartLoaded(true);
         try {
           console.log('🛒 Loading persistent cart for customer:', user.id);
@@ -85,6 +122,7 @@ export function usePersistentCart() {
             // Handle different response formats
             const cartData = response.data?.cartData || response.cart || {};
             console.log('🛒 Loaded cart from database:', cartData);
+            confirmedCart.current = cartData;
             setLocalCart(cartData);
             // Clear localStorage after successful sync
             localStorage.removeItem('cart');
@@ -97,6 +135,7 @@ export function usePersistentCart() {
         } finally {
           if (mounted.current) {
             setIsLoading(false);
+            setIsReady(true);
           }
         }
       }
@@ -104,12 +143,23 @@ export function usePersistentCart() {
 
     // Load cart whenever user authentication state changes or user data becomes available
     if (isAuthenticated && user && user.id && !cartLoaded) {
-      // Add a small delay to ensure authentication is fully settled
+      let started = false;
+      let finishPending = () => {};
+      const pending = new Promise<void>(resolve => {
+        finishPending = resolve;
+      });
       const timeoutId = setTimeout(() => {
-        loadPersistentCart();
+        started = true;
+        void loadPersistentCart().finally(finishPending);
       }, 100);
-      
-      return () => clearTimeout(timeoutId);
+      authCartLoad.current = pending;
+      void pending.finally(() => {
+        if (authCartLoad.current === pending) authCartLoad.current = null;
+      });
+      return () => {
+        clearTimeout(timeoutId);
+        if (!started) finishPending();
+      };
     }
   }, [isAuthenticated, user?.id, cartLoaded, localCart]);
 
@@ -118,32 +168,26 @@ export function usePersistentCart() {
     if (!isAuthenticated) {
       localStorage.setItem('cart', JSON.stringify(cart));
     }
-    setLocalCart(cart);
+    confirmedCart.current = cart;
+    if (mounted.current) setLocalCart(cart);
+  };
+
+  // Queue cart changes so rapid clicks on different products cannot overwrite
+  // each other's snapshots. The server reserves and persists in one transaction.
+  const changeCart = (update: (cart: {[key: number]: number}) => {[key: number]: number}) => {
+    const task = cartMutationQueue.current.then(async () => {
+      if (authCartLoad.current) await authCartLoad.current;
+      const newCart = update({ ...confirmedCart.current });
+      await reconcileCartSnapshot(newCart, !!(isAuthenticated && user));
+      saveLocalCart(newCart);
+    });
+    cartMutationQueue.current = task.catch(() => {});
+    return task;
   };
 
   // Add product to cart
-  const addToCart = async (productId: number, quantity: number = 1, unitPrice?: string) => {
-    const newCart = { ...localCart };
-    const currentQuantity = newCart[productId] || 0;
-    newCart[productId] = currentQuantity + quantity;
-
-    if (isAuthenticated && user) {
-      try {
-        console.log(`🛒 Saving product ${productId} to database for customer ${user.id}`);
-        await apiRequest('/api/customers/persistent-cart/save', {
-          method: 'POST',
-          body: { productId, quantity: newCart[productId], unitPrice },
-        });
-        console.log(`✅ Product ${productId} saved to database`);
-      } catch (error) {
-        console.error('❌ Error saving to database, falling back to localStorage:', error);
-        saveLocalCart(newCart);
-        return;
-      }
-    }
-
-    saveLocalCart(newCart);
-  };
+  const addToCart = (productId: number, quantity: number = 1, _unitPrice?: string) =>
+    changeCart(cart => ({ ...cart, [productId]: (cart[productId] || 0) + quantity }));
 
   // Update product quantity
   const updateQuantity = async (productId: number, quantity: number) => {
@@ -152,71 +196,24 @@ export function usePersistentCart() {
       return;
     }
 
-    const newCart = { ...localCart };
-    newCart[productId] = quantity;
-
-    if (isAuthenticated && user) {
-      try {
-        console.log(`🛒 Updating quantity for product ${productId} to ${quantity} for customer ${user.id}`);
-        await apiRequest('/api/customers/persistent-cart/update', {
-          method: 'PUT',
-          body: { productId, quantity },
-        });
-        console.log(`✅ Product ${productId} quantity updated`);
-      } catch (error) {
-        console.error('❌ Error updating quantity in database:', error);
-        saveLocalCart(newCart);
-        return;
-      }
-    }
-
-    saveLocalCart(newCart);
+    await changeCart(cart => ({ ...cart, [productId]: quantity }));
   };
 
   // Remove product from cart
-  const removeFromCart = async (productId: number) => {
-    const newCart = { ...localCart };
-    delete newCart[productId];
+  const removeFromCart = (productId: number) => changeCart(cart => {
+    delete cart[productId];
+    return cart;
+  });
 
-    if (isAuthenticated && user) {
-      try {
-        console.log(`🛒 Removing product ${productId} from database for customer ${user.id}`);
-        await apiRequest('/api/customers/persistent-cart/remove', {
-          method: 'DELETE',
-          body: { productId },
-        });
-        console.log(`✅ Product ${productId} removed from database`);
-      } catch (error) {
-        console.error('❌ Error removing from database:', error);
-        saveLocalCart(newCart);
-        return;
-      }
-    }
-
-    saveLocalCart(newCart);
-  };
+  // Persist one filtered snapshot so the removed items release their reservations together.
+  const keepOnlyProducts = (allowedProductIds: readonly number[]) =>
+    changeCart(cart => keepContractCartItems(cart, allowedProductIds));
 
   // Clear entire cart
   const clearCart = async () => {
     console.log('🗑️ Clearing cart..., authenticated:', isAuthenticated);
     
-    // Wait a bit to ensure we're actually logged out
-    if (isAuthenticated && user) {
-      try {
-        console.log(`🛒 Clearing cart in database for customer ${user.id}`);
-        await apiRequest('/api/customers/persistent-cart/clear', {
-          method: 'DELETE',
-        });
-        console.log('✅ Cart cleared from database');
-      } catch (error) {
-        console.error('❌ Error clearing cart from database (user may already be logged out):', error);
-        // This is expected during logout, so we continue
-      }
-    } else {
-      console.log('🔄 User not authenticated, clearing only localStorage');
-    }
-
-    setLocalCart({});
+    await changeCart(() => ({}));
     setCartLoaded(false); // Reset cart loaded flag
     localStorage.removeItem('cart');
     console.log('✅ Local cart cleared');
@@ -238,9 +235,11 @@ export function usePersistentCart() {
   return {
     cart: localCart,
     isLoading,
+    isReady,
     addToCart,
     updateQuantity,
     removeFromCart,
+    keepOnlyProducts,
     clearCart,
     getTotalItems,
     getCartItems,

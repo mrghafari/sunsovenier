@@ -23,6 +23,7 @@ interface WishlistItem {
     imageUrl?: string;
     imageUrls?: string[];
     inStock?: boolean;
+    contractOnly?: boolean;
     priceUnit?: string;
     shortDescription?: string;
     description?: string;
@@ -37,7 +38,7 @@ export default function WishlistPage() {
   const { toast } = useMultilingualToast();
   const { addToCart } = usePersistentCart();
   
-  const COMPANY_LOGO = '/uploads/logos/company-logos/Momtazchem-logo.png';
+  const COMPANY_LOGO = '/attached_assets/company-logo.png';
 
   const { data: wishlistItems = [], isLoading } = useQuery<WishlistItem[]>({
     queryKey: ["/api/customer/wishlist"],
@@ -76,6 +77,10 @@ export default function WishlistPage() {
 
   const handleAddToCart = (product: WishlistItem['product']) => {
     if (!product) return;
+    if (product.contractOnly) {
+      toast({ title: "errorOccurred", description: "این کالا فقط از طریق قرارداد در چک‌اوت قابل افزودن است.", variant: "destructive" });
+      return;
+    }
     addToCart(product.id, 1);
     toast({
       title: t.shop?.addedToCart || "Added to cart",
@@ -247,7 +252,7 @@ export default function WishlistPage() {
                     <Button
                       className="flex-1"
                       onClick={() => handleAddToCart(item.product)}
-                      disabled={!item.product?.inStock}
+                      disabled={!item.product?.inStock || item.product.contractOnly}
                     >
                       <ShoppingCart className="w-4 h-4 mr-2" />
                       {t.shop?.addToCart || "Add to Cart"}

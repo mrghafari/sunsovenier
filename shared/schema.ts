@@ -1,8 +1,10 @@
-import { pgTable, text, serial, timestamp, decimal, boolean, integer, bigint, json, varchar, uuid, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, decimal, boolean, integer, bigint, json, jsonb, varchar, uuid, date, char, check, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 import { customers, insertCustomerSchema, type InsertCustomer, type Customer } from "./customer-schema";
+import { shopProducts } from "./shop-schema";
+import type { ShopContractDraftData } from "./contract-draft";
 
 // =============================================================================
 // MAIN CRM & ADMIN SYSTEM SCHEMA
@@ -20,6 +22,8 @@ export * from "./logistics-schema";
 export * from "./webrtc-schema";
 export * from "./blog-schema";
 export * from "./email-schema";
+export * from "./email-marketing-schema";
+export { shopContractOrderSnapshots } from "./customer-schema";
 
 // =============================================================================
 // AI API SETTINGS SYSTEM
@@ -186,6 +190,7 @@ export const proformaReminderSchedule = pgTable("proforma_reminder_schedule", {
   priority: integer("priority").default(1), // Order of sending (1=first, 2=second, etc.)
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  senderCategoryKey: text("sender_category_key"),
 });
 
 export const insertProformaReminderScheduleSchema = createInsertSchema(proformaReminderSchedule);
@@ -197,9 +202,13 @@ export const proformaReminderLogs = pgTable("proforma_reminder_logs", {
   id: serial("id").primaryKey(),
   orderId: integer("order_id").notNull(), // Reference to the order
   scheduleId: integer("schedule_id").notNull(), // Reference to the schedule used
-  customerEmail: text("customer_email").notNull(), // Email address the reminder was sent to
+  customerEmail: text("customer_email"), // Legacy email column; recipient is channel-neutral
+  recipient: text("recipient"),
   sentAt: timestamp("sent_at").notNull().defaultNow(), // When the reminder was sent
   notificationType: varchar("notification_type", { length: 20 }).default("email"), // Type of notification (email, sms, etc.)
+  status: text("status").default("sent"),
+  providerMessageId: text("provider_message_id"),
+  errorMessage: text("error_message"),
 });
 
 export const insertProformaReminderLogsSchema = createInsertSchema(proformaReminderLogs);
@@ -957,6 +966,7 @@ export const crmCustomers = pgTable("crm_customers", {
   address: text("address"),
   secondaryAddress: text("secondary_address"),
   postalCode: text("postal_code"),
+  secondaryPostalCode: text("secondary_postal_code"),
   industry: text("industry"),
   businessType: text("business_type"), // manufacturer, distributor, retailer, end_user
   companySize: text("company_size"), // small, medium, large, enterprise
@@ -965,6 +975,7 @@ export const crmCustomers = pgTable("crm_customers", {
   registrationNumber: text("registration_number"), // Company registration number
   annualRevenue: text("annual_revenue"),
   customerType: text("customer_type").notNull().default("retail"), // retail, wholesale, b2b, distributor
+  customerCode: text("customer_code"), // Generated business identifier; never replaces the native CRM primary key.
   customerStatus: text("customer_status").notNull().default("active"), // active, inactive, vip, blacklisted
   customerSource: text("customer_source").notNull().default("website"), // website, referral, marketing, cold_call, trade_show
   assignedSalesRep: text("assigned_sales_rep"),
@@ -1010,6 +1021,7 @@ export const crmCustomers = pgTable("crm_customers", {
 
 export const insertCrmCustomerSchema = createInsertSchema(crmCustomers).omit({
   id: true,
+  customerCode: true,
   totalOrdersCount: true,
   totalSpent: true,
   averageOrderValue: true,
@@ -1348,12 +1360,22 @@ export type InsertSmsLog = z.infer<typeof insertSmsLogSchema>;
 export type SmsLog = typeof smsLogs.$inferSelect;
 
 // =============================================================================
-// IRAQI GEOGRAPHIC DATA SCHEMA
+// CENTRAL GEOGRAPHIC DATA SCHEMA
 // =============================================================================
 
-// Iraqi provinces table with trilingual support
+export const geographyCountries = pgTable("geography_countries", {
+  code: text("code").primaryKey(),
+  nameEnglish: text("name_english").notNull(),
+  nameArabic: text("name_arabic").notNull(),
+  namePersian: text("name_persian").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+// Provinces/regions for all supported countries. The legacy table name is kept
+// so existing logistics foreign keys and Iraqi city IDs remain stable.
 export const iraqiProvinces = pgTable("iraqi_provinces", {
   id: serial("id").primaryKey(),
+  countryCode: text("country_code").notNull().default("IQ").references(() => geographyCountries.code),
   name: text("name").notNull(),
   nameArabic: text("name_arabic").notNull(),
   nameEnglish: text("name_english").notNull(),
@@ -1371,6 +1393,7 @@ export const iraqiProvinces = pgTable("iraqi_provinces", {
 // Iraqi cities table with comprehensive information
 export const iraqiCities = pgTable("iraqi_cities", {
   id: serial("id").primaryKey(),
+  countryCode: text("country_code").notNull().default("IQ").references(() => geographyCountries.code),
   name: text("name").notNull(),
   nameArabic: text("name_arabic").notNull(),
   nameEnglish: text("name_english").notNull(),
@@ -1384,6 +1407,7 @@ export const iraqiCities = pgTable("iraqi_cities", {
   postalCode: text("postal_code"),
   economicActivity: text("economic_activity"),
   distanceFromBaghdad: integer("distance_from_baghdad"), // in kilometers
+  distanceFromErbilKm: integer("distance_from_erbil_km").default(0), // legacy Iraqi shipping baseline; read-only for route administration
   distanceFromProvinceCapital: integer("distance_from_province_capital"),
   isProvinceCapital: boolean("is_province_capital").default(false),
   hasIntercityBusLine: boolean("has_intercity_bus_line").default(false), // خط مسافربری بین شهری موجود است
@@ -1463,6 +1487,8 @@ export type UserRoleAssignment = typeof userRoleAssignments.$inferSelect;
 // Simple SMS templates table without categories
 export const simpleSmsTemplates = pgTable("simple_sms_templates", {
   id: serial("id").primaryKey(),
+  templateKey: varchar("template_key", { length: 100 }),
+  language: varchar("language", { length: 5 }).notNull().default("fa"),
   templateName: varchar("template_name", { length: 255 }).notNull(),
   templateContent: text("template_content").notNull(),
   variables: text("variables").array(),
@@ -1789,6 +1815,20 @@ export const customersOtp = pgTable("customers_otp", {
   registrationData: json("registration_data"), // Customer registration data
 });
 
+export const customerLoginOtps = pgTable("customer_login_otps", {
+  id: serial("id").primaryKey(),
+  challengeId: text("challenge_id").notNull().unique(),
+  customerId: integer("customer_id").notNull().references(() => crmCustomers.id),
+  channel: text("channel").notNull(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type CustomerLoginOtp = typeof customerLoginOtps.$inferSelect;
+
 export const insertCustomersOtpSchema = createInsertSchema(customersOtp).omit({
   id: true,
   createdAt: true,
@@ -2005,3 +2045,102 @@ export type PostalService = typeof postalServices.$inferSelect;
 
 // Re-export marketing schema
 export * from './marketing-schema';
+
+// Customer-specific shop pricing contracts. Lifecycle constraints and release
+// behavior are also enforced by the additive SQL migration.
+export type ShopContractShippingMode = "automatic_vehicle" | "self_transport";
+
+export const shopContracts = pgTable("shop_contracts", {
+  id: serial("id").primaryKey(),
+  number: text("number").notNull().unique(),
+  customerId: integer("customer_id").notNull().references(() => crmCustomers.id),
+  terms: text("terms").notNull().default(""),
+  draftData: jsonb("draft_data").$type<ShopContractDraftData | null>(),
+  originalContractSnapshot: jsonb("original_contract_snapshot").$type<Record<string, unknown> | null>(),
+  originalSnapshotAt: timestamp("original_snapshot_at", { withTimezone: true }),
+  shippingMode: text("shipping_mode").$type<ShopContractShippingMode | null>(),
+  isActive: boolean("is_active").notNull().default(true),
+  endedAt: timestamp("ended_at", { withTimezone: true }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const shopContractItems = pgTable("shop_contract_items", {
+  id: serial("id").primaryKey(),
+  contractId: integer("contract_id").notNull().references(() => shopContracts.id, { onDelete: "cascade" }),
+  productId: integer("product_id").notNull().references(() => shopProducts.id),
+  maxQuantity: integer("max_quantity").notNull(),
+  usedQuantity: integer("used_quantity").notNull().default(0),
+  unitPrice: integer("unit_price").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  contractProductUnique: uniqueIndex("shop_contract_items_contract_product_uidx").on(table.contractId, table.productId),
+  positiveMaxQuantity: check("shop_contract_items_max_quantity_ck", sql`${table.maxQuantity} > 0`),
+  nonnegativeUsedQuantity: check("shop_contract_items_used_quantity_ck", sql`${table.usedQuantity} >= 0`),
+  nonnegativeUnitPrice: check("shop_contract_items_unit_price_ck", sql`${table.unitPrice} >= 0`),
+}));
+
+export const shopContractAddenda = pgTable("shop_contract_addenda", {
+  id: serial("id").primaryKey(),
+  parentContractId: integer("parent_contract_id").notNull().references(() => shopContracts.id, { onDelete: "restrict" }),
+  sequence: integer("sequence").notNull(),
+  number: text("number").notNull().unique(),
+  contractSnapshot: jsonb("contract_snapshot").notNull().$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  contractSequenceUnique: uniqueIndex("shop_contract_addenda_parent_sequence_uidx").on(table.parentContractId, table.sequence),
+  positiveSequence: check("shop_contract_addenda_sequence_ck", sql`${table.sequence} > 0`),
+}));
+
+export const shopContractHolds = pgTable("shop_contract_holds", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  contractId: integer("contract_id").notNull().references(() => shopContracts.id),
+  customerId: integer("customer_id").notNull().references(() => crmCustomers.id),
+  orderId: integer("order_id"),
+  contractSnapshot: jsonb("contract_snapshot").$type<Record<string, unknown> | null>(),
+  status: text("status").notNull().default("active"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const shopContractHoldItems = pgTable("shop_contract_hold_items", {
+  id: serial("id").primaryKey(),
+  holdId: uuid("hold_id").notNull().references(() => shopContractHolds.id, { onDelete: "cascade" }),
+  productId: integer("product_id").notNull().references(() => shopProducts.id),
+  quantity: integer("quantity").notNull(),
+}, (table) => ({
+  holdProductUnique: uniqueIndex("shop_contract_hold_items_hold_product_uidx").on(table.holdId, table.productId),
+  positiveQuantity: check("shop_contract_hold_items_quantity_ck", sql`${table.quantity} > 0`),
+}));
+
+export const signedContractDocuments = pgTable("signed_contract_documents", {
+  id: serial("id").primaryKey(),
+  contractId: integer("contract_id").notNull().references(() => shopContracts.id, { onDelete: "restrict" }),
+  fileName: text("file_name").notNull(),
+  fileSize: bigint("file_size", { mode: "number" }).notNull(),
+  sha256: char("sha256", { length: 64 }).notNull(),
+  s3Key: text("s3_key").notNull().unique("signed_contract_documents_s3_key_key"),
+  uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
+  uploadedByAdminId: integer("uploaded_by_admin_id").references(() => users.id, { onDelete: "set null" }),
+  uploadedByCustomUserId: uuid("uploaded_by_custom_user_id").references(() => customUsers.id, { onDelete: "set null" }),
+}, (table) => ({
+  contractUploadedIndex: index("signed_contract_documents_contract_uploaded_idx")
+    .on(table.contractId, table.uploadedAt.desc(), table.id.desc()),
+  positiveFileSize: check(
+    "signed_contract_documents_file_size_check",
+    sql`${table.fileSize} > 0 AND ${table.fileSize} <= 26214400`,
+  ),
+  sha256Format: check(
+    "signed_contract_documents_sha256_check",
+    sql`${table.sha256} ~ '^[0-9a-f]{64}$'`,
+  ),
+  singleUploader: check(
+    "signed_contract_documents_single_uploader_ck",
+    sql`${table.uploadedByAdminId} IS NULL OR ${table.uploadedByCustomUserId} IS NULL`,
+  ),
+}));
+
+export const insertSignedContractDocumentSchema = createInsertSchema(signedContractDocuments);
+export type InsertSignedContractDocument = z.infer<typeof insertSignedContractDocumentSchema>;
+export type SignedContractDocument = typeof signedContractDocuments.$inferSelect;

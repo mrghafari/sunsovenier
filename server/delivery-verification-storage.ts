@@ -132,7 +132,7 @@ export class DeliveryVerificationStorage implements IDeliveryVerificationStorage
     return { 
       success: true, 
       message: 'کد تأیید با موفقیت تأیید شد. کالا قابل تحویل است.',
-      order: { customerOrderId, verificationCode }
+      order: { customerOrderId, verificationCode, deliveryVerificationId: codeRecord.id }
     };
   }
   

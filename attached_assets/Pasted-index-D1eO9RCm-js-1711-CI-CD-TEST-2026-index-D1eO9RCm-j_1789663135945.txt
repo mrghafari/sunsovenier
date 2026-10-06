@@ -1,0 +1,115 @@
+index-D1eO9RCm.js:1711 CI_CD_TEST_2026
+index-D1eO9RCm.js:1561 📥 Loading Tawk.to widget at bottom-left position...
+index-D1eO9RCm.js:1711 [PWA] Service Worker registered, scope: https://momtazchem.com/
+index-D1eO9RCm.js:50  GET https://momtazchem.com/api/admin/me 401 (Unauthorized)
+queryFn @ index-D1eO9RCm.js:50
+fetchFn @ queryClient-C76wM52K.js:1
+h @ queryClient-C76wM52K.js:1
+start @ queryClient-C76wM52K.js:1
+fetch @ queryClient-C76wM52K.js:1
+#h @ card-BoW5Zo7v.js:8
+onSubscribe @ card-BoW5Zo7v.js:8
+subscribe @ queryClient-C76wM52K.js:1
+(anonymous) @ card-BoW5Zo7v.js:8
+Jo @ card-BoW5Zo7v.js:6
+Cc @ card-BoW5Zo7v.js:8
+Ll @ card-BoW5Zo7v.js:8
+Sl @ card-BoW5Zo7v.js:8
+ha @ card-BoW5Zo7v.js:6
+Il @ card-BoW5Zo7v.js:8
+Fl @ card-BoW5Zo7v.js:8
+_l @ card-BoW5Zo7v.js:8
+x @ card-BoW5Zo7v.js:1
+w @ card-BoW5Zo7v.js:1
+postMessage
+ie @ card-BoW5Zo7v.js:1
+D @ card-BoW5Zo7v.js:1
+e.unstable_scheduleCallback @ card-BoW5Zo7v.js:1
+Wl @ card-BoW5Zo7v.js:8
+gl @ card-BoW5Zo7v.js:8
+hl @ card-BoW5Zo7v.js:8
+ou @ card-BoW5Zo7v.js:8
+pu.render.fu.render @ card-BoW5Zo7v.js:8
+(anonymous) @ index-D1eO9RCm.js:1711
+index-D1eO9RCm.js:42 🔐 User just logged in, resetting cart loaded flag
+index-D1eO9RCm.js:1561 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+index-D1eO9RCm.js:42 🛒 Loading persistent cart for customer: 8
+profile:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+index-D1eO9RCm.js:42 🛒 Loaded cart from database: {}
+card-BoW5Zo7v.js:8 Error: Minified React error #130; visit https://reactjs.org/docs/error-decoder.html?invariant=130&args[]=object&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at Xl (card-BoW5Zo7v.js:8:48845)
+    at l (card-BoW5Zo7v.js:6:7261)
+    at p (card-BoW5Zo7v.js:6:8257)
+    at h (card-BoW5Zo7v.js:6:8967)
+    at _ (card-BoW5Zo7v.js:6:11204)
+    at Vs (card-BoW5Zo7v.js:8:1487)
+    at Ul (card-BoW5Zo7v.js:8:45220)
+    at Nl (card-BoW5Zo7v.js:8:39338)
+    at jl (card-BoW5Zo7v.js:8:39269)
+    at Al (card-BoW5Zo7v.js:8:39129)
+Ms @ card-BoW5Zo7v.js:8
+Ps.n.callback @ card-BoW5Zo7v.js:8
+go @ card-BoW5Zo7v.js:6
+zc @ card-BoW5Zo7v.js:8
+Rc @ card-BoW5Zo7v.js:8
+Lc @ card-BoW5Zo7v.js:8
+Il @ card-BoW5Zo7v.js:8
+Fl @ card-BoW5Zo7v.js:8
+Sl @ card-BoW5Zo7v.js:8
+ha @ card-BoW5Zo7v.js:6
+wl @ card-BoW5Zo7v.js:8
+e.flushSync @ card-BoW5Zo7v.js:8
+Ne @ card-BoW5Zo7v.js:8
+u @ index-D1eO9RCm.js:50
+(anonymous) @ index-D1eO9RCm.js:2
+st @ card-BoW5Zo7v.js:5
+ft @ card-BoW5Zo7v.js:5
+pt @ card-BoW5Zo7v.js:5
+pi @ card-BoW5Zo7v.js:5
+mi @ card-BoW5Zo7v.js:5
+(anonymous) @ card-BoW5Zo7v.js:5
+Cl @ card-BoW5Zo7v.js:8
+rt @ card-BoW5Zo7v.js:5
+yi @ card-BoW5Zo7v.js:5
+wn @ card-BoW5Zo7v.js:5
+Sn @ card-BoW5Zo7v.js:5
+card-BoW5Zo7v.js:8 Uncaught Error: Minified React error #130; visit https://reactjs.org/docs/error-decoder.html?invariant=130&args[]=object&args[]= for the full message or use the non-minified dev environment for full errors and additional helpful warnings.
+    at Xl (card-BoW5Zo7v.js:8:48845)
+    at l (card-BoW5Zo7v.js:6:7261)
+    at p (card-BoW5Zo7v.js:6:8257)
+    at h (card-BoW5Zo7v.js:6:8967)
+    at _ (card-BoW5Zo7v.js:6:11204)
+    at Vs (card-BoW5Zo7v.js:8:1487)
+    at Ul (card-BoW5Zo7v.js:8:45220)
+    at Nl (card-BoW5Zo7v.js:8:39338)
+    at jl (card-BoW5Zo7v.js:8:39269)
+    at Al (card-BoW5Zo7v.js:8:39129)
+Xl @ card-BoW5Zo7v.js:8
+l @ card-BoW5Zo7v.js:6
+p @ card-BoW5Zo7v.js:6
+h @ card-BoW5Zo7v.js:6
+_ @ card-BoW5Zo7v.js:6
+Vs @ card-BoW5Zo7v.js:8
+Ul @ card-BoW5Zo7v.js:8
+Nl @ card-BoW5Zo7v.js:8
+jl @ card-BoW5Zo7v.js:8
+Al @ card-BoW5Zo7v.js:8
+vl @ card-BoW5Zo7v.js:8
+Sl @ card-BoW5Zo7v.js:8
+ha @ card-BoW5Zo7v.js:6
+wl @ card-BoW5Zo7v.js:8
+e.flushSync @ card-BoW5Zo7v.js:8
+Ne @ card-BoW5Zo7v.js:8
+u @ index-D1eO9RCm.js:50
+(anonymous) @ index-D1eO9RCm.js:2
+st @ card-BoW5Zo7v.js:5
+ft @ card-BoW5Zo7v.js:5
+pt @ card-BoW5Zo7v.js:5
+pi @ card-BoW5Zo7v.js:5
+mi @ card-BoW5Zo7v.js:5
+(anonymous) @ card-BoW5Zo7v.js:5
+Cl @ card-BoW5Zo7v.js:8
+rt @ card-BoW5Zo7v.js:5
+yi @ card-BoW5Zo7v.js:5
+wn @ card-BoW5Zo7v.js:5
+Sn @ card-BoW5Zo7v.js:5

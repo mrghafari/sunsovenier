@@ -19,8 +19,12 @@ import { bankReceiptReminderService } from "./bank-receipt-reminder";
 import { incompletePaymentCleaner } from "./incomplete-payment-cleaner";
 import { setupVite, serveStatic, log } from "./vite";
 import passport from "./passport-config";
+import { createAccountingRouter } from "./modules/accounting/router";
+import { createCommercialAccountingRouter } from "./modules/accounting/commercial-router";
+import { createLoadingRouter } from "./modules/loading/router";
 import { monitoringService } from "./monitoring-service";
 import { sequenceSyncService } from "./sequence-sync";
+import { startMarketingEmailWorker, stopMarketingEmailWorker } from "./marketing-email-worker";
 
 // Global error handlers to prevent server crashes
 process.on('uncaughtException', (err) => {
@@ -376,6 +380,11 @@ app.use((req, res, next) => {
     app.use('/api/admin/vendors', adminVendorRouter);
     log('👨‍💼 [ADMIN-VENDOR] Admin vendor management routes registered');
 
+    // Accounting owns only its API namespace; no business workflow is changed.
+    app.use('/api/accounting', createAccountingRouter());
+    app.use('/api/commercial', createCommercialAccountingRouter());
+    app.use('/api/loading', createLoadingRouter());
+
     // Register routes BEFORE Vite middleware to ensure API routes take precedence
     const server = await registerRoutes(app);
 
@@ -429,6 +438,7 @@ app.use((req, res, next) => {
       reusePort: true,
     }, () => {
       log(`serving on port ${port}`);
+      startMarketingEmailWorker();
       
       // Start services with delayed initialization
       setTimeout(async () => {
@@ -455,12 +465,12 @@ app.use((req, res, next) => {
           
           // Start proforma reminder service
           import('./proforma-reminder-service').then(({ proformaReminderService }) => {
-            proformaReminderService.initializeLogTable();
-            // Process reminders every hour
-            setInterval(() => {
-              proformaReminderService.processReminders();
-            }, 60 * 60 * 1000);
-            log('📅 Proforma reminder service started');
+            // Migration must complete before the first run. Keep one interval.
+            proformaReminderService.initializeLogTable().then(() => {
+              proformaReminderService.processReminders().catch(err => console.error('Proforma reminder run failed:', err));
+              setInterval(() => { proformaReminderService.processReminders().catch(err => console.error('Proforma reminder run failed:', err)); }, 60 * 60 * 1000);
+              log('📅 Proforma reminder service started');
+            }).catch(err => console.error('Proforma reminder migration failed:', err));
           });
 
           // Start auto-invoice conversion service
@@ -494,6 +504,12 @@ app.use((req, res, next) => {
         }
       }, 5000); // Delay 5 seconds to ensure database connections are stable
     });
+    const stopMarketingWorker = () => {
+      stopMarketingEmailWorker();
+      server.close(() => process.exit(0));
+    };
+    process.once("SIGTERM", stopMarketingWorker);
+    process.once("SIGINT", stopMarketingWorker);
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);

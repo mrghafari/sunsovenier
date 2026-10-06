@@ -1,0 +1,444 @@
+ 
+ 
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+ CI_CD_TEST_2026
+ [PWA] Service Worker registered, scope: https://momtazchem.com/
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🔐 [AUTH] Guest user confirmed
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 📦 [INIT DISPLAY STOCK] Product 624: Stock=971, Cart=0, Display=971
+ 📦 [INIT DISPLAY STOCK] Product 625: Stock=78, Cart=0, Display=78
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=11, Cart=0, Display=11
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+shop:1 [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) null
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🔄 Triggering cart reload after login
+ Customer auth check result: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🔐 User just logged in, resetting cart loaded flag
+ 🔐 User just logged in, resetting cart loaded flag
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+ 🛒 Loading persistent cart for customer: 8
+ 🛒 Loading persistent cart for customer: 8
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 📦 [INIT DISPLAY STOCK] Product 635: Stock=600, Cart=0, Display=600
+ 📦 [INIT DISPLAY STOCK] Product 624: Stock=971, Cart=0, Display=971
+ 📦 [INIT DISPLAY STOCK] Product 625: Stock=78, Cart=0, Display=78
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=11, Cart=0, Display=11
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🛒 Loaded cart from database: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🛒 Loaded cart from database: 
+ 🛒 [ADD TO CART] Before add - Product 625, Stock: 78, Cart: 2, DisplayStock: 78
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🛒 [DISPLAY STOCK UPDATE] Product 625: 78 -> 77
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ Cart clicked, total items: 4
+ Customer: 
+ User is logged in, showing checkout
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 📦 [INIT DISPLAY STOCK] Product 635: Stock=600, Cart=0, Display=600
+ 📦 [INIT DISPLAY STOCK] Product 624: Stock=970, Cart=1, Display=970
+ 📦 [INIT DISPLAY STOCK] Product 625: Stock=75, Cart=3, Display=75
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=11, Cart=0, Display=11
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 💳 [WALLET QUERY] Enabled check: 
+ 🔥 [BILINGUAL FORM] Cart flammable check result: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [BILINGUAL FORM] ===== SHIPPING RATES QUERY STARTED =====
+ 🚚 [BILINGUAL FORM] Fetching shipping rates with flammable filtering... 
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: 
+ customerData from API: 
+ crmCustomerData from API: undefined
+ isLoadingCustomer: false
+ Using existingCustomer from parent
+ Customer object found: 
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: تهران
+ Customer city: 
+ Customer country: عراق
+ Customer postalCode: 196891375
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: 
+ Form data to reset: 
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: 
+ Shipping rates state: 
+ 🚚 [DELIVERY CALCULATION] Final destination determined: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [DELIVERY CALCULATION] Final destination determined: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+api/shop/proforma-reminders:1  Failed to load resource: the server responded with a status of 401 ()
+ Failed to parse JSON response: 
+ Error fetching reminder schedules: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ CRM Customer API response: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: 
+ customerData from API: 
+ crmCustomerData from API: 
+ isLoadingCustomer: false
+ Using CRM customer data (most complete)
+ Customer object found: 
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: تهران
+ Customer city: undefined
+ Customer country: عراق
+ Customer postalCode: 196891375
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: 
+ Form data to reset: 
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [VAT] Tax settings API response: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: 
+ customerData from API: 
+ crmCustomerData from API: 
+ isLoadingCustomer: false
+ Using CRM customer data (most complete)
+ Customer object found: 
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: تهران
+ Customer city: undefined
+ Customer country: عراق
+ Customer postalCode: 196891375
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: 
+ Form data to reset: 
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [DELIVERY CALCULATION] Final destination determined: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 📦 [BILINGUAL FORM] Raw shipping rates API response: 
+ ✅ [BILINGUAL FORM] Successfully loaded shipping rates: 4 methods
+ 🚚 [BILINGUAL FORM] Shipping rates details: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: 
+ 🚚 [AUTO-SELECT] Auto-selecting first shipping method: 34 undefined
+ Shipping rates state: 
+ 🚚 [AUTO SELECT] Auto-selecting smart vehicle method: 32
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: 
+ 🚚 [DELIVERY CALCULATION] Final destination determined: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [SMART DELIVERY] Calculating cost for: 
+ 🚚 [SMART DELIVERY] API response: 
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🔄 [AUTO WALLET] wallet_combined selected - setting walletAmount: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚀 [SUBMIT DEBUG] onSubmit function called
+ 🚀 [SUBMIT DEBUG] Form data received: 
+ 🚀 [SUBMIT DEBUG] Selected shipping method: 32
+ 🚀 [SUBMIT DEBUG] Payment method: wallet_combined
+ 🚀 [SUBMIT DEBUG] Form validation state: 
+ 🚀 [SUBMIT DEBUG] Form errors: 
+ 🚀 [SUBMIT DEBUG] Mutation pending before submit: false
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [DELIVERY LOGIC] Active delivery information: 
+ 🚗 [VEHICLE DEBUG] Delivery method and vehicle at order submission: 
+ 🔍 [PAYMENT ANALYSIS] Before conversion: 
+ 🔄 [PAYMENT CONVERSION] wallet_combined → wallet_full (user entered sufficient amount)
+ 🚀 [ORDER SUBMIT] Submitting order with complete data: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ 🚀 [SUBMIT DEBUG] onSubmit function called
+ 🚀 [SUBMIT DEBUG] Form data received: 
+ 🚀 [SUBMIT DEBUG] Selected shipping method: 32
+ 🚀 [SUBMIT DEBUG] Payment method: wallet_combined
+ 🚀 [SUBMIT DEBUG] Form validation state: 
+ 🚀 [SUBMIT DEBUG] Form errors: 
+ 🚀 [SUBMIT DEBUG] Mutation pending before submit: false
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [DELIVERY LOGIC] Active delivery information: 
+ 🚗 [VEHICLE DEBUG] Delivery method and vehicle at order submission: 
+ 🔍 [PAYMENT ANALYSIS] Before conversion: 
+ 🔄 [PAYMENT CONVERSION] wallet_combined → wallet_full (user entered sufficient amount)
+ 🚀 [ORDER SUBMIT] Submitting order with complete data: 
+ 🚀 [ORDER CREATION] Creating order with payment method: wallet_full
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ Customer auth check result: 
+api/customers/orders?t=1791311640046:1  Failed to load resource: the server responded with a status of 500 ()
+ ❌ [ORDER ERROR] Order submission failed: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+App-CrdtaLRG.js:57 🌟 [RATINGS DEBUG] Current products: Array(4)
+App-CrdtaLRG.js:57 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+App-CrdtaLRG.js:57 💰 [PURCHASE FORM] Tax calculation: Object
+App-CrdtaLRG.js:57 💰 [TOTAL CALCULATION] Breakdown: Object
+App-CrdtaLRG.js:57 💳 [WALLET DEBUG] Complete wallet analysis: Object
+App-CrdtaLRG.js:57 💰 [PURCHASE FORM] Tax calculation: Object
+App-CrdtaLRG.js:57 💰 [TOTAL CALCULATION] Breakdown: Object
+App-CrdtaLRG.js:57 💳 [WALLET DEBUG] Complete wallet analysis: Object
+App-CrdtaLRG.js:57 💰 [PURCHASE FORM] Tax calculation: Object
+App-CrdtaLRG.js:57 💰 [TOTAL CALCULATION] Breakdown: Object
+App-CrdtaLRG.js:57 💳 [WALLET DEBUG] Complete wallet analysis: Object
+App-CrdtaLRG.js:57 💰 [PURCHASE FORM] Tax calculation: Object
+App-CrdtaLRG.js:57 💰 [TOTAL CALCULATION] Breakdown: Object
+App-CrdtaLRG.js:57 💳 [WALLET DEBUG] Complete wallet analysis: Object
+App-CrdtaLRG.js:57 💰 [PURCHASE FORM] Tax calculation: Object
+App-CrdtaLRG.js:57 💰 [TOTAL CALCULATION] Breakdown: Object
+App-CrdtaLRG.js:57 💳 [WALLET DEBUG] Complete wallet analysis: Object
+App-CrdtaLRG.js:57 💰 [PURCHASE FORM] Tax calculation: Object
+App-CrdtaLRG.js:57 💰 [TOTAL CALCULATION] Breakdown: Object
+App-CrdtaLRG.js:57 💳 [WALLET DEBUG] Complete wallet analysis: Object
+App-CrdtaLRG.js:57 💰 [PURCHASE FORM] Tax calculation: Object
+App-CrdtaLRG.js:57 💰 [TOTAL CALCULATION] Breakdown: Object
+App-CrdtaLRG.js:57 💳 [WALLET DEBUG] Complete wallet analysis: Object
+App-CrdtaLRG.js:57 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0.1, dutiesRate: 0, subtotalAmount: 4, vatAmount: 0, …}
+App-CrdtaLRG.js:57 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 4, totalTaxAmount: 0, finalShippingCost: 374000, regularShippingCost: 0, smartDeliveryCost: 374000, …}
+App-CrdtaLRG.js:57 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 43714525735, canUseWallet: true, totalAmount: 374004, existingCustomer: true, …}
+App-CrdtaLRG.js:50  GET https://momtazchem.com/api/admin/me 401 (Unauthorized)
+queryFn @ App-CrdtaLRG.js:50
+fetchFn @ label-DydJa4-z.js:1
+h @ label-DydJa4-z.js:1
+start @ label-DydJa4-z.js:1
+fetch @ label-DydJa4-z.js:1
+#h @ label-DydJa4-z.js:1
+(anonymous) @ label-DydJa4-z.js:1
+App-CrdtaLRG.js:57 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0.1, dutiesRate: 0, subtotalAmount: 4, vatAmount: 0, …}
+App-CrdtaLRG.js:57 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 4, totalTaxAmount: 0, finalShippingCost: 374000, regularShippingCost: 0, smartDeliveryCost: 374000, …}
+App-CrdtaLRG.js:57 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 43714525735, canUseWallet: true, totalAmount: 374004, existingCustomer: true, …}

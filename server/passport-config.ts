@@ -3,7 +3,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import { db } from './db';
 import { customers } from '@shared/customer-schema';
-import { eq, or } from 'drizzle-orm';
+import { eq, or, sql } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
 // Google OAuth Strategy
@@ -12,7 +12,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: '/api/auth/google/callback',
-    scope: ['profile', 'email']
+    scope: ['profile', 'email'],
+    state: true,
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
@@ -22,7 +23,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         name: profile.displayName
       });
 
-      const email = profile.emails?.[0]?.value;
+      const email = profile.emails?.[0]?.value?.trim().toLowerCase();
       if (!email) {
         return done(new Error('No email provided by Google'), undefined);
       }
@@ -33,7 +34,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         .where(
           or(
             eq(customers.googleId, profile.id),
-            eq(customers.email, email)
+            sql`lower(${customers.email}) = ${email}`
           )
         )
         .limit(1);

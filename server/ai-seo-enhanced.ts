@@ -105,8 +105,8 @@ export interface SeoAnalysisRequest {
 
 // Enhanced AI SEO Content Generator with dual AI support
 export async function generateAdvancedSeoContent(request: SeoContentRequest) {
+  const aiProvider = request.aiProvider || AIProvider.OPENAI;
   try {
-    const aiProvider = request.aiProvider || AIProvider.OPENAI;
     const { client, model } = await getAIClient(aiProvider);
     
     const prompt = `
@@ -185,8 +185,8 @@ ${request.targetAudience ? `- مخاطب هدف: ${request.targetAudience}` : ''
 
 // Enhanced Keyword Research with dual AI support
 export async function generateAdvancedKeywordResearch(request: KeywordResearchRequest) {
+  const aiProvider = request.aiProvider || AIProvider.DEEPSEEK; // Default to DeepSeek for keyword research
   try {
-    const aiProvider = request.aiProvider || AIProvider.DEEPSEEK; // Default to DeepSeek for keyword research
     const { client, model } = await getAIClient(aiProvider);
     
     const prompt = `
@@ -266,8 +266,8 @@ ${request.competitorUrls ? `- رقبا: ${request.competitorUrls.join(', ')}` : 
 
 // Advanced Content Optimization with dual AI support
 export async function optimizeContentForSeoAdvanced(request: ContentOptimizationRequest) {
+  const aiProvider = request.aiProvider || AIProvider.OPENAI; // Default to OpenAI for content optimization
   try {
-    const aiProvider = request.aiProvider || AIProvider.OPENAI; // Default to OpenAI for content optimization
     const { client, model } = await getAIClient(aiProvider);
     const prompt = `
 نقش: متخصص بهینه‌سازی محتوا برای SEO
@@ -350,8 +350,8 @@ ${request.targetAudience ? `- مخاطب: ${request.targetAudience}` : ''}
 
 // Advanced SEO Performance Analysis with dual AI support
 export async function analyzeAdvancedSeoPerformance(request: SeoAnalysisRequest) {
+  const aiProvider = request.aiProvider || AIProvider.DEEPSEEK; // Default to DeepSeek for analysis
   try {
-    const aiProvider = request.aiProvider || AIProvider.DEEPSEEK; // Default to DeepSeek for analysis
     const { client, model } = await getAIClient(aiProvider);
     const prompt = `
 نقش: تحلیل‌گر پیشرفته عملکرد SEO

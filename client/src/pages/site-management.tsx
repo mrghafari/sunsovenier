@@ -10,6 +10,14 @@ import { KardexSyncPanel } from "@/components/KardexSyncPanel";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
+
+const financialApprovalLabels = {
+  en: "Financial Approval",
+  fa: "تایید مالی",
+  ar: "الاعتماد المالي",
+  tr: "Mali onay",
+} as const;
 
 // Define the structure for Quick Action buttons
 interface QuickActionButton {
@@ -25,6 +33,8 @@ export default function SiteManagement() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { language } = useLanguage();
+  const financialApprovalLabel = financialApprovalLabels[language];
   const [showKardexSync, setShowKardexSync] = useState(false);
   const [buttons, setButtons] = useState<QuickActionButton[]>([]);
 
@@ -156,7 +166,7 @@ export default function SiteManagement() {
       id: "abandoned-cart",
       label: "Abandoned Cart",
       icon: ShoppingCart,
-      onClick: () => trackButtonClick("abandoned-cart", () => setLocation("/admin/abandoned-cart-management")),
+      onClick: () => trackButtonClick("abandoned-cart", () => setLocation("/mrg/abandoned-cart-management")),
       className: "border-red-300 text-red-600 hover:bg-red-50",
       moduleId: "shop_management"
     },
@@ -324,7 +334,7 @@ export default function SiteManagement() {
     },
     {
       id: "financial-department",
-      label: "Financial Department",
+      label: financialApprovalLabel,
       icon: TrendingUp,
       onClick: () => trackButtonClick("financial-department", () => setLocation("/financial-department")),
       className: "border-blue-300 text-blue-600 hover:bg-blue-50",
@@ -395,14 +405,6 @@ export default function SiteManagement() {
       className: "border-red-300 text-red-600 hover:bg-red-50 font-semibold",
       moduleId: "order_management"
     },
-    {
-      id: "vendor-accounting",
-      label: "Vendor Accounting",
-      icon: Calculator,
-      onClick: () => trackButtonClick("vendor-accounting", () => setLocation("/admin/vendor-accounting")),
-      className: "border-teal-300 text-teal-600 hover:bg-teal-50",
-      moduleId: "vendor_accounting"
-    }
   ];
   console.log('🔍 [DEBUG] Created buttons array with length:', buttonArray.length);
   console.log('🔍 [DEBUG] Super admin button exists in array:', buttonArray.find(b => b.id === 'super-admin-order-management'));
@@ -479,7 +481,7 @@ export default function SiteManagement() {
         setButtons(filteredButtons);
       }
     }
-  }, [userPermissions]);
+  }, [userPermissions, financialApprovalLabel]);
 
   // Save button order to localStorage whenever it changes
   useEffect(() => {

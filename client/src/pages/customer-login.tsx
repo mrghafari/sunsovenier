@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +15,8 @@ import { Link } from 'wouter';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 type LoginForm = {
-  email: string;
-  password: string;
+  identifier: string;
+  password?: string;
 };
 
 const loginCopy = {
@@ -107,36 +108,70 @@ const loginCopy = {
 
 export default function CustomerLogin() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const { language, direction } = useLanguage();
   const copy = loginCopy[language];
   const loginSchema = z.object({
-    email: z.string().email(copy.invalidEmail),
-    password: z.string().min(1, copy.passwordRequired),
+    identifier: z.string().min(3, copy.invalidEmail),
+    password: z.string().optional(),
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [otpChallengeId, setOtpChallengeId] = useState("");
+  const [otpCode, setOtpCode] = useState("");
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      identifier: '',
       password: '',
     },
   });
+  const identifier = form.watch('identifier');
+  const isMobileLogin =
+    /^[+\d\s()-]+$/.test(identifier.trim()) &&
+    identifier.replace(/\D/g, '').length >= 7;
+
+  useEffect(() => {
+    setOtpChallengeId("");
+    setOtpCode("");
+  }, [identifier]);
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     setLoginError(null);
 
     try {
-      const response = await apiRequest('/api/customers/login', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      if (!isMobileLogin && !data.password) {
+        form.setError('password', { message: copy.passwordRequired });
+        return;
+      }
+
+      const response = !isMobileLogin
+        ? await apiRequest('/api/customers/login', {
+            method: 'POST',
+            body: data,
+          })
+        : otpChallengeId
+          ? await apiRequest('/api/customers/login-otp/verify', {
+              method: 'POST',
+              body: { challengeId: otpChallengeId, code: otpCode },
+            })
+          : await apiRequest('/api/customers/login-otp/request', {
+              method: 'POST',
+              body: { identifier: data.identifier },
+            });
+
+      if (isMobileLogin && !otpChallengeId && response.success) {
+        setOtpChallengeId(response.challengeId);
+        toast({ title: language === 'fa' ? 'کد ورود ارسال شد' : 'Login code sent' });
+        return;
+      }
 
       if (response.success) {
+        queryClient.setQueryData(['/api/customers/me'], response);
         toast({
           title: copy.success,
           description: copy.successDescription,
@@ -170,7 +205,7 @@ export default function CustomerLogin() {
     if (loginError) {
       setLoginError(null);
     }
-  }, [form.watch('email'), form.watch('password')]);
+  }, [form.watch('identifier'), form.watch('password')]);
 
   return (
     <div dir={direction} className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-50 flex items-center justify-center p-4">
@@ -209,26 +244,25 @@ export default function CustomerLogin() {
 
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="block text-start">
-                  {copy.email}
+                <Label htmlFor="identifier" className="block text-start">
+                  {language === 'fa' ? 'ایمیل یا شماره موبایل' : 'Email or mobile'}
                 </Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="example@email.com"
-                  {...form.register('email')}
+                  id="identifier"
+                  type="text"
+                  placeholder={language === 'fa' ? 'ایمیل یا شماره موبایل' : 'Email or mobile'}
+                  {...form.register('identifier')}
                   className="text-start"
                   dir="ltr"
                 />
-                {form.formState.errors.email && (
+                {form.formState.errors.identifier && (
                   <p className="text-red-500 text-sm text-start">
-                    {form.formState.errors.email.message}
+                    {form.formState.errors.identifier.message}
                   </p>
                 )}
               </div>
 
-              {/* Password Field */}
-              <div className="space-y-2">
+              {!isMobileLogin && <div className="space-y-2">
                 <Label htmlFor="password" className="block text-start">
                   {copy.password}
                 </Label>
@@ -257,7 +291,21 @@ export default function CustomerLogin() {
                     {form.formState.errors.password.message}
                   </p>
                 )}
-              </div>
+              </div>}
+
+              {isMobileLogin && otpChallengeId && (
+                <div className="space-y-2">
+                  <Label htmlFor="otpCode">{language === 'fa' ? 'کد یک‌بارمصرف' : 'One-time code'}</Label>
+                  <Input
+                    id="otpCode"
+                    value={otpCode}
+                    onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    dir="ltr"
+                  />
+                </div>
+              )}
 
               {/* Submit Button */}
               <Button
@@ -265,7 +313,24 @@ export default function CustomerLogin() {
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
                 disabled={isLoading}
               >
-                {isLoading ? copy.loggingIn : copy.login}
+                {isLoading ? copy.loggingIn : isMobileLogin && !otpChallengeId
+                  ? (language === 'fa' ? 'ارسال کد ورود' : 'Send login code')
+                  : copy.login}
+              </Button>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-gray-500">{language === 'fa' ? 'یا' : 'or'}</span>
+                </div>
+              </div>
+              <Button type="button" variant="outline" className="w-full" onClick={() => { window.location.href = '/api/auth/google'; }}>
+                <svg className="me-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.8 3-4.3 3-7.3Z"/>
+                  <path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.5L15.4 17c-.9.6-2 1-3.4 1a5.8 5.8 0 0 1-5.5-4H3.2v2.6A10 10 0 0 0 12 22Z"/>
+                  <path fill="#FBBC05" d="M6.5 14a6 6 0 0 1 0-3.9V7.5H3.2a10 10 0 0 0 0 9.1L6.5 14Z"/>
+                  <path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.9 1.5l2.8-2.8A9.5 9.5 0 0 0 3.2 7.5l3.3 2.6A5.8 5.8 0 0 1 12 6Z"/>
+                </svg>
+                {language === 'fa' ? 'ورود با حساب Google' : 'Continue with Google'}
               </Button>
 
               {/* Links */}

@@ -14,7 +14,7 @@ interface AuthGuardProps {
 export function AuthGuard({ 
   children, 
   requireAuth = true, 
-  redirectTo = "/admin/login" 
+  redirectTo = "/mrg/login"
 }: AuthGuardProps) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
@@ -27,8 +27,9 @@ export function AuthGuard({
     }
 
     if (!isLoading && !isAuthenticated) {
-      // Direct redirect to login page without intermediate screen
-      window.location.href = redirectTo;
+      // Use client-side navigation so an expired server session cannot leave
+      // the protected route on a blank page during a full document reload.
+      setLocation(redirectTo);
       return;
     }
 
@@ -36,7 +37,7 @@ export function AuthGuard({
       setShowLoginPrompt(false);
       setRetryCount(0);
     }
-  }, [isLoading, isAuthenticated, requireAuth, redirectTo, showLoginPrompt]);
+  }, [isLoading, isAuthenticated, requireAuth, redirectTo, showLoginPrompt, setLocation]);
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
@@ -44,7 +45,7 @@ export function AuthGuard({
   };
 
   const handleLoginRedirect = () => {
-    window.location.href = redirectTo;
+    setLocation(redirectTo);
   };
 
   // Show loading state

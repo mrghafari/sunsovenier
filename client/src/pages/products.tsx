@@ -71,10 +71,12 @@ const formSchema = insertShowcaseProductSchema.extend({
   syncWithShop: z.boolean().default(true),
   // Out of stock display control
   showWhenOutOfStock: z.boolean().default(false),
+  contractOnly: z.boolean().default(false),
   // Non-chemical product flag
   isNonChemical: z.boolean().default(false),
   // Flammable product flag
   isFlammable: z.boolean().default(false),
+  isBulkSale: z.boolean().default(false),
   // Transportation temperature
   transportationTemperature: z.string().optional(),
   // Display Mode fields
@@ -149,7 +151,7 @@ const getStockLevelIndicator = (current: number, min: number, max: number) => {
 };
 
 export default function ProductsPage() {
-  const { language, t, direction } = useLanguage();
+  const { t, direction,language } = useLanguage();
   
   // Check if vendor mode (from URL path)
   const isVendorMode = window.location.pathname.startsWith('/vendor/');
@@ -164,9 +166,9 @@ export default function ProductsPage() {
       case 'out_of_stock':
         return t.productManagement.outOfStock;
       case 'discontinued':
-        return language === 'ar' ? 'متوقف' : 'Discontinued';
+        return t.productManagement.discontinued;
       default:
-        return language === 'ar' ? 'غير معروف' : 'Unknown';
+        return t.productManagement.unknown;
     }
   };
   
@@ -220,7 +222,7 @@ export default function ProductsPage() {
     queryFn: async () => {
       const response = await fetch("/api/admin/categories");
       if (!response.ok) {
-        throw new Error("Failed to fetch categories");
+        throw new Error(t.dataLoadFailed);
       }
       return response.json();
     },
@@ -255,13 +257,13 @@ export default function ProductsPage() {
       }))
     : [
         // Fallback categories if API fails
-        { value: "Water Treatment", label: "Water Treatment", icon: <Droplet className="w-4 h-4" /> },
-        { value: "Fuel Additives", label: "Fuel Additives", icon: <Beaker className="w-4 h-4" /> },
-        { value: "Paint & Solvents", label: "Paint & Solvents", icon: <Package className="w-4 h-4" /> },
-        { value: "Agricultural Fertilizers", label: "Agricultural Fertilizers", icon: <Package className="w-4 h-4" /> },
-        { value: "Industrial Chemicals", label: "Industrial Chemicals", icon: <Package className="w-4 h-4" /> },
-        { value: "Technical equipment", label: "Technical equipment", icon: <Package className="w-4 h-4" /> },
-        { value: "Commercial goods", label: "Commercial goods", icon: <Package className="w-4 h-4" /> },
+        { value: "Water Treatment", label: t.waterTreatment, icon: <Droplet className="w-4 h-4" /> },
+        { value: "Fuel Additives", label: t.fuelAdditives, icon: <Beaker className="w-4 h-4" /> },
+        { value: "Paint & Solvents", label: t.paintSolvents, icon: <Package className="w-4 h-4" /> },
+        { value: "Agricultural Fertilizers", label: t.agriculturalFertilizers, icon: <Package className="w-4 h-4" /> },
+        { value: "Industrial Chemicals", label: t.industrialChemicals, icon: <Package className="w-4 h-4" /> },
+        { value: "Technical equipment", label: t.technicalEquipment, icon: <Package className="w-4 h-4" /> },
+        { value: "Commercial goods", label: t.commercialGoods, icon: <Package className="w-4 h-4" /> },
       ];
 
   // Use vendor API endpoint when in vendor mode to get only vendor's products
@@ -274,6 +276,11 @@ export default function ProductsPage() {
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
+  const mainShopBatch = editingProduct?.barcode
+    ? products?.filter(p =>
+        p.barcode?.trim() === editingProduct.barcode?.trim() && p.syncWithShop !== false
+      ).reduce<ShowcaseProduct | null>((main, p) => !main || p.id < main.id ? p : main, null)
+    : null;
 
   // Force refresh every time component mounts
   useEffect(() => {
@@ -304,13 +311,13 @@ export default function ProductsPage() {
           mainProduct: product,
           batches: [{
             id: product.id,
-            batchNumber: product.batchNumber || 'N/A',
+            batchNumber: product.batchNumber || t.productManagement.noBarcode,
             stockQuantity: product.stockQuantity || 0,
             createdAt: product.createdAt ? new Date(product.createdAt) : new Date(),
             isActive: true
           }],
           totalStock: product.stockQuantity || 0,
-          currentSellingBatch: product.batchNumber || 'N/A'
+          currentSellingBatch: product.batchNumber || t.productManagement.noBarcode
         });
         continue;
       }
@@ -325,9 +332,16 @@ export default function ProductsPage() {
       }
 
       const group = barcodeMap.get(product.barcode)!;
+      const currentMain = group.mainProduct;
+      if (
+        (currentMain.syncWithShop === false && product.syncWithShop !== false) ||
+        ((currentMain.syncWithShop === false) === (product.syncWithShop === false) && product.id < currentMain.id)
+      ) {
+        group.mainProduct = product;
+      }
       group.batches.push({
         id: product.id,
-        batchNumber: product.batchNumber || 'N/A',
+        batchNumber: product.batchNumber || t.productManagement.noBarcode,
         stockQuantity: product.stockQuantity || 0,
         createdAt: product.createdAt ? new Date(product.createdAt) : new Date(),
         isActive: false
@@ -428,51 +442,35 @@ export default function ProductsPage() {
   });
 
   const { mutate: updateProduct } = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => {
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
       setIsSubmitting(true);
       // Use vendor API endpoint when in vendor mode
       const endpoint = isVendorMode ? `/api/vendors/products/${id}` : `/api/products/${id}`;
       const method = isVendorMode ? "PATCH" : "PUT";
-      return apiRequest(endpoint, { method, body: data });
+      const result = await apiRequest(endpoint, { method, body: data });
+      if (result?.success === false) throw new Error(result.message || t.productManagement.productUpdateError);
+      return result;
     },
     onSuccess: async (result, variables) => {
       console.log('✅ [DEBUG] Update mutation successful, result:', result);
       setIsSubmitting(false);
-      const keepDialogOpen = keepDialogOpenAfterUpdateRef.current || Boolean(result?.batchNumber);
-      const addedStock = Number(variables?.data?.inventoryAddition) || 0;
       keepDialogOpenAfterUpdateRef.current = false;
-      
-      // A regular Save closes the form; Apply and batch additions keep it open.
-      if (!keepDialogOpen) {
-        // Regular update - close dialog and reset
-        setDialogOpen(false);
-        setEditingProduct(null);
-        setImagePreview(null);
-        setImagePreviews([null, null, null]);
-        form.reset();
-      } else {
-        // Keep editing in place and immediately reflect the applied stock.
-        if (addedStock > 0) {
-          form.setValue('stockQuantity', Number(form.getValues('stockQuantity') || 0) + addedStock);
-          if (typeof selectedBatchId === 'number') {
-            setAvailableBatches((batches) => batches.map((batch) =>
-              batch.id === selectedBatchId
-                ? { ...batch, stockQuantity: batch.stockQuantity + addedStock }
-                : batch
-            ));
-          }
-        }
-        form.setValue('inventoryAddition', 0);
-        form.setValue('newBatchNumber', '');
-      }
+
+      // Every successful product update closes and clears the form.
+      setDialogOpen(false);
+      setEditingProduct(null);
+      setImagePreview(null);
+      setImagePreviews([null, null, null]);
+      form.reset();
       
       // Refresh products list to ensure UI is in sync
       queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       
-      toast({
-        title: t.productManagement.productUpdated,
-        description: t.productManagement.productUpdated,
-      });
+      const weightChanged = ['netWeight', 'grossWeight', 'weightUnit']
+        .some(field => variables.data[field] !== undefined);
+      toast(weightChanged && result?.shopWeightUpdated !== true
+        ? { title: t.productManagement.shopWeightSyncFailed, variant: "destructive" }
+        : { title: t.productManagement.productUpdated, description: t.productManagement.productUpdated });
       // Immediate kardex sync after product update
       await triggerKardexSync();
     },
@@ -657,12 +655,14 @@ export default function ProductsPage() {
       // Shop visibility control
       syncWithShop: true,
       showWhenOutOfStock: false,
+      contractOnly: false,
       // Non-chemical product flag
       isNonChemical: false,
       // Flammable product flag
       isFlammable: false,
+      isBulkSale: false,
       // Transportation temperature
-      transportationTemperature: "",
+      transportationTemperature: "none",
       // Display Mode fields
       displayMode: "images" as const,
       model3dKey: "",
@@ -773,21 +773,36 @@ export default function ProductsPage() {
       return;
     }
     
+    // Unchanged legacy weights may be empty; do not clear them during unrelated edits.
+    const { netWeight: _netWeight, grossWeight: _grossWeight, weightUnit: _weightUnit, ...dataWithoutWeights } = data;
+    const dirtyWeights = form.formState.dirtyFields;
     // Convert numeric fields to strings for API compatibility
     const processedData = {
-      ...data,
+      ...dataWithoutWeights,
       unitPrice: data.unitPrice ? data.unitPrice.toString() : "0",
       stockQuantity: Number(data.stockQuantity) || 0,
       minStockLevel: Number(data.minStockLevel) || 0,
       maxStockLevel: Number(data.maxStockLevel) || 0,
       // For batch additions, keep weight fields but preserve image fields
-      netWeight: isBatchAddition ? null : (data.netWeight ? data.netWeight.toString() : null),
-      grossWeight: isBatchAddition ? null : (data.grossWeight ? data.grossWeight.toString() : null),
+      ...(!editingProduct || dirtyWeights.netWeight
+        ? { netWeight: isBatchAddition ? null : (data.netWeight ? data.netWeight.toString() : null) }
+        : {}),
+      ...(!editingProduct || dirtyWeights.grossWeight
+        ? { grossWeight: isBatchAddition ? null : (data.grossWeight ? data.grossWeight.toString() : null) }
+        : {}),
+      ...(!editingProduct || dirtyWeights.weightUnit
+        ? { weightUnit: data.weightUnit }
+        : {}),
       imageUrl: data.imageUrl, // Always include images (whether batch addition or not)
       imageUrls: data.imageUrls, // Always include images (whether batch addition or not)
-      batchNumber: data.newBatchNumber?.trim() || null,
+      batchNumber: selectedBatchId === 'new'
+        ? (data.newBatchNumber?.trim() || null)
+        : (data.batchNumber?.trim() || editingProduct?.batchNumber || null),
       // New inventory addition fields
       inventoryAddition: Number(data.inventoryAddition) || 0,
+      // This edit applies to the Kardex product; newly inserted batch rows use
+      // the database default and shop sync reads the base product's restriction.
+      contractOnly: data.contractOnly,
       // CRITICAL: Only send newBatchNumber if creating a NEW batch, not updating existing one
       newBatchNumber: (selectedBatchId === 'new' && data.newBatchNumber?.trim()) ? data.newBatchNumber.trim() : null,
       // Auto-inject vendorId if in vendor mode
@@ -801,7 +816,7 @@ export default function ProductsPage() {
         : [],
       tags: typeof data.tags === 'string' && data.tags.trim()
         ? data.tags.split(',').map(t => t.trim()).filter(t => t.length > 0)
-        : [language === 'ar' ? 'كيميائي' : 'chemical'],
+        : [t.productManagement.chemical],
       // Handle specifications - try to parse as JSON if possible, otherwise keep as string
       specifications: (() => {
         if (!data.specifications || typeof data.specifications !== 'string') return {};
@@ -849,14 +864,26 @@ export default function ProductsPage() {
     }
   );
 
+  const persistUploadedFields = async (fields: Partial<ShowcaseProduct>) => {
+    if (!editingProduct?.id) return;
+
+    const endpoint = isVendorMode
+      ? `/api/vendors/products/${editingProduct.id}`
+      : `/api/products/${editingProduct.id}`;
+
+    await apiRequest(endpoint, { method: "PATCH", body: fields });
+    setEditingProduct((current) => current ? { ...current, ...fields } : current);
+    await queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
+  };
+
   const handleImageUpload = async (file: File) => {
     if (!file) return;
 
     // Validate file size (2MB max)
     if (file.size > 2 * 1024 * 1024) {
       toast({
-        title: "File Too Large",
-        description: "Image must be less than 2MB. Please compress or resize the image.",
+        title: t.productManagement.fileTooLargeTitle,
+        description: t.productManagement.imageTooLargeDesc,
         variant: "destructive",
       });
       return;
@@ -866,8 +893,8 @@ export default function ProductsPage() {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
       toast({
-        title: "Invalid Format",
-        description: "Only JPEG, PNG, and WebP images are allowed for optimal customer display.",
+        title: t.productManagement.invalidFormat,
+        description: t.productManagement.invalidImageFormatDesc,
         variant: "destructive",
       });
       return;
@@ -885,21 +912,22 @@ export default function ProductsPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Upload failed');
+        throw new Error(errorData.message || t.productManagement.uploadFailed);
       }
 
       const { url } = await response.json();
       form.setValue('imageUrl', url);
       setImagePreview(url);
+      await persistUploadedFields({ imageUrl: url });
       
       toast({
-        title: "Success",
-        description: "Image uploaded successfully - optimized for customer display",
+        title: t.productManagement.success,
+        description: t.productManagement.imageUploadSuccess,
       });
     } catch (error) {
       toast({
-        title: "Upload Error",
-        description: error instanceof Error ? error.message : "Failed to upload image",
+        title: t.productManagement.uploadErrorTitle,
+        description: error instanceof Error ? error.message : t.productManagement.imageUploadFailed,
         variant: "destructive",
       });
     } finally {
@@ -914,8 +942,8 @@ export default function ProductsPage() {
     // Validate file size (2MB max)
     if (file.size > 2 * 1024 * 1024) {
       toast({
-        title: "File Too Large",
-        description: "Image must be less than 2MB. Please compress or resize the image.",
+        title: t.productManagement.fileTooLargeTitle,
+        description: t.productManagement.imageTooLargeDesc,
         variant: "destructive",
       });
       return;
@@ -925,8 +953,8 @@ export default function ProductsPage() {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
       toast({
-        title: "Invalid Format", 
-        description: "Only JPEG, PNG, WEBP, and GIF images are allowed.",
+        title: t.productManagement.invalidFormat,
+        description: t.productManagement.invalidImageFormatsDesc,
         variant: "destructive",
       });
       return;
@@ -948,7 +976,7 @@ export default function ProductsPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Upload failed');
+        throw new Error(errorData.message || t.productManagement.uploadFailed);
       }
 
       const { url } = await response.json();
@@ -963,14 +991,22 @@ export default function ProductsPage() {
       const newUrls = [...currentUrls];
       newUrls[index] = url;
       // Remove empty strings and update form
-      form.setValue('imageUrls', newUrls.filter(url => url));
+      const savedUrls = newUrls.filter(url => url);
+      form.setValue('imageUrls', savedUrls);
       
       // Update legacy imageUrl field with primary image for backward compatibility
+      const primaryImageUrl = index === primaryImageIndex
+        ? url
+        : form.getValues('imageUrl');
       if (index === primaryImageIndex) {
         form.setValue('imageUrl', url);
         setImagePreview(url);
         console.log('Set primary image URL:', url, 'at index:', index);
       }
+      await persistUploadedFields({
+        imageUrls: savedUrls,
+        ...(primaryImageUrl ? { imageUrl: primaryImageUrl } : {}),
+      });
       
       toast({
         title: t.productManagement.imageUploaded.replace('{index}', String(index + 1)),
@@ -1004,13 +1040,17 @@ export default function ProductsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        throw new Error(t.productManagement.uploadFailed);
       }
 
       const { url, originalName } = await response.json();
       form.setValue('pdfCatalogUrl', url);
       form.setValue('catalogFileName', originalName);
       setCatalogPreview(url);
+      await persistUploadedFields({
+        pdfCatalogUrl: url,
+        catalogFileName: originalName,
+      });
       
       toast({
         title: t.productManagement.productUpdated,
@@ -1041,13 +1081,17 @@ export default function ProductsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('MSDS upload failed');
+        throw new Error(t.productManagement.uploadFailed);
       }
 
       const { url, originalName } = await response.json();
       form.setValue('msdsUrl', url);
       form.setValue('msdsFileName', originalName);
       setMsdsPreview(url);
+      await persistUploadedFields({
+        msdsUrl: url,
+        msdsFileName: originalName,
+      });
       
       toast({
         title: t.productManagement.productUpdated,
@@ -1102,13 +1146,23 @@ export default function ProductsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('3D model upload failed');
+        throw new Error(t.productManagement.uploadFailed);
       }
 
       const { key, originalName } = await response.json();
+      const model3dUploadDate = new Date();
+      const displayMode = '3d_model' as const;
       form.setValue('model3dKey', key);
       form.setValue('model3dFileName', originalName);
+      form.setValue('model3dUploadDate', model3dUploadDate.toISOString());
+      form.setValue('displayMode', displayMode);
       setModel3dPreview(key);
+      await persistUploadedFields({
+        model3dKey: key,
+        model3dFileName: originalName,
+        model3dUploadDate,
+        displayMode,
+      });
       
       toast({
         title: t.productManagement.success,
@@ -1217,8 +1271,10 @@ export default function ProductsPage() {
       model3dFileName: product.model3dFileName || "",
       syncWithShop: product.syncWithShop !== null && product.syncWithShop !== undefined ? product.syncWithShop : true,
       showWhenOutOfStock: product.showWhenOutOfStock ?? false,
+      contractOnly: product.contractOnly ?? false,
       isNonChemical: product.isNonChemical ?? false,
       isFlammable: product.isFlammable ?? false,
+      isBulkSale: product.isBulkSale ?? false,
       transportationTemperature: product.transportationTemperature || "",
       isActive: product.isActive !== false,
     });
@@ -1393,7 +1449,7 @@ export default function ProductsPage() {
   }, [authLoading, isAuthenticated, isVendorMode, vendorSession, isLoadingVendorSession, setLocation]);
 
   if (authLoading || (isVendorMode && isLoadingVendorSession)) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen">{t.loading}</div>;
   }
 
   // Allow both admin and vendor access
@@ -1406,7 +1462,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-8 bg-white dark:bg-gray-900 min-h-screen">
+    <div dir={direction} className="container mx-auto p-6 space-y-8 bg-white dark:bg-gray-900 min-h-screen">
       <div className="bg-white dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -1417,13 +1473,13 @@ export default function ProductsPage() {
                 onClick={() => setLocation("/admin")}
                 className="border-gray-300 text-gray-600 hover:bg-gray-50"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Admin
+                <ArrowLeft className="w-4 h-4 me-2" />
+                {t.productManagement.backToAdmin}
               </Button>
             )}
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Product Management</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Manage products across five categories</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t.productManagement.pageTitle}</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">{t.productManagement.pageSubtitle}</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -1439,8 +1495,8 @@ export default function ProductsPage() {
               }}
               className="border-red-300 text-red-600 hover:bg-red-50"
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
+              <LogOut className="w-4 h-4 me-2" />
+              {t.productManagement.logout}
             </Button>
           </div>
         </div>
@@ -1448,18 +1504,19 @@ export default function ProductsPage() {
         {/* Search Section */}
         <div className="mb-6">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
-              placeholder="Search by name, barcode, or SKU..."
+              placeholder={t.productManagement.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2"
+              className="ps-10 pe-4 py-2"
             />
             {searchQuery && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                aria-label={t.productManagement.clearSearch}
+                className="absolute end-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
                 onClick={() => setSearchQuery("")}
               >
                 <X className="w-3 h-3" />
@@ -1475,25 +1532,25 @@ export default function ProductsPage() {
             {selectedInventoryStatus !== "all" && (
               <Badge variant="secondary" className="cursor-pointer hover:bg-gray-300" onClick={() => setSelectedInventoryStatus("all")}>
                 {t.productManagement.statusLabel}: {getInventoryStatusLabel(selectedInventoryStatus)}
-                <X className="w-3 h-3 ml-1" />
+                <X className="w-3 h-3 ms-1" />
               </Badge>
             )}
             {selectedCategory !== "all" && (
               <Badge variant="secondary" className="cursor-pointer hover:bg-gray-300" onClick={() => setSelectedCategory("all")}>
                 {t.productManagement.categoryLabel}: {categories.find(c => c.value === selectedCategory)?.label || selectedCategory}
-                <X className="w-3 h-3 ml-1" />
+                <X className="w-3 h-3 ms-1" />
               </Badge>
             )}
             {selectedVisibilityFilter !== "all" && (
               <Badge variant="secondary" className="cursor-pointer hover:bg-gray-300" onClick={() => setSelectedVisibilityFilter("all")}>
                 {t.productManagement.visibilityLabel}: {selectedVisibilityFilter === "hidden" ? t.productManagement.hiddenProducts : t.productManagement.visibleProducts}
-                <X className="w-3 h-3 ml-1" />
+                <X className="w-3 h-3 ms-1" />
               </Badge>
             )}
             {searchQuery && (
               <Badge variant="secondary" className="cursor-pointer hover:bg-gray-300" onClick={() => setSearchQuery("")}>
                 {t.productManagement.searchLabel}: {searchQuery}
-                <X className="w-3 h-3 ml-1" />
+                <X className="w-3 h-3 ms-1" />
               </Badge>
             )}
             <Button 
@@ -1515,7 +1572,7 @@ export default function ProductsPage() {
         {/* Management Actions */}
         <div className="mb-6 flex gap-3">
           <Button onClick={openCreateDialog} className="bg-blue-600 hover:bg-blue-700 h-12 text-sm">
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 me-2" />
             {t.addProduct}
           </Button>
           
@@ -1597,7 +1654,7 @@ export default function ProductsPage() {
 
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-8">
         <TabsList className="flex flex-wrap w-full gap-1 h-auto min-h-[40px] p-1 bg-muted">
-          <TabsTrigger value="all" className="flex-shrink-0 whitespace-nowrap">All Products</TabsTrigger>
+          <TabsTrigger value="all" className="flex-shrink-0 whitespace-nowrap">{t.productManagement.allProducts}</TabsTrigger>
           {categories.map((category: CategoryOption) => (
             <TabsTrigger key={category.value} value={category.value} className="flex-shrink-0 whitespace-nowrap">
               <span className="flex items-center gap-1 text-xs sm:text-sm">
@@ -1628,25 +1685,25 @@ export default function ProductsPage() {
             <div className="text-center py-12">
               <QrCode className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {searchQuery ? 'No products found' : 'No products available'}
+                {searchQuery ? t.productManagement.noProductsFound : t.productManagement.noProductsAvailable}
               </h3>
               <p className="text-gray-500 mb-4">
                 {searchQuery 
-                  ? `No products match "${searchQuery}". Try searching by name, barcode, or SKU.`
-                  : 'Add your first product to get started.'
+                  ? t.productManagement.noProductsMatch.replace('{query}', searchQuery)
+                  : t.productManagement.addFirstProduct
                 }
               </p>
               {searchQuery && (
                 <Button 
                   variant="outline" 
                   onClick={() => setSearchQuery("")}
-                  className="mr-2"
+                  className="me-2"
                 >
-                  Clear Search
+                  {t.productManagement.clearSearch}
                 </Button>
               )}
               <Button onClick={openCreateDialog}>
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-4 h-4 me-2" />
                 {t.addProduct}
               </Button>
             </div>
@@ -1691,6 +1748,11 @@ export default function ProductsPage() {
                             {product.technicalName}
                           </div>
                         )}
+                        {product.contractOnly && (
+                          <Badge variant="outline" className="mb-1 border-violet-200 bg-violet-50 text-violet-700">
+                            {t.productManagement.contractOnlyBadge}
+                          </Badge>
+                        )}
                         <div className="flex items-center gap-2 mb-2">
                           {categories.find((c: CategoryOption) => c.value === product.category)?.icon}
                           <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -1698,7 +1760,7 @@ export default function ProductsPage() {
                           </span>
                           {product.isVariant && (
                             <Badge variant="secondary" className="text-xs">
-                              Variant: {product.variantValue}
+                              {t.productManagement.variant}: {product.variantValue}
                             </Badge>
                           )}
                         </div>
@@ -1718,6 +1780,7 @@ export default function ProductsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          aria-label={t.edit}
                           onClick={() => openEditDialog(product)}
                           className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
                         >
@@ -1740,6 +1803,7 @@ export default function ProductsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          aria-label={t.delete}
                           onClick={() => handleDeleteProduct(product)}
                           className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
                         >
@@ -1778,10 +1842,10 @@ export default function ProductsPage() {
                       )}
 
                       {/* Batch Summary - Show only for chemical products */}
-                      {!productGroup.mainProduct.isNonChemical && productGroup.batches.length >= 1 && (
+                      {!productGroup.mainProduct.isNonChemical && productGroup.batches.some(batch => batch.stockQuantity > 0) && (
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium">{t.productManagement.allBatchesCount.replace('{count}', productGroup.batches.length.toString())}</span>
+                            <span className="text-sm font-medium">{t.productManagement.allBatchesCount.replace('{count}', productGroup.batches.filter(batch => batch.stockQuantity > 0).length.toString())}</span>
                             <span className="text-sm text-gray-600">{t.productManagement.totalStockLabel.replace('{stock}', productGroup.totalStock.toString())}</span>
                           </div>
                           <div className="space-y-1">
@@ -1844,12 +1908,12 @@ export default function ProductsPage() {
                           )}
                           {product.transportationTemperature && product.transportationTemperature !== 'none' && (
                             <div className="flex items-center gap-1">
-                              <span className="font-medium">دمای حمل:</span>
+                              <span className="font-medium">{t.productManagement.temperatureLabel}</span>
                               <span>
-                                {product.transportationTemperature === 'frozen' && '🧊 منجمد (-18°C تا 0°C)'}
-                                {product.transportationTemperature === 'chilled' && '❄️ خنک (+2°C تا +8°C)'}
-                                {product.transportationTemperature === 'cool' && '🌡️ خنک (+8°C تا +15°C)'}
-                                {product.transportationTemperature === 'dry' && '🌤️ دمای محیط (15°C تا 25°C)'}
+                                {product.transportationTemperature === 'frozen' && `🧊 ${t.productManagement.temperatureFrozen}`}
+                                {product.transportationTemperature === 'chilled' && `❄️ ${t.productManagement.temperatureChilled}`}
+                                {product.transportationTemperature === 'cool' && `🌡️ ${t.productManagement.temperatureCool}`}
+                                {product.transportationTemperature === 'dry' && `🌤️ ${t.productManagement.temperatureDry}`}
                               </span>
                             </div>
                           )}
@@ -1857,7 +1921,7 @@ export default function ProductsPage() {
                           {(product as any).vendorName && (
                             <div className="flex items-center gap-1">
                               <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-0 shadow-md px-3 py-1 text-xs font-semibold">
-                                <span className="mr-1">🏢</span>
+                                <span className="me-1">🏢</span>
                                 {(product as any).vendorName}
                               </Badge>
                             </div>
@@ -1925,7 +1989,7 @@ export default function ProductsPage() {
                                   <span className="text-gray-600">{variant.variantType}:</span>
                                   <span className="font-medium">{variant.variantValue}</span>
                                   {variant.unitPrice && (
-                                    <Badge variant="outline" className="text-xs ml-1">
+                                    <Badge variant="outline" className="text-xs ms-1">
                                       {variant.unitPrice} {variant.currency || 'IQD'}
                                     </Badge>
                                   )}
@@ -1986,8 +2050,8 @@ export default function ProductsPage() {
             {editingProduct && (editingProduct as any).vendorName && (
               <div className="flex justify-center mt-3">
                 <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-0 shadow-lg px-4 py-2 text-sm font-semibold">
-                  <span className="mr-2">🏢</span>
-                  شرکت: {(editingProduct as any).vendorName}
+                  <span className="me-2">🏢</span>
+                  {t.productManagement.companyLabel}: {(editingProduct as any).vendorName}
                 </Badge>
               </div>
             )}
@@ -2049,22 +2113,50 @@ export default function ProductsPage() {
 
                   <FormField
                     control={form.control}
+                    name="contractOnly"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-violet-50 border-violet-200">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-sm font-medium text-violet-700">{t.productManagement.contractOnlyLabel}</FormLabel>
+                          <div className="text-xs text-violet-500">{t.productManagement.contractOnlyDesc}</div>
+                        </div>
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value ?? false}
+                            onCheckedChange={field.onChange}
+                            className="border-violet-400"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField control={form.control} name="isBulkSale" render={({field})=>(
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-blue-50">
+                      <div className="space-y-0.5">
+                        <FormLabel>{language==="fa"?"فروش فله‌ای":language==="ar"?"بيع سائب":language==="tr"?"Dökme satış":"Bulk transport sale"}</FormLabel>
+                        <p className="text-xs text-slate-600">{language==="fa"?"در فروش قراردادی، خودروهای دستهٔ فله‌ای انتخاب می‌شوند؛ قیمت کالا همان قیمت قرارداد است. این ویژگی برای بچ‌های دارای بارکد مشترک یکسان است.":language==="ar"?"للبيع التعاقدي تُستخدم مركبات الفئة السائبة، ويبقى سعر العقد. يشترك هذا الخيار بين دفعات الباركود نفسه.":language==="tr"?"Sözleşmeli satışta dökme araçlar kullanılır; sözleşme fiyatı değişmez. Aynı barkodlu partiler bu özelliği paylaşır.":"Contract sales use bulk-category vehicles and retain contract prices. Batches sharing a barcode share this setting."}</p>
+                      </div><FormControl><Checkbox checked={field.value} onCheckedChange={value=>field.onChange(value===true)}/></FormControl>
+                    </FormItem>
+                  )}/>
+
+                  <FormField
+                    control={form.control}
                     name="transportationTemperature"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium">دمای حمل کالا</FormLabel>
+                        <FormLabel className="text-sm font-medium">{t.productManagement.temperatureLabel}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value || "none"}>
                           <FormControl>
                             <SelectTrigger className="h-9">
-                              <SelectValue placeholder="بدون محدودیت" />
+                            <SelectValue placeholder={t.productManagement.temperatureNone} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="none">⚪ بدون محدودیت دمایی</SelectItem>
-                            <SelectItem value="frozen">🧊 منجمد (Frozen): -18°C تا 0°C</SelectItem>
-                            <SelectItem value="chilled">❄️ خنک (Chilled): +2°C تا +8°C</SelectItem>
-                            <SelectItem value="cool">🌡️ خنک (Cool): +8°C تا +15°C</SelectItem>
-                            <SelectItem value="dry">🌤️ دمای محیط (Dry): 15°C تا 25°C</SelectItem>
+                            <SelectItem value="none">⚪ {t.productManagement.temperatureNone}</SelectItem>
+                            <SelectItem value="frozen">🧊 {t.productManagement.temperatureFrozen}</SelectItem>
+                            <SelectItem value="chilled">❄️ {t.productManagement.temperatureChilled}</SelectItem>
+                            <SelectItem value="cool">🌡️ {t.productManagement.temperatureCool}</SelectItem>
+                            <SelectItem value="dry">🌤️ {t.productManagement.temperatureDry}</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormItem>
@@ -2155,13 +2247,13 @@ export default function ProductsPage() {
                           <FormItem>
                             <FormLabel className="text-sm font-medium flex items-center gap-2">
                               <Factory className="h-4 w-4" />
-                              Assign to Vendor (Optional)
+                              {t.productManagement.assignVendor}
                               <Tooltip>
                                 <TooltipTrigger>
                                   <HelpCircle className="h-3 w-3 text-gray-400" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Optionally assign this product to a marketplace vendor</p>
+                                  <p>{t.productManagement.assignVendorHelp}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </FormLabel>
@@ -2171,13 +2263,13 @@ export default function ProductsPage() {
                             >
                               <FormControl>
                                 <SelectTrigger className="h-9">
-                                  <SelectValue placeholder="Select vendor (optional)" />
+                                <SelectValue placeholder={t.productManagement.selectVendor} />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
                                 <SelectItem value="none">
                                   <div className="flex items-center gap-2 text-gray-500">
-                                    No Vendor (Company Product)
+                                    {t.productManagement.noVendor}
                                   </div>
                                 </SelectItem>
                                 {vendors.map((vendor) => (
@@ -2408,7 +2500,7 @@ export default function ProductsPage() {
                                       });
 
                                       if (!response.ok) {
-                                        throw new Error('Failed to generate SKU');
+                                        throw new Error(t.productManagement.productUpdateError);
                                       }
 
                                       const result = await response.json();
@@ -2458,8 +2550,8 @@ export default function ProductsPage() {
                                     }
                                   }}
                                 >
-                                  <Sparkles className="h-4 w-4 mr-1" />
-                                  AI
+                                  <Sparkles className="h-4 w-4 me-1" />
+                                  {t.productManagement.aiGenerate}
                                 </Button>
                               )}
                             </div>
@@ -2480,7 +2572,7 @@ export default function ProductsPage() {
                           <FormLabel className={`flex items-center gap-2 text-sm font-medium ${validationErrors.barcode ? 'text-red-600' : ''}`}>
 {t.productBarcode}
                             {/* Subtle barcode visualization next to label */}
-                            <svg width="120" height="24" viewBox="0 0 120 24" className="opacity-30 ml-1">
+                            <svg width="120" height="24" viewBox="0 0 120 24" className="opacity-30 ms-1">
                               <rect x="0" y="0" width="3" height="24" fill="#333"/>
                               <rect x="6" y="0" width="3" height="24" fill="#333"/>
                               <rect x="12" y="0" width="6" height="24" fill="#333"/>
@@ -2593,6 +2685,7 @@ export default function ProductsPage() {
                               <SelectItem value="IQD">{t.productManagement.currencyIQD}</SelectItem>
                               <SelectItem value="USD">{t.productManagement.currencyUSD}</SelectItem>
                               <SelectItem value="EUR">{t.productManagement.currencyEUR}</SelectItem>
+                               <SelectItem value="IRR">{t.productManagement.currencyIRR}</SelectItem>
                               <SelectItem value="TRY">{t.productManagement.currencyTRY}</SelectItem>
                             </SelectContent>
                           </Select>
@@ -2860,16 +2953,16 @@ export default function ProductsPage() {
                       name="netWeight"
                       render={({ field }) => {
                         const isBatchAddition = !!((form.watch('inventoryAddition') || 0) > 0 && form.watch('newBatchNumber')?.trim());
-                        const isDisabled = !!form.watch('isNonChemical') || isBatchAddition || !!editingProduct;
+                         const isDisabled = isBatchAddition || (!editingProduct && !!form.watch('isNonChemical'));
                         const originalNetWeight = editingProduct?.netWeight || 0;
                         const weightUnit = editingProduct?.weightUnit || 'kg';
                         return (
                         <FormItem>
                           <FormLabel className={`text-sm font-medium flex items-center gap-2 ${validationErrors.netWeight ? 'text-red-600' : ''} ${isDisabled ? 'text-gray-400' : ''}`}>
 {t.netWeight}
-                            {(isBatchAddition || editingProduct) && (
+                             {isBatchAddition && (
                               <Badge variant="secondary" className="text-xs">
-                                {isBatchAddition ? `${originalNetWeight} ${weightUnit}` : t.productManagement.initialFixedValue}
+                                 {`${originalNetWeight} ${weightUnit}`}
                               </Badge>
                             )}
                             <Tooltip>
@@ -2908,16 +3001,16 @@ export default function ProductsPage() {
                       name="grossWeight"
                       render={({ field }) => {
                         const isBatchAddition = !!((form.watch('inventoryAddition') || 0) > 0 && form.watch('newBatchNumber')?.trim());
-                        const isDisabled = !!form.watch('isNonChemical') || isBatchAddition || !!editingProduct;
+                         const isDisabled = isBatchAddition || (!editingProduct && !!form.watch('isNonChemical'));
                         const originalGrossWeight = editingProduct?.grossWeight || 0;
                         const weightUnit = editingProduct?.weightUnit || 'kg';
                         return (
                         <FormItem>
                           <FormLabel className={`text-sm font-medium flex items-center gap-2 ${validationErrors.grossWeight ? 'text-red-600' : ''} ${isDisabled ? 'text-gray-400' : ''}`}>
 {t.grossWeight}
-                            {(isBatchAddition || editingProduct) && (
+                             {isBatchAddition && (
                               <Badge variant="secondary" className="text-xs">
-                                {isBatchAddition ? `${originalGrossWeight} ${weightUnit}` : t.productManagement.initialFixedValue}
+                                 {`${originalGrossWeight} ${weightUnit}`}
                               </Badge>
                             )}
                             <Tooltip>
@@ -2957,7 +3050,7 @@ export default function ProductsPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-medium">{t.weightUnit}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value || "kg"}>
+                           <Select onValueChange={field.onChange} value={field.value || "kg"}>
                             <FormControl>
                               <SelectTrigger className="h-9">
                                 <SelectValue placeholder={t.productManagement.selectWeightUnit} />
@@ -2976,6 +3069,20 @@ export default function ProductsPage() {
                       )}
                     />
                   </div>
+                  {editingProduct && (
+                    <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+                      <p>{t.productManagement.shopGrossWeightHint}</p>
+                      {mainShopBatch && mainShopBatch.id !== editingProduct.id && (
+                        <div className="mt-2">
+                          <p>{t.productManagement.batchWeightOnlyHint}</p>
+                          <Button type="button" variant="link" className="h-auto px-0 text-blue-900 underline"
+                            onClick={() => handleBatchChange(String(mainShopBatch.id))}>
+                            {t.productManagement.editShopWeightBatch} ({mainShopBatch.batchNumber || `ID-${mainShopBatch.id}`})
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Tags and additional settings */}
@@ -3167,12 +3274,12 @@ export default function ProductsPage() {
                                     />
                                     {/* Primary image indicator */}
                                     {(editingProduct ? displayPrimaryImageIndex : primaryImageIndex) === index && (
-                                      <div className="absolute -top-1 -left-1 bg-blue-500 text-white text-xs px-1 py-0.5 rounded-full text-[10px] font-bold">
+                                      <div className="absolute -top-1 -start-1 bg-blue-500 text-white text-xs px-1 py-0.5 rounded-full text-[10px] font-bold">
                                         {t.productManagement.primaryImageLabel}
                                       </div>
                                     )}
                                     {/* Primary image selection radio button */}
-                                    <div className="absolute bottom-1 left-1 z-10">
+                                    <div className="absolute bottom-1 start-1 z-10">
                                       <button
                                         type="button"
                                         onClick={(e) => {
@@ -3192,7 +3299,7 @@ export default function ProductsPage() {
                                             ? 'bg-blue-500 border-blue-500 shadow-lg' 
                                             : 'bg-white border-gray-400 hover:border-blue-400 shadow-md'
                                         }`}
-                                        title={t.productManagement.setPrimaryImage.replace('{selected}', primaryImageIndex === index ? '(Selected)' : '')}
+                                        title={t.productManagement.setPrimaryImage.replace('{selected}', primaryImageIndex === index ? `(${t.productManagement.selected})` : '')}
                                       >
                                         {primaryImageIndex === index && (
                                           <div className="w-2 h-2 bg-white rounded-full"></div>
@@ -3203,7 +3310,8 @@ export default function ProductsPage() {
                                       type="button"
                                       variant="outline"
                                       size="sm"
-                                      className="absolute -top-2 -right-2 h-6 w-6 p-0 bg-white shadow-md z-10"
+                                      aria-label={t.delete}
+                                      className="absolute -top-2 -end-2 h-6 w-6 p-0 bg-white shadow-md z-10"
                                       onClick={async (e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
@@ -3263,8 +3371,8 @@ export default function ProductsPage() {
                                             console.error('❌ [IMAGE DELETE] Failed to remove image:', error);
                                             toast({
                                               variant: "destructive",
-                                              title: "Error",
-                                              description: "Failed to remove product image"
+                                          title: t.error,
+                                          description: t.productManagement.removeImageError
                                             });
                                           }
                                         }
@@ -3277,7 +3385,7 @@ export default function ProductsPage() {
                                   <div className="py-2">
                                     <Image className="mx-auto h-8 w-8 text-gray-400" />
                                     <p className="mt-1 text-xs text-gray-600">{t.productManagement.selectImage}</p>
-                                    <p className="text-xs text-gray-500">JPG, PNG, WEBP, GIF</p>
+                                    <p className="text-xs text-gray-500">{t.productManagement.imageFileTypes}</p>
                                   </div>
                                 )}
                                 <input
@@ -3292,7 +3400,7 @@ export default function ProductsPage() {
                               </div>
                               {uploadingImages[index] && (
                                 <div className="flex items-center justify-center text-xs text-blue-600">
-                                  <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                                    <RefreshCw className="h-3 w-3 animate-spin me-1" />
                                   {t.productManagement.uploadImage}
                                 </div>
                               )}
@@ -3368,14 +3476,15 @@ export default function ProductsPage() {
                                 <div className="relative">
                                   <ProductModel3DViewer
                                     model3dKey={model3dPreview}
-                                    productName={form.getValues('name') || '3D Model Preview'}
+                                    productName={form.getValues('name') || t.productManagement.model3dPreview}
                                     className="w-full h-[300px]"
                                   />
                                   <Button
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    className="absolute top-2 right-2 h-8 w-8 p-0 bg-white/90 hover:bg-white"
+                                    aria-label={t.productManagement.deleteModel3d}
+                                    className="absolute top-2 end-2 h-8 w-8 p-0 bg-white/90 hover:bg-white"
                                     onClick={() => {
                                       setModel3dPreview(null);
                                       form.setValue('model3dKey', '');
@@ -3389,7 +3498,7 @@ export default function ProductsPage() {
                                 <div className="py-4">
                                   <Package className="mx-auto h-12 w-12 text-purple-400" />
                                   <p className="mt-2 text-sm text-gray-600">{t.productManagement.uploadModel3d}</p>
-                                  <p className="text-xs text-gray-500">.glb / .gltf files only</p>
+                                  <p className="text-xs text-gray-500">{t.productManagement.model3dFileTypes}</p>
                                 </div>
                               )}
                               <input
@@ -3404,7 +3513,7 @@ export default function ProductsPage() {
                             </div>
                             {uploadingModel3d && (
                               <div className="flex items-center justify-center text-sm text-purple-600">
-                                <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                                <RefreshCw className="h-4 w-4 animate-spin me-2" />
                                 {t.productManagement.uploadingFile}
                               </div>
                             )}
@@ -3438,11 +3547,12 @@ export default function ProductsPage() {
                                   type="button"
                                   variant="outline"
                                   size="sm"
+                                  aria-label={t.productManagement.deleteModel3d}
                                   className="text-blue-600 border-blue-300 hover:bg-blue-50"
                                   onClick={() => window.open(form.getValues('model3dKey'), '_blank')}
                                 >
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  {t.productManagement.viewModel3d || 'View 3D Model'}
+                                  <Eye className="w-4 h-4 me-1" />
+                                  {t.productManagement.viewModel3d}
                                 </Button>
                               )}
                               
@@ -3457,7 +3567,7 @@ export default function ProductsPage() {
                                     fileInput?.click();
                                   }}
                                 >
-                                  <Upload className="w-4 h-4 mr-1" />
+                                  <Upload className="w-4 h-4 me-1" />
                                   {t.productManagement.uploadModel3d}
                                 </Button>
                                 <input
@@ -3487,8 +3597,8 @@ export default function ProductsPage() {
                                     form.setValue('model3dFileName', '');
                                   }}
                                 >
-                                  <X className="w-4 h-4 mr-1" />
-                                  {t.productManagement.deleteModel3d || 'Delete 3D Model'}
+                                  <X className="w-4 h-4 me-1" />
+                                  {t.productManagement.deleteModel3d}
                                 </Button>
                               )}
                             </div>
@@ -3522,14 +3632,15 @@ export default function ProductsPage() {
                               <div className="relative">
                                 <div className="bg-red-50 p-4 rounded-lg">
                                   <FileText className="mx-auto h-12 w-12 text-red-600" />
-                                  <p className="mt-2 text-sm text-gray-700">{form.getValues('catalogFileName') || 'catalog.pdf'}</p>
+                                  <p className="mt-2 text-sm text-gray-700">{form.getValues('catalogFileName') || t.productManagement.catalogFilename}</p>
 
                                 </div>
                                 <Button
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="absolute top-2 right-2 h-6 w-6 p-0 z-10"
+                                  aria-label={t.delete}
+                                  className="absolute top-2 end-2 h-6 w-6 p-0 z-10"
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
@@ -3561,8 +3672,8 @@ export default function ProductsPage() {
                                         console.error('❌ [CATALOG DELETE] Failed to remove catalog:', error);
                                         toast({
                                           variant: "destructive",
-                                          title: "Error",
-                                          description: "Failed to remove catalog file"
+                                          title: t.error,
+                                          description: t.productManagement.removeCatalogError
                                         });
                                       }
                                     }
@@ -3590,7 +3701,7 @@ export default function ProductsPage() {
                           </div>
                           {uploadingCatalog && (
                             <div className="flex items-center justify-center text-sm text-blue-600">
-                              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                              <RefreshCw className="h-4 w-4 animate-spin me-2" />
                               {t.productManagement.uploadingFile}
                             </div>
                           )}
@@ -3646,7 +3757,7 @@ export default function ProductsPage() {
                                 className="text-blue-600 border-blue-300 hover:bg-blue-50"
                                 onClick={() => window.open(form.getValues('pdfCatalogUrl'), '_blank')}
                               >
-                                <Eye className="w-4 h-4 mr-1" />
+                                <Eye className="w-4 h-4 me-1" />
                                 {t.productManagement.viewCatalog}
                               </Button>
                             )}
@@ -3662,7 +3773,7 @@ export default function ProductsPage() {
                                   fileInput?.click();
                                 }}
                               >
-                                <Upload className="w-4 h-4 mr-1" />
+                                <Upload className="w-4 h-4 me-1" />
                                 {t.productManagement.uploadCatalog}
                               </Button>
                               <input
@@ -3708,14 +3819,15 @@ export default function ProductsPage() {
                               <div className="relative">
                                 <div className="bg-orange-50 p-4 rounded-lg">
                                   <FileText className="mx-auto h-12 w-12 text-orange-600" />
-                                  <p className="mt-2 text-sm text-gray-700">{form.getValues('msdsFileName') || 'msds.pdf'}</p>
+                                  <p className="mt-2 text-sm text-gray-700">{form.getValues('msdsFileName') || t.productManagement.msdsFilename}</p>
 
                                 </div>
                                 <Button
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="absolute top-2 right-2 h-6 w-6 p-0 z-10"
+                                  aria-label={t.delete}
+                                  className="absolute top-2 end-2 h-6 w-6 p-0 z-10"
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
@@ -3747,8 +3859,8 @@ export default function ProductsPage() {
                                         console.error('❌ [MSDS DELETE] Failed to remove MSDS:', error);
                                         toast({
                                           variant: "destructive",
-                                          title: "Error",
-                                          description: "Failed to remove MSDS file"
+                                          title: t.error,
+                                          description: t.productManagement.removeMsdsError
                                         });
                                       }
                                     }
@@ -3776,7 +3888,7 @@ export default function ProductsPage() {
                           </div>
                           {uploadingMsds && (
                             <div className="flex items-center justify-center text-sm text-blue-600">
-                              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                              <RefreshCw className="h-4 w-4 animate-spin me-2" />
                               {t.productManagement.uploadingFile}
                             </div>
                           )}
@@ -3832,7 +3944,7 @@ export default function ProductsPage() {
                                 className="text-blue-600 border-blue-300 hover:bg-blue-50"
                                 onClick={() => window.open(form.getValues('msdsUrl'), '_blank')}
                               >
-                                <Eye className="w-4 h-4 mr-1" />
+                                <Eye className="w-4 h-4 me-1" />
                                 {t.productManagement.viewMSDS}
                               </Button>
                             )}
@@ -3848,7 +3960,7 @@ export default function ProductsPage() {
                                   fileInput?.click();
                                 }}
                               >
-                                <FileText className="w-4 h-4 mr-1" />
+                                <FileText className="w-4 h-4 me-1" />
                                 {t.productManagement.uploadMSDS}
                               </Button>
                               <input
@@ -3891,7 +4003,7 @@ export default function ProductsPage() {
                     disabled={isSubmitting}
                     className="px-6 bg-blue-600 hover:bg-blue-700"
                   >
-                    {isSubmitting && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+                    {isSubmitting && <RefreshCw className="me-2 h-4 w-4 animate-spin" />}
                     {editingProduct ? t.productManagement.updateProduct : t.productManagement.addProduct}
                   </Button>
                 </div>
@@ -3922,7 +4034,7 @@ export default function ProductsPage() {
               onClick={confirmDeleteProduct}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-4 h-4 me-2" />
               {t.productManagement.deleteProduct}
             </AlertDialogAction>
           </AlertDialogFooter>

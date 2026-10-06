@@ -19,6 +19,47 @@ const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
 const sql_client = neon(databaseUrl!);
 const cartDb = drizzle(sql_client);
 
+function normalizeCartItems(cartData: unknown): Array<[number, number]> {
+  let parsed = cartData;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return [];
+    }
+  }
+
+  const entries = Array.isArray(parsed)
+    ? parsed.map((item: any) => [
+        Number(item?.productId ?? item?.id),
+        Number(item?.quantity),
+      ] as [number, number])
+    : parsed && typeof parsed === 'object'
+      ? Object.entries(parsed as Record<string, unknown>).map(([productId, quantity]) => [
+          Number(productId),
+          Number(quantity),
+        ] as [number, number])
+      : [];
+
+  return entries
+    .filter(([productId, quantity]) =>
+      Number.isInteger(productId) && productId > 0 && Number.isFinite(quantity) && quantity > 0,
+    )
+    .sort(([leftId], [rightId]) => leftId - rightId);
+}
+
+function cartsHaveSameItems(left: unknown, right: unknown): boolean {
+  return JSON.stringify(normalizeCartItems(left)) === JSON.stringify(normalizeCartItems(right));
+}
+
+function totalsAreEqual(left: unknown, right: unknown): boolean {
+  const leftTotal = Number(left);
+  const rightTotal = Number(right);
+  return Number.isFinite(leftTotal) &&
+    Number.isFinite(rightTotal) &&
+    Math.abs(leftTotal - rightTotal) < 0.0001;
+}
+
 export class CartStorage {
   
   // =============================================================================
@@ -42,6 +83,15 @@ export class CartStorage {
       .limit(1);
 
     if (existing.length > 0) {
+      // Loading an unchanged cart is not customer activity. Resetting the
+      // abandonment clock here lets a stale cart avoid cleanup indefinitely.
+      if (
+        cartsHaveSameItems(existing[0].cartData, data.cartData) &&
+        totalsAreEqual(existing[0].totalValue, data.totalValue)
+      ) {
+        return existing[0].id;
+      }
+
       // Update existing session
       await cartDb
         .update(cartSessions)
@@ -259,41 +309,61 @@ export class CartStorage {
       console.log('🛒 [CART CLEANUP] Starting abandoned cart processing...');
       
       const now = new Date();
+      const settings = await this.getAbandonedCartSettings();
+      const timeoutMinutes = Math.min(
+        10080,
+        Math.max(1, Number(settings?.timeoutMinutes) || 30),
+      );
+      const notificationIntervalMinutes = Math.min(
+        10080,
+        Math.max(1, Number(settings?.notificationIntervalMinutes) || 60),
+      );
       
-      // Find carts that need first notification (1 hour)
-      const oneHourAgo = new Date(now.getTime() - (1 * 60 * 60 * 1000));
+      // Find carts that passed the configured inactivity timeout.
+      const abandonmentCutoff = new Date(now.getTime() - timeoutMinutes * 60 * 1000);
       const cartsForFirstNotification = await cartDb
         .select()
         .from(cartSessions)
         .where(and(
           eq(cartSessions.isActive, true),
           gte(cartSessions.itemCount, 1),
-          lte(cartSessions.lastActivity, oneHourAgo),
+          lte(cartSessions.lastActivity, abandonmentCutoff),
           eq(cartSessions.isAbandoned, false)
         ));
       
-      // Find carts that need second notification (3 hours)
-      const threeHoursAgo = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+      // Find abandoned carts that passed the configured notification interval.
+      const secondNotificationCutoff = new Date(
+        now.getTime() - (timeoutMinutes + notificationIntervalMinutes) * 60 * 1000,
+      );
       const cartsForSecondNotification = await cartDb
         .select()
         .from(cartSessions)
         .where(and(
           eq(cartSessions.isActive, true),
           gte(cartSessions.itemCount, 1),
-          lte(cartSessions.lastActivity, threeHoursAgo),
+          lte(cartSessions.lastActivity, secondNotificationCutoff),
           eq(cartSessions.isAbandoned, true)
         ));
       
-      // Find carts to delete (2 hours - user requested cleanup for items older than 2 hours)
-      const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
-      const cartsToDelete = await cartDb
-        .select()
-        .from(cartSessions)
-        .where(and(
-          eq(cartSessions.isActive, true),
-          gte(cartSessions.itemCount, 1),
-          lte(cartSessions.lastActivity, twoHoursAgo)
-        ));
+      const autoDeleteAfterHours = Math.min(
+        8760,
+        Math.max(1, Number(settings?.autoDeleteAfterHours) || 168),
+      );
+      const deletionCutoff = new Date(
+        now.getTime() - (
+          timeoutMinutes * 60 * 1000 +
+          autoDeleteAfterHours * 60 * 60 * 1000
+        ),
+      );
+      const cartsToDelete = settings?.autoDeleteEnabled
+        ? await cartDb
+            .select()
+            .from(cartSessions)
+            .where(and(
+              eq(cartSessions.isAbandoned, true),
+              lte(cartSessions.lastActivity, deletionCutoff),
+            ))
+        : [];
       
       console.log(`🛒 [CART CLEANUP] Found ${cartsForFirstNotification.length} carts for first notification`);
       console.log(`🛒 [CART CLEANUP] Found ${cartsForSecondNotification.length} carts for second notification`);
@@ -303,6 +373,9 @@ export class CartStorage {
         firstNotifications: cartsForFirstNotification.length,
         secondNotifications: cartsForSecondNotification.length,
         deletedCarts: cartsToDelete.length,
+        autoDeleteEnabled: settings?.autoDeleteEnabled === true,
+        autoDeleteAfterHours,
+        timeoutMinutes,
         cartsForFirstNotification,
         cartsForSecondNotification,
         cartsToDelete
@@ -314,6 +387,9 @@ export class CartStorage {
         firstNotifications: 0,
         secondNotifications: 0,
         deletedCarts: 0,
+        autoDeleteEnabled: false,
+        autoDeleteAfterHours: 168,
+        timeoutMinutes: 30,
         cartsForFirstNotification: [],
         cartsForSecondNotification: [],
         cartsToDelete: []
@@ -333,7 +409,6 @@ export class CartStorage {
       .where(eq(cartSessions.id, cartId));
   }
 
-  // Delete abandoned cart after 4 hours
   async getCartSessionById(cartId: number): Promise<CartSession | null> {
     try {
       const cart = await cartDb
@@ -367,13 +442,43 @@ export class CartStorage {
   }
 
   async deleteAbandonedCart(cartId: number) {
-    await cartDb
-      .update(cartSessions)
-      .set({
-        isActive: false,
-        updatedAt: new Date()
-      })
-      .where(eq(cartSessions.id, cartId));
+    const { pool } = await import('./db');
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const cartResult = await client.query(`
+        SELECT customer_id
+        FROM cart_sessions
+        WHERE id = $1 AND is_abandoned = true
+        FOR UPDATE
+      `, [cartId]);
+
+      if (cartResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+
+      const customerId = cartResult.rows[0].customer_id;
+      await client.query(
+        'DELETE FROM abandoned_cart_notifications WHERE cart_session_id = $1',
+        [cartId],
+      );
+      await client.query(
+        'DELETE FROM persistent_carts WHERE customer_id = $1',
+        [customerId],
+      );
+      await client.query(
+        'DELETE FROM cart_sessions WHERE id = $1 AND is_abandoned = true',
+        [cartId],
+      );
+      await client.query('COMMIT');
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   // =============================================================================
@@ -391,12 +496,20 @@ export class CartStorage {
 
   async updateAbandonedCartSettings(data: Partial<AbandonedCartSettings>) {
     const existing = await this.getAbandonedCartSettings();
+    const sanitizedData = {
+      ...data,
+      timeoutMinutes: Math.min(10080, Math.max(1, Number(data.timeoutMinutes) || 30)),
+      maxNotifications: Math.min(10, Math.max(1, Number(data.maxNotifications) || 3)),
+      notificationIntervalMinutes: Math.min(10080, Math.max(30, Number(data.notificationIntervalMinutes) || 60)),
+      autoDeleteEnabled: data.autoDeleteEnabled === true,
+      autoDeleteAfterHours: Math.min(8760, Math.max(1, Number(data.autoDeleteAfterHours) || 168)),
+    };
     
     if (existing) {
       await cartDb
         .update(abandonedCartSettings)
         .set({
-          ...data,
+          ...sanitizedData,
           updatedAt: new Date()
         })
         .where(eq(abandonedCartSettings.id, existing.id));
@@ -404,7 +517,7 @@ export class CartStorage {
       await cartDb
         .insert(abandonedCartSettings)
         .values({
-          ...data,
+          ...sanitizedData,
           createdAt: new Date(),
           updatedAt: new Date()
         });
@@ -489,14 +602,37 @@ export class CartStorage {
   // =============================================================================
 
   async getCartRecoveryAnalytics(days: number = 30) {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    return await cartDb
-      .select()
-      .from(cartRecoveryAnalytics)
-      .where(gte(cartRecoveryAnalytics.date, startDate))
-      .orderBy(desc(cartRecoveryAnalytics.date));
+    const { pool } = await import('./db');
+    const result = await pool.query(`
+      WITH dates AS (
+        SELECT generate_series(
+          CURRENT_DATE - ($1::integer - 1),
+          CURRENT_DATE,
+          INTERVAL '1 day'
+        )::date AS date
+      ),
+      abandoned AS (
+        SELECT abandoned_at::date AS date, COUNT(*)::integer AS total
+        FROM cart_sessions
+        WHERE abandoned_at >= CURRENT_DATE - ($1::integer - 1)
+          AND item_count > 0
+        GROUP BY abandoned_at::date
+      ),
+      notifications AS (
+        SELECT sent_at::date AS date, COUNT(*)::integer AS total
+        FROM abandoned_cart_notifications
+        WHERE sent_at >= CURRENT_DATE - ($1::integer - 1)
+        GROUP BY sent_at::date
+      )
+      SELECT dates.date::text AS date,
+             COALESCE(abandoned.total, 0) AS "totalAbandonedCarts",
+             COALESCE(notifications.total, 0) AS "notificationsRecorded"
+      FROM dates
+      LEFT JOIN abandoned USING (date)
+      LEFT JOIN notifications USING (date)
+      ORDER BY dates.date ASC
+    `, [days]);
+    return result.rows as Array<{ date: string; totalAbandonedCarts: number; notificationsRecorded: number }>;
   }
 
   async createDailyAnalytics(data: {
@@ -524,34 +660,22 @@ export class CartStorage {
       });
   }
 
-  async getOverallStats() {
-    const totalAbandonedQuery = await cartDb
-      .select({
-        count: sql<number>`count(*)`
-      })
-      .from(cartSessions)
-      .where(eq(cartSessions.isAbandoned, true));
-
-    const totalNotificationsQuery = await cartDb
-      .select({
-        count: sql<number>`count(*)`
-      })
-      .from(abandonedCartNotifications);
-
-    const totalRecoveredQuery = await cartDb
-      .select({
-        count: sql<number>`count(*)`
-      })
-      .from(abandonedCartNotifications)
-      .where(eq(abandonedCartNotifications.converted, true));
-
-    return {
-      totalAbandonedCarts: totalAbandonedQuery[0]?.count || 0,
-      totalNotificationsSent: totalNotificationsQuery[0]?.count || 0,
-      totalRecovered: totalRecoveredQuery[0]?.count || 0,
-      overallRecoveryRate: totalAbandonedQuery[0]?.count > 0 
-        ? ((totalRecoveredQuery[0]?.count || 0) / (totalAbandonedQuery[0]?.count || 1) * 100).toFixed(2)
-        : "0.00"
+  async getOverallStats(days: number = 30) {
+    const { pool } = await import('./db');
+    const result = await pool.query(`
+      SELECT
+        (SELECT COUNT(*)::integer FROM cart_sessions
+         WHERE abandoned_at >= CURRENT_DATE - ($1::integer - 1)
+           AND item_count > 0) AS "totalAbandonedCarts",
+        (SELECT COUNT(*)::integer FROM cart_sessions
+         WHERE is_abandoned = true AND is_active = true AND item_count > 0) AS "currentlyAbandoned",
+        (SELECT COUNT(*)::integer FROM abandoned_cart_notifications
+         WHERE sent_at >= CURRENT_DATE - ($1::integer - 1)) AS "notificationsRecorded"
+    `, [days]);
+    return result.rows[0] as {
+      totalAbandonedCarts: number;
+      currentlyAbandoned: number;
+      notificationsRecorded: number;
     };
   }
 }

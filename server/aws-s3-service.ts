@@ -376,6 +376,47 @@ export class AwsS3Service {
   }
 
   /**
+   * Upload a private file to a deterministic key.
+   * Intended for controlled migrations where an existing stable application
+   * URL must keep working after the backing store changes.
+   */
+  async uploadPrivateFileToKey(
+    fileBuffer: Buffer,
+    key: string,
+    contentType: string,
+  ): Promise<boolean> {
+    if (!this.client || !this.settings) {
+      throw new Error('AWS S3 client not initialized');
+    }
+    if (
+      !key ||
+      key.startsWith('/') ||
+      key.includes('..') ||
+      !/^[a-zA-Z0-9/_.-]+$/.test(key)
+    ) {
+      throw new Error('Invalid private S3 key');
+    }
+
+    try {
+      const upload = new Upload({
+        client: this.client,
+        params: {
+          Bucket: this.settings.bucketName,
+          Key: key,
+          Body: fileBuffer,
+          ContentType: contentType,
+        },
+      });
+      await upload.done();
+      console.log(`✅ PRIVATE migration file uploaded to S3: ${key}`);
+      return true;
+    } catch (error) {
+      console.error('❌ S3 private migration upload error:', error);
+      return false;
+    }
+  }
+
+  /**
    * Generate a temporary signed PUT URL for uploading a private file directly
    * from the browser to S3.
    */
@@ -408,7 +449,11 @@ export class AwsS3Service {
    * @param key - S3 object key
    * @param expiresIn - URL expiration time in seconds (default: 1 hour)
    */
-  async getSignedUrl(key: string, expiresIn: number = 3600): Promise<string | null> {
+  async getSignedUrl(
+    key: string,
+    expiresIn: number = 3600,
+    options?: { responseContentDisposition?: string },
+  ): Promise<string | null> {
     if (!this.client || !this.settings) {
       console.error('AWS S3 client not initialized');
       return null;
@@ -418,6 +463,9 @@ export class AwsS3Service {
       const command = new GetObjectCommand({
         Bucket: this.settings.bucketName,
         Key: key,
+        ...(options?.responseContentDisposition
+          ? { ResponseContentDisposition: options.responseContentDisposition }
+          : {}),
       });
 
       // Generate signed URL that expires in specified seconds

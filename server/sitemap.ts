@@ -8,21 +8,32 @@ interface SitemapUrl {
   lastmod?: string;
   changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
   priority?: number;
+  alternates?: Array<{ language: string; loc: string }>;
 }
 
-export async function generateSitemap(): Promise<string> {
-  const baseUrl = 'https://momtazchem.com';
+const BASE_URL = 'https://momtazchem.com';
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+export async function generateSitemap(language?: string): Promise<string> {
   const urls: SitemapUrl[] = [];
 
   // Static pages
   const staticPages: SitemapUrl[] = [
-    { loc: `${baseUrl}/`, changefreq: 'daily', priority: 1.0 },
-    { loc: `${baseUrl}/shop`, changefreq: 'daily', priority: 0.9 },
-    { loc: `${baseUrl}/blog`, changefreq: 'daily', priority: 0.9 },
-    { loc: `${baseUrl}/about`, changefreq: 'monthly', priority: 0.8 },
-    { loc: `${baseUrl}/contact`, changefreq: 'monthly', priority: 0.8 },
-    { loc: `${baseUrl}/services`, changefreq: 'monthly', priority: 0.7 },
-    { loc: `${baseUrl}/quote`, changefreq: 'weekly', priority: 0.6 },
+    { loc: `${BASE_URL}/`, changefreq: 'daily', priority: 1.0 },
+    { loc: `${BASE_URL}/shop`, changefreq: 'daily', priority: 0.9 },
+    { loc: `${BASE_URL}/blog`, changefreq: 'daily', priority: 0.9 },
+    { loc: `${BASE_URL}/about`, changefreq: 'monthly', priority: 0.8 },
+    { loc: `${BASE_URL}/contact`, changefreq: 'monthly', priority: 0.8 },
+    { loc: `${BASE_URL}/services`, changefreq: 'monthly', priority: 0.7 },
+    { loc: `${BASE_URL}/quote`, changefreq: 'weekly', priority: 0.6 },
   ];
 
   urls.push(...staticPages);
@@ -40,7 +51,7 @@ export async function generateSitemap(): Promise<string> {
     // Add product pages
     activeProducts.forEach((product: any) => {
       urls.push({
-        loc: `${baseUrl}/product-reviews/${product.id}`,
+        loc: `${BASE_URL}/product-reviews/${product.id}`,
         lastmod: product.updatedAt ? new Date(product.updatedAt).toISOString().split('T')[0] : undefined,
         changefreq: 'weekly',
         priority: 0.7,
@@ -54,7 +65,7 @@ export async function generateSitemap(): Promise<string> {
     allCategories.forEach((category: any) => {
       if (category.slug) {
         urls.push({
-          loc: `${baseUrl}/products/${category.slug}`,
+          loc: `${BASE_URL}/products/${encodeURIComponent(category.slug)}`,
           changefreq: 'weekly',
           priority: 0.6,
         });
@@ -82,9 +93,21 @@ export async function generateSitemap(): Promise<string> {
         .from(blogPostTranslations)
         .where(eq(blogPostTranslations.postId, post.id));
 
-      translations.forEach((translation: any) => {
+      const availableTranslations = translations.filter((translation: any) =>
+        !language || translation.language === language
+      );
+      const alternates = translations.map((translation: any) => ({
+        language: translation.language,
+        loc: `${BASE_URL}/blog/${encodeURIComponent(translation.slug)}`,
+      }));
+      const english = alternates.find((alternate) => alternate.language === 'en');
+      if (english) {
+        alternates.push({ language: 'x-default', loc: english.loc });
+      }
+
+      availableTranslations.forEach((translation: any) => {
         urls.push({
-          loc: `${baseUrl}/blog/${translation.slug}`,
+          loc: `${BASE_URL}/blog/${encodeURIComponent(translation.slug)}`,
           lastmod: translation.updatedAt 
             ? new Date(translation.updatedAt).toISOString().split('T')[0]
             : post.publishDate 
@@ -92,6 +115,7 @@ export async function generateSitemap(): Promise<string> {
               : undefined,
           changefreq: 'weekly',
           priority: 0.8,
+          alternates,
         });
       });
     }
@@ -102,12 +126,13 @@ export async function generateSitemap(): Promise<string> {
 
   // Generate XML
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${urls.map(url => `  <url>
-    <loc>${url.loc}</loc>${url.lastmod ? `
+    <loc>${escapeXml(url.loc)}</loc>${url.lastmod ? `
     <lastmod>${url.lastmod}</lastmod>` : ''}${url.changefreq ? `
     <changefreq>${url.changefreq}</changefreq>` : ''}${url.priority ? `
-    <priority>${url.priority}</priority>` : ''}
+    <priority>${url.priority}</priority>` : ''}${url.alternates?.map(alternate => `
+    <xhtml:link rel="alternate" hreflang="${escapeXml(alternate.language)}" href="${escapeXml(alternate.loc)}" />`).join('') || ''}
   </url>`).join('\n')}
 </urlset>`;
 

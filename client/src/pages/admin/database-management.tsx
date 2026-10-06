@@ -33,6 +33,53 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
+
+type Language = "en" | "fa" | "ar" | "tr";
+const copy: Record<Language, Record<string, string>> = {
+  en: {
+    authError: "Authentication error", signIn: "Please sign in", title: "Database Management", back: "Back to Dashboard",
+    statsError: "Error loading database statistics", databaseSize: "Database Size", tablesCount: "Tables Count", totalRecords: "Total Records", backupsCount: "Backups Count",
+    backupManagement: "Backup Management", manual: "Manual Backups (Local)", automation: "S3 Backups & Automation", backupError: "Error loading backups", createBackup: "Create New Backup", loading: "Loading...", noBackups: "No backups available", download: "Download", restore: "Restore", cancel: "Cancel", delete: "Delete", warning: "Warning", confirmRestore: "To confirm, type", restoreWarning: "This action cannot be undone. All current data will be replaced with the backup data.", deleteBackup: "Delete Backup File", deleteBackupQuestion: "Are you sure you want to delete this backup file? This action cannot be undone.",
+    s3Error: "Error loading S3 data", s3Backups: "S3 Backups", createS3: "Create Manual S3 Backup", loadingS3: "Loading S3 backups...", noS3: "No S3 backups available", fileName: "File Name", size: "Size", type: "Type", status: "Status", created: "Created", actions: "Actions", restoreS3: "Restore S3 Backup", restoreS3Question: "Are you sure you want to restore this backup? This will replace all current data!", deleteS3: "Delete S3 Backup", deleteS3Question: "Are you sure you want to delete this backup? This action cannot be undone.",
+    schedules: "Backup Schedules", createSchedule: "Create Schedule", loadingSchedules: "Loading schedules...", noSchedules: "No backup schedules configured", name: "Name", frequency: "Frequency", time: "Time", retention: "Retention", lastRun: "Last Run", nextRun: "Next Run", active: "Active", inactive: "Inactive", never: "Never", notAvailable: "N/A", days: "days", activate: "Activate", deactivate: "Deactivate", deleteSchedule: "Delete Schedule", deleteScheduleQuestion: "Are you sure you want to delete this schedule?",
+    editSchedule: "Edit Backup Schedule", newSchedule: "Create Backup Schedule", configureSchedule: "Configure automated backup schedule settings", daily: "Daily", weekly: "Weekly", monthly: "Monthly", timeOfDay: "Time of Day", dayOfWeek: "Day of Week", selectDay: "Select day", dayOfMonth: "Day of Month", retentionDays: "Retention Days", oldBackups: "Backups older than this will be automatically deleted", update: "Update", create: "Create",
+    completed: "Completed", inProgress: "In Progress", failed: "Failed", pending: "Pending", tableStats: "Database Table Statistics", records: "records", unknown: "Unknown", unknownSize: "Unknown size", inserts: "Inserts", updates: "Updates", deletes: "Deletes", liveRows: "Live Rows", showingTables: "Showing top 15 tables by size. Total tables:", setup: "Personal System Setup Guide", setupSteps: "Setup steps:", installPostgres: "Install PostgreSQL", createDb: "Create a new database", downloadRestore: "Download and restore the backup file", setDbUrl: "Set the DATABASE_URL variable", runCommands: "Run npm install and npm run dev", guideAvailable: "Complete setup guide available in the project folder:",
+    createdToast: "Backup created", createdDesc: "New backup created successfully", errorCreate: "Error creating backup", errorCreateDesc: "There was a problem creating the backup", deletedToast: "Backup deleted", deletedDesc: "File was deleted successfully", errorDelete: "Error deleting backup", errorDeleteDesc: "There was a problem deleting the backup file", restoredToast: "Backup restored", restoredDesc: "Backup restored successfully", errorRestore: "Error restoring backup", errorRestoreDesc: "There was a problem restoring the backup", downloadStarted: "Download started", downloading: "File is downloading", scheduleCreated: "Schedule created", scheduleUpdated: "Schedule updated", scheduleDeleted: "Schedule deleted", scheduleError: "Schedule operation failed", scheduleSuccess: "Backup schedule operation completed", s3Created: "S3 backup created", s3Deleted: "S3 backup deleted", s3Restored: "S3 backup restored"
+  },
+  fa: {
+    authError: "خطای احراز هویت", signIn: "لطفاً وارد سیستم شوید", title: "مدیریت دیتابیس", back: "بازگشت به داشبورد", statsError: "خطا در بارگذاری آمار دیتابیس", databaseSize: "حجم دیتابیس", tablesCount: "تعداد جداول", totalRecords: "مجموع رکوردها", backupsCount: "تعداد بک‌آپ‌ها", backupManagement: "مدیریت بک‌آپ", manual: "بک‌آپ‌های دستی (محلی)", automation: "بک‌آپ‌های S3 و خودکار", backupError: "خطا در بارگذاری بک‌آپ‌ها", createBackup: "ایجاد بک‌آپ جدید", loading: "در حال بارگذاری...", noBackups: "هیچ بک‌آپی موجود نیست", download: "دانلود", restore: "بازگردانی", cancel: "لغو", delete: "حذف", warning: "هشدار", confirmRestore: "برای تأیید، عبارت", restoreWarning: "این عمل غیرقابل بازگشت است. تمامی داده‌های فعلی با داده‌های بک‌آپ جایگزین خواهند شد.", deleteBackup: "حذف فایل بک‌آپ", deleteBackupQuestion: "آیا مطمئن هستید که می‌خواهید این فایل بک‌آپ را حذف کنید؟ این عمل قابل بازگشت نیست.", s3Error: "خطا در بارگذاری داده‌های S3", s3Backups: "بک‌آپ‌های S3", createS3: "ایجاد بک‌آپ دستی S3", loadingS3: "در حال بارگذاری بک‌آپ‌های S3...", noS3: "هیچ بک‌آپ S3 موجود نیست", fileName: "نام فایل", size: "حجم", type: "نوع", status: "وضعیت", created: "ایجادشده", actions: "عملیات", restoreS3: "بازگردانی بک‌آپ S3", restoreS3Question: "آیا مطمئن هستید که می‌خواهید این بک‌آپ را بازگردانی کنید؟ تمام داده‌های فعلی جایگزین می‌شوند!", deleteS3: "حذف بک‌آپ S3", deleteS3Question: "آیا مطمئن هستید که می‌خواهید این بک‌آپ را حذف کنید؟ این عمل قابل بازگشت نیست.", schedules: "زمان‌بندی بک‌آپ", createSchedule: "ایجاد زمان‌بندی", loadingSchedules: "در حال بارگذاری زمان‌بندی‌ها...", noSchedules: "هیچ زمان‌بندی بک‌آپی تنظیم نشده است", name: "نام", frequency: "تکرار", time: "زمان", retention: "نگهداری", lastRun: "آخرین اجرا", nextRun: "اجرای بعدی", active: "فعال", inactive: "غیرفعال", never: "هرگز", notAvailable: "نامشخص", days: "روز", activate: "فعال‌سازی", deactivate: "غیرفعال‌سازی", deleteSchedule: "حذف زمان‌بندی", deleteScheduleQuestion: "آیا مطمئن هستید که می‌خواهید این زمان‌بندی را حذف کنید؟", editSchedule: "ویرایش زمان‌بندی بک‌آپ", newSchedule: "ایجاد زمان‌بندی بک‌آپ", configureSchedule: "تنظیمات زمان‌بندی خودکار بک‌آپ", daily: "روزانه", weekly: "هفتگی", monthly: "ماهانه", timeOfDay: "ساعت", dayOfWeek: "روز هفته", selectDay: "انتخاب روز", dayOfMonth: "روز ماه", retentionDays: "روزهای نگهداری", oldBackups: "بک‌آپ‌های قدیمی‌تر از این مقدار به‌صورت خودکار حذف می‌شوند", update: "به‌روزرسانی", create: "ایجاد", completed: "تکمیل‌شده", inProgress: "در حال انجام", failed: "ناموفق", pending: "در انتظار", tableStats: "آمار جداول دیتابیس", records: "رکورد", unknown: "نامشخص", unknownSize: "حجم نامشخص", inserts: "درج", updates: "به‌روزرسانی", deletes: "حذف", liveRows: "ردیف‌های فعال", showingTables: "۱۵ جدول بزرگ‌تر بر اساس حجم نمایش داده می‌شود. مجموع جداول:", setup: "راهنمای نصب در سیستم شخصی", setupSteps: "مراحل نصب:", installPostgres: "PostgreSQL را نصب کنید", createDb: "یک دیتابیس جدید ایجاد کنید", downloadRestore: "فایل بک‌آپ را دانلود و بازیابی کنید", setDbUrl: "متغیر DATABASE_URL را تنظیم کنید", runCommands: "npm install و npm run dev را اجرا کنید", guideAvailable: "فایل راهنمای کامل در پوشه پروژه موجود است:", createdToast: "بک‌آپ ایجاد شد", createdDesc: "بک‌آپ جدید با موفقیت ایجاد شد", errorCreate: "خطا در ایجاد بک‌آپ", errorCreateDesc: "مشکلی در ایجاد بک‌آپ رخ داده است", deletedToast: "بک‌آپ حذف شد", deletedDesc: "فایل با موفقیت حذف شد", errorDelete: "خطا در حذف بک‌آپ", errorDeleteDesc: "مشکلی در حذف فایل بک‌آپ رخ داده است", restoredToast: "بک‌آپ بازگردانی شد", restoredDesc: "بک‌آپ با موفقیت بازگردانی شد", errorRestore: "خطا در بازگردانی بک‌آپ", errorRestoreDesc: "مشکلی در بازگردانی بک‌آپ رخ داده است", downloadStarted: "دانلود شروع شد", downloading: "فایل در حال دانلود است", scheduleCreated: "زمان‌بندی ایجاد شد", scheduleUpdated: "زمان‌بندی به‌روزرسانی شد", scheduleDeleted: "زمان‌بندی حذف شد", scheduleError: "عملیات زمان‌بندی ناموفق بود", scheduleSuccess: "عملیات زمان‌بندی بک‌آپ با موفقیت انجام شد", s3Created: "بک‌آپ S3 ایجاد شد", s3Deleted: "بک‌آپ S3 حذف شد", s3Restored: "بک‌آپ S3 بازگردانی شد"
+  },
+  ar: {}, tr: {}
+};
+// Keep every key available in every locale; the overlays below localize the
+// page-specific vocabulary while technical identifiers remain unchanged.
+copy.ar = { ...copy.en, restoreS3Question: "هل أنت متأكد من استعادة هذه النسخة؟ سيتم استبدال جميع البيانات الحالية!", deleteS3Question: "هل أنت متأكد من حذف هذه النسخة؟ لا يمكن التراجع عن هذا الإجراء.", deleteBackupQuestion: "هل أنت متأكد من حذف ملف النسخة الاحتياطية هذا؟ لا يمكن التراجع عن هذا الإجراء.", deleteScheduleQuestion: "هل أنت متأكد من حذف هذه الجدولة؟", authError: "خطأ في المصادقة", signIn: "يرجى تسجيل الدخول", title: "إدارة قاعدة البيانات", back: "العودة إلى لوحة التحكم", databaseSize: "حجم قاعدة البيانات", tablesCount: "عدد الجداول", totalRecords: "إجمالي السجلات", backupsCount: "عدد النسخ الاحتياطية", backupManagement: "إدارة النسخ الاحتياطية", manual: "نسخ احتياطية يدوية (محلية)", automation: "نسخ S3 الاحتياطية والأتمتة", loading: "جارٍ التحميل...", noBackups: "لا توجد نسخ احتياطية", download: "تنزيل", restore: "استعادة", cancel: "إلغاء", delete: "حذف", warning: "تحذير", status: "الحالة", actions: "الإجراءات", created: "تاريخ الإنشاء", schedules: "جدولة النسخ الاحتياطي", createSchedule: "إنشاء جدولة", noSchedules: "لم يتم إعداد أي جدولة", name: "الاسم", frequency: "التكرار", time: "الوقت", retention: "الاحتفاظ", lastRun: "آخر تشغيل", nextRun: "التشغيل التالي", active: "نشط", inactive: "غير نشط", never: "أبدًا", days: "أيام", activate: "تفعيل", deactivate: "تعطيل", daily: "يومي", weekly: "أسبوعي", monthly: "شهري", dayOfWeek: "يوم الأسبوع", dayOfMonth: "يوم الشهر", retentionDays: "أيام الاحتفاظ", create: "إنشاء", update: "تحديث", completed: "مكتمل", inProgress: "قيد التنفيذ", failed: "فشل", pending: "معلق", tableStats: "إحصاءات جداول قاعدة البيانات", records: "سجلات", inserts: "إدخالات", updates: "تحديثات", deletes: "عمليات حذف", liveRows: "صفوف حية", setup: "دليل الإعداد على النظام الشخصي", setupSteps: "خطوات الإعداد", createDb: "إنشاء قاعدة بيانات جديدة", downloadRestore: "تنزيل ملف النسخة الاحتياطية واستعادته", guideAvailable: "يتوفر دليل الإعداد الكامل في مجلد المشروع:" };
+copy.tr = { ...copy.en, authError: "Kimlik doğrulama hatası", signIn: "Lütfen giriş yapın", title: "Veritabanı Yönetimi", back: "Kontrol Paneline Dön", databaseSize: "Veritabanı Boyutu", tablesCount: "Tablo Sayısı", totalRecords: "Toplam Kayıt", backupsCount: "Yedek Sayısı", backupManagement: "Yedek Yönetimi", manual: "Elle Yedekler (Yerel)", automation: "S3 Yedekleri ve Otomasyon", loading: "Yükleniyor...", noBackups: "Yedek bulunamadı", download: "İndir", restore: "Geri Yükle", cancel: "İptal", delete: "Sil", warning: "Uyarı", status: "Durum", actions: "İşlemler", created: "Oluşturulma", schedules: "Yedekleme Zamanlamaları", createSchedule: "Zamanlama Oluştur", noSchedules: "Yedekleme zamanlaması yapılandırılmadı", name: "Ad", frequency: "Sıklık", time: "Saat", retention: "Saklama", lastRun: "Son Çalışma", nextRun: "Sonraki Çalışma", active: "Etkin", inactive: "Etkin değil", never: "Asla", days: "gün", activate: "Etkinleştir", deactivate: "Devre dışı bırak", daily: "Günlük", weekly: "Haftalık", monthly: "Aylık", dayOfWeek: "Haftanın Günü", dayOfMonth: "Ayın Günü", retentionDays: "Saklama Günleri", create: "Oluştur", update: "Güncelle", completed: "Tamamlandı", inProgress: "Devam ediyor", failed: "Başarısız", pending: "Beklemede", tableStats: "Veritabanı Tablo İstatistikleri", records: "kayıt", inserts: "Eklemeler", updates: "Güncellemeler", deletes: "Silmeler", liveRows: "Canlı Satırlar", setup: "Kişisel Sistem Kurulum Rehberi", setupSteps: "Kurulum adımları", createDb: "Yeni bir veritabanı oluşturun", downloadRestore: "Yedek dosyasını indirin ve geri yükleyin", guideAvailable: "Tam kurulum rehberi proje klasöründe:" };
+Object.assign(copy.ar, { statsError: "تعذر تحميل إحصاءات قاعدة البيانات", backupError: "تعذر تحميل النسخ الاحتياطية", createBackup: "إنشاء نسخة احتياطية جديدة", confirmRestore: "للتأكيد، اكتب", restoreWarning: "لا يمكن التراجع عن هذا الإجراء. ستُستبدل جميع البيانات الحالية ببيانات النسخة الاحتياطية.", deleteBackup: "حذف ملف النسخة الاحتياطية", s3Error: "تعذر تحميل بيانات S3", s3Backups: "نسخ S3 الاحتياطية", createS3: "إنشاء نسخة S3 يدوية", loadingS3: "جارٍ تحميل نسخ S3 الاحتياطية...", noS3: "لا توجد نسخ S3 احتياطية", fileName: "اسم الملف", size: "الحجم", type: "النوع", restoreS3: "استعادة نسخة S3", editSchedule: "تعديل جدولة النسخ الاحتياطي", newSchedule: "إنشاء جدولة النسخ الاحتياطي", configureSchedule: "إعدادات جدولة النسخ الاحتياطي الآلية", selectDay: "اختر اليوم", oldBackups: "ستُحذف النسخ الأقدم من هذه المدة تلقائيًا", unknown: "غير معروف", unknownSize: "حجم غير معروف", showingTables: "عرض أكبر 15 جدولًا حسب الحجم. إجمالي الجداول:", installPostgres: "ثبّت PostgreSQL", setDbUrl: "اضبط متغير DATABASE_URL", runCommands: "شغّل npm install وnpm run dev", createdToast: "تم إنشاء النسخة الاحتياطية", createdDesc: "تم إنشاء نسخة احتياطية جديدة بنجاح", errorCreate: "خطأ في إنشاء النسخة الاحتياطية", errorCreateDesc: "حدثت مشكلة أثناء إنشاء النسخة الاحتياطية", deletedToast: "تم حذف النسخة الاحتياطية", deletedDesc: "تم حذف الملف بنجاح", errorDelete: "خطأ في حذف النسخة الاحتياطية", errorDeleteDesc: "حدثت مشكلة أثناء حذف ملف النسخة الاحتياطية", restoredToast: "تمت استعادة النسخة الاحتياطية", restoredDesc: "تمت استعادة النسخة الاحتياطية بنجاح", errorRestore: "خطأ في استعادة النسخة الاحتياطية", errorRestoreDesc: "حدثت مشكلة أثناء استعادة النسخة الاحتياطية", downloadStarted: "بدأ التنزيل", downloading: "جارٍ تنزيل الملف", scheduleCreated: "تم إنشاء الجدولة", scheduleUpdated: "تم تحديث الجدولة", scheduleDeleted: "تم حذف الجدولة", scheduleError: "فشلت عملية الجدولة", scheduleSuccess: "اكتملت عملية جدولة النسخ الاحتياطي", s3Created: "تم إنشاء نسخة S3", s3Deleted: "تم حذف نسخة S3", s3Restored: "تمت استعادة نسخة S3" });
+Object.assign(copy.tr, { statsError: "Veritabanı istatistikleri yüklenemedi", backupError: "Yedekler yüklenemedi", createBackup: "Yeni Yedek Oluştur", confirmRestore: "Onaylamak için yazın", restoreWarning: "Bu işlem geri alınamaz. Mevcut tüm veriler yedek verileriyle değiştirilecektir.", deleteBackup: "Yedek Dosyasını Sil", s3Error: "S3 verileri yüklenemedi", s3Backups: "S3 Yedekleri", createS3: "Elle S3 Yedeği Oluştur", loadingS3: "S3 yedekleri yükleniyor...", noS3: "S3 yedeği bulunamadı", fileName: "Dosya Adı", size: "Boyut", type: "Tür", restoreS3: "S3 Yedeğini Geri Yükle", editSchedule: "Yedekleme Zamanlamasını Düzenle", newSchedule: "Yedekleme Zamanlaması Oluştur", configureSchedule: "Otomatik yedekleme zamanlama ayarları", selectDay: "Gün seçin", oldBackups: "Bu süreden eski yedekler otomatik olarak silinir", unknown: "Bilinmiyor", unknownSize: "Bilinmeyen boyut", showingTables: "Boyuta göre en büyük 15 tablo gösteriliyor. Toplam tablo:", installPostgres: "PostgreSQL yükleyin", setDbUrl: "DATABASE_URL değişkenini ayarlayın", runCommands: "npm install ve npm run dev komutlarını çalıştırın", createdToast: "Yedek oluşturuldu", createdDesc: "Yeni yedek başarıyla oluşturuldu", errorCreate: "Yedek oluşturma hatası", errorCreateDesc: "Yedek oluşturulurken bir sorun oluştu", deletedToast: "Yedek silindi", deletedDesc: "Dosya başarıyla silindi", errorDelete: "Yedek silme hatası", errorDeleteDesc: "Yedek dosyası silinirken bir sorun oluştu", restoredToast: "Yedek geri yüklendi", restoredDesc: "Yedek başarıyla geri yüklendi", errorRestore: "Yedek geri yükleme hatası", errorRestoreDesc: "Yedek geri yüklenirken bir sorun oluştu", downloadStarted: "İndirme başladı", downloading: "Dosya indiriliyor", scheduleCreated: "Zamanlama oluşturuldu", scheduleUpdated: "Zamanlama güncellendi", scheduleDeleted: "Zamanlama silindi", scheduleError: "Zamanlama işlemi başarısız", scheduleSuccess: "Yedekleme zamanlama işlemi tamamlandı", s3Created: "S3 yedeği oluşturuldu", s3Deleted: "S3 yedeği silindi", s3Restored: "S3 yedeği geri yüklendi" });
+Object.assign(copy.fa, { restoreS3Question: "آیا مطمئن هستید که این بک‌آپ را بازگردانی می‌کنید؟ تمام داده‌های فعلی جایگزین خواهند شد!", deleteS3Question: "آیا مطمئن هستید که این بک‌آپ را حذف می‌کنید؟ این عمل قابل بازگشت نیست.", deleteScheduleQuestion: "آیا مطمئن هستید که این زمان‌بندی را حذف می‌کنید؟", notAvailable: "در دسترس نیست" });
+Object.assign(copy.ar, { notAvailable: "غير متاح", restoreS3Question: "هل أنت متأكد من استعادة هذه النسخة؟ سيتم استبدال جميع البيانات الحالية!", deleteS3Question: "هل أنت متأكد من حذف هذه النسخة؟ لا يمكن التراجع عن هذا الإجراء.", deleteScheduleQuestion: "هل أنت متأكد من حذف هذه الجدولة؟" });
+Object.assign(copy.tr, { notAvailable: "Mevcut değil", restoreS3Question: "Bu yedeği geri yüklemek istediğinizden emin misiniz? Tüm mevcut veriler değiştirilecek!", deleteS3Question: "Bu yedeği silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.", deleteScheduleQuestion: "Bu zamanlamayı silmek istediğinizden emin misiniz?" });
+Object.assign(copy.ar, {
+  deleteS3: "حذف نسخة S3", loadingSchedules: "جارٍ تحميل الجداول الزمنية...", deleteSchedule: "حذف الجدولة",
+  timeOfDay: "وقت اليوم", day0: "الأحد", day1: "الاثنين", day2: "الثلاثاء", day3: "الأربعاء",
+  day4: "الخميس", day5: "الجمعة", day6: "السبت",
+});
+Object.assign(copy.tr, {
+  deleteBackupQuestion: "Bu yedek dosyasını silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+  restoreS3Question: "Bu yedeği geri yüklemek istediğinizden emin misiniz? Tüm mevcut veriler değiştirilecek!",
+  deleteS3: "S3 Yedeğini Sil", deleteS3Question: "Bu yedeği silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+  loadingSchedules: "Zamanlamalar yükleniyor...", notAvailable: "Mevcut değil", deleteSchedule: "Zamanlamayı Sil",
+  deleteScheduleQuestion: "Bu zamanlamayı silmek istediğinizden emin misiniz?", timeOfDay: "Günün Saati",
+  day0: "Pazar", day1: "Pazartesi", day2: "Salı", day3: "Çarşamba", day4: "Perşembe", day5: "Cuma", day6: "Cumartesi",
+});
+Object.assign(copy.en, {
+  day0: "Sunday", day1: "Monday", day2: "Tuesday", day3: "Wednesday", day4: "Thursday", day5: "Friday", day6: "Saturday",
+});
+Object.assign(copy.fa, {
+  day0: "یکشنبه", day1: "دوشنبه", day2: "سه‌شنبه", day3: "چهارشنبه", day4: "پنجشنبه", day5: "جمعه", day6: "شنبه",
+});
 
 interface BackupFile {
   filename: string;
@@ -87,6 +134,9 @@ interface DatabaseStats {
 }
 
 export default function DatabaseManagement() {
+  const { language, direction } = useLanguage();
+  const tx = (key: string) => copy[language][key] || copy.en[key] || key;
+  const locale = language === "fa" ? "fa-IR" : language === "ar" ? "ar" : language === "tr" ? "tr-TR" : "en-US";
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
@@ -139,8 +189,8 @@ export default function DatabaseManagement() {
     mutationFn: () => apiRequest("/api/admin/backup/create", { method: "POST" }),
     onSuccess: () => {
       toast({
-        title: "بک‌آپ ایجاد شد",
-        description: "بک‌آپ جدید با موفقیت ایجاد شد",
+        title: tx("createdToast"),
+        description: tx("createdDesc"),
       });
       refetchBackups();
       setIsCreatingBackup(false);
@@ -148,8 +198,8 @@ export default function DatabaseManagement() {
     onError: () => {
       toast({
         variant: "destructive",
-        title: "خطا در ایجاد بک‌آپ",
-        description: "مشکلی در ایجاد بک‌آپ رخ داده است",
+        title: tx("errorCreate"),
+        description: tx("errorCreateDesc"),
       });
       setIsCreatingBackup(false);
     },
@@ -160,16 +210,16 @@ export default function DatabaseManagement() {
     mutationFn: (filename: string) => apiRequest(`/api/admin/backup/delete/${filename}`, { method: "DELETE" }),
     onSuccess: (_, filename) => {
       toast({
-        title: "بک‌آپ حذف شد",
-        description: `فایل ${filename} با موفقیت حذف شد`,
+        title: tx("deletedToast"),
+        description: `${tx("fileName")}: ${filename} — ${tx("deletedDesc")}`,
       });
       refetchBackups();
     },
     onError: () => {
       toast({
         variant: "destructive",
-        title: "خطا در حذف بک‌آپ",
-        description: "مشکلی در حذف فایل بک‌آپ رخ داده است",
+        title: tx("errorDelete"),
+        description: tx("errorDeleteDesc"),
       });
     },
   });
@@ -182,16 +232,16 @@ export default function DatabaseManagement() {
     }),
     onSuccess: () => {
       toast({
-        title: "S3 Backup Created",
-        description: "بک‌آپ S3 با موفقیت ایجاد شد",
+        title: tx("s3Created"),
+        description: tx("createdDesc"),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/backups'] });
     },
     onError: () => {
       toast({
         variant: "destructive",
-        title: "خطا در ایجاد بک‌آپ S3",
-        description: "مشکلی در ایجاد بک‌آپ S3 رخ داده است",
+        title: tx("errorCreate"),
+        description: tx("errorCreateDesc"),
       });
     },
   });
@@ -200,16 +250,16 @@ export default function DatabaseManagement() {
     mutationFn: (backupId: number) => apiRequest(`/api/admin/backups/${backupId}`, { method: "DELETE" }),
     onSuccess: () => {
       toast({
-        title: "S3 Backup Deleted",
-        description: "بک‌آپ S3 با موفقیت حذف شد",
+        title: tx("s3Deleted"),
+        description: tx("deletedDesc"),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/backups'] });
     },
     onError: () => {
       toast({
         variant: "destructive",
-        title: "خطا در حذف بک‌آپ S3",
-        description: "مشکلی در حذف بک‌آپ S3 رخ داده است",
+        title: tx("errorDelete"),
+        description: tx("errorDeleteDesc"),
       });
     },
   });
@@ -222,8 +272,8 @@ export default function DatabaseManagement() {
     }),
     onSuccess: (_, filename) => {
       toast({
-        title: "بک‌آپ بازگردانی شد",
-        description: `بک‌آپ ${filename} با موفقیت بازگردانی شد`,
+        title: tx("restoredToast"),
+        description: `${tx("fileName")}: ${filename} — ${tx("restoredDesc")}`,
       });
       refetchBackups();
       queryClient.invalidateQueries({ queryKey: ["/api/admin/database/stats"] });
@@ -233,8 +283,8 @@ export default function DatabaseManagement() {
     onError: (error: any) => {
       toast({
         variant: "destructive",
-        title: "خطا در بازگردانی بک‌آپ",
-        description: error?.message || "مشکلی در بازگردانی بک‌آپ رخ داده است",
+        title: tx("errorRestore"),
+        description: tx("errorRestoreDesc"),
       });
       setRestoreConfirmText("");
       setRestoreFilename(null);
@@ -246,8 +296,8 @@ export default function DatabaseManagement() {
     mutationFn: (backupId: number) => apiRequest(`/api/admin/backups/${backupId}/restore`, { method: "POST" }),
     onSuccess: () => {
       toast({
-        title: "S3 Backup Restored",
-        description: "بک‌آپ S3 با موفقیت بازگردانی شد",
+        title: tx("s3Restored"),
+        description: tx("restoredDesc"),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/backups'] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/database/stats"] });
@@ -255,8 +305,8 @@ export default function DatabaseManagement() {
     onError: (error: any) => {
       toast({
         variant: "destructive",
-        title: "خطا در بازگردانی بک‌آپ S3",
-        description: error?.message || "مشکلی در بازگردانی بک‌آپ S3 رخ داده است",
+        title: tx("errorRestore"),
+        description: tx("errorRestoreDesc"),
       });
     },
   });
@@ -269,8 +319,8 @@ export default function DatabaseManagement() {
     }),
     onSuccess: () => {
       toast({
-        title: "Schedule Created",
-        description: "زمان‌بندی بک‌آپ با موفقیت ایجاد شد",
+        title: tx("scheduleCreated"),
+        description: tx("scheduleSuccess"),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/backup-schedules'] });
       setShowScheduleDialog(false);
@@ -279,8 +329,8 @@ export default function DatabaseManagement() {
     onError: () => {
       toast({
         variant: "destructive",
-        title: "خطا در ایجاد زمان‌بندی",
-        description: "مشکلی در ایجاد زمان‌بندی بک‌آپ رخ داده است",
+        title: tx("scheduleError"),
+        description: tx("errorCreateDesc"),
       });
     },
   });
@@ -293,8 +343,8 @@ export default function DatabaseManagement() {
       }),
     onSuccess: () => {
       toast({
-        title: "Schedule Updated",
-        description: "زمان‌بندی بک‌آپ با موفقیت به‌روزرسانی شد",
+        title: tx("scheduleUpdated"),
+        description: tx("scheduleSuccess"),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/backup-schedules'] });
       setShowScheduleDialog(false);
@@ -304,8 +354,8 @@ export default function DatabaseManagement() {
     onError: () => {
       toast({
         variant: "destructive",
-        title: "خطا در به‌روزرسانی زمان‌بندی",
-        description: "مشکلی در به‌روزرسانی زمان‌بندی بک‌آپ رخ داده است",
+        title: tx("scheduleError"),
+        description: tx("errorCreateDesc"),
       });
     },
   });
@@ -314,16 +364,16 @@ export default function DatabaseManagement() {
     mutationFn: (scheduleId: number) => apiRequest(`/api/admin/backup-schedules/${scheduleId}`, { method: "DELETE" }),
     onSuccess: () => {
       toast({
-        title: "Schedule Deleted",
-        description: "زمان‌بندی بک‌آپ با موفقیت حذف شد",
+        title: tx("scheduleDeleted"),
+        description: tx("deletedDesc"),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/backup-schedules'] });
     },
     onError: () => {
       toast({
         variant: "destructive",
-        title: "خطا در حذف زمان‌بندی",
-        description: "مشکلی در حذف زمان‌بندی بک‌آپ رخ داده است",
+        title: tx("scheduleError"),
+        description: tx("errorDeleteDesc"),
       });
     },
   });
@@ -342,8 +392,8 @@ export default function DatabaseManagement() {
     document.body.removeChild(link);
     
     toast({
-      title: "دانلود شروع شد",
-      description: `فایل ${filename} در حال دانلود است`,
+      title: tx("downloadStarted"),
+      description: `${tx("fileName")}: ${filename} — ${tx("downloading")}`,
     });
   };
 
@@ -356,8 +406,8 @@ export default function DatabaseManagement() {
     document.body.removeChild(link);
     
     toast({
-      title: "دانلود شروع شد",
-      description: `فایل ${fileName} در حال دانلود است`,
+      title: tx("downloadStarted"),
+      description: `${tx("fileName")}: ${fileName} — ${tx("downloading")}`,
     });
   };
 
@@ -410,11 +460,11 @@ export default function DatabaseManagement() {
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)).toLocaleString(locale) + ' ' + sizes[i];
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-US', {
+    return new Date(dateString).toLocaleString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -426,29 +476,29 @@ export default function DatabaseManagement() {
   const getStatusBadge = (status: DatabaseBackup['status']) => {
     switch (status) {
       case 'completed':
-        return <Badge variant="default" className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Completed</Badge>;
+        return <Badge variant="default" className="bg-green-500"><CheckCircle className="h-3 w-3 me-1" />{tx("completed")}</Badge>;
       case 'in_progress':
-        return <Badge variant="default" className="bg-blue-500"><Loader2 className="h-3 w-3 mr-1 animate-spin" />In Progress</Badge>;
+        return <Badge variant="default" className="bg-blue-500"><Loader2 className="h-3 w-3 me-1 animate-spin" />{tx("inProgress")}</Badge>;
       case 'failed':
-        return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>;
+        return <Badge variant="destructive"><XCircle className="h-3 w-3 me-1" />{tx("failed")}</Badge>;
       default:
-        return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+        return <Badge variant="secondary"><Clock className="h-3 w-3 me-1" />{tx("pending")}</Badge>;
     }
   };
 
   if (userError) {
     return (
       <div className="space-y-6">
-        <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800">
-          <h2 className="font-semibold mb-2">خطای احراز هویت</h2>
-          <p>لطفا وارد سیستم شوید</p>
+        <div dir={direction} className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800">
+          <h2 className="font-semibold mb-2">{tx("authError")}</h2>
+          <p>{tx("signIn")}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div dir={direction} lang={language} className="space-y-6">
       <div className="flex items-center gap-4">
         {user?.user && (
           <Button
@@ -456,16 +506,16 @@ export default function DatabaseManagement() {
             size="sm"
             onClick={() => setLocation('/admin')}
           >
-            <ArrowLeft className="h-4 w-4 ml-2" />
-            بازگشت به داشبورد
+            <ArrowLeft className="h-4 w-4 me-2 rtl:rotate-180" />
+            {tx("back")}
           </Button>
         )}
-        <h1 className="text-2xl font-bold">مدیریت دیتابیس</h1>
+        <h1 className="text-2xl font-bold">{tx("title")}</h1>
       </div>
 
       {statsError && (
         <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800">
-          <h3 className="font-semibold">خطا در بارگذاری آمار دیتابیس</h3>
+          <h3 className="font-semibold">{tx("statsError")}</h3>
         </div>
       )}
 
@@ -473,19 +523,19 @@ export default function DatabaseManagement() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Database Size</CardTitle>
+            <CardTitle className="text-sm font-medium">{tx("databaseSize")}</CardTitle>
             <HardDrive className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {statsLoading ? "..." : dbStats?.database_size || "Unknown"}
+               {statsLoading ? "..." : dbStats?.database_size || tx("unknown")}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tables Count</CardTitle>
+            <CardTitle className="text-sm font-medium">{tx("tablesCount")}</CardTitle>
             <Table className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -497,19 +547,19 @@ export default function DatabaseManagement() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Records</CardTitle>
+            <CardTitle className="text-sm font-medium">{tx("totalRecords")}</CardTitle>
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {statsLoading ? "..." : dbStats?.total_records?.toLocaleString() || 0}
+              {statsLoading ? "..." : dbStats?.total_records?.toLocaleString(locale) || 0}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Backups Count</CardTitle>
+            <CardTitle className="text-sm font-medium">{tx("backupsCount")}</CardTitle>
             <FileDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -525,21 +575,21 @@ export default function DatabaseManagement() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
-            مدیریت بک‌آپ
+            {tx("backupManagement")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="manual" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="manual">Manual Backups (محلی)</TabsTrigger>
-              <TabsTrigger value="s3">S3 Backups & Automation (خودکار)</TabsTrigger>
+              <TabsTrigger value="manual">{tx("manual")}</TabsTrigger>
+              <TabsTrigger value="s3">{tx("automation")}</TabsTrigger>
             </TabsList>
 
             {/* Manual Backups Tab */}
             <TabsContent value="manual" className="space-y-4">
               {backupsError && (
                 <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800 mb-4">
-                  <h3 className="font-semibold">خطا در بارگذاری بک‌آپ‌ها</h3>
+                  <h3 className="font-semibold">{tx("backupError")}</h3>
                 </div>
               )}
               <div className="flex justify-end">
@@ -554,15 +604,15 @@ export default function DatabaseManagement() {
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
-                  ایجاد بک‌آپ جدید
+                  {tx("createBackup")}
                 </Button>
               </div>
 
               {backupsLoading ? (
-                <div className="text-center py-8">در حال بارگذاری...</div>
+                <div className="text-center py-8">{tx("loading")}</div>
               ) : backupsData?.backups.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  هیچ بک‌آپی موجود نیست
+                   {tx("noBackups")}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -595,7 +645,7 @@ export default function DatabaseManagement() {
                           data-testid={`button-download-${backup.filename}`}
                         >
                           <Download className="h-4 w-4" />
-                          دانلود
+                           {tx("download")}
                         </Button>
                         <Dialog open={restoreFilename === backup.filename} onOpenChange={(open) => {
                           if (!open) {
@@ -611,24 +661,24 @@ export default function DatabaseManagement() {
                             data-testid={`button-restore-${backup.filename}`}
                           >
                             <RotateCcw className="h-4 w-4" />
-                            بازگردانی
+                             {tx("restore")}
                           </Button>
-                          <DialogContent>
+                          <DialogContent dir={direction}>
                             <DialogHeader>
-                              <DialogTitle>بازگردانی بک‌آپ</DialogTitle>
+                              <DialogTitle>{tx("restore")}</DialogTitle>
                               <DialogDescription>
-                                آیا مطمئن هستید که می‌خواهید از بک‌آپ "{backup.filename}" بازگردانی کنید؟ این عمل تمامی داده‌های فعلی را جایگزین خواهد کرد!
+                                {tx("restoreS3Question").replace("this backup", `"${backup.filename}"`)}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                               <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                                 <p className="text-sm text-red-800">
-                                  <strong>هشدار:</strong> این عمل غیرقابل بازگشت است. تمامی داده‌های فعلی با داده‌های بک‌آپ جایگزین خواهند شد.
+                                   <strong>{tx("warning")}:</strong> {tx("restoreWarning")}
                                 </p>
                               </div>
                               <div className="space-y-2">
                                 <Label htmlFor="restore-confirm">
-                                  برای تأیید، عبارت <strong>RESTORE</strong> را تایپ کنید:
+                                   {tx("confirmRestore")} <strong>RESTORE</strong>:
                                 </Label>
                                 <Input
                                   id="restore-confirm"
@@ -647,7 +697,7 @@ export default function DatabaseManagement() {
                                   setRestoreConfirmText("");
                                 }}
                               >
-                                لغو
+                                 {tx("cancel")}
                               </Button>
                               <Button
                                 onClick={() => restoreBackupMutation.mutate(backup.filename)}
@@ -655,7 +705,7 @@ export default function DatabaseManagement() {
                                 disabled={restoreConfirmText !== "RESTORE" || restoreBackupMutation.isPending}
                                 data-testid="button-confirm-restore"
                               >
-                                {restoreBackupMutation.isPending ? "در حال بازگردانی..." : "بازگردانی"}
+                                 {restoreBackupMutation.isPending ? `${tx("restore")}...` : tx("restore")}
                               </Button>
                             </DialogFooter>
                           </DialogContent>
@@ -669,24 +719,24 @@ export default function DatabaseManagement() {
                               data-testid={`button-delete-${backup.filename}`}
                             >
                               <Trash2 className="h-4 w-4" />
-                              حذف
+                              {tx("delete")}
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                           <AlertDialogContent dir={direction}>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>حذف فایل بک‌آپ</AlertDialogTitle>
+                              <AlertDialogTitle>{tx("deleteBackup")}</AlertDialogTitle>
                               <AlertDialogDescription>
-                                آیا مطمئن هستید که می‌خواهید فایل بک‌آپ "{backup.filename}" را حذف کنید؟ این عمل قابل بازگشت نیست.
+                                {tx("deleteBackupQuestion").replace("this backup file", `"${backup.filename}"`)}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>لغو</AlertDialogCancel>
+                              <AlertDialogCancel>{tx("cancel")}</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => deleteBackupMutation.mutate(backup.filename)}
                                 className="bg-red-600 hover:bg-red-700"
                                 disabled={deleteBackupMutation.isPending}
                               >
-                                {deleteBackupMutation.isPending ? "در حال حذف..." : "حذف"}
+                                 {deleteBackupMutation.isPending ? `${tx("delete")}...` : tx("delete")}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -702,13 +752,13 @@ export default function DatabaseManagement() {
             <TabsContent value="s3" className="space-y-6">
               {(s3Error || schedulesError) && (
                 <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800 mb-4">
-                  <h3 className="font-semibold">خطا در بارگذاری داده‌های S3</h3>
+                  <h3 className="font-semibold">{tx("s3Error")}</h3>
                 </div>
               )}
               {/* S3 Backups Section */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">S3 Backups</h3>
+                  <h3 className="text-lg font-semibold">{tx("s3Backups")}</h3>
                   <Button
                     onClick={() => createS3BackupMutation.mutate(undefined)}
                     disabled={createS3BackupMutation.isPending}
@@ -720,26 +770,26 @@ export default function DatabaseManagement() {
                     ) : (
                       <Plus className="h-4 w-4" />
                     )}
-                    Create Manual S3 Backup
+                    {tx("createS3")}
                   </Button>
                 </div>
 
                 {loadingS3Backups ? (
-                  <div className="text-center py-8">Loading S3 backups...</div>
+                  <div className="text-center py-8">{tx("loadingS3")}</div>
                 ) : (s3Backups ?? []).length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No S3 backups available
+                     {tx("noS3")}
                   </div>
                 ) : (
                   <DataTable>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>File Name</TableHead>
-                        <TableHead>Size</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Created</TableHead>
-                        <TableHead>Actions</TableHead>
+                        <TableHead>{tx("fileName")}</TableHead>
+                        <TableHead>{tx("size")}</TableHead>
+                        <TableHead>{tx("type")}</TableHead>
+                        <TableHead>{tx("status")}</TableHead>
+                        <TableHead>{tx("created")}</TableHead>
+                        <TableHead>{tx("actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -749,7 +799,7 @@ export default function DatabaseManagement() {
                           <TableCell>{formatFileSize(backup.fileSize)}</TableCell>
                           <TableCell>
                             <Badge variant={backup.backupType === 'manual' ? 'default' : 'secondary'}>
-                              {backup.backupType}
+                               {backup.backupType === "manual" ? tx("manual") : tx("schedules")}
                             </Badge>
                           </TableCell>
                           <TableCell>{getStatusBadge(backup.status)}</TableCell>
@@ -777,21 +827,21 @@ export default function DatabaseManagement() {
                                       <RotateCcw className="h-4 w-4" />
                                     </Button>
                                   </AlertDialogTrigger>
-                                  <AlertDialogContent>
+                                   <AlertDialogContent dir={direction}>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Restore S3 Backup</AlertDialogTitle>
+                                      <AlertDialogTitle>{tx("restoreS3")}</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Are you sure you want to restore from "{backup.fileName}"? This will replace all current data!
+                                {tx("restoreS3Question").replace("this backup", `"${backup.fileName}"`)}
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogCancel>{tx("cancel")}</AlertDialogCancel>
                                       <AlertDialogAction
                                         onClick={() => restoreS3BackupMutation.mutate(backup.id)}
                                         className="bg-orange-600 hover:bg-orange-700"
                                         disabled={restoreS3BackupMutation.isPending}
                                       >
-                                        {restoreS3BackupMutation.isPending ? "Restoring..." : "Restore"}
+                                         {restoreS3BackupMutation.isPending ? `${tx("restore")}...` : tx("restore")}
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
@@ -808,20 +858,20 @@ export default function DatabaseManagement() {
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </AlertDialogTrigger>
-                                <AlertDialogContent>
+                                 <AlertDialogContent dir={direction}>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete S3 Backup</AlertDialogTitle>
+                                    <AlertDialogTitle>{tx("deleteS3")}</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Are you sure you want to delete "{backup.fileName}"? This action cannot be undone.
+                                      {tx("deleteS3Question").replace("this backup", `"${backup.fileName}"`)}
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogCancel>{tx("cancel")}</AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={() => deleteS3BackupMutation.mutate(backup.id)}
                                       className="bg-red-600 hover:bg-red-700"
                                     >
-                                      Delete
+                                      {tx("delete")}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -838,7 +888,7 @@ export default function DatabaseManagement() {
               {/* Schedule Management Section */}
               <div className="space-y-4 border-t pt-6">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Backup Schedules (زمان‌بندی)</h3>
+                  <h3 className="text-lg font-semibold">{tx("schedules")}</h3>
                   <Button
                     onClick={() => {
                       resetScheduleForm();
@@ -849,28 +899,28 @@ export default function DatabaseManagement() {
                     data-testid="button-create-schedule"
                   >
                     <Plus className="h-4 w-4" />
-                    Create Schedule
+                     {tx("createSchedule")}
                   </Button>
                 </div>
 
                 {loadingSchedules ? (
-                  <div className="text-center py-8">Loading schedules...</div>
+                   <div className="text-center py-8">{tx("loadingSchedules")}</div>
                 ) : (schedules ?? []).length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No backup schedules configured
+                     {tx("noSchedules")}
                   </div>
                 ) : (
                   <DataTable>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Frequency</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Retention</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Last Run</TableHead>
-                        <TableHead>Next Run</TableHead>
-                        <TableHead>Actions</TableHead>
+                         <TableHead>{tx("name")}</TableHead>
+                         <TableHead>{tx("frequency")}</TableHead>
+                         <TableHead>{tx("time")}</TableHead>
+                         <TableHead>{tx("retention")}</TableHead>
+                         <TableHead>{tx("status")}</TableHead>
+                         <TableHead>{tx("lastRun")}</TableHead>
+                         <TableHead>{tx("nextRun")}</TableHead>
+                         <TableHead>{tx("actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -881,17 +931,17 @@ export default function DatabaseManagement() {
                             <Badge variant="outline">{schedule.frequency}</Badge>
                           </TableCell>
                           <TableCell>{schedule.timeOfDay}</TableCell>
-                          <TableCell>{schedule.retentionDays} days</TableCell>
+                           <TableCell>{schedule.retentionDays.toLocaleString(locale)} {tx("days")}</TableCell>
                           <TableCell>
                             <Badge variant={schedule.isActive ? 'default' : 'secondary'}>
-                              {schedule.isActive ? 'Active' : 'Inactive'}
+                               {schedule.isActive ? tx("active") : tx("inactive")}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {schedule.lastRunAt ? formatDate(schedule.lastRunAt) : 'Never'}
+                             {schedule.lastRunAt ? formatDate(schedule.lastRunAt) : tx("never")}
                           </TableCell>
                           <TableCell>
-                            {schedule.nextRunAt ? formatDate(schedule.nextRunAt) : 'N/A'}
+                             {schedule.nextRunAt ? formatDate(schedule.nextRunAt) : tx("notAvailable")}
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
@@ -902,7 +952,7 @@ export default function DatabaseManagement() {
                                 disabled={updateScheduleMutation.isPending}
                                 data-testid={`button-toggle-${schedule.id}`}
                               >
-                                {schedule.isActive ? 'Deactivate' : 'Activate'}
+                                 {schedule.isActive ? tx("deactivate") : tx("activate")}
                               </Button>
                               <Button
                                 variant="outline"
@@ -923,20 +973,20 @@ export default function DatabaseManagement() {
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </AlertDialogTrigger>
-                                <AlertDialogContent>
+                                 <AlertDialogContent dir={direction}>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Schedule</AlertDialogTitle>
+                                    <AlertDialogTitle>{tx("deleteSchedule")}</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Are you sure you want to delete the schedule "{schedule.name}"?
+                                      {tx("deleteScheduleQuestion").replace("this schedule", `"${schedule.name}"`)}
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogCancel>{tx("cancel")}</AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={() => deleteScheduleMutation.mutate(schedule.id)}
                                       className="bg-red-600 hover:bg-red-700"
                                     >
-                                      Delete
+                                      {tx("delete")}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -956,31 +1006,31 @@ export default function DatabaseManagement() {
 
       {/* Schedule Dialog */}
       <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
-        <DialogContent className="max-w-2xl" data-testid="dialog-schedule">
+        <DialogContent dir={direction} className="max-w-2xl" data-testid="dialog-schedule">
           <DialogHeader>
             <DialogTitle>
-              {editingSchedule ? 'Edit Backup Schedule' : 'Create Backup Schedule'}
+              {editingSchedule ? tx("editSchedule") : tx("newSchedule")}
             </DialogTitle>
             <DialogDescription>
-              Configure automated backup schedule settings
+              {tx("configureSchedule")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="schedule-name">Name</Label>
+              <Label htmlFor="schedule-name">{tx("name")}</Label>
               <Input
                 id="schedule-name"
                 value={scheduleForm.name}
                 onChange={(e) => setScheduleForm({ ...scheduleForm, name: e.target.value })}
-                placeholder="Daily Backup"
+                placeholder={`${tx("daily")} ${tx("backupManagement")}`}
                 data-testid="input-schedule-name"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="schedule-frequency">Frequency</Label>
+                <Label htmlFor="schedule-frequency">{tx("frequency")}</Label>
                 <Select
                   value={scheduleForm.frequency}
                   onValueChange={(value: 'daily' | 'weekly' | 'monthly') =>
@@ -990,16 +1040,16 @@ export default function DatabaseManagement() {
                   <SelectTrigger id="schedule-frequency" data-testid="select-frequency">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectContent dir={direction}>
+                    <SelectItem value="daily">{tx("daily")}</SelectItem>
+                    <SelectItem value="weekly">{tx("weekly")}</SelectItem>
+                    <SelectItem value="monthly">{tx("monthly")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="schedule-time">Time of Day</Label>
+                <Label htmlFor="schedule-time">{tx("timeOfDay")}</Label>
                 <Input
                   id="schedule-time"
                   type="time"
@@ -1012,24 +1062,24 @@ export default function DatabaseManagement() {
 
             {scheduleForm.frequency === 'weekly' && (
               <div className="space-y-2">
-                <Label htmlFor="schedule-day-week">Day of Week</Label>
+                <Label htmlFor="schedule-day-week">{tx("dayOfWeek")}</Label>
                 <Select
                   value={scheduleForm.dayOfWeek?.toString() || ''}
                   onValueChange={(value) =>
                     setScheduleForm({ ...scheduleForm, dayOfWeek: parseInt(value) })
                   }
                 >
-                  <SelectTrigger id="schedule-day-week" data-testid="select-day-week">
-                    <SelectValue placeholder="Select day" />
+                    <SelectTrigger id="schedule-day-week" data-testid="select-day-week">
+                     <SelectValue placeholder={tx("selectDay")} />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Sunday</SelectItem>
-                    <SelectItem value="1">Monday</SelectItem>
-                    <SelectItem value="2">Tuesday</SelectItem>
-                    <SelectItem value="3">Wednesday</SelectItem>
-                    <SelectItem value="4">Thursday</SelectItem>
-                    <SelectItem value="5">Friday</SelectItem>
-                    <SelectItem value="6">Saturday</SelectItem>
+                    <SelectContent dir={direction}>
+                    <SelectItem value="0">{tx("day0")}</SelectItem>
+                    <SelectItem value="1">{tx("day1")}</SelectItem>
+                    <SelectItem value="2">{tx("day2")}</SelectItem>
+                    <SelectItem value="3">{tx("day3")}</SelectItem>
+                    <SelectItem value="4">{tx("day4")}</SelectItem>
+                    <SelectItem value="5">{tx("day5")}</SelectItem>
+                    <SelectItem value="6">{tx("day6")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1037,7 +1087,7 @@ export default function DatabaseManagement() {
 
             {scheduleForm.frequency === 'monthly' && (
               <div className="space-y-2">
-                <Label htmlFor="schedule-day-month">Day of Month</Label>
+                <Label htmlFor="schedule-day-month">{tx("dayOfMonth")}</Label>
                 <Input
                   id="schedule-day-month"
                   type="number"
@@ -1054,7 +1104,7 @@ export default function DatabaseManagement() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="schedule-retention">Retention Days</Label>
+              <Label htmlFor="schedule-retention">{tx("retentionDays")}</Label>
               <Input
                 id="schedule-retention"
                 type="number"
@@ -1066,7 +1116,7 @@ export default function DatabaseManagement() {
                 data-testid="input-retention"
               />
               <p className="text-sm text-muted-foreground">
-                Backups older than this will be automatically deleted
+                {tx("oldBackups")}
               </p>
             </div>
           </div>
@@ -1080,7 +1130,7 @@ export default function DatabaseManagement() {
                 resetScheduleForm();
               }}
             >
-              Cancel
+              {tx("cancel")}
             </Button>
             <Button
               onClick={handleSaveSchedule}
@@ -1092,9 +1142,9 @@ export default function DatabaseManagement() {
               data-testid="button-save-schedule"
             >
               {createScheduleMutation.isPending || updateScheduleMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 me-2 animate-spin" />
               ) : null}
-              {editingSchedule ? 'Update' : 'Create'}
+              {editingSchedule ? tx("update") : tx("create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1105,12 +1155,12 @@ export default function DatabaseManagement() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Table className="h-5 w-5" />
-            Database Table Statistics
+            {tx("tableStats")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {statsLoading ? (
-            <div className="text-center py-8">Loading...</div>
+            <div className="text-center py-8">{tx("loading")}</div>
           ) : (
             <div className="space-y-4">
               {dbStats?.table_stats.slice(0, 15).map((table) => (
@@ -1119,18 +1169,18 @@ export default function DatabaseManagement() {
                     <span className="font-medium text-lg">{table.tablename}</span>
                     <div className="flex gap-2">
                       <Badge variant="outline" className="bg-blue-50">
-                        {table.actual_count?.toLocaleString() || table.live_rows?.toLocaleString() || 0} records
+                        {table.actual_count?.toLocaleString(locale) || table.live_rows?.toLocaleString(locale) || 0} {tx("records")}
                       </Badge>
                       <Badge variant="secondary" className="bg-green-50">
-                        {table.table_size || 'Unknown size'}
+                        {table.table_size || tx("unknownSize")}
                       </Badge>
                     </div>
                   </div>
                   <div className="grid grid-cols-4 gap-4 text-sm text-muted-foreground">
-                    <span>Inserts: {table.total_inserts?.toLocaleString() || 0}</span>
-                    <span>Updates: {table.total_updates?.toLocaleString() || 0}</span>
-                    <span>Deletes: {table.total_deletes?.toLocaleString() || 0}</span>
-                    <span>Live Rows: {table.live_rows?.toLocaleString() || 0}</span>
+                    <span>{tx("inserts")}: {table.total_inserts?.toLocaleString(locale) || 0}</span>
+                    <span>{tx("updates")}: {table.total_updates?.toLocaleString(locale) || 0}</span>
+                    <span>{tx("deletes")}: {table.total_deletes?.toLocaleString(locale) || 0}</span>
+                    <span>{tx("liveRows")}: {table.live_rows?.toLocaleString(locale) || 0}</span>
                   </div>
                   {table.actual_count > 0 && (
                     <Progress 
@@ -1142,7 +1192,7 @@ export default function DatabaseManagement() {
               ))}
               {dbStats?.table_stats && dbStats.table_stats.length > 15 && (
                 <div className="text-center text-sm text-muted-foreground py-2">
-                  Showing top 15 tables by size. Total tables: {dbStats.table_count}
+                  {tx("showingTables")} {dbStats.table_count.toLocaleString(locale)}
                 </div>
               )}
             </div>
@@ -1155,23 +1205,23 @@ export default function DatabaseManagement() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
-            راهنمای نصب در سیستم شخصی
+            {tx("setup")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="p-4 bg-muted rounded-lg">
-            <h4 className="font-medium mb-2">مراحل نصب:</h4>
+            <h4 className="font-medium mb-2">{tx("setupSteps")}</h4>
             <ol className="list-decimal list-inside space-y-2 text-sm">
-              <li>PostgreSQL را نصب کنید</li>
-              <li>یک دیتابیس جدید ایجاد کنید</li>
-              <li>فایل بک‌آپ را دانلود و بازیابی کنید</li>
-              <li>متغیر DATABASE_URL را تنظیم کنید</li>
-              <li>npm install و npm run dev را اجرا کنید</li>
+              <li>{tx("installPostgres")}</li>
+              <li>{tx("createDb")}</li>
+              <li>{tx("downloadRestore")}</li>
+              <li>{tx("setDbUrl")}</li>
+              <li>{tx("runCommands")}</li>
             </ol>
           </div>
           <div className="flex items-center gap-2 text-sm text-green-600">
             <CheckCircle className="h-4 w-4" />
-            فایل راهنمای کامل در پوشه پروژه موجود است: PORTABLE_DATABASE_SETUP.md
+            {tx("guideAvailable")} PORTABLE_DATABASE_SETUP.md
           </div>
         </CardContent>
       </Card>

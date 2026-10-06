@@ -17,6 +17,36 @@ import crypto from "crypto";
 import { storage } from "./storage";
 import { UniversalEmailService } from "./universal-email-service";
 import { CONFIG } from "./config";
+import { insertShowcaseProductSchema, showcaseProducts } from "@shared/showcase-schema";
+import {
+  normalizeProductWeightUpdates,
+  type ProductWeightField,
+} from "./product-weight-sync";
+import { syncCanonicalKardexWeightsToShop } from "./product-weight-shop-sync";
+
+const vendorProductCreateSchema = insertShowcaseProductSchema.pick({
+  name: true,
+  technicalName: true,
+  category: true,
+  description: true,
+  sku: true,
+  barcode: true,
+  stockQuantity: true,
+  unitPrice: true,
+  transportationTemperature: true,
+}).extend({
+  name: z.string().trim().min(3),
+  category: z.string().trim().min(1),
+  description: z.string().trim(),
+  sku: z.string().trim().min(3),
+  barcode: z.string().trim().min(8),
+  stockQuantity: z.coerce.number().int().min(0),
+  unitPrice: z.coerce.number().min(0),
+  transportationTemperature: z.preprocess(
+    (value) => value === "" || value === null ? undefined : value,
+    z.enum(["none", "frozen", "chilled", "cool", "dry"]).optional(),
+  ),
+});
 
 export function createVendorRouter() {
   const router = Router();
@@ -641,16 +671,18 @@ export function createVendorRouter() {
         });
       }
 
-      const { db } = await import("./db");
-      const { showcaseProducts: products } = await import("@shared/showcase-schema");
-      
-      // Extract product data from body and IGNORE any vendorId sent by client
-      const { vendorId: _ignored, ...bodyData } = req.body;
+      const validatedData = vendorProductCreateSchema.parse(req.body);
       
       // Always use vendorId from authenticated session - cannot be spoofed
       const productData = {
-        ...bodyData,
+        ...validatedData,
+        description: validatedData.description || "Vendor product",
+        unitPrice: validatedData.unitPrice.toString(),
+        transportationTemperature: validatedData.transportationTemperature === "none"
+          ? null
+          : validatedData.transportationTemperature,
         vendorId: req.vendorUser.vendorId, // Always from session, never from client
+        isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -660,7 +692,7 @@ export function createVendorRouter() {
 
       // Insert into main products table
       const [product] = await db
-        .insert(products)
+        .insert(showcaseProducts)
         .values(productData)
         .returning();
 
@@ -673,9 +705,15 @@ export function createVendorRouter() {
       });
     } catch (error: any) {
       console.error("❌ [VENDOR PRODUCT CREATE] Error:", error);
-      res.status(500).json({
+      const isDuplicate = error?.code === "23505";
+      const isInvalid = error instanceof z.ZodError;
+      res.status(isDuplicate ? 409 : isInvalid ? 400 : 500).json({
         success: false,
-        message: error.message || "Error creating product"
+        message: isDuplicate
+          ? "SKU or barcode is already in use"
+          : isInvalid
+            ? "Product information is incomplete or invalid"
+            : "Error creating product"
       });
     }
   });
@@ -715,6 +753,18 @@ export function createVendorRouter() {
 
       // Extract product data from body and IGNORE any vendorId sent by client
       const { vendorId: _ignored, id: _id, createdAt: _createdAt, inventoryAddition, newBatchNumber, ...bodyData } = req.body;
+
+      let changedWeightFields: ProductWeightField[] = [];
+      try {
+        const weightUpdates = normalizeProductWeightUpdates(bodyData, existingProduct);
+        changedWeightFields = Object.keys(weightUpdates) as ProductWeightField[];
+        Object.assign(bodyData, weightUpdates);
+      } catch (weightError) {
+        return res.status(400).json({
+          success: false,
+          message: weightError instanceof Error ? weightError.message : "Invalid product weight",
+        });
+      }
       
       // Handle inventory addition without batch (add to existing stock)
       if (inventoryAddition && Number(inventoryAddition) > 0 && !newBatchNumber?.trim()) {
@@ -735,10 +785,20 @@ export function createVendorRouter() {
         .where(eq(products.id, productId))
         .returning();
 
+      let shopWeightUpdated = false;
+      if (changedWeightFields.length > 0) {
+        try {
+          shopWeightUpdated = await syncCanonicalKardexWeightsToShop(product, changedWeightFields);
+        } catch (weightSyncError) {
+          console.error(`Failed to sync vendor product weights to shop for ${productId}:`, weightSyncError);
+        }
+      }
+
       res.json({
         success: true,
         message: "Product updated successfully",
-        product
+        product,
+        shopWeightUpdated,
       });
     } catch (error: any) {
       console.error("Error updating product:", error);

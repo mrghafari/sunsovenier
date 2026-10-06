@@ -13,6 +13,17 @@ import { apiRequest } from "@/lib/queryClient";
 import PaymentMethodBadge from "@/components/PaymentMethodBadge";
 import { BankReceiptUploadModal } from "@/components/BankReceiptUploadModal";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getOrderStatusLabel, resolveOrderStatus, type OrderStatusLanguage } from "@shared/order-status";
+import { contractTheme } from "@/lib/contract-theme";
+import OrderContractSummary from "@/components/contracts/order-contract-summary";
+import DatePickerModule, { type DateObject } from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persianFa from "react-date-object/locales/persian_fa";
+import "react-multi-date-picker/styles/layouts/mobile.css";
+
+const PersianDatePicker = (
+  (DatePickerModule as any).default ?? DatePickerModule
+) as React.ComponentType<any>;
 
 // ─── Local profile translations ───────────────────────────────────────────────
 const PROFILE_T = {
@@ -80,7 +91,6 @@ const PROFILE_T = {
     paymentDeadlineOrder: (d: number) => `Order with ${d}-day payment deadline`,
     specialDeadline: "Special Deadline",
     waitingForTransfer: "Waiting for bank transfer — please upload receipt",
-    uploadBankTransfer: "Upload Bank Transfer",
     paymentDeadlineHours: (h: number) => `Payment deadline: ${h} hours from order time`,
     transferUploaded: "Transfer Uploaded",
     waitingFinancialReview: "Awaiting financial review",
@@ -90,6 +100,7 @@ const PROFILE_T = {
     orderRejectionReason: "Order rejection reason:",
     orderCancellationReason: "Order cancellation reason:",
     orderItems: "Order Items:",
+    quantity: "Quantity",
     unknownProduct: "Unknown",
     itemsSubtotal: "Items Subtotal:",
     shippingCost: "Shipping Cost:",
@@ -102,10 +113,30 @@ const PROFILE_T = {
     waitingFinancialApproval: "Please wait for financial department approval. After approval, the order will be sent to the warehouse.",
     bankTransferApproved: "✅ Bank transfer approved — order processing",
     orderUnderWarehouseProcessing: "Your order has been financially approved and is being processed in the warehouse",
-    downloadOfficialInvoice: "Download Official Invoice",
-    downloadProforma: "Download Proforma",
+    downloadOfficialInvoice: "Official Invoice",
+    downloadProforma: "Proforma Invoice",
+    invoice: "Invoice",
+    bankDocuments: "Bank documents",
+    viewBankReceipt: "View receipt",
+    status: "Status",
+    details: "Details",
     // buttons
     viewFullPurchaseHistory: "View Full Purchase History",
+    viewRecentOrders: "View Recent Orders",
+    productFilter: "Product",
+    allProducts: "All products",
+    purchaseType: "Purchase type",
+    allPurchaseTypes: "All purchase types",
+    normalPurchase: "Normal",
+    contractPurchase: "Contract purchase",
+    sortBy: "Sort by",
+    sortDate: "Date",
+    sortOrderNumber: "Order number",
+    sortStatus: "Status",
+    sortItemCount: "Item count",
+    sortTotal: "Total amount",
+    ascending: "Ascending",
+    descending: "Descending",
     csvExportCompletedOrders: "Export Completed Orders CSV",
     // purchase history modal
     fullPurchaseHistory: "Full Purchase History",
@@ -195,7 +226,6 @@ const PROFILE_T = {
     paymentDeadlineOrder: (d: number) => `طلب بمهلة دفع ${d} أيام`,
     specialDeadline: "مهلة خاصة",
     waitingForTransfer: "في انتظار التحويل البنكي — يرجى رفع الإيصال",
-    uploadBankTransfer: "رفع الحوالة البنكية",
     paymentDeadlineHours: (h: number) => `مهلة الدفع: ${h} ساعة من وقت الطلب`,
     transferUploaded: "تم رفع الحوالة",
     waitingFinancialReview: "في انتظار المراجعة المالية",
@@ -205,6 +235,7 @@ const PROFILE_T = {
     orderRejectionReason: "سبب رفض الطلب:",
     orderCancellationReason: "سبب إلغاء الطلب:",
     orderItems: "عناصر الطلب:",
+    quantity: "الكمية",
     unknownProduct: "غير معروف",
     itemsSubtotal: "مجموع العناصر:",
     shippingCost: "تكلفة الشحن:",
@@ -217,9 +248,29 @@ const PROFILE_T = {
     waitingFinancialApproval: "يرجى انتظار موافقة القسم المالي. بعد الموافقة سيُحال الطلب للمستودع.",
     bankTransferApproved: "✅ تمت الموافقة على الحوالة — الطلب قيد المعالجة",
     orderUnderWarehouseProcessing: "تمت الموافقة المالية على طلبك وهو قيد المعالجة في المستودع",
-    downloadOfficialInvoice: "تنزيل الفاتورة الرسمية",
-    downloadProforma: "تنزيل الفاتورة المبدئية",
+    downloadOfficialInvoice: "الفاتورة الرسمية",
+    downloadProforma: "الفاتورة المبدئية",
+    invoice: "الفاتورة",
+    bankDocuments: "المستندات البنكية",
+    viewBankReceipt: "عرض الإيصال",
+    status: "الحالة",
+    details: "التفاصيل",
     viewFullPurchaseHistory: "عرض سجل المشتريات الكامل",
+    viewRecentOrders: "عرض الطلبات الأخيرة",
+    productFilter: "المنتج",
+    allProducts: "كل المنتجات",
+    purchaseType: "نوع الشراء",
+    allPurchaseTypes: "كل أنواع الشراء",
+    normalPurchase: "عادي",
+    contractPurchase: "شراء تعاقدي",
+    sortBy: "ترتيب حسب",
+    sortDate: "التاريخ",
+    sortOrderNumber: "رقم الطلب",
+    sortStatus: "الحالة",
+    sortItemCount: "عدد العناصر",
+    sortTotal: "المبلغ الإجمالي",
+    ascending: "تصاعدي",
+    descending: "تنازلي",
     csvExportCompletedOrders: "تصدير الطلبات المكتملة CSV",
     fullPurchaseHistory: "سجل المشتريات الكامل",
     orderTypes: "أنواع الطلبات",
@@ -306,7 +357,6 @@ const PROFILE_T = {
     paymentDeadlineOrder: (d: number) => `${d} günlük ödeme süreli sipariş`,
     specialDeadline: "Özel Süre",
     waitingForTransfer: "Banka havalesi bekleniyor — lütfen makbuzu yükleyin",
-    uploadBankTransfer: "Banka Havalesi Yükle",
     paymentDeadlineHours: (h: number) => `Ödeme süresi: Sipariş tarihinden itibaren ${h} saat`,
     transferUploaded: "Havale Yüklendi",
     waitingFinancialReview: "Finansal inceleme bekleniyor",
@@ -316,6 +366,7 @@ const PROFILE_T = {
     orderRejectionReason: "Sipariş red nedeni:",
     orderCancellationReason: "Sipariş iptal nedeni:",
     orderItems: "Sipariş Kalemleri:",
+    quantity: "Miktar",
     unknownProduct: "Bilinmiyor",
     itemsSubtotal: "Kalemler Toplamı:",
     shippingCost: "Kargo Ücreti:",
@@ -328,9 +379,29 @@ const PROFILE_T = {
     waitingFinancialApproval: "Finansal departman onayını bekleyin. Onaydan sonra sipariş depoya gönderilecek.",
     bankTransferApproved: "✅ Banka havalesi onaylandı — sipariş işleniyor",
     orderUnderWarehouseProcessing: "Siparişiniz finansal olarak onaylandı ve depoda işleniyor",
-    downloadOfficialInvoice: "Resmi Fatura İndir",
-    downloadProforma: "Proforma Fatura İndir",
+    downloadOfficialInvoice: "Resmi Fatura",
+    downloadProforma: "Proforma Fatura",
+    invoice: "Fatura",
+    bankDocuments: "Banka belgeleri",
+    viewBankReceipt: "Dekontu görüntüle",
+    status: "Durum",
+    details: "Detaylar",
     viewFullPurchaseHistory: "Tam Satın Alma Geçmişini Görüntüle",
+    viewRecentOrders: "Son Siparişleri Görüntüle",
+    productFilter: "Ürün",
+    allProducts: "Tüm ürünler",
+    purchaseType: "Satın alma türü",
+    allPurchaseTypes: "Tüm satın alma türleri",
+    normalPurchase: "Normal",
+    contractPurchase: "Sözleşmeli satın alma",
+    sortBy: "Sıralama",
+    sortDate: "Tarih",
+    sortOrderNumber: "Sipariş numarası",
+    sortStatus: "Durum",
+    sortItemCount: "Ürün sayısı",
+    sortTotal: "Toplam tutar",
+    ascending: "Artan",
+    descending: "Azalan",
     csvExportCompletedOrders: "Tamamlanan Siparişleri CSV Olarak Dışa Aktar",
     fullPurchaseHistory: "Tam Satın Alma Geçmişi",
     orderTypes: "Sipariş Türleri",
@@ -424,7 +495,6 @@ const PROFILE_T_WITH_FA = {
     paymentDeadlineOrder: (d: number) => `سفارش با مهلت پرداخت ${d} روزه`,
     specialDeadline: "مهلت ویژه",
     waitingForTransfer: "در انتظار انتقال بانکی — لطفاً رسید را بارگذاری کنید",
-    uploadBankTransfer: "بارگذاری رسید انتقال بانکی",
     paymentDeadlineHours: (h: number) => `مهلت پرداخت: ${h} ساعت پس از ثبت سفارش`,
     transferUploaded: "رسید انتقال بارگذاری شد",
     waitingFinancialReview: "در انتظار بررسی واحد مالی",
@@ -434,6 +504,7 @@ const PROFILE_T_WITH_FA = {
     orderRejectionReason: "دلیل رد سفارش:",
     orderCancellationReason: "دلیل لغو سفارش:",
     orderItems: "اقلام سفارش:",
+    quantity: "تعداد",
     unknownProduct: "نامشخص",
     itemsSubtotal: "جمع اقلام:",
     shippingCost: "هزینه ارسال:",
@@ -446,9 +517,29 @@ const PROFILE_T_WITH_FA = {
     waitingFinancialApproval: "لطفاً منتظر تأیید واحد مالی بمانید. پس از تأیید، سفارش به انبار ارسال می‌شود.",
     bankTransferApproved: "✅ انتقال بانکی تأیید شد — سفارش در حال پردازش است",
     orderUnderWarehouseProcessing: "سفارش شما از نظر مالی تأیید شده و در انبار در حال پردازش است",
-    downloadOfficialInvoice: "دانلود فاکتور رسمی",
-    downloadProforma: "دانلود پیش‌فاکتور",
+    downloadOfficialInvoice: "فاکتور رسمی",
+    downloadProforma: "پیش‌فاکتور",
+    invoice: "فاکتور",
+    bankDocuments: "مدارک بانکی",
+    viewBankReceipt: "مشاهده فیش",
+    status: "وضعیت",
+    details: "جزئیات",
     viewFullPurchaseHistory: "مشاهده کامل سابقه خرید",
+    viewRecentOrders: "مشاهده سفارش‌های اخیر",
+    productFilter: "کالا",
+    allProducts: "همه کالاها",
+    purchaseType: "نوع خرید",
+    allPurchaseTypes: "همه انواع خرید",
+    normalPurchase: "عادی",
+    contractPurchase: "خرید قراردادی",
+    sortBy: "مرتب‌سازی بر اساس",
+    sortDate: "تاریخ",
+    sortOrderNumber: "شماره سفارش",
+    sortStatus: "وضعیت",
+    sortItemCount: "تعداد اقلام",
+    sortTotal: "مبلغ کل",
+    ascending: "صعودی",
+    descending: "نزولی",
     csvExportCompletedOrders: "دریافت CSV سفارش‌های تکمیل‌شده",
     fullPurchaseHistory: "سابقه کامل خرید",
     orderTypes: "انواع سفارش",
@@ -494,6 +585,12 @@ const SYSTEM_CANCELLATION_REASONS: Record<string, Record<string, string>> = {
     ar: "تم إلغاء الطلب تلقائيًا بعد انتهاء مهلة الدفع البنكي البالغة 3 أيام.",
     tr: "Banka havalesi için 3 günlük ödeme süresi dolduğundan sipariş sistem tarafından iptal edildi.",
     fa: "سفارش پس از اتمام مهلت ۳ روزه پرداخت بانکی توسط سیستم لغو شد",
+  },
+  "سفارش پس از پایان مهلت پرداخت توسط سیستم لغو شد": {
+    en: "The order was cancelled automatically because its payment deadline expired.",
+    ar: "تم إلغاء الطلب تلقائيًا بسبب انتهاء مهلة الدفع.",
+    tr: "Ödeme süresi dolduğu için sipariş sistem tarafından otomatik olarak iptal edildi.",
+    fa: "سفارش به‌دلیل پایان مهلت پرداخت، به‌صورت خودکار توسط سیستم لغو شد.",
   },
 };
 
@@ -570,7 +667,7 @@ const CustomerProfile = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { language } = useLanguage();
-  const pt: ProfileT = PROFILE_T_WITH_FA[language as keyof typeof PROFILE_T_WITH_FA] ?? PROFILE_T.en;
+  const pt = (PROFILE_T_WITH_FA[language as keyof typeof PROFILE_T_WITH_FA] ?? PROFILE_T.en) as ProfileT;
 
   // Purchase history modal states
   const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
@@ -578,9 +675,14 @@ const CustomerProfile = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [completeHistory, setCompleteHistory] = useState<any[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
-
-  // Main profile filter state
-  const [mainProfileFilter, setMainProfileFilter] = useState<string>("all");
+  const [selectedPurchaseType, setSelectedPurchaseType] = useState<"all" | "normal" | "contract">("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState("all");
+  const [sortField, setSortField] = useState("date");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+  const [showAccountDetails, setShowAccountDetails] = useState(false);
 
   // CSV export states
   const [showCsvExport, setShowCsvExport] = useState(false);
@@ -601,12 +703,18 @@ const CustomerProfile = () => {
     queryKey: ["/api/customers/orders"],
     retry: 1,
     enabled: !!customerData?.success,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const { data: abandonedCartsData, isLoading: abandonedCartsLoading } = useQuery<any>({
     queryKey: ["/api/customers/abandoned-carts"],
     retry: 1,
     enabled: !!customerData?.success,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 60 * 1000,
   });
 
   const { data: publicShopSettings } = useQuery<any>({
@@ -625,45 +733,72 @@ const CustomerProfile = () => {
     return 3;
   }, [publicShopSettings]);
 
-  const getOrderCategory = (order: any) => {
-    const status = order.status?.toLowerCase();
-    const paymentStatus = order.paymentStatus?.toLowerCase();
-    const paymentMethod = order.paymentMethod;
-    const managementStatus = order.managementStatus?.toLowerCase();
-    const hasFinancialReview = order.financialReviewedAt;
+  const isFinanciallyReviewed = (order: any) =>
+    Boolean(order?.financialReviewedAt || order?.financiallyApproved);
 
-    if (status === "cancelled" || status === "financial_rejected" || status === "rejected") return "cancelled";
-    if (paymentMethod === "واریز بانکی با مهلت 3 روزه" || paymentMethod === "bank_transfer_grace") return "bank_transfer";
-    if (status === "confirmed" || status === "delivered" || paymentStatus === "paid") return "completed";
+  const resolveCustomerOrderStatus = (order: any) => order?.statusProjection || resolveOrderStatus({
+      workflowStatus: order?.currentStatus || order?.managementStatus,
+      orderStatus: order?.status,
+      paymentStatus: order?.paymentStatus,
+      paymentMethod: order?.paymentMethod,
+      financialReviewedAt: order?.financialReviewedAt,
+      financiallyApproved: order?.financiallyApproved,
+    });
+
+  const getOrderCategory = (order: any) => {
+    const resolved = resolveCustomerOrderStatus(order);
+    if (resolved.customerState === "cancelled") return "cancelled";
+    if (resolved.customerState === "completed") return "completed";
+    if (resolved.customerState === "awaiting_financial" || resolved.customerState === "processing") return "processing";
     if (
-      (paymentMethod === "wallet_full" || paymentMethod === "wallet_partial" || paymentMethod === "wallet_combined") &&
-      hasFinancialReview
-    )
-      return "processing";
-    if (
-      status === "processing" ||
-      status === "shipped" ||
-      status === "ready_for_delivery" ||
-      managementStatus === "warehouse_pending" ||
-      managementStatus === "warehouse_approved" ||
-      managementStatus === "warehouse_ready"
-    )
-      return "processing";
-    if (paymentStatus === "partial" && hasFinancialReview) return "processing";
+      resolved.customerState === "payment_pending" &&
+      (order.paymentMethod === "واریز بانکی با مهلت 3 روزه" || order.paymentMethod === "bank_transfer_grace")
+    ) return "bank_transfer";
     return "pending";
   };
+  const isContractOrder = (order: any) =>
+    order?.contractId !== null &&
+    order?.contractId !== undefined &&
+    String(order.contractId).trim() !== "";
+  const getLocalizedStatusForSearch = (order: any) => {
+    return getOrderStatusLabel(resolveCustomerOrderStatus(order), language as OrderStatusLanguage);
+  };
 
-  const rawOrders = orderData?.orders || [];
-  const sortedOrders = rawOrders.sort((a: any, b: any) => {
-    const aIs3DayBank = a.paymentMethod === "واریز بانکی با مهلت 3 روزه" || a.paymentMethod === "bank_transfer_grace";
-    const bIs3DayBank = b.paymentMethod === "واریز بانکی با مهلت 3 روزه" || b.paymentMethod === "bank_transfer_grace";
-    if (aIs3DayBank && !bIs3DayBank) return -1;
-    if (!aIs3DayBank && bIs3DayBank) return 1;
+  const dedupeOrders = (source: any[]) => Array.from(
+    new Map(source.map((order: any) => [order.id ?? order.orderNumber, order])).values(),
+  );
+  const getOrderTotal = (order: any) => {
+    const subtotal = (order.items || []).reduce((sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0);
+    return subtotal + parseFloat(order.vatAmount || "0") + parseFloat(order.shippingCost || "0") + parseFloat(order.surchargeAmount || "0");
+  };
+  const isUnpaidGraceOrder = (order: any) => {
+    const isGracePeriod =
+      order.paymentMethod === "واریز بانکی با مهلت 3 روزه" ||
+      order.paymentMethod === "bank_transfer_grace";
+    const isAwaitingPayment =
+      order.status === "pending" ||
+      order.status === "payment_grace_period";
+    const paymentStatus = String(order.paymentStatus || "").toLowerCase();
+    const hasPayment =
+      ["paid", "completed", "successful", "success", "receipt_uploaded"].includes(paymentStatus) ||
+      Boolean(order.receiptPath);
+
+    return isGracePeriod && isAwaitingPayment && !hasPayment;
+  };
+  const rawOrders = Array.isArray(orderData?.orders) ? orderData.orders : [];
+  const recentBaseOrders = dedupeOrders(rawOrders);
+  const sortedOrders = [...recentBaseOrders].sort((a: any, b: any) => {
+    const priorityDifference =
+      Number(isUnpaidGraceOrder(b)) - Number(isUnpaidGraceOrder(a));
+    if (priorityDifference !== 0) return priorityDifference;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+  }).slice(0, 10);
 
-  const allOrdersForCounting = completeHistory.length > 0 ? completeHistory : sortedOrders;
-  const orders = mainProfileFilter === "all" ? sortedOrders : sortedOrders.filter((order: any) => getOrderCategory(order) === mainProfileFilter);
+  const completeBaseOrders = dedupeOrders(completeHistory);
+  const baseOrders = showPurchaseHistory ? completeBaseOrders : sortedOrders;
+  const statsBaseOrders = completeBaseOrders.length > 0 ? completeBaseOrders : sortedOrders;
+  const allOrdersForCounting = statsBaseOrders;
+  const orders = selectedFilter === "all" ? sortedOrders : sortedOrders.filter((order: any) => getOrderCategory(order) === selectedFilter);
 
   const totalOrders = orderData?.totalOrders || 0;
   const hiddenOrders = orderData?.hiddenOrders || 0;
@@ -675,7 +810,14 @@ const CustomerProfile = () => {
     setIsLoadingHistory(true);
     try {
       const response = await apiRequest("/api/customers/orders/complete-history", { method: "GET" });
-      if (response.success) setCompleteHistory(response.orders || []);
+      if (response.success) {
+        const uniqueOrders = Array.from(
+          new Map(
+            (response.orders || []).map((order: any) => [order.id ?? order.orderNumber, order]),
+          ).values(),
+        );
+        setCompleteHistory(uniqueOrders);
+      }
     } catch (error) {
       console.error("Error loading purchase history:", error);
       toast({ variant: "destructive", title: pt.error, description: pt.purchaseHistoryError });
@@ -688,15 +830,70 @@ const CustomerProfile = () => {
     if (customerData?.success) loadCompleteHistory();
   }, [customerData?.success]);
 
-  let filteredHistory = completeHistory;
-  if (selectedFilter !== "all") filteredHistory = filteredHistory.filter((order: any) => getOrderCategory(order) === selectedFilter);
-  if (searchTerm) {
-    filteredHistory = filteredHistory.filter((order: any) =>
-      order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.items?.some((item: any) => item.productName?.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }
+  const selectStatsFilter = (filter: string) => {
+    setSelectedFilter(filter);
+    setShowPurchaseHistory(true);
+    setExpandedOrderId(null);
+    if (completeBaseOrders.length === 0) loadCompleteHistory();
+  };
+
+  const selectPurchaseTypeFilter = (filter: "all" | "normal" | "contract") => {
+    setSelectedPurchaseType(filter);
+    setExpandedOrderId(null);
+    // Contractual orders can be older than the ten-order recent view. Switch to
+    // the complete-history view before applying a specific purchase-type filter.
+    if (filter !== "all") {
+      setShowPurchaseHistory(true);
+      if (completeBaseOrders.length === 0) loadCompleteHistory();
+    }
+  };
+
+  const productNames = Array.from(new Set(baseOrders.flatMap((order: any) =>
+    (order.items || []).map((item: any) => item.productName).filter(Boolean),
+  ))).sort((a, b) => String(a).localeCompare(String(b)));
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredOrders = baseOrders.filter((order: any) => {
+    const categoryMatch = selectedFilter === "all" || getOrderCategory(order) === selectedFilter;
+    const purchaseTypeMatch =
+      selectedPurchaseType === "all" ||
+      (selectedPurchaseType === "contract" ? isContractOrder(order) : !isContractOrder(order));
+    const items = order.items || [];
+    const itemNames = items.map((item: any) => String(item.productName || ""));
+    const searchFields = [
+      order.orderNumber, order.status, getLocalizedStatusForSearch(order),
+      order.paymentStatus, order.paymentMethod, order.invoiceType, order.managementStatus,
+      ...itemNames,
+    ].map((value) => String(value || "").toLowerCase());
+    const searchMatch = !normalizedSearch || searchFields.some((value) => value.includes(normalizedSearch));
+    const productMatch = selectedProduct === "all" || itemNames.includes(selectedProduct);
+    const createdAt = new Date(order.createdAt).getTime();
+    const fromMatch = !dateFrom || createdAt >= new Date(`${dateFrom}T00:00:00`).getTime();
+    const toMatch = !dateTo || createdAt <= new Date(`${dateTo}T23:59:59.999`).getTime();
+    return categoryMatch && purchaseTypeMatch && searchMatch && productMatch && fromMatch && toMatch;
+  });
+  const visibleOrders = [...filteredOrders].sort((a: any, b: any) => {
+    const priorityDifference =
+      Number(isUnpaidGraceOrder(b)) - Number(isUnpaidGraceOrder(a));
+    if (priorityDifference !== 0) return priorityDifference;
+    const direction = sortDirection === "asc" ? 1 : -1;
+    const itemCount = (order: any) => (order.items || []).length;
+    let left: string | number = 0;
+    let right: string | number = 0;
+    if (sortField === "date") {
+      left = new Date(a.createdAt).getTime(); right = new Date(b.createdAt).getTime();
+    } else if (sortField === "orderNumber") {
+      left = String(a.orderNumber || ""); right = String(b.orderNumber || "");
+    } else if (sortField === "status") {
+      left = String(getLocalizedStatusForSearch(a)); right = String(getLocalizedStatusForSearch(b));
+    } else if (sortField === "itemCount") {
+      left = itemCount(a); right = itemCount(b);
+    } else {
+      left = getOrderTotal(a); right = getOrderTotal(b);
+    }
+    if (left < right) return -1 * direction;
+    if (left > right) return 1 * direction;
+    return 0;
+  });
 
   const handleLogout = async () => {
     try {
@@ -726,9 +923,34 @@ const CustomerProfile = () => {
   };
 
   const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString("en-US", {
+    new Intl.DateTimeFormat(
+      language === "fa" ? "fa-IR-u-ca-persian" :
+      language === "ar" ? "ar-IQ" :
+      language === "tr" ? "tr-TR" :
+      "en-US",
+      {
       year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
-    });
+      },
+    ).format(new Date(dateString));
+
+  const toPersianPickerValue = (value: string) => value
+    ? new Date(`${value}T12:00:00`)
+    : null;
+
+  const handlePersianDateChange = (
+    value: DateObject | DateObject[] | null,
+    setter: React.Dispatch<React.SetStateAction<string>>,
+  ) => {
+    if (!value || Array.isArray(value)) {
+      setter("");
+      return;
+    }
+    const selectedDate = value.toDate();
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(selectedDate.getDate()).padStart(2, "0");
+    setter(`${year}-${month}-${day}`);
+  };
 
   const handleCsvExport = async () => {
     setIsExportingCsv(true);
@@ -777,46 +999,26 @@ const CustomerProfile = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/customers/orders"] });
   };
 
-  const getStatusColor = (status: string, paymentStatus?: string) => {
-    if (paymentStatus === "receipt_uploaded") return "bg-blue-100 text-blue-800";
-    switch (status) {
-      case "confirmed": return "bg-green-100 text-green-800";
-      case "pending":
-      case "payment_grace_period": return "bg-orange-100 text-orange-800";
-      case "cancelled": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
+  const getStatusColor = (status: string, paymentStatus?: string, order?: any) => {
+    return resolveCustomerOrderStatus({ ...order, status, paymentStatus }).badgeClass;
   };
 
   const getStatusLabel = (status: string, paymentStatus?: string, order?: any) => {
-    if (paymentStatus === "receipt_uploaded") return pt.statusWaitingFinancial;
-    const paymentMethod = order?.paymentMethod;
-    const managementStatus = order?.managementStatus?.toLowerCase();
-    const hasFinancialReview = order?.financialReviewedAt;
-
-    if ((paymentMethod === "wallet_full" || paymentMethod === "wallet_partial" || paymentMethod === "wallet_combined") && hasFinancialReview) {
-      if (managementStatus === "warehouse_pending") return pt.statusProcessingWarehouse;
-      if (managementStatus === "warehouse_approved") return pt.statusApprovedReady;
-    }
-    if (paymentStatus === "partial" && hasFinancialReview) {
-      if (managementStatus === "warehouse_pending") return pt.statusProcessingWarehouse;
-    }
-    switch (status) {
-      case "confirmed": return pt.statusConfirmed;
-      case "pending": return pt.statusPending;
-      case "payment_grace_period": return pt.statusPaymentGrace;
-      case "cancelled": return pt.statusCancelled;
-      default: return status;
-    }
+    return getOrderStatusLabel(
+      resolveCustomerOrderStatus({ ...order, status, paymentStatus }),
+      language as OrderStatusLanguage,
+    );
   };
 
   // ── Loading / Error states ──
   if (customerLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">{pt.loadingProfile}</p>
+      <div className="min-h-[70dvh] bg-slate-100 px-4 py-10">
+        <div className="mx-auto max-w-6xl space-y-3">
+          <div className="h-8 w-52 animate-pulse rounded bg-slate-200" />
+          <div className="h-4 w-72 animate-pulse rounded bg-slate-200" />
+          <div className="h-80 animate-pulse rounded border border-slate-300 bg-slate-50" />
+          <p className="sr-only">{pt.loadingProfile}</p>
         </div>
       </div>
     );
@@ -824,8 +1026,8 @@ const CustomerProfile = () => {
 
   if (customerError || !customerData?.success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="max-w-md">
+      <div className="min-h-[70dvh] bg-slate-100 px-4 py-10">
+        <Card className="mx-auto max-w-md border-slate-300 shadow-sm">
           <CardContent className="p-6 text-center">
             <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-lg font-semibold text-gray-900 mb-2">{pt.accessError}</h2>
@@ -841,69 +1043,77 @@ const CustomerProfile = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-6xl mx-auto space-y-6">
+      <div className="min-h-screen bg-slate-100 px-3 py-4 sm:px-5">
+        <div className="mx-auto max-w-[1440px] space-y-4">
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {pt.welcomeGreeting(customerData?.customer?.firstName || "")}
-            </h1>
-            <p className="text-gray-600">{pt.welcomeToPanel}</p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Customer Info */}
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="w-5 h-5" />
-                      {pt.accountInformation}
-                    </CardTitle>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setLocation("/customer/profile/edit")}
-                      className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
-                    >
-                      <Edit className="w-4 h-4" />
-                      {pt.editProfile}
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-medium">
+          <header className="relative flex flex-wrap items-end justify-between gap-3 border-b border-slate-300 pb-3">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                {pt.welcomeGreeting(customerData?.customer?.firstName || "")}
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">{pt.welcomeToPanel}</p>
+            </div>
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                aria-expanded={showAccountDetails}
+                aria-controls="customer-account-details"
+                onClick={() => setShowAccountDetails((open) => !open)}
+                className="h-9 min-w-0 flex-1 justify-center gap-2 border-slate-300 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 sm:flex-none"
+              >
+                <User className="h-4 w-4 text-slate-500" />
+                {pt.accountInformation}
+                <span aria-hidden="true" className="text-slate-400">{showAccountDetails ? "▲" : "▼"}</span>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setLocation("/customer/profile/edit")}
+                className="h-9 gap-1.5 border-slate-300 px-3 text-xs text-slate-700 hover:bg-slate-100"
+              >
+                <Edit className="h-4 w-4" />
+                {pt.editProfile}
+              </Button>
+              <Badge variant="outline" className="h-9 border-slate-300 bg-slate-50 px-3 text-slate-600">
+                {pt.ordersCount(baseOrders.length)}
+              </Badge>
+            </div>
+            {showAccountDetails && (
+              <div id="customer-account-details" role="region" aria-label={pt.accountInformation} className="order-last w-full border border-slate-300 bg-slate-50 shadow-sm sm:absolute sm:end-0 sm:top-full sm:z-20 sm:mt-2 sm:max-w-md">
+                <div className="divide-y divide-slate-200">
+                  <div className="divide-y divide-slate-200 border-b border-slate-200">
+                    <div className="flex items-center gap-3 px-4 py-2.5">
+                      <User className="h-4 w-4 shrink-0 text-slate-400" />
+                      <span className="text-sm font-semibold text-slate-800">
                         {customerData.customer.firstName} {customerData.customer.lastName}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Mail className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm">{customerData.customer.email}</span>
+                    <div className="flex items-center gap-3 px-4 py-2.5">
+                      <Mail className="h-4 w-4 shrink-0 text-slate-400" />
+                      <span className="break-all text-xs text-slate-700">{customerData.customer.email}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm">{customerData.customer.phone}</span>
+                    <div className="flex items-center gap-3 px-4 py-2.5">
+                      <Phone className="h-4 w-4 shrink-0 text-slate-400" />
+                      <span className="text-sm text-slate-700">{customerData.customer.phone}</span>
                     </div>
                     {customerData.customer.company && (
-                      <div className="flex items-center gap-3">
-                        <Building className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">{customerData.customer.company}</span>
+                      <div className="flex items-center gap-3 px-4 py-2.5">
+                        <Building className="h-4 w-4 shrink-0 text-slate-400" />
+                        <span className="text-sm text-slate-700">{customerData.customer.company}</span>
                       </div>
                     )}
                     {customerData.customer.address && (
-                      <div className="flex items-center gap-3">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">{customerData.customer.address}</span>
+                      <div className="flex items-center gap-3 px-4 py-2.5">
+                        <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
+                        <span className="text-sm text-slate-700">{customerData.customer.address}</span>
                       </div>
                     )}
                     {(customerData.customer.city || customerData.customer.province) && (
-                      <div className="flex items-center gap-3">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">
+                      <div className="flex items-center gap-3 px-4 py-2.5">
+                        <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
+                        <span className="text-sm text-slate-700">
                           {customerData.customer.city && customerData.customer.province
                             ? `${customerData.customer.city}, ${customerData.customer.province}`
                             : customerData.customer.city || customerData.customer.province}
@@ -911,35 +1121,35 @@ const CustomerProfile = () => {
                       </div>
                     )}
                   </div>
-                  <Separator />
                   <Button
                     onClick={handleLogout}
                     variant="outline"
-                    className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="mx-4 my-3 h-8 w-[calc(100%-2rem)] border-slate-300 text-xs text-slate-700 hover:bg-rose-50 hover:text-rose-700"
                   >
-                    <LogOut className="w-4 h-4 mr-2" />
+                    <LogOut className="me-2 h-4 w-4" />
                     {pt.logout}
                   </Button>
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </div>
+            )}
+          </header>
 
             {/* Orders */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <Card className="overflow-hidden border-slate-300 shadow-sm">
+                <CardHeader className="flex flex-row items-start justify-between border-b border-slate-300 bg-slate-50 px-4 py-3">
                   <div className="flex flex-col gap-3">
-                    <CardTitle className="flex items-center gap-2">
-                      <Package className="w-5 h-5" />
+                    <CardTitle className="flex items-center gap-2 text-base text-slate-800">
+                      <Package className="h-4 w-4 text-slate-500" />
                       {pt.yourOrders}
-                      {orders.length > 0 && (
-                        <Badge variant="secondary">{pt.ordersCount(orders.length)}</Badge>
+                      {baseOrders.length > 0 && (
+                        <Badge variant="secondary">{pt.ordersCount(baseOrders.length)}</Badge>
                       )}
                     </CardTitle>
 
                     {/* Order Status Indicators */}
-                    {(orders.length > 0 || completeHistory.length > 0) && (
-                      <div className="flex items-center gap-3 text-xs">
+                    {baseOrders.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
                         {(() => {
                           const statusCounts = allOrdersForCounting.reduce((acc: any, order: any) => {
                             const category = getOrderCategory(order);
@@ -950,30 +1160,30 @@ const CustomerProfile = () => {
                           return (
                             <>
                               <button
-                                onClick={() => setMainProfileFilter("all")}
+                                onClick={() => selectStatsFilter("all")}
                                 className={`flex items-center gap-1 px-2 py-1 rounded-full border transition-all cursor-pointer ${
-                                  mainProfileFilter === "all"
+                                  selectedFilter === "all"
                                     ? "bg-purple-100 border-purple-300 shadow-md"
                                     : "bg-gray-50 border-gray-200 hover:bg-gray-100"
                                 }`}
                               >
                                 <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                                <span className={`font-medium ${mainProfileFilter === "all" ? "text-purple-700" : "text-gray-700"}`}>
+                                <span className={`font-medium ${selectedFilter === "all" ? "text-purple-700" : "text-gray-700"}`}>
                                   {allOrdersForCounting.length} {pt.allOrders}
                                 </span>
                               </button>
 
                               {statusCounts.completed > 0 && (
                                 <button
-                                  onClick={() => setMainProfileFilter("completed")}
+                                  onClick={() => selectStatsFilter("completed")}
                                   className={`flex items-center gap-1 px-2 py-1 rounded-full border transition-all cursor-pointer ${
-                                    mainProfileFilter === "completed"
+                                    selectedFilter === "completed"
                                       ? "bg-green-100 border-green-300 shadow-md"
                                       : "bg-green-50 border-green-200 hover:bg-green-100"
                                   }`}
                                 >
                                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                  <span className={`font-medium ${mainProfileFilter === "completed" ? "text-green-800" : "text-green-700"}`}>
+                                  <span className={`font-medium ${selectedFilter === "completed" ? "text-green-800" : "text-green-700"}`}>
                                     {statusCounts.completed} {pt.completed}
                                   </span>
                                 </button>
@@ -981,15 +1191,15 @@ const CustomerProfile = () => {
 
                               {statusCounts.pending > 0 && (
                                 <button
-                                  onClick={() => setMainProfileFilter("pending")}
+                                  onClick={() => selectStatsFilter("pending")}
                                   className={`flex items-center gap-1 px-2 py-1 rounded-full border transition-all cursor-pointer ${
-                                    mainProfileFilter === "pending"
+                                    selectedFilter === "pending"
                                       ? "bg-yellow-100 border-yellow-300 shadow-md"
                                       : "bg-yellow-50 border-yellow-200 hover:bg-yellow-100"
                                   }`}
                                 >
                                   <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                  <span className={`font-medium ${mainProfileFilter === "pending" ? "text-yellow-800" : "text-yellow-700"}`}>
+                                  <span className={`font-medium ${selectedFilter === "pending" ? "text-yellow-800" : "text-yellow-700"}`}>
                                     {statusCounts.pending} {pt.pendingPayment}
                                   </span>
                                 </button>
@@ -997,15 +1207,15 @@ const CustomerProfile = () => {
 
                               {statusCounts.processing > 0 && (
                                 <button
-                                  onClick={() => setMainProfileFilter("processing")}
+                                  onClick={() => selectStatsFilter("processing")}
                                   className={`flex items-center gap-1 px-2 py-1 rounded-full border transition-all cursor-pointer ${
-                                    mainProfileFilter === "processing"
+                                    selectedFilter === "processing"
                                       ? "bg-blue-100 border-blue-300 shadow-md"
                                       : "bg-blue-50 border-blue-200 hover:bg-blue-100"
                                   }`}
                                 >
                                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                  <span className={`font-medium ${mainProfileFilter === "processing" ? "text-blue-800" : "text-blue-700"}`}>
+                                  <span className={`font-medium ${selectedFilter === "processing" ? "text-blue-800" : "text-blue-700"}`}>
                                     {statusCounts.processing} {pt.processing}
                                   </span>
                                 </button>
@@ -1013,15 +1223,15 @@ const CustomerProfile = () => {
 
                               {statusCounts.bank_transfer > 0 && (
                                 <button
-                                  onClick={() => setMainProfileFilter("bank_transfer")}
+                                  onClick={() => selectStatsFilter("bank_transfer")}
                                   className={`flex items-center gap-1 px-2 py-1 rounded-full border transition-all cursor-pointer ${
-                                    mainProfileFilter === "bank_transfer"
+                                    selectedFilter === "bank_transfer"
                                       ? "bg-orange-100 border-orange-300 shadow-md"
                                       : "bg-orange-50 border-orange-200 hover:bg-orange-100"
                                   }`}
                                 >
                                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                                  <span className={`font-medium ${mainProfileFilter === "bank_transfer" ? "text-orange-800" : "text-orange-700"}`}>
+                                  <span className={`font-medium ${selectedFilter === "bank_transfer" ? "text-orange-800" : "text-orange-700"}`}>
                                     {statusCounts.bank_transfer} {pt.bankTransfer}
                                   </span>
                                 </button>
@@ -1029,15 +1239,15 @@ const CustomerProfile = () => {
 
                               {statusCounts.cancelled > 0 && (
                                 <button
-                                  onClick={() => setMainProfileFilter("cancelled")}
+                                  onClick={() => selectStatsFilter("cancelled")}
                                   className={`flex items-center gap-1 px-2 py-1 rounded-full border transition-all cursor-pointer ${
-                                    mainProfileFilter === "cancelled"
+                                    selectedFilter === "cancelled"
                                       ? "bg-red-100 border-red-300 shadow-md"
                                       : "bg-red-50 border-red-200 hover:bg-red-100"
                                   }`}
                                 >
                                   <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                  <span className={`font-medium ${mainProfileFilter === "cancelled" ? "text-red-800" : "text-red-700"}`}>
+                                  <span className={`font-medium ${selectedFilter === "cancelled" ? "text-red-800" : "text-red-700"}`}>
                                     {statusCounts.cancelled} {pt.cancelled}
                                   </span>
                                 </button>
@@ -1107,13 +1317,117 @@ const CustomerProfile = () => {
                   </div>
                 </CardHeader>
 
-                <CardContent>
-                  {ordersLoading ? (
+                 <CardContent className="p-0">
+                   <div className="flex flex-wrap items-center gap-2 border-b border-slate-300 bg-slate-50 p-3">
+                      <div className="relative min-w-[220px] flex-1">
+                        <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <Input
+                          placeholder={pt.searchOrdersPlaceholder}
+                          value={searchTerm}
+                          onChange={(event) => setSearchTerm(event.target.value)}
+                          className="h-9 border-slate-300 ps-9"
+                        />
+                        {searchTerm && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setSearchTerm("")}
+                            className="absolute end-1 top-1 h-7 w-7 p-0"
+                            aria-label={pt.clearFilters}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                       <div className="flex flex-wrap gap-1.5">
+                       {[
+                         ["all", pt.allOrders],
+                         ["completed", pt.completed],
+                         ["pending", pt.pendingPayment],
+                         ["processing", pt.processing],
+                         ["bank_transfer", pt.bankTransfer],
+                         ["cancelled", pt.cancelled],
+                       ].map(([value, label]) => (
+                        <Button
+                          key={value}
+                          type="button"
+                          size="sm"
+                          variant={selectedFilter === value ? "default" : "outline"}
+                          onClick={() => setSelectedFilter(value)}
+                          className="h-9 border-slate-300 px-3 text-xs"
+                        >
+                          {label}
+                        </Button>
+                      ))}
+                       </div>
+                       {language === "fa" ? (
+                         <PersianDatePicker
+                           value={toPersianPickerValue(dateFrom)}
+                           onChange={(value: DateObject | DateObject[] | null) => handlePersianDateChange(value, setDateFrom)}
+                           calendar={persian}
+                           locale={persianFa}
+                           calendarPosition="bottom-right"
+                           format="YYYY/MM/DD"
+                           mobileLabels={{ OK: "تأیید", CANCEL: "لغو" }}
+                           inputClass="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-700 sm:w-[145px]"
+                           containerClassName="w-full sm:w-[145px]"
+                           placeholder={pt.fromDate}
+                           aria-label={pt.fromDate}
+                         />
+                       ) : (
+                         <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} aria-label={pt.fromDate} className="h-9 w-full border-slate-300 sm:w-[145px]" />
+                       )}
+                       {language === "fa" ? (
+                         <PersianDatePicker
+                           value={toPersianPickerValue(dateTo)}
+                           onChange={(value: DateObject | DateObject[] | null) => handlePersianDateChange(value, setDateTo)}
+                           calendar={persian}
+                           locale={persianFa}
+                           calendarPosition="bottom-right"
+                           format="YYYY/MM/DD"
+                           mobileLabels={{ OK: "تأیید", CANCEL: "لغو" }}
+                           inputClass="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-700 sm:w-[145px]"
+                           containerClassName="w-full sm:w-[145px]"
+                           placeholder={pt.toDate}
+                           aria-label={pt.toDate}
+                         />
+                       ) : (
+                         <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} aria-label={pt.toDate} className="h-9 w-full border-slate-300 sm:w-[145px]" />
+                       )}
+                       <select value={selectedProduct} onChange={(event) => setSelectedProduct(event.target.value)} aria-label={pt.productFilter} className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-700 sm:w-[150px]">
+                         <option value="all">{pt.allProducts}</option>
+                         {productNames.map((name) => <option key={name} value={name}>{name}</option>)}
+                       </select>
+                       <select value={selectedPurchaseType} onChange={(event) => selectPurchaseTypeFilter(event.target.value as "all" | "normal" | "contract")} aria-label={pt.purchaseType} className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-700 sm:w-[165px]">
+                         <option value="all">{pt.allPurchaseTypes}</option>
+                         <option value="normal">{pt.normalPurchase}</option>
+                         <option value="contract">{pt.contractPurchase}</option>
+                       </select>
+                       <select value={sortField} onChange={(event) => setSortField(event.target.value)} aria-label={pt.sortBy} className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-700 sm:w-[145px]">
+                         <option value="date">{pt.sortBy}: {pt.sortDate}</option>
+                         <option value="orderNumber">{pt.sortBy}: {pt.sortOrderNumber}</option>
+                         <option value="status">{pt.sortBy}: {pt.sortStatus}</option>
+                         <option value="itemCount">{pt.sortBy}: {pt.sortItemCount}</option>
+                         <option value="total">{pt.sortBy}: {pt.sortTotal}</option>
+                       </select>
+                       <Button type="button" variant="outline" onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")} className="h-9 border-slate-300 px-3 text-xs">
+                         {sortDirection === "asc" ? pt.ascending : pt.descending}
+                       </Button>
+                       <Button type="button" variant="outline" onClick={() => {
+                         setSearchTerm(""); setDateFrom(""); setDateTo(""); setSelectedProduct("all");
+                         setSelectedFilter("all"); setSelectedPurchaseType("all"); setSortField("date"); setSortDirection("desc");
+                       }} className="h-9 border-slate-300 px-3 text-xs">
+                         {pt.clearFilters}
+                       </Button>
+                       <span className="ms-auto text-xs text-slate-500">{visibleOrders.length} / {baseOrders.length}</span>
+                   </div>
+                  {ordersLoading || (showPurchaseHistory && isLoadingHistory) ? (
                     <div className="text-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                       <p className="text-gray-600">{pt.loadingOrders}</p>
                     </div>
-                  ) : orders.length === 0 ? (
+                  ) : visibleOrders.length === 0 ? (
                     <div className="text-center py-8">
                       <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                       <h3 className="text-lg font-semibold text-gray-700 mb-2">{pt.noOrdersYet}</h3>
@@ -1121,8 +1435,20 @@ const CustomerProfile = () => {
                       <Button onClick={() => setLocation("/shop")}>{pt.startShopping}</Button>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {orders.map((order: any) => {
+                    <div className="overflow-x-auto">
+                        <div className="min-w-[1180px]">
+                         <div className="sticky top-0 z-10 grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1fr_1.6fr_1.4fr] border-b border-slate-700 bg-slate-700 text-[11px] font-semibold uppercase tracking-wide text-slate-50">
+                         <div className="border-e border-slate-600 px-3 py-2">#</div>
+                         <div className="border-e border-slate-600 px-3 py-2">{pt.orderLabel("order")}</div>
+                         <div className="border-e border-slate-600 px-3 py-2">{pt.orderItems}</div>
+                         <div className="border-e border-slate-600 px-3 py-2">{pt.purchaseType}</div>
+                         <div className="border-e border-slate-600 px-3 py-2">{pt.status}</div>
+                         <div className="border-e border-slate-600 px-3 py-2">{pt.totalAmount}</div>
+                          <div className="border-e border-slate-600 px-3 py-2">{pt.invoice}</div>
+                          <div className="px-3 py-2">{pt.bankDocuments}</div>
+                       </div>
+                       <div className="space-y-0">
+                      {visibleOrders.map((order: any, orderIndex: number) => {
                         const is3DayBankTransfer =
                           order.paymentMethod === "واریز بانکی با مهلت 3 روزه" ||
                           order.paymentMethod === "bank_transfer_grace";
@@ -1130,192 +1456,286 @@ const CustomerProfile = () => {
                         return (
                           <div
                             key={order.id}
-                            className={`border rounded-lg p-4 ${
-                              is3DayBankTransfer
+                              className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1fr_1.6fr_1.4fr] gap-0 border-b border-x-0 border-slate-200 text-xs ${
+                              isContractOrder(order)
+                                ? contractTheme.row
+                                : is3DayBankTransfer
                                 ? "border-orange-300 bg-orange-50"
                                 : order.status === "pending" || order.status === "payment_grace_period"
                                 ? "border-amber-200 bg-amber-50"
-                                : ""
+                                : "odd:bg-slate-50 even:bg-white"
                             }`}
                           >
-                            <div className="flex justify-between items-start mb-3">
+                            <div className="col-start-1 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2 font-mono text-slate-500">{orderIndex + 1}</div>
+                            <div className="col-start-2 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                               <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-semibold text-gray-900">{order.orderNumber}</h4>
-                                  {(order.status === "pending" || order.status === "payment_grace_period") && (
-                                    <Badge className="bg-orange-100 text-orange-800">
-                                      <Clock className="w-3 h-3 mr-1" />
-                                      {pt.temporaryOrder}
-                                    </Badge>
-                                  )}
+                                <div className="mb-1 flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    aria-expanded={expandedOrderId === order.id}
+                                    aria-controls={`order-details-${order.id}`}
+                                    onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                                    className={`rounded-sm text-start font-semibold underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 ${isContractOrder(order) ? contractTheme.text : "text-slate-900 decoration-slate-300 hover:text-slate-700"}`}
+                                  >
+                                    {order.orderNumber}
+                                  </button>
                                 </div>
-                                <p className="text-sm text-gray-500 flex items-center gap-1">
+                                <p className="flex items-center gap-1 text-[11px] text-slate-500">
                                   <Calendar className="w-4 h-4" />
                                   {formatDate(order.createdAt)}
                                 </p>
 
-                                {is3DayBankTransfer && (order.status === "pending" || order.status === "payment_grace_period") && (
-                                  <div className="bg-orange-100 border border-orange-300 rounded-lg p-3 mt-2 text-right">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <p className="text-sm text-orange-900 font-bold flex items-center gap-1">
-                                        <AlertCircle className="w-4 h-4" />
-                                        {pt.paymentDeadlineOrder(gracePeriodDays)}
-                                      </p>
-                                      <Badge className="bg-orange-200 text-orange-800 text-xs">{pt.specialDeadline}</Badge>
-                                    </div>
-
-                                    {!order.receiptPath ? (
-                                      <>
-                                        <p className="text-xs text-orange-800 mb-2">{pt.waitingForTransfer}</p>
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <Button
-                                            size="sm"
-                                            className="bg-orange-600 hover:bg-orange-700 text-white text-xs"
-                                            onClick={() => handleOpenBankReceiptModal(order.orderNumber)}
-                                          >
-                                            <Upload className="w-3 h-3 mr-1" />
-                                            {pt.uploadBankTransfer}
-                                          </Button>
-                                          <span className="text-xs text-orange-700">
-                                            {pt.paymentDeadlineHours(gracePeriodDays * 24)}
-                                          </span>
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <Badge className="bg-green-100 text-green-800 text-xs">{pt.transferUploaded}</Badge>
-                                        <span className="text-xs text-orange-700">{pt.waitingFinancialReview}</span>
-                                      </div>
-                                    )}
-
-                                    <div className="mt-2">
-                                      <BankTransferCountdown
-                                        orderDate={order.createdAt}
-                                        gracePeriodHours={gracePeriodDays * 24}
-                                        pt={pt}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="text-right">
-                                {(() => {
-                                  const subtotalAmount = order.items
-                                    ? order.items.reduce((sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0)
-                                    : 0;
-                                  const vatAmount = parseFloat(order.vatAmount || "0");
-                                  const shippingCost = parseFloat(order.shippingCost || "0");
-                                  const surchargeAmount = parseFloat(order.surchargeAmount || "0");
-                                  const correctTotal = subtotalAmount + vatAmount + shippingCost + surchargeAmount;
-                                  return (
-                                    <p className="font-semibold text-lg">{Math.floor(correctTotal)} {order.currency || "IQD"}</p>
-                                  );
-                                })()}
-                                <Badge className={getStatusColor(order.status, order.paymentStatus)}>
-                                  {getStatusLabel(order.status, order.paymentStatus, order)}
-                                </Badge>
-
-                                {order.invoiceType && (
-                                  <div className="mt-2">
-                                    <Badge
-                                      className={
-                                        order.invoiceType === "official_invoice"
-                                          ? "bg-green-100 text-green-800 border-green-200"
-                                          : "bg-blue-100 text-blue-800 border-blue-200"
-                                      }
-                                    >
-                                      {order.invoiceType === "official_invoice" ? pt.officialInvoice : pt.proformaInvoice}
-                                    </Badge>
-                                    {order.invoiceType === "official_invoice" && order.invoiceConvertedAt && (
-                                      <p className="text-xs text-green-600 mt-1">
-                                        {pt.convertedAt} {new Date(order.invoiceConvertedAt).toLocaleDateString("en-US")}
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-
-                                {(order.status === "financial_rejected" || order.status === "rejected") && order.financialNotes && (
-                                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                                    <div className="flex items-start gap-2">
-                                      <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                                      <div>
-                                        <h6 className="text-sm font-medium text-red-800 mb-1">{pt.orderRejectionReason}</h6>
-                                        <p className="text-sm text-red-700">{order.financialNotes}</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
                               </div>
                             </div>
 
-                            {order.items && order.items.length > 0 && (
-                              <div>
-                                <Separator className="mb-3" />
-                                <div className="space-y-2">
-                                  <h5 className="font-medium text-gray-700">{pt.orderItems}</h5>
-                                  {order.items.map((item: any, index: number) => {
-                                    const productName = item.productName || pt.unknownProduct;
-                                    const quantity = parseFloat(item.quantity || 0);
-                                    const totalPrice = parseFloat(item.totalPrice || 0);
-                                    return (
-                                      <div key={item.id || index} className="flex justify-between text-sm">
-                                        <span>{productName} × {Math.floor(quantity)}</span>
-                                        <span>{Math.floor(totalPrice)} IQD</span>
-                                      </div>
-                                    );
-                                  })}
-
-                                  <div className="mt-3 pt-2 border-t border-gray-200 space-y-1">
-                                    {(() => {
-                                      const totalAmount = parseFloat(order.totalAmount || "0");
-                                      const vatAmount = parseFloat(order.vatAmount || "0");
-                                      const shippingCost = parseFloat(order.shippingCost || "0");
-                                      const surchargeAmount = parseFloat(order.surchargeAmount || "0");
-                                      const subtotalAmount = order.items
-                                        ? order.items.reduce((sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0)
-                                        : 0;
-                                      return (
-                                        <>
-                                          {subtotalAmount > 0 && (
-                                            <div className="flex justify-between text-sm text-gray-600">
-                                              <span>{pt.itemsSubtotal}</span>
-                                              <span>{Math.floor(subtotalAmount)} IQD</span>
-                                            </div>
-                                          )}
-                                          {shippingCost > 0 && (
-                                            <div className="flex justify-between text-sm text-blue-700">
-                                              <span>{pt.shippingCost}</span>
-                                              <span>{Math.floor(shippingCost)} IQD</span>
-                                            </div>
-                                          )}
-                                          {vatAmount > 0 && (
-                                            <div className="flex justify-between text-sm text-green-700 font-medium">
-                                              <span>{pt.vat}</span>
-                                              <span>{Math.floor(vatAmount)} IQD</span>
-                                            </div>
-                                          )}
-                                          {surchargeAmount > 0 && (
-                                            <div className="flex justify-between text-sm text-orange-700">
-                                              <span>{pt.surcharge}</span>
-                                              <span>{Math.floor(surchargeAmount)} IQD</span>
-                                            </div>
-                                          )}
-                                          <div className="border-t border-gray-300 my-2"></div>
-                                          <div className="flex justify-between text-sm font-bold text-gray-800">
-                                            <span>{pt.totalAmount}</span>
-                                            <span>{Math.floor(totalAmount)} IQD</span>
-                                          </div>
-                                        </>
-                                      );
-                                    })()}
-                                  </div>
-                                </div>
+                              <div className="col-start-3 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
+                                <p className="font-medium text-slate-700">{pt.orderItems} {order.items?.length || 0}</p>
                               </div>
-                            )}
+                              <div className="col-start-4 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
+                                {isContractOrder(order) ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                                    aria-expanded={expandedOrderId === order.id}
+                                    aria-controls={`order-details-${order.id}`}
+                                    className={`inline-flex flex-wrap items-center gap-1.5 rounded border px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${contractTheme.badge}`}
+                                    aria-label={`${pt.contractPurchase} ${order.contractNumber || order.contractSummary?.number || ""}`}
+                                    title={pt.contractPurchase}
+                                  >
+                                    <span className="text-base font-black">C</span>
+                                    <span dir="ltr" className="break-all font-mono">{order.contractNumber || order.contractSummary?.number || "—"}</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-xs font-medium text-slate-600" aria-label={pt.normalPurchase} title={pt.normalPurchase}>
+                                    {pt.normalPurchase}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="col-start-5 row-start-1 flex min-w-0 flex-col items-start justify-center border-e border-slate-200 px-3 py-2">
+                                <Badge className={`text-[10px] ${getStatusColor(order.status, order.paymentStatus, order)}`}>
+                                  {getStatusLabel(order.status, order.paymentStatus, order)}
+                                </Badge>
+                                {order.orderType === "temporary" &&
+                                  (order.status === "pending" || order.status === "payment_grace_period") &&
+                                  ![
+                                    "warehouse_approved",
+                                    "logistics_assigned",
+                                    "logistics_dispatched",
+                                    "in_transit",
+                                    "shipped",
+                                    "delivered",
+                                    "completed",
+                                  ].includes(String(order.currentStatus || order.managementStatus || "").toLowerCase()) && (
+                                  <Badge className="mt-1 w-fit bg-orange-100 text-[10px] text-orange-800">
+                                    <Clock className="me-1 h-3 w-3" />
+                                    {pt.temporaryOrder}
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="col-start-6 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
+                                <span className="font-semibold text-slate-900">{Math.floor(getOrderTotal(order))} IQD</span>
+                              </div>
+                               <div className="col-start-7 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
+                                {!["cancelled", "financial_rejected", "finance_rejected", "rejected"].includes(
+                                  String(order.currentStatus || order.managementStatus || order.status || "").toLowerCase(),
+                                ) &&
+                                  order.invoiceType !== "voided" &&
+                                  !(order.paymentStatus?.toLowerCase() === "receipt_uploaded" && !isFinanciallyReviewed(order)) ? (
+                                  order.invoiceType === "official_invoice" ? (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => window.open(`/download-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
+                                      className="bg-green-600 hover:bg-green-700"
+                                    >
+                                      <Download className="h-4 w-4 mr-1" />
+                                      {pt.downloadOfficialInvoice}
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => window.open(`/download-proforma-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
+                                      className="bg-blue-600 hover:bg-blue-700"
+                                    >
+                                      <Download className="h-4 w-4 mr-1" />
+                                      {pt.downloadProforma}
+                                    </Button>
+                                  )
+                                ) : (
+                                  <span className="text-slate-400" aria-label={pt.invoice}>—</span>
+                                )}
+                              </div>
+                               <div className="col-start-8 row-start-1 flex min-w-0 items-center px-2 py-2">
+                                 {isUnpaidGraceOrder(order) ? (
+                                   <Button
+                                     type="button"
+                                     size="sm"
+                                     variant="outline"
+                                     className="h-auto min-h-8 whitespace-normal text-start text-xs"
+                                     onClick={() => handleOpenBankReceiptModal(order.orderNumber)}
+                                   >
+                                     <Upload className="me-1 h-3.5 w-3.5 shrink-0" />
+                                     {pt.uploadBankReceiptBtn}
+                                   </Button>
+                                 ) : is3DayBankTransfer && order.receiptPath ? (
+                                   <div className="flex flex-wrap items-center gap-1">
+                                     <Badge className="whitespace-normal bg-green-100 text-green-800">{pt.transferUploaded}</Badge>
+                                     <Button
+                                       type="button"
+                                       size="sm"
+                                       variant="link"
+                                       className="h-auto px-1 text-xs"
+                                       onClick={() => {
+                                         const receiptPath = String(order.receiptPath);
+                                         const receiptUrl = /^https?:\/\//i.test(receiptPath)
+                                           ? receiptPath
+                                           : `/${receiptPath.replace(/^\/+/, "")}`;
+                                         window.open(receiptUrl, "_blank", "noopener,noreferrer");
+                                       }}
+                                     >
+                                       {pt.viewBankReceipt}
+                                     </Button>
+                                   </div>
+                                 ) : (
+                                   <span className="text-slate-400" aria-label={pt.bankDocuments}>—</span>
+                                 )}
+                               </div>
+                            {expandedOrderId === order.id && (
+                               <div id={`order-details-${order.id}`} className={`col-span-8 min-w-0 border-t p-3 ${isContractOrder(order) ? contractTheme.panel : "border-slate-300 bg-slate-50"}`}>
+                                {is3DayBankTransfer && (order.status === "pending" || order.status === "payment_grace_period") && (
+                                  <div className="mb-3 rounded border border-orange-300 bg-orange-100 p-3">
+                                    <div className="mb-2 flex items-center justify-between">
+                                      <p className="flex items-center gap-1 text-sm font-bold text-orange-900">
+                                        <AlertCircle className="h-4 w-4" />
+                                        {pt.paymentDeadlineOrder(gracePeriodDays)}
+                                      </p>
+                                      <Badge className="bg-orange-200 text-xs text-orange-800">{pt.specialDeadline}</Badge>
+                                    </div>
+                                    {!order.receiptPath ? (
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <p className="text-xs text-orange-800">{pt.waitingForTransfer}</p>
+                                        <span className="text-xs text-orange-700">{pt.paymentDeadlineHours(gracePeriodDays * 24)}</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        <Badge className="bg-green-100 text-xs text-green-800">{pt.transferUploaded}</Badge>
+                                        <span className="text-xs text-orange-700">{pt.waitingFinancialReview}</span>
+                                      </div>
+                                    )}
+                                    <div className="mt-2">
+                                      <BankTransferCountdown orderDate={order.createdAt} gracePeriodHours={gracePeriodDays * 24} pt={pt} />
+                                    </div>
+                                  </div>
+                                )}
+                                {order.status !== "cancelled" && (order.paymentMethod === "واریز بانکی با مهلت 3 روزه" || order.paymentMethod === "bank_transfer_grace") && order.receiptPath && (
+                                  <div className="mb-3 space-y-2">
+                                    {(order.status === "payment_uploaded" || order.status === "pending" || order.status === "payment_grace_period") && (
+                                      <div className="rounded border border-blue-200 bg-blue-50 p-3">
+                                        <p className="flex items-center gap-1 text-sm font-medium text-blue-800"><Clock className="h-4 w-4" />{pt.bankTransferUnderReview}</p>
+                                        <p className="mt-1 text-xs text-blue-700">{pt.waitingFinancialApproval}</p>
+                                      </div>
+                                    )}
+                                    {order.status === "confirmed" && (
+                                      <div className="rounded border border-green-200 bg-green-50 p-3">
+                                        <p className="flex items-center gap-1 text-sm font-medium text-green-800"><AlertCircle className="h-4 w-4" />{pt.bankTransferApproved}</p>
+                                        <p className="mt-1 text-xs text-green-700">{pt.orderUnderWarehouseProcessing}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                {(order.status === "financial_rejected" || order.status === "rejected") && order.financialNotes && (
+                                  <div className="mb-3 rounded border border-red-200 bg-red-50 p-3">
+                                    <div className="flex items-start gap-2">
+                                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                                      <div><h6 className="mb-1 text-sm font-medium text-red-800">{pt.orderRejectionReason}</h6><p className="text-sm text-red-700">{order.financialNotes}</p></div>
+                                    </div>
+                                  </div>
+                                )}
+                                {["cancelled", "deleted"].includes(
+                                  String(order.status || "").toLowerCase(),
+                                ) && order.cancellationReason && (
+                                  <div className="mb-3 rounded border border-red-200 bg-red-50 p-3">
+                                    <div className="flex items-start gap-2">
+                                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                                      <div>
+                                        <h6 className="mb-1 text-sm font-medium text-red-800">
+                                          {pt.orderCancellationReason}
+                                        </h6>
+                                        <p className="text-sm text-red-700">
+                                          {getLocalizedCancellationReason(order.cancellationReason, language)}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              {(() => {
+                                const normalizedItems = (order.items || []).map((item: any) => {
+                                  const quantity = parseFloat(item.quantity ?? 0);
+                                  const unitPrice = parseFloat(item.unitPrice ?? item.unit_price ?? 0);
+                                  const storedTotal = parseFloat(item.totalPrice ?? item.total_price ?? "");
+                                  return {
+                                    ...item,
+                                    productName: item.productName ?? item.product_name,
+                                    quantity,
+                                    totalPrice: Number.isFinite(storedTotal) ? storedTotal : quantity * unitPrice,
+                                  };
+                                });
+                                const subtotalAmount = normalizedItems.reduce(
+                                  (sum: number, item: any) => sum + item.totalPrice, 0,
+                                );
+                                const shippingCost = parseFloat(order.shippingCost || "0");
+                                const vatAmount = parseFloat(order.vatAmount || "0");
+                                const surchargeAmount = parseFloat(order.surchargeAmount || "0");
+                                return (
+                                  <div className={`overflow-x-auto border ${isContractOrder(order) ? contractTheme.panel : "border-slate-300"}`}>
+                                    <table className={`min-w-[620px] ${isContractOrder(order) ? contractTheme.table : "w-full border-collapse text-xs"}`}>
+                                      <thead className={`text-start text-[11px] font-semibold uppercase tracking-wide ${isContractOrder(order) ? contractTheme.tableHead : "bg-slate-700 text-white"}`}>
+                                        <tr>
+                                          <th className="w-12 border border-current/20 px-2 py-2">#</th>
+                                          <th className="border border-current/20 px-3 py-2">{pt.orderItems}</th>
+                                          <th className="border border-current/20 px-3 py-2">{pt.quantity}</th>
+                                          <th className="border border-current/20 px-3 py-2">{pt.totalAmount}</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {normalizedItems.map((item: any, index: number) => (
+                                          <tr key={item.id || index} className={isContractOrder(order) ? contractTheme.tableRow : "odd:bg-slate-50 even:bg-white"}>
+                                            <td className="border border-slate-300 px-2 py-2 font-mono text-slate-500">{index + 1}</td>
+                                            <td className="border border-slate-300 px-3 py-2 text-slate-800">{item.productName || pt.unknownProduct}</td>
+                                            <td className="border border-slate-300 px-3 py-2 text-slate-700">{item.quantity}</td>
+                                            <td className="border border-slate-300 px-3 py-2 font-medium text-slate-800">{Math.floor(item.totalPrice)} IQD</td>
+                                          </tr>
+                                        ))}
+                                        <tr className="bg-slate-100">
+                                          <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{pt.itemsSubtotal}</th>
+                                          <td className="border border-slate-300 px-3 py-2 font-medium">{Math.floor(subtotalAmount)} IQD</td>
+                                        </tr>
+                                        <tr className="bg-white">
+                                          <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{pt.shippingCost}</th>
+                                          <td className="border border-slate-300 px-3 py-2">{Math.floor(shippingCost)} IQD</td>
+                                        </tr>
+                                        <tr className="bg-slate-100">
+                                          <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{pt.vat}</th>
+                                          <td className="border border-slate-300 px-3 py-2">{Math.floor(vatAmount)} IQD</td>
+                                        </tr>
+                                        <tr className="bg-white">
+                                          <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{pt.surcharge}</th>
+                                          <td className="border border-slate-300 px-3 py-2">{Math.floor(surchargeAmount)} IQD</td>
+                                        </tr>
+                                        <tr className={`font-bold ${isContractOrder(order) ? contractTheme.tableTotal : "bg-slate-200 text-slate-950"}`}>
+                                          <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start">{pt.totalAmount}</th>
+                                          <td className="border border-slate-300 px-3 py-2">{Math.floor(getOrderTotal(order))} IQD</td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                );
+                              })()}
+                              {isContractOrder(order) && (
+                                <OrderContractSummary summary={order.contractSummary} language={language} />
+                              )}
 
                             {/* Actions */}
-                            <div className="mt-4 pt-3 border-t border-gray-200 flex gap-2 flex-wrap">
+                            <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-200 pt-3">
                               {(order.status === "pending" || order.status === "payment_grace_period") &&
                                 (order.paymentMethod === "واریز بانکی با مهلت 3 روزه" || order.paymentMethod === "bank_transfer_grace") &&
                                 !order.receiptPath && (
@@ -1342,71 +1762,34 @@ const CustomerProfile = () => {
                                   </>
                                 )}
 
-                              {(order.paymentMethod === "واریز بانکی با مهلت 3 روزه" || order.paymentMethod === "bank_transfer_grace") &&
-                                order.receiptPath && (
-                                  <>
-                                    {(order.status === "payment_uploaded" || order.status === "pending" || order.status === "payment_grace_period") && (
-                                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                        <p className="text-sm text-blue-800 font-medium flex items-center gap-1">
-                                          <Clock className="w-4 h-4" />
-                                          {pt.bankTransferUnderReview}
-                                        </p>
-                                        <p className="text-xs text-blue-700 mt-1">{pt.waitingFinancialApproval}</p>
-                                      </div>
-                                    )}
-                                    {order.status === "confirmed" && (
-                                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                        <p className="text-sm text-green-800 font-medium flex items-center gap-1">
-                                          <AlertCircle className="w-4 h-4" />
-                                          {pt.bankTransferApproved}
-                                        </p>
-                                        <p className="text-xs text-green-700 mt-1">{pt.orderUnderWarehouseProcessing}</p>
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-
-                              {order.status !== "cancelled" &&
-                                order.status !== "financial_rejected" &&
-                                order.status !== "rejected" &&
-                                (order.invoiceType === "official_invoice" ? (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => window.open(`/download-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
-                                    className="bg-green-600 hover:bg-green-700"
-                                  >
-                                    <Download className="w-4 h-4 mr-2" />
-                                    {pt.downloadOfficialInvoice}
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => window.open(`/download-proforma-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
-                                    className="bg-blue-600 hover:bg-blue-700"
-                                  >
-                                    <Download className="w-4 h-4 mr-2" />
-                                    {pt.downloadProforma}
-                                  </Button>
-                                ))}
                             </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
+                       </div>
+                     </div>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
               {/* Purchase History and CSV Export Buttons */}
-              {orders && orders.length > 0 && (
+              {baseOrders.length > 0 && (
                 <div className="mt-4 space-y-2">
                   <Button
-                    onClick={() => { setShowPurchaseHistory(true); loadCompleteHistory(); }}
+                    onClick={() => {
+                      const next = !showPurchaseHistory;
+                      setShowPurchaseHistory(next);
+                      if (next) loadCompleteHistory();
+                      else setSelectedPurchaseType("all");
+                    }}
                     variant="outline"
                     className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300"
                   >
                     <Clock className="w-4 h-4 mr-2" />
-                    {pt.viewFullPurchaseHistory}
+                    {showPurchaseHistory ? pt.viewRecentOrders : pt.viewFullPurchaseHistory}
                   </Button>
 
                   <Button
@@ -1421,325 +1804,7 @@ const CustomerProfile = () => {
               )}
             </div>
           </div>
-        </div>
       </div>
-
-      {/* Purchase History Modal */}
-      <Dialog open={showPurchaseHistory} onOpenChange={setShowPurchaseHistory}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-purple-700">{pt.fullPurchaseHistory}</DialogTitle>
-          </DialogHeader>
-
-          {/* Order Types Header with Filters */}
-          <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
-            <h3 className="text-lg font-semibold text-purple-800 mb-3 text-center">{pt.orderTypes}</h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
-              <button
-                onClick={() => setSelectedFilter("all")}
-                className={`flex items-center gap-2 p-2 rounded-md shadow-sm transition-all cursor-pointer ${
-                  selectedFilter === "all"
-                    ? "bg-purple-100 border-2 border-purple-400 shadow-md"
-                    : "bg-white hover:bg-gray-50 border border-gray-200"
-                }`}
-              >
-                <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                <span className={selectedFilter === "all" ? "text-purple-800 font-medium" : "text-gray-700"}>{pt.allOrders}</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedFilter("completed")}
-                className={`flex items-center gap-2 p-2 rounded-md shadow-sm transition-all cursor-pointer ${
-                  selectedFilter === "completed"
-                    ? "bg-green-100 border-2 border-green-400 shadow-md"
-                    : "bg-white hover:bg-gray-50 border border-gray-200"
-                }`}
-              >
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className={selectedFilter === "completed" ? "text-green-800 font-medium" : "text-gray-700"}>{pt.completed}</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedFilter("pending")}
-                className={`flex items-center gap-2 p-2 rounded-md shadow-sm transition-all cursor-pointer ${
-                  selectedFilter === "pending"
-                    ? "bg-yellow-100 border-2 border-yellow-400 shadow-md"
-                    : "bg-white hover:bg-gray-50 border border-gray-200"
-                }`}
-              >
-                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <span className={selectedFilter === "pending" ? "text-yellow-800 font-medium" : "text-gray-700"}>{pt.pendingPayment}</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedFilter("processing")}
-                className={`flex items-center gap-2 p-2 rounded-md shadow-sm transition-all cursor-pointer ${
-                  selectedFilter === "processing"
-                    ? "bg-blue-100 border-2 border-blue-400 shadow-md"
-                    : "bg-white hover:bg-gray-50 border border-gray-200"
-                }`}
-              >
-                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                <span className={selectedFilter === "processing" ? "text-blue-800 font-medium" : "text-gray-700"}>{pt.processing}</span>
-              </button>
-
-              <button
-                onClick={() => setSelectedFilter("bank_transfer")}
-                className={`flex items-center gap-2 p-2 rounded-md shadow-sm transition-all cursor-pointer ${
-                  selectedFilter === "bank_transfer"
-                    ? "bg-orange-100 border-2 border-orange-400 shadow-md"
-                    : "bg-white hover:bg-gray-50 border border-gray-200"
-                }`}
-              >
-                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                <span className={selectedFilter === "bank_transfer" ? "text-orange-800 font-medium" : "text-gray-700"}>{pt.bankTransfer}</span>
-              </button>
-            </div>
-            <div className="mt-3 text-xs text-purple-600 text-center">
-              {pt.filterNote} • {pt.clickToFilter}
-            </div>
-          </div>
-
-          {/* Search Bar */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder={pt.searchOrdersPlaceholder}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4"
-            />
-            {searchTerm && (
-              <Button size="sm" variant="ghost" onClick={() => setSearchTerm("")} className="absolute right-2 top-2 h-6 w-6 p-0">
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-
-          {/* Loading State */}
-          {isLoadingHistory && (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-              <span className="mr-3">{pt.loading}</span>
-            </div>
-          )}
-
-          {/* Results Count */}
-          {!isLoadingHistory && (
-            <div className="mb-4 text-sm text-gray-600 flex justify-between items-center">
-              <span>
-                {searchTerm || selectedFilter !== "all"
-                  ? pt.ordersFound(filteredHistory.length, completeHistory.length)
-                  : pt.totalOrdersCount(completeHistory.length)}
-              </span>
-              {(searchTerm || selectedFilter !== "all") && (
-                <button
-                  onClick={() => { setSearchTerm(""); setSelectedFilter("all"); }}
-                  className="text-xs text-purple-600 hover:text-purple-800 underline"
-                >
-                  {pt.clearFilters}
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Orders List */}
-          <div
-            className="space-y-4 max-h-96 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-purple-300 rounded-lg p-1"
-            tabIndex={0}
-            role="list"
-          >
-            {filteredHistory.length === 0 && !isLoadingHistory && (
-              <div className="text-center py-8 text-gray-500">
-                {searchTerm ? pt.noResultsFound : pt.noOrdersAvailable}
-              </div>
-            )}
-
-            {filteredHistory.map((order: any) => (
-              <Card key={order.id} className="border-purple-200 hover:border-purple-300 transition-colors">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{pt.orderLabel(order.orderNumber)}</h4>
-                      <p className="text-sm text-gray-500 flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {formatDate(order.createdAt)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      {(() => {
-                        const subtotalAmount = order.items
-                          ? order.items.reduce((sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0)
-                          : 0;
-                        const vatAmount = parseFloat(order.vatAmount || "0");
-                        const shippingCost = parseFloat(order.shippingCost || "0");
-                        const surchargeAmount = parseFloat(order.surchargeAmount || "0");
-                        const correctTotal = subtotalAmount + vatAmount + shippingCost + surchargeAmount;
-                        return <p className="font-semibold text-lg">{Math.floor(correctTotal)} IQD</p>;
-                      })()}
-                      <Badge className={getStatusColor(order.status, order.paymentStatus)}>
-                        {getStatusLabel(order.status, order.paymentStatus, order)}
-                      </Badge>
-
-                      {order.invoiceType && (
-                        <div className="mt-1">
-                          <Badge
-                            className={
-                              order.invoiceType === "official_invoice"
-                                ? "bg-green-100 text-green-800 border-green-200 text-xs"
-                                : "bg-blue-100 text-blue-800 border-blue-200 text-xs"
-                            }
-                          >
-                            {order.invoiceType === "official_invoice" ? pt.officialInvoice : pt.proformaInvoice}
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {(order.status === "financial_rejected" || order.status === "rejected" || order.status === "cancelled") &&
-                    (order.financialNotes || order.rejectionReason) && (
-                      <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex items-start gap-2">
-                          <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <h6 className="text-sm font-medium text-red-800 mb-1">
-                              {order.status === "cancelled" ? pt.orderCancellationReason : pt.orderRejectionReason}
-                            </h6>
-                            <p className="text-sm text-red-700">
-                              {getLocalizedCancellationReason(
-                                order.rejectionReason || order.financialNotes,
-                                language,
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                  {order.items && order.items.length > 0 && (
-                    <div className="mb-3">
-                      <Separator className="mb-2" />
-                      <h5 className="text-sm font-medium text-gray-700 mb-2">{pt.orderItems}</h5>
-                      {order.items.slice(0, 3).map((item: any, index: number) => (
-                        <div key={item.id || index} className="flex justify-between text-sm text-gray-600 mb-1">
-                          <span>{item.productName || pt.unknownProduct} × {Math.floor(parseFloat(item.quantity || 0))}</span>
-                          <span>{Math.floor(parseFloat(item.totalPrice || 0))} IQD</span>
-                        </div>
-                      ))}
-                      {order.items.length > 3 && (
-                        <p className="text-sm text-gray-500">{pt.andMoreProducts(order.items.length - 3)}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Cost Breakdown */}
-                  <div className="mb-3 p-2 bg-gray-50 rounded text-sm space-y-1">
-                    {(() => {
-                      const subtotalAmount = order.items
-                        ? order.items.reduce((sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0)
-                        : 0;
-                      const vatAmount = parseFloat(order.vatAmount || "0");
-                      const shippingCost = parseFloat(order.shippingCost || "0");
-                      const surchargeAmount = parseFloat(order.surchargeAmount || "0");
-                      return (
-                        <>
-                          {subtotalAmount > 0 && (
-                            <div className="flex justify-between">
-                              <span>{pt.itemsSubtotal}</span>
-                              <span>{Math.floor(subtotalAmount)} IQD</span>
-                            </div>
-                          )}
-                          {shippingCost > 0 && (
-                            <div className="flex justify-between text-blue-700">
-                              <span>{pt.shippingCost}</span>
-                              <span>{Math.floor(shippingCost)} IQD</span>
-                            </div>
-                          )}
-                          {vatAmount > 0 && (
-                            <div className="flex justify-between text-green-700">
-                              <span>{pt.vat}</span>
-                              <span>{Math.floor(vatAmount)} IQD</span>
-                            </div>
-                          )}
-                          {surchargeAmount > 0 && (
-                            <div className="flex justify-between text-orange-700">
-                              <span>{pt.surcharge}</span>
-                              <span>{Math.floor(surchargeAmount)} IQD</span>
-                            </div>
-                          )}
-                          <Separator className="my-1" />
-                          <div className="flex justify-between font-bold">
-                            <span>{pt.totalAmount}</span>
-                            <span>{Math.floor(subtotalAmount + vatAmount + shippingCost + surchargeAmount)} IQD</span>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 flex-wrap">
-                    {(order.status === "pending" || order.status === "payment_grace_period") &&
-                      (!order.paymentStatus || order.paymentStatus === "pending" || order.paymentStatus === "unpaid") &&
-                      !order.receiptPath && (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDeleteTemporaryOrder(order.id, order.orderNumber)}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          {pt.deleteTemporaryOrder}
-                        </Button>
-                      )}
-
-                    {order.status !== "cancelled" &&
-                      order.status !== "financial_rejected" &&
-                      order.status !== "rejected" &&
-                      (order.invoiceType === "official_invoice" ? (
-                        <Button
-                          size="sm"
-                          onClick={() => window.open(`/download-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          {pt.downloadOfficialInvoice}
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => window.open(`/download-proforma-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          {pt.downloadProforma}
-                        </Button>
-                      ))}
-
-                    {order.paymentStatus === "paid" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          window.open(
-                            `mailto:info@momtazchem.com?subject=Official Invoice Request - Order ${order.orderNumber}&body=Hello, please send the official invoice for order ${order.orderNumber}.`,
-                            "_blank"
-                          );
-                        }}
-                        className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        {pt.requestOfficialInvoice}
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* CSV Export Modal */}
       <Dialog open={showCsvExport} onOpenChange={setShowCsvExport}>
@@ -1801,6 +1866,7 @@ const CustomerProfile = () => {
         open={showBankReceiptModal}
         onOpenChange={setShowBankReceiptModal}
         orderNumber={selectedOrderNumber}
+        orderFromProfile={baseOrders.find((order: any) => order.orderNumber === selectedOrderNumber)}
         onSuccess={handleModalSuccess}
       />
     </>

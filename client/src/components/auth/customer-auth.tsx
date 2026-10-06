@@ -94,8 +94,8 @@ function getZodErrorMap(t: any): z.ZodErrorMap {
 // Form schemas - simplified without hardcoded messages
 // Error messages will be handled by the custom error map
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
+  identifier: z.string().min(3),
+  password: z.string().optional(),
 });
 
 const registerSchema = z.object({
@@ -113,12 +113,13 @@ const registerSchema = z.object({
   address: z.string().min(5),
   secondaryAddress: z.string().optional(),
   postalCode: z.string().optional(),
+  secondaryPostalCode: z.string().optional(),
   alternatePhone: z.string().optional(),
   industry: z.string().optional(),
   businessType: z.enum(['manufacturer', 'distributor', 'retailer', 'end_user']).optional(),
   companySize: z.enum(['small', 'medium', 'large', 'enterprise']).optional(),
   communicationPreference: z.enum(['email', 'phone', 'sms', 'whatsapp']).default('email'),
-  preferredLanguage: z.enum(['en', 'fa', 'ar']).default('en'),
+  preferredLanguage: z.enum(['en', 'fa', 'ar', 'tr']),
   marketingConsent: z.boolean().default(false),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "passwords_must_match", // Will be translated in FormMessage
@@ -139,7 +140,7 @@ interface CustomerAuthProps {
 
 export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onRegisterSuccess, initialMode = 'login', existingCustomer }: CustomerAuthProps) {
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
   // Apply custom error map for translated validation messages
   useEffect(() => {
@@ -154,6 +155,9 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginOtpChallengeId, setLoginOtpChallengeId] = useState("");
+  const [loginOtpCode, setLoginOtpCode] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedProvince, setSelectedProvince] = useState("");
   
   // OTP verification states
@@ -170,9 +174,23 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
   const [additionalInfoOpen, setAdditionalInfoOpen] = useState(true);
 
   // Fetch provinces
+  const { data: countriesResponse } = useQuery({
+    queryKey: ["/api/geography/countries"],
+    queryFn: () => fetch("/api/geography/countries").then(res => res.json()),
+  });
+  const countries = (countriesResponse as any)?.data || [];
+  const countryCode = selectedCountry === "Iran"
+    ? "IR"
+    : selectedCountry === "Iraq"
+      ? "IQ"
+      : selectedCountry === "Turkey"
+        ? "TR"
+        : "";
+  const hasCentralRegionList = countryCode === "IQ" || countryCode === "IR";
   const { data: provincesResponse } = useQuery({
-    queryKey: ["/api/logistics/provinces"],
-    enabled: true,
+    queryKey: ["/api/geography/regions", countryCode],
+    queryFn: () => fetch(`/api/geography/regions?country=${countryCode}`).then(res => res.json()),
+    enabled: hasCentralRegionList,
   });
   
   const provinces = (provincesResponse as any)?.data || [];
@@ -180,12 +198,14 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
   // No need for verification settings anymore - OTP is always used
 
   // Find selected province ID 
-  const selectedProvinceData = Array.isArray(provinces) ? provinces.find((p: any) => p.nameEnglish === selectedProvince) : null;
+  const selectedProvinceData = Array.isArray(provinces)
+    ? provinces.find((province: any) => String(province.id) === selectedProvince)
+    : null;
   
   // Fetch cities based on selected province
   const { data: citiesResponse } = useQuery({
-    queryKey: ["/api/logistics/cities", selectedProvinceData?.id],
-    queryFn: () => fetch(`/api/logistics/cities?provinceId=${selectedProvinceData?.id}`).then(res => res.json()),
+    queryKey: ["/api/geography/cities", selectedProvinceData?.id],
+    queryFn: () => fetch(`/api/geography/cities?regionId=${selectedProvinceData?.id}`).then(res => res.json()),
     enabled: !!selectedProvinceData?.id,
   });
   
@@ -194,10 +214,19 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      identifier: "",
       password: "",
     },
   });
+  const loginIdentifier = loginForm.watch("identifier");
+  const isMobileLogin =
+    /^[+\d\s()-]+$/.test(loginIdentifier.trim()) &&
+    loginIdentifier.replace(/\D/g, "").length >= 7;
+
+  useEffect(() => {
+    setLoginOtpChallengeId("");
+    setLoginOtpCode("");
+  }, [loginIdentifier]);
 
   const registerForm = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -214,6 +243,10 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
       province: "",
       city: "",
       address: "",
+      secondaryAddress: "",
+      postalCode: "",
+      secondaryPostalCode: "",
+      preferredLanguage: language,
     },
   });
 
@@ -221,6 +254,12 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
   useEffect(() => {
     setActiveTab(initialMode);
   }, [initialMode]);
+
+  useEffect(() => {
+    if (!registerForm.formState.dirtyFields.preferredLanguage) {
+      registerForm.setValue("preferredLanguage", language, { shouldValidate: true });
+    }
+  }, [language, registerForm]);
 
   // Pre-fill registration form with existing customer data
   useEffect(() => {
@@ -244,7 +283,7 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
         businessType: existingCustomer.businessType || 'retailer',
         companySize: existingCustomer.companySize || 'small',
         communicationPreference: existingCustomer.communicationPreference || 'email',
-        preferredLanguage: existingCustomer.preferredLanguage || 'en',
+        preferredLanguage: existingCustomer.preferredLanguage || language,
         marketingConsent: existingCustomer.marketingConsent || false,
       });
     }
@@ -255,14 +294,38 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
     setLoginError(null); // Clear previous error
     
     try {
-      const response = await fetch('/api/customers/login', {
+      if (!isMobileLogin && !data.password) {
+        loginForm.setError("password", { message: t.auth.validation.passwordMin6 });
+        return;
+      }
+
+      const endpoint = isMobileLogin
+        ? loginOtpChallengeId
+          ? '/api/customers/login-otp/verify'
+          : '/api/customers/login-otp/request'
+        : '/api/customers/login';
+      const body = isMobileLogin
+        ? loginOtpChallengeId
+          ? { challengeId: loginOtpChallengeId, code: loginOtpCode }
+          : { identifier: data.identifier }
+        : data;
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(data),
+        body: JSON.stringify(body),
       });
 
       const result = await response.json();
+
+      if (isMobileLogin && !loginOtpChallengeId && result.success) {
+        setLoginOtpChallengeId(result.challengeId);
+        toast({
+          title: language === 'fa' ? 'کد ورود ارسال شد' : 'Login code sent',
+          description: language === 'fa' ? 'کد پیامک‌شده را وارد کنید.' : 'Enter the code sent to your mobile.',
+        });
+        return;
+      }
 
       if (result.success) {
         toast({
@@ -272,6 +335,8 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
         onLoginSuccess(result.customer);
         onOpenChange(false);
         loginForm.reset();
+        setLoginOtpChallengeId("");
+        setLoginOtpCode("");
       } else {
         // Set error message to display under form
         const errorMessage = result.message || t.auth.invalidCredentials;
@@ -388,7 +453,7 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
           setEmailExists(true);
           if (otpResult.duplicateField === 'email') {
             setDuplicateEmail(registerData.email);
-            loginForm.setValue("email", registerData.email);
+            loginForm.setValue("identifier", registerData.email);
           }
           setActiveTab("login");
           toast({
@@ -443,7 +508,7 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
             setEmailExists(true);
             setDuplicateEmail(data.email);
             setActiveTab("login");
-            loginForm.setValue("email", data.email);
+            loginForm.setValue("identifier", data.email);
             toast({
               title: t.auth.emailAlreadyRegistered,
               description: t.auth.emailAlreadyRegisteredDesc,
@@ -701,21 +766,21 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
               <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                 <FormField
                   control={loginForm.control}
-                  name="email"
+                  name="identifier"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
                         <Mail className="h-4 w-4" />
-                        {t.email}
+                        {language === 'fa' ? 'ایمیل یا شماره موبایل' : 'Email or mobile'}
                       </FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder={t.auth.enterEmail} {...field} />
+                        <Input type="text" placeholder={language === 'fa' ? 'ایمیل یا شماره موبایل' : 'Email or mobile'} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormField
+                {!isMobileLogin && <FormField
                   control={loginForm.control}
                   name="password"
                   render={({ field }) => (
@@ -750,9 +815,43 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                       <FormMessage />
                     </FormItem>
                   )}
-                />
+                />}
+                {isMobileLogin && loginOtpChallengeId && (
+                  <FormItem>
+                    <FormLabel>{language === 'fa' ? 'کد یک‌بارمصرف' : 'One-time code'}</FormLabel>
+                    <FormControl>
+                      <Input
+                        value={loginOtpCode}
+                        onChange={(event) => setLoginOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        dir="ltr"
+                        placeholder="••••••"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? t.auth.loggingIn : t.auth.login}
+                  {isLoading
+                    ? t.auth.loggingIn
+                    : isMobileLogin && !loginOtpChallengeId
+                      ? (language === 'fa' ? 'ارسال کد ورود' : 'Send login code')
+                      : t.auth.login}
+                </Button>
+                <div className="relative py-1">
+                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">{language === 'fa' ? 'یا' : 'or'}</span>
+                  </div>
+                </div>
+                <Button type="button" variant="outline" className="w-full" onClick={() => { window.location.href = '/api/auth/google'; }}>
+                  <svg className="me-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.8 3-4.3 3-7.3Z"/>
+                    <path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.5L15.4 17c-.9.6-2 1-3.4 1a5.8 5.8 0 0 1-5.5-4H3.2v2.6A10 10 0 0 0 12 22Z"/>
+                    <path fill="#FBBC05" d="M6.5 14a6 6 0 0 1 0-3.9V7.5H3.2a10 10 0 0 0 0 9.1L6.5 14Z"/>
+                    <path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.9 1.5l2.8-2.8A9.5 9.5 0 0 0 3.2 7.5l3.3 2.6A5.8 5.8 0 0 1 12 6Z"/>
+                  </svg>
+                  {language === 'fa' ? 'ورود با حساب Google' : 'Continue with Google'}
                 </Button>
                 
                 {/* Display login error under form */}
@@ -837,6 +936,39 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                           <FormControl>
                             <Input type="email" placeholder={t.email} {...field} />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={registerForm.control}
+                      name="preferredLanguage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t.auth.preferredLanguage} *</FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              setSelectedCountry(value);
+                              setSelectedProvince("");
+                              registerForm.setValue("province", "");
+                              registerForm.setValue("city", "");
+                            }}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t.auth.preferredLanguage} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="en">English</SelectItem>
+                              <SelectItem value="fa">فارسی</SelectItem>
+                              <SelectItem value="ar">العربية</SelectItem>
+                              <SelectItem value="tr">Türkçe</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -997,14 +1129,27 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t.country} *</FormLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
+                          <Select
+                            value={field.value}
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              setSelectedCountry(value);
+                              setSelectedProvince("");
+                              registerForm.setValue("province", "");
+                              registerForm.setValue("city", "");
+                            }}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder={t.auth.selectCountry} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="Iraq">Iraq</SelectItem>
+                              {countries.map((country: any) => (
+                                <SelectItem key={country.code} value={country.nameEnglish}>
+                                  {country.namePersian} / {country.nameEnglish}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -1019,11 +1164,13 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>{t.auth.province} *</FormLabel>
-                            <Select 
-                              value={field.value} 
+                            {hasCentralRegionList ? (
+                            <Select
+                              value={selectedProvince}
                               onValueChange={(value) => {
-                                field.onChange(value);
                                 setSelectedProvince(value);
+                                const province = provinces.find((item: any) => String(item.id) === value);
+                                field.onChange(province?.namePersian || province?.nameArabic || province?.nameEnglish || "");
                                 // Clear city when province changes
                                 registerForm.setValue("city", "");
                               }}
@@ -1035,12 +1182,17 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                               </FormControl>
                               <SelectContent>
                                 {Array.isArray(provinces) && provinces.map((province: any) => (
-                                  <SelectItem key={province.id} value={province.nameEnglish}>
-                                    {province.nameEnglish} - {province.nameArabic}
+                                  <SelectItem key={province.id} value={String(province.id)}>
+                                    {province.namePersian} - {province.nameEnglish}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
+                            ) : (
+                              <FormControl>
+                                <Input {...field} placeholder={t.auth.province} />
+                              </FormControl>
+                            )}
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1051,6 +1203,7 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>{t.city} *</FormLabel>
+                            {hasCentralRegionList ? (
                             <Select value={field.value} onValueChange={field.onChange}>
                               <FormControl>
                                 <SelectTrigger>
@@ -1059,31 +1212,51 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                               </FormControl>
                               <SelectContent>
                                 {Array.isArray(cities) && cities.map((city: any) => (
-                                  <SelectItem key={city.id} value={city.nameEnglish}>
-                                    {city.nameEnglish} - {city.nameArabic}
+                                  <SelectItem key={city.id} value={city.namePersian}>
+                                    {city.namePersian} - {city.nameEnglish}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
+                            ) : (
+                              <FormControl>
+                                <Input {...field} placeholder={t.city} />
+                              </FormControl>
+                            )}
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
 
-                    <FormField
-                      control={registerForm.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t.address} *</FormLabel>
-                          <FormControl>
-                            <Input placeholder={t.auth.fullAddress} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
+                      <FormField
+                        control={registerForm.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t.address} *</FormLabel>
+                            <FormControl>
+                              <Input placeholder={t.auth.fullAddress} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="postalCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t.auth.postalCode} ({t.address})</FormLabel>
+                            <FormControl>
+                              <Input placeholder={t.auth.postalCode} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </CollapsibleContent>
                 </Collapsible>
 
@@ -1099,33 +1272,35 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-4 mt-4">
-                    <FormField
-                      control={registerForm.control}
-                      name="secondaryAddress"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t.auth.secondaryAddress}</FormLabel>
-                          <FormControl>
-                            <Input placeholder={t.auth.secondaryAddressOptional} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
+                      <FormField
+                        control={registerForm.control}
+                        name="secondaryAddress"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t.auth.secondaryAddress}</FormLabel>
+                            <FormControl>
+                              <Input placeholder={t.auth.secondaryAddressOptional} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="secondaryPostalCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t.auth.postalCode}</FormLabel>
+                            <FormControl>
+                              <Input placeholder={t.auth.postalCode} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
-                    <FormField
-                      control={registerForm.control}
-                      name="postalCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t.auth.postalCode}</FormLabel>
-                          <FormControl>
-                            <Input placeholder={t.auth.postalCode} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </CollapsibleContent>
                 </Collapsible>
 

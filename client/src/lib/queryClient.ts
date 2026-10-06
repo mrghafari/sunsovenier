@@ -33,11 +33,16 @@ async function throwIfResNotOk(res: Response, requestUrl?: string, method?: stri
       return { success: false, message: 'Unauthorized' };
     }
     
-    // Try to parse as JSON for structured error messages
+    // Try to parse as JSON for structured error messages. Keep the parsed
+    // server message instead of catching our own thrown Error below.
     try {
       const errorData = JSON.parse(text);
-      throw new Error(errorData.message || `${res.status}: ${text}`);
+      const message = errorData.message || `${res.status}: ${text}`;
+      throw Object.assign(new Error(message), { parsedApiError: true });
     } catch (parseError) {
+      if (parseError instanceof Error && (parseError as Error & { parsedApiError?: boolean }).parsedApiError) {
+        throw parseError;
+      }
       throw new Error(`${res.status}: ${text}`);
     }
   }

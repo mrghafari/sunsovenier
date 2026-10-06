@@ -6,644 +6,121 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 import SystemMonitoring from './system-monitoring';
 import TerminalMonitor from './terminal-monitor';
 import ActivityLog from './activity-log';
 import BIMonitoringDashboard from './bi-monitoring-dashboard';
-import { 
-  Server, 
-  Database, 
-  Mail, 
-  Globe, 
-  Shield, 
-  Settings, 
-  Copy, 
-  Check, 
-  AlertTriangle,
-  Info,
-  Upload,
-  Download,
-  RefreshCw,
-  Activity
-} from 'lucide-react';
+import { Server, Database, Globe, Shield, Settings, Copy, Check, AlertTriangle, Info, Upload, RefreshCw, Activity } from 'lucide-react';
 
-interface ServerConfig {
-  frontendUrl: string;
-  serverIp: string;
-  databaseUrl: string;
-  sessionSecret: string;
-  nodeEnv: string;
-  smtpHost: string;
-  smtpPort: string;
-  smtpUser: string;
-  smtpPass: string;
-}
+interface ServerConfig { frontendUrl: string; serverIp: string; databaseUrl: string; sessionSecret: string; nodeEnv: string; smtpHost: string; smtpPort: string; smtpUser: string; smtpPass: string; }
+type Lang = 'en' | 'fa' | 'ar' | 'tr';
+type Key = keyof typeof copy;
+const copy = {
+  en: {
+    title: 'Server Configuration', subtitle: 'Manage server configuration and migration guide', monitoring: 'Monitoring', serverConfig: 'Server Config', domainEmail: 'Domain & Email', database: 'Database', deployment: 'Deployment Guide', migration: 'Migration',
+    bi: 'Analytics Dashboard (BI Dashboard)', biDesc: 'Visual and analytical system status with charts and key metrics', live: 'Live System Monitoring', liveDesc: 'Critical service health - compatible with every platform (Replit, AWS, VPS)', terminal: 'System Health Snapshot', terminalDesc: 'Generated snapshot of the latest verified monitoring data', activity: 'Application Activity Log', activityDesc: 'Server events collected by polling every two seconds',
+    main: 'Main Server Settings', production: 'Production environment configuration', domain: 'Primary domain address', ip: 'Server IP address', ipHelp: '0.0.0.0 for public access, 127.0.0.1 for localhost', env: 'Server environment', secret: 'Session security key', strongSecret: 'Strong and unique password', migrateAlert: 'When migrating to www.momtazchem.com, be sure to change FRONTEND_URL to https://www.momtazchem.com',
+    test: 'Test Settings', copyEnv: 'Copy .env file', envFile: '.env file', domainManage: 'Domain and Email Management', domainDesc: 'Primary domain and email system settings', productionDomain: 'Production domain:', emailLinks: 'All email and password reset links automatically use this domain', importantLinks: 'Important links sent to customers:', reset: 'Customer password reset:', verify: 'Email verification:', order: 'Order confirmation:', receipt: 'Payment receipt:', smtpPass: 'SMTP password',
+    dbManage: 'Database Management', dbDesc: 'PostgreSQL database settings and migration', currentDb: 'Current database:', compatibility: 'Compatibility:', anyProvider: 'Any PostgreSQL provider (AWS RDS, Google Cloud SQL, Railway, DigitalOcean)', dbSteps: 'Database migration steps:', exportData: 'Export data with pg_dump from Neon', createDb: 'Create a new database on the target platform', importData: 'Import data into the new database', updateUrl: 'Update DATABASE_URL in environment variables', connection: 'Test connection and performance', exportCmd: 'Export command', importCmd: 'Import command', copyExport: 'Copy Export command', copyImport: 'Copy Import command',
+    recommended: 'Recommended for production', easy: 'Easy with database', affordable: 'Cost-effective', enterprise: 'Enterprise-grade', build: 'Build:', start: 'Start:', dns: 'DNS Settings', dnsDesc: 'DNS configuration for www.momtazchem.com', platformUrl: '# or your selected platform URL', dnsConfig: 'DNS settings', copyDns: 'Copy DNS settings',
+    fullMigration: 'Complete Migration Guide', fromReplit: 'Migration steps from Replit to www.momtazchem.com', security: 'Security tips:', https: 'Always use HTTPS', secretTip: 'Choose a strong and unique SESSION_SECRET', smtpTip: 'Keep SMTP passwords in environment variables', dbTip: 'Restrict database access', checklist: '✅ Final checklist', envSet: '☑️ Environment variables configured', dbMoved: '☑️ Database migrated', dnsSet: '☑️ DNS configured', ssl: '☑️ SSL enabled', emailTest: '☑️ Emails tested', resetWorks: '☑️ Password reset link works',
+    copied: 'Copied', copiedDesc: 'copied to clipboard', error: 'Error', copyFailed: 'Copy failed', success: 'Validation completed', valid: 'Configuration format is valid; live services are verified in Monitoring', testError: 'Validation error', connectionError: 'Connection error', cannotTest: 'Unable to validate settings', loading: 'Loading...'
+  },
+  fa: {
+    title: 'تنظیمات سرور', subtitle: 'مدیریت کانفیگ سرور و راهنمایی مهاجرت', monitoring: 'مانیتورینگ', serverConfig: 'کانفیگ سرور', domainEmail: 'دامین و ایمیل', database: 'دیتابیس', deployment: 'راهنمای دیپلویمنت', migration: 'مهاجرت',
+    bi: 'داشبورد تحلیلی (BI Dashboard)', biDesc: 'نمایش بصری و تحلیلی وضعیت سیستم با نمودارها و شاخص‌های کلیدی', live: 'مانیتورینگ لحظه‌ای سیستم', liveDesc: 'وضعیت سلامت سرویس‌های حیاتی - سازگار با هر پلتفرم (Replit، AWS، VPS)', terminal: 'نمای وضعیت سلامت سیستم', terminalDesc: 'خلاصه تولیدشده از آخرین داده‌های تأییدشده مانیتورینگ', activity: 'لاگ فعالیت‌های اپلیکیشن', activityDesc: 'رویدادهای سرور با دریافت دوره‌ای هر دو ثانیه',
+    main: 'تنظیمات اصلی سرور', production: 'کانفیگ محیط پروداکشن', domain: 'آدرس دامین اصلی', ip: 'آدرس IP سرور', ipHelp: '0.0.0.0 برای دسترسی عمومی، 127.0.0.1 فقط localhost', env: 'محیط سرور', secret: 'کلید امنیتی Session', strongSecret: 'رمز قوی و منحصر به فرد', migrateAlert: 'هنگام مهاجرت به www.momtazchem.com، حتماً FRONTEND_URL را به https://www.momtazchem.com تغییر دهید',
+    test: 'تست تنظیمات', copyEnv: 'کپی فایل .env', envFile: 'فایل .env', domainManage: 'مدیریت دامین و ایمیل', domainDesc: 'تنظیمات دامین اصلی و سیستم ایمیل', productionDomain: 'دامین پروداکشن:', emailLinks: 'تمام لینک‌های ایمیل و ریست پسورد خودکار از این دامین استفاده می‌کنند', importantLinks: 'لینک‌های مهم که برای مشتری ارسال می‌شود:', reset: 'ریست پسورد مشتری:', verify: 'تایید ایمیل:', order: 'تایید سفارش:', receipt: 'آپلود فیش:', smtpPass: 'رمز عبور SMTP',
+    dbManage: 'مدیریت دیتابیس', dbDesc: 'تنظیمات و مهاجرت دیتابیس PostgreSQL', currentDb: 'دیتابیس فعلی:', compatibility: 'سازگاری:', anyProvider: 'هر ارائه‌دهنده PostgreSQL (AWS RDS, Google Cloud SQL, Railway, DigitalOcean)', dbSteps: 'مراحل مهاجرت دیتابیس:', exportData: 'Export کردن دیتا با pg_dump از Neon', createDb: 'ایجاد دیتابیس جدید در پلتفرم مقصد', importData: 'Import کردن دیتا به دیتابیس جدید', updateUrl: 'بروزرسانی DATABASE_URL در متغیرهای محیطی', connection: 'تست اتصال و عملکرد', exportCmd: 'دستور Export', importCmd: 'دستور Import', copyExport: 'کپی دستور Export', copyImport: 'کپی دستور Import',
+    recommended: 'توصیه شده برای پروداکشن', easy: 'آسان با دیتابیس', affordable: 'مقرون به صرفه', enterprise: 'سطح سازمانی', build: 'Build:', start: 'Start:', dns: 'تنظیمات DNS', dnsDesc: 'کانفیگ DNS برای دامین www.momtazchem.com', platformUrl: '# یا URL پلتفرم انتخابی شما', dnsConfig: 'تنظیمات DNS', copyDns: 'کپی تنظیمات DNS',
+    fullMigration: 'راهنمای مهاجرت کامل', fromReplit: 'مراحل مهاجرت از Replit به www.momtazchem.com', security: 'نکات امنیتی:', https: 'همیشه از HTTPS استفاده کنید', secretTip: 'SESSION_SECRET را قوی و منحصر به فرد انتخاب کنید', smtpTip: 'رمزهای SMTP را در environment variables نگهداری کنید', dbTip: 'دسترسی دیتابیس را محدود کنید', checklist: '✅ چک‌لیست نهایی', envSet: '☑️ متغیرهای محیطی تنظیم شده', dbMoved: '☑️ دیتابیس منتقل شده', dnsSet: '☑️ DNS کانفیگ شده', ssl: '☑️ SSL فعال شده', emailTest: '☑️ ایمیل‌ها تست شده', resetWorks: '☑️ لینک ریست پسورد کار می‌کند',
+    copied: 'کپی شد', copiedDesc: 'در کلیپ‌بورد کپی شد', error: 'خطا', copyFailed: 'کپی کردن انجام نشد', success: 'اعتبارسنجی انجام شد', valid: 'ساختار تنظیمات معتبر است؛ سرویس‌های واقعی در تب مانیتورینگ بررسی می‌شوند', testError: 'خطا در اعتبارسنجی', connectionError: 'خطا در اتصال', cannotTest: 'امکان اعتبارسنجی تنظیمات وجود ندارد', loading: 'در حال بارگذاری...'
+  },
+  ar: {
+    title: 'إعدادات الخادم', subtitle: 'إدارة إعدادات الخادم ودليل الترحيل', monitoring: 'المراقبة', serverConfig: 'إعدادات الخادم', domainEmail: 'النطاق والبريد', database: 'قاعدة البيانات', deployment: 'دليل النشر', migration: 'الترحيل',
+    bi: 'لوحة التحليلات (BI Dashboard)', biDesc: 'عرض مرئي وتحليلي لحالة النظام مع المخططات والمقاييس الرئيسية', live: 'مراقبة النظام المباشرة', liveDesc: 'صحة الخدمات الحيوية - متوافق مع كل منصة (Replit، AWS، VPS)', terminal: 'لقطة صحة النظام', terminalDesc: 'ملخص مولّد من أحدث بيانات المراقبة المتحقق منها', activity: 'سجل نشاط التطبيق', activityDesc: 'أحداث الخادم المجمعة بالاستطلاع كل ثانيتين',
+    main: 'إعدادات الخادم الرئيسية', production: 'إعداد بيئة الإنتاج', domain: 'عنوان النطاق الرئيسي', ip: 'عنوان IP للخادم', ipHelp: '0.0.0.0 للوصول العام، 127.0.0.1 للوصول المحلي', env: 'بيئة الخادم', secret: 'مفتاح أمان الجلسة', strongSecret: 'كلمة مرور قوية وفريدة', migrateAlert: 'عند الترحيل إلى www.momtazchem.com، غيّر FRONTEND_URL إلى https://www.momtazchem.com',
+    test: 'اختبار الإعدادات', copyEnv: 'نسخ ملف .env', envFile: 'ملف .env', domainManage: 'إدارة النطاق والبريد', domainDesc: 'إعدادات النطاق الرئيسي ونظام البريد', productionDomain: 'نطاق الإنتاج:', emailLinks: 'تستخدم جميع روابط البريد وإعادة تعيين كلمة المرور هذا النطاق تلقائياً', importantLinks: 'روابط مهمة تُرسل للعملاء:', reset: 'إعادة تعيين كلمة مرور العميل:', verify: 'تأكيد البريد:', order: 'تأكيد الطلب:', receipt: 'رفع إيصال الدفع:', smtpPass: 'كلمة مرور SMTP',
+    dbManage: 'إدارة قاعدة البيانات', dbDesc: 'إعدادات وترحيل قاعدة بيانات PostgreSQL', currentDb: 'قاعدة البيانات الحالية:', compatibility: 'التوافق:', anyProvider: 'أي مزود PostgreSQL (AWS RDS, Google Cloud SQL, Railway, DigitalOcean)', dbSteps: 'خطوات ترحيل قاعدة البيانات:', exportData: 'تصدير البيانات باستخدام pg_dump من Neon', createDb: 'إنشاء قاعدة بيانات جديدة على المنصة المستهدفة', importData: 'استيراد البيانات إلى قاعدة البيانات الجديدة', updateUrl: 'تحديث DATABASE_URL في متغيرات البيئة', connection: 'اختبار الاتصال والأداء', exportCmd: 'أمر التصدير', importCmd: 'أمر الاستيراد', copyExport: 'نسخ أمر التصدير', copyImport: 'نسخ أمر الاستيراد',
+    recommended: 'موصى به للإنتاج', easy: 'سهل مع قاعدة البيانات', affordable: 'اقتصادي', enterprise: 'بمستوى المؤسسات', build: 'Build:', start: 'Start:', dns: 'إعدادات DNS', dnsDesc: 'إعداد DNS للنطاق www.momtazchem.com', platformUrl: '# أو عنوان منصة النشر المختارة', dnsConfig: 'إعدادات DNS', copyDns: 'نسخ إعدادات DNS',
+    fullMigration: 'دليل الترحيل الكامل', fromReplit: 'خطوات الترحيل من Replit إلى www.momtazchem.com', security: 'نصائح الأمان:', https: 'استخدم HTTPS دائماً', secretTip: 'اختر SESSION_SECRET قوياً وفريداً', smtpTip: 'احتفظ بكلمات مرور SMTP في متغيرات البيئة', dbTip: 'قيّد الوصول إلى قاعدة البيانات', checklist: '✅ قائمة التحقق النهائية', envSet: '☑️ تم إعداد متغيرات البيئة', dbMoved: '☑️ تم ترحيل قاعدة البيانات', dnsSet: '☑️ تم إعداد DNS', ssl: '☑️ تم تفعيل SSL', emailTest: '☑️ تم اختبار البريد', resetWorks: '☑️ يعمل رابط إعادة تعيين كلمة المرور',
+    copied: 'تم النسخ', copiedDesc: 'تم نسخه إلى الحافظة', error: 'خطأ', copyFailed: 'فشل النسخ', success: 'اكتمل التحقق', valid: 'بنية الإعدادات صالحة؛ يتم فحص الخدمات الحية في تبويب المراقبة', testError: 'خطأ في التحقق', connectionError: 'خطأ في الاتصال', cannotTest: 'تعذر التحقق من الإعدادات', loading: 'جار التحميل...'
+  },
+  tr: {
+    title: 'Sunucu Yapılandırması', subtitle: 'Sunucu yapılandırmasını ve geçiş kılavuzunu yönetin', monitoring: 'İzleme', serverConfig: 'Sunucu Ayarları', domainEmail: 'Alan Adı ve E-posta', database: 'Veritabanı', deployment: 'Dağıtım Kılavuzu', migration: 'Geçiş',
+    bi: 'Analiz Panosu (BI Dashboard)', biDesc: 'Grafikler ve temel metriklerle sistem durumunun görsel ve analitik gösterimi', live: 'Canlı Sistem İzleme', liveDesc: 'Kritik servis sağlığı - tüm platformlarla uyumlu (Replit, AWS, VPS)', terminal: 'Sistem Sağlık Anlık Görüntüsü', terminalDesc: 'Son doğrulanmış izleme verilerinden oluşturulan özet', activity: 'Uygulama Etkinlik Günlüğü', activityDesc: 'İki saniyede bir yoklama ile toplanan sunucu olayları',
+    main: 'Ana Sunucu Ayarları', production: 'Üretim ortamı yapılandırması', domain: 'Birincil alan adı', ip: 'Sunucu IP adresi', ipHelp: 'Genel erişim için 0.0.0.0, localhost için 127.0.0.1', env: 'Sunucu ortamı', secret: 'Oturum güvenlik anahtarı', strongSecret: 'Güçlü ve benzersiz parola', migrateAlert: 'www.momtazchem.com adresine geçerken FRONTEND_URL değerini https://www.momtazchem.com olarak değiştirin',
+    test: 'Ayarları Test Et', copyEnv: '.env dosyasını kopyala', envFile: '.env dosyası', domainManage: 'Alan Adı ve E-posta Yönetimi', domainDesc: 'Birincil alan adı ve e-posta sistemi ayarları', productionDomain: 'Üretim alan adı:', emailLinks: 'Tüm e-posta ve parola sıfırlama bağlantıları bu alan adını kullanır', importantLinks: 'Müşterilere gönderilen önemli bağlantılar:', reset: 'Müşteri parolası sıfırlama:', verify: 'E-posta doğrulama:', order: 'Sipariş onayı:', receipt: 'Ödeme makbuzu:', smtpPass: 'SMTP parolası',
+    dbManage: 'Veritabanı Yönetimi', dbDesc: 'PostgreSQL veritabanı ayarları ve geçişi', currentDb: 'Mevcut veritabanı:', compatibility: 'Uyumluluk:', anyProvider: 'Her PostgreSQL sağlayıcısı (AWS RDS, Google Cloud SQL, Railway, DigitalOcean)', dbSteps: 'Veritabanı geçiş adımları:', exportData: 'Neon üzerinden pg_dump ile verileri dışa aktarın', createDb: 'Hedef platformda yeni veritabanı oluşturun', importData: 'Verileri yeni veritabanına içe aktarın', updateUrl: 'Ortam değişkenlerinde DATABASE_URL değerini güncelleyin', connection: 'Bağlantı ve performansı test edin', exportCmd: 'Dışa aktarma komutu', importCmd: 'İçe aktarma komutu', copyExport: 'Dışa aktarma komutunu kopyala', copyImport: 'İçe aktarma komutunu kopyala',
+    recommended: 'Üretim için önerilir', easy: 'Veritabanıyla kolay', affordable: 'Uygun maliyetli', enterprise: 'Kurumsal düzey', build: 'Build:', start: 'Start:', dns: 'DNS Ayarları', dnsDesc: 'www.momtazchem.com için DNS yapılandırması', platformUrl: '# veya seçtiğiniz platform URL’si', dnsConfig: 'DNS ayarları', copyDns: 'DNS ayarlarını kopyala',
+    fullMigration: 'Eksiksiz Geçiş Kılavuzu', fromReplit: 'Replit’ten www.momtazchem.com adresine geçiş adımları', security: 'Güvenlik ipuçları:', https: 'Daima HTTPS kullanın', secretTip: 'Güçlü ve benzersiz bir SESSION_SECRET seçin', smtpTip: 'SMTP parolalarını ortam değişkenlerinde saklayın', dbTip: 'Veritabanı erişimini kısıtlayın', checklist: '✅ Son kontrol listesi', envSet: '☑️ Ortam değişkenleri yapılandırıldı', dbMoved: '☑️ Veritabanı taşındı', dnsSet: '☑️ DNS yapılandırıldı', ssl: '☑️ SSL etkinleştirildi', emailTest: '☑️ E-postalar test edildi', resetWorks: '☑️ Parola sıfırlama bağlantısı çalışıyor',
+    copied: 'Kopyalandı', copiedDesc: 'panoya kopyalandı', error: 'Hata', copyFailed: 'Kopyalama başarısız', success: 'Doğrulama tamamlandı', valid: 'Yapılandırma biçimi geçerli; canlı servisler İzleme sekmesinde kontrol edilir', testError: 'Doğrulama hatası', connectionError: 'Bağlantı hatası', cannotTest: 'Ayarlar doğrulanamıyor', loading: 'Yükleniyor...'
+  }
+} satisfies Record<Lang, Record<string, string>>;
 
 export default function ServerConfig() {
-  const [config, setConfig] = useState<ServerConfig>({
-    frontendUrl: '',
-    serverIp: '0.0.0.0',
-    databaseUrl: '',
-    sessionSecret: '',
-    nodeEnv: 'production',
-    smtpHost: 'smtp.zoho.com',
-    smtpPort: '587',
-    smtpUser: '',
-    smtpPass: ''
-  });
-  const [copied, setCopied] = useState<string>('');
+  const { language, direction } = useLanguage();
+  const t = copy[language as Lang];
+  const [config, setConfig] = useState<ServerConfig>({ frontendUrl: '', serverIp: '', databaseUrl: '', sessionSecret: '', nodeEnv: '', smtpHost: '', smtpPort: '', smtpUser: '', smtpPass: '' });
+  const [copied, setCopied] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
   useEffect(() => {
-    loadCurrentConfig();
+    fetch('/api/server/config')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => data?.config && setConfig(prev => ({
+        ...prev,
+        ...data.config,
+        serverIp: data.config.serverIp || '',
+        nodeEnv: data.config.nodeEnv || '',
+        smtpHost: data.config.smtpHost || '',
+        smtpPort: data.config.smtpPort || '',
+      })))
+      .catch(error => console.error('Error loading server config:', error));
   }, []);
-
-  const loadCurrentConfig = async () => {
-    try {
-      const response = await fetch('/api/server/config');
-      if (response.ok) {
-        const data = await response.json();
-        setConfig(prev => ({ ...prev, ...data }));
-      }
-    } catch (error) {
-      console.error('Error loading server config:', error);
-    }
-  };
-
   const copyToClipboard = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(label);
-      setTimeout(() => setCopied(''), 2000);
-      toast({
-        title: "کپی شد",
-        description: `${label} در کلیپ‌بورد کپی شد`,
-      });
-    } catch (error) {
-      toast({
-        title: "خطا",
-        description: "کپی کردن انجام نشد",
-        variant: "destructive"
-      });
-    }
+    try { await navigator.clipboard.writeText(text); setCopied(label); setTimeout(() => setCopied(''), 2000); toast({ title: t.copied, description: `${label} ${t.copiedDesc}` }); }
+    catch { toast({ title: t.error, description: t.copyFailed, variant: 'destructive' }); }
   };
-
-  const generateEnvFile = () => {
-    return `# Environment Configuration for Momtaz Chemical Platform
+  const generateEnvFile = () => `# Environment Configuration for Momtaz Chemical Platform
 # Production Configuration
-
-# Domain Configuration
 FRONTEND_URL=${config.frontendUrl || 'https://www.momtazchem.com'}
-
-# Server Configuration
 SERVER_IP=${config.serverIp || '0.0.0.0'}
-
-# Database Configuration  
 DATABASE_URL=${config.databaseUrl || 'your_postgresql_connection_string'}
-
-# Email Configuration
 SMTP_HOST=${config.smtpHost}
 SMTP_PORT=${config.smtpPort}
 SMTP_USER=${config.smtpUser || 'support@momtazchem.com'}
 SMTP_PASS=${config.smtpPass || 'your_smtp_password'}
-
-# Session Configuration
 SESSION_SECRET=${config.sessionSecret || 'generate_strong_random_key'}
-
-# Environment
 NODE_ENV=${config.nodeEnv}
-
-# Additional Security Settings
 SECURE_COOKIES=true
-CORS_ORIGIN=${config.frontendUrl || 'https://www.momtazchem.com'}
-`;
-  };
-
-  const deploymentPlatforms = [
-    {
-      name: 'Vercel',
-      description: 'توصیه شده برای پروداکشن',
-      icon: '🚀',
-      buildCommand: 'npm run build',
-      startCommand: 'npm run start',
-      features: ['Auto SSL', 'CDN', 'Git Integration']
-    },
-    {
-      name: 'Railway',
-      description: 'آسان با دیتابیس',
-      icon: '🚄',
-      buildCommand: 'npm run build',
-      startCommand: 'npm run start',
-      features: ['PostgreSQL Add-on', 'Auto Deploy', 'Monitoring']
-    },
-    {
-      name: 'DigitalOcean',
-      description: 'مقرون به صرفه',
-      icon: '🌊',
-      buildCommand: 'npm run build',
-      startCommand: 'npm run start',
-      features: ['App Platform', 'Database', 'Load Balancer']
-    },
-    {
-      name: 'AWS',
-      description: 'سطح سازمانی',
-      icon: '☁️',
-      buildCommand: 'npm run build',
-      startCommand: 'npm run start',
-      features: ['Elastic Beanstalk', 'RDS', 'CloudFront']
-    }
-  ];
-
-  const migrationSteps = [
-    'تنظیم متغیرهای محیطی در پلتفرم هاست',
-    'اتصال مخزن Git به پلتفرم',
-    'کانفیگ دیتابیس PostgreSQL',
-    'تست لینک‌های ایمیل و ریست پسورد',
-    'تنظیم DNS برای www.momtazchem.com',
-    'فعال‌سازی SSL Certificate',
-    'تست نهایی تمام قابلیت‌ها'
-  ];
-
+CORS_ORIGIN=${config.frontendUrl || 'https://www.momtazchem.com'}`;
   const testConfig = async () => {
     setIsLoading(true);
-    try {
-      const response = await fetch('/api/server/test-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        toast({
-          title: "تست موفق",
-          description: "تنظیمات سرور صحیح است",
-        });
-      } else {
-        toast({
-          title: "خطا در تست",
-          description: result.message,
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "خطا در اتصال",
-        description: "امکان تست تنظیمات وجود ندارد",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    try { const result = await (await fetch('/api/server/test-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config) })).json(); toast(result.success ? { title: t.success, description: t.valid } : { title: t.testError, description: result.message, variant: 'destructive' }); }
+    catch { toast({ title: t.connectionError, description: t.cannotTest, variant: 'destructive' }); } finally { setIsLoading(false); }
   };
-
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <Server className="w-8 h-8 text-blue-600" />
-        <div>
-          <h1 className="text-3xl font-bold">تنظیمات سرور</h1>
-          <p className="text-gray-600">مدیریت کانفیگ سرور و راهنمایی مهاجرت</p>
-        </div>
-      </div>
-
-      <Tabs defaultValue="monitoring" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="monitoring" className="flex items-center gap-2" data-testid="tab-monitoring">
-            <Activity className="w-4 h-4" />
-            مانیتورینگ
-          </TabsTrigger>
-          <TabsTrigger value="config" className="flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            کانفیگ سرور
-          </TabsTrigger>
-          <TabsTrigger value="domain" className="flex items-center gap-2">
-            <Globe className="w-4 h-4" />
-            دامین و ایمیل
-          </TabsTrigger>
-          <TabsTrigger value="database" className="flex items-center gap-2">
-            <Database className="w-4 h-4" />
-            دیتابیس
-          </TabsTrigger>
-          <TabsTrigger value="deployment" className="flex items-center gap-2">
-            <Upload className="w-4 h-4" />
-            راهنمای دیپلویمنت
-          </TabsTrigger>
-          <TabsTrigger value="migration" className="flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" />
-            مهاجرت
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="monitoring" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-blue-500" />
-                داشبورد تحلیلی (BI Dashboard)
-              </CardTitle>
-              <CardDescription>
-                نمایش بصری و تحلیلی وضعیت سیستم با نمودارها و شاخصu200cهای کلیدی
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BIMonitoringDashboard />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                مانیتورینگ لحظه‌ای سیستم
-              </CardTitle>
-              <CardDescription>
-                وضعیت سلامت سرویس‌های حیاتی - سازگار با هر پلتفرم (Replit، AWS، VPS)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SystemMonitoring />
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Server className="w-5 h-5 text-green-500" />
-                  مانیتور ترمینال سیستم
-                </CardTitle>
-                <CardDescription>
-                  نمایش real-time وضعیت سرویس‌ها
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TerminalMonitor />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-blue-500" />
-                  لاگ فعالیت‌های اپلیکیشن
-                </CardTitle>
-                <CardDescription>
-                  نمایش real-time رویدادها و فعالیت‌ها
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ActivityLog />
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="config" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                تنظیمات اصلی سرور
-              </CardTitle>
-              <CardDescription>
-                کانفیگ محیط پروداکشن
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="frontendUrl">آدرس دامین اصلی</Label>
-                  <Input
-                    id="frontendUrl"
-                    value={config.frontendUrl}
-                    onChange={(e) => setConfig({...config, frontendUrl: e.target.value})}
-                    placeholder="https://www.momtazchem.com"
-                    data-testid="input-frontend-url"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="serverIp">آدرس IP سرور</Label>
-                  <Input
-                    id="serverIp"
-                    value={config.serverIp}
-                    onChange={(e) => setConfig({...config, serverIp: e.target.value})}
-                    placeholder="0.0.0.0"
-                    data-testid="input-server-ip"
-                  />
-                  <p className="text-xs text-gray-500">
-                    0.0.0.0 برای دسترسی عمومی، 127.0.0.1 فقط localhost
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nodeEnv">محیط سرور</Label>
-                  <Input
-                    id="nodeEnv"
-                    value={config.nodeEnv}
-                    onChange={(e) => setConfig({...config, nodeEnv: e.target.value})}
-                    placeholder="production"
-                    data-testid="input-node-env"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sessionSecret">کلید امنیتی Session</Label>
-                  <Input
-                    id="sessionSecret"
-                    type="password"
-                    value={config.sessionSecret}
-                    onChange={(e) => setConfig({...config, sessionSecret: e.target.value})}
-                    placeholder="رمز قوی و منحصر به فرد"
-                    data-testid="input-session-secret"
-                  />
-                </div>
-              </div>
-
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  هنگام مهاجرت به www.momtazchem.com، حتماً FRONTEND_URL را به https://www.momtazchem.com تغییر دهید
-                </AlertDescription>
-              </Alert>
-
-              <div className="flex gap-2">
-                <Button onClick={testConfig} disabled={isLoading}>
-                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
-                  تست تنظیمات
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => copyToClipboard(generateEnvFile(), 'فایل .env')}
-                >
-                  {copied === 'فایل .env' ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                  کپی فایل .env
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="domain" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="w-5 h-5" />
-                مدیریت دامین و ایمیل
-              </CardTitle>
-              <CardDescription>
-                تنظیمات دامین اصلی و سیستم ایمیل
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>دامین پروداکشن:</strong> www.momtazchem.com
-                  <br />
-                  تمام لینک‌های ایمیل و ریست پسورد خودکار از این دامین استفاده می‌کنند
-                </AlertDescription>
-              </Alert>
-
-              <div className="space-y-3">
-                <h3 className="font-semibold">لینک‌های مهم که برای مشتری ارسال می‌شود:</h3>
-                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span>🔑 ریست پسورد مشتری:</span>
-                    <Badge variant="outline">/customer-reset-password</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>📧 تایید ایمیل:</span>
-                    <Badge variant="outline">/customer-verify-email</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>🛒 تایید سفارش:</span>
-                    <Badge variant="outline">/customer/orders</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>💳 آپلود فیش:</span>
-                    <Badge variant="outline">/customer/payment-receipt</Badge>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="smtpHost">SMTP Host</Label>
-                  <Input
-                    id="smtpHost"
-                    value={config.smtpHost}
-                    onChange={(e) => setConfig({...config, smtpHost: e.target.value})}
-                    placeholder="smtp.zoho.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtpPort">SMTP Port</Label>
-                  <Input
-                    id="smtpPort"
-                    value={config.smtpPort}
-                    onChange={(e) => setConfig({...config, smtpPort: e.target.value})}
-                    placeholder="587"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtpUser">SMTP User</Label>
-                  <Input
-                    id="smtpUser"
-                    value={config.smtpUser}
-                    onChange={(e) => setConfig({...config, smtpUser: e.target.value})}
-                    placeholder="support@momtazchem.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtpPass">SMTP Password</Label>
-                  <Input
-                    id="smtpPass"
-                    type="password"
-                    value={config.smtpPass}
-                    onChange={(e) => setConfig({...config, smtpPass: e.target.value})}
-                    placeholder="رمز عبور SMTP"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="database" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="w-5 h-5" />
-                مدیریت دیتابیس
-              </CardTitle>
-              <CardDescription>
-                تنظیمات و مهاجرت دیتابیس PostgreSQL
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="databaseUrl">Database URL</Label>
-                <Input
-                  id="databaseUrl"
-                  type="password"
-                  value={config.databaseUrl}
-                  onChange={(e) => setConfig({...config, databaseUrl: e.target.value})}
-                  placeholder="postgresql://user:pass@host:port/database"
-                />
-              </div>
-
-              <Alert>
-                <Database className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>دیتابیس فعلی:</strong> Neon PostgreSQL Cloud
-                  <br />
-                  <strong>سازگاری:</strong> هر ارائه‌دهنده PostgreSQL (AWS RDS, Google Cloud SQL, Railway, DigitalOcean)
-                </AlertDescription>
-              </Alert>
-
-              <div className="space-y-3">
-                <h3 className="font-semibold">مراحل مهاجرت دیتابیس:</h3>
-                <ol className="list-decimal list-inside space-y-2 bg-gray-50 p-4 rounded-lg">
-                  <li>Export کردن دیتا با pg_dump از Neon</li>
-                  <li>ایجاد دیتابیس جدید در پلتفرم مقصد</li>
-                  <li>Import کردن دیتا به دیتابیس جدید</li>
-                  <li>بروزرسانی DATABASE_URL در متغیرهای محیطی</li>
-                  <li>تست اتصال و عملکرد</li>
-                </ol>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => copyToClipboard('pg_dump $DATABASE_URL > backup.sql', 'دستور Export')}
-                >
-                  {copied === 'دستور Export' ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                  کپی دستور Export
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => copyToClipboard('psql $NEW_DATABASE_URL < backup.sql', 'دستور Import')}
-                >
-                  {copied === 'دستور Import' ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                  کپی دستور Import
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="deployment" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {deploymentPlatforms.map((platform) => (
-              <Card key={platform.name} className="cursor-pointer hover:shadow-md transition-shadow">
-                <CardHeader className="text-center">
-                  <div className="text-4xl mb-2">{platform.icon}</div>
-                  <CardTitle className="text-lg">{platform.name}</CardTitle>
-                  <CardDescription>{platform.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-sm text-gray-600">
-                      <strong>Build:</strong> {platform.buildCommand}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      <strong>Start:</strong> {platform.startCommand}
-                    </div>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {platform.features.map((feature) => (
-                        <Badge key={feature} variant="secondary" className="text-xs">
-                          {feature}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>تنظیمات DNS</CardTitle>
-              <CardDescription>
-                کانفیگ DNS برای دامین www.momtazchem.com
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm">
-                <div>Type: CNAME</div>
-                <div>Name: www</div>
-                <div>Value: your-deployment-url.vercel.app</div>
-                <div className="mt-2 text-gray-400"># یا URL پلتفرم انتخابی شما</div>
-              </div>
-              <Button 
-                className="mt-4" 
-                variant="outline"
-                onClick={() => copyToClipboard('CNAME www your-deployment-url.vercel.app', 'تنظیمات DNS')}
-              >
-                {copied === 'تنظیمات DNS' ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                کپی تنظیمات DNS
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="migration" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <RefreshCw className="w-5 h-5" />
-                راهنمای مهاجرت کامل
-              </CardTitle>
-              <CardDescription>
-                مراحل مهاجرت از Replit به www.momtazchem.com
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {migrationSteps.map((step, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{step}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <Alert className="mt-6">
-                <Shield className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>نکات امنیتی:</strong>
-                  <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>همیشه از HTTPS استفاده کنید</li>
-                    <li>SESSION_SECRET را قوی و منحصر به فرد انتخاب کنید</li>
-                    <li>رمزهای SMTP را در environment variables نگهداری کنید</li>
-                    <li>دسترسی دیتابیس را محدود کنید</li>
-                  </ul>
-                </AlertDescription>
-              </Alert>
-
-              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h3 className="font-semibold text-green-800 mb-2">✅ چک‌لیست نهایی</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                  <div>☑️ متغیرهای محیطی تنظیم شده</div>
-                  <div>☑️ دیتابیس منتقل شده</div>
-                  <div>☑️ DNS کانفیگ شده</div>
-                  <div>☑️ SSL فعال شده</div>
-                  <div>☑️ ایمیل‌ها تست شده</div>
-                  <div>☑️ لینک ریست پسورد کار می‌کند</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+  const platforms = [
+    ['Vercel', t.recommended, '🚀', ['Auto SSL', 'CDN', 'Git Integration']], ['Railway', t.easy, '🚄', ['PostgreSQL Add-on', 'Auto Deploy', 'Monitoring']],
+    ['DigitalOcean', t.affordable, '🌊', ['App Platform', 'Database', 'Load Balancer']], ['AWS', t.enterprise, '☁️', ['Elastic Beanstalk', 'RDS', 'CloudFront']]
+  ];
+  const tabs: Array<[string, React.ElementType, string]> = [['monitoring', Activity, t.monitoring], ['config', Settings, t.serverConfig], ['domain', Globe, t.domainEmail], ['database', Database, t.database], ['deployment', Upload, t.deployment], ['migration', RefreshCw, t.migration]];
+  const steps = [t.exportData, t.createDb, t.importData, t.updateUrl, t.connection];
+  const migration = [language === 'fa' ? 'تنظیم متغیرهای محیطی در پلتفرم هاست' : language === 'ar' ? 'إعداد متغيرات البيئة على منصة الاستضافة' : language === 'tr' ? 'Barındırma platformunda ortam değişkenlerini ayarlayın' : 'Configure environment variables on the hosting platform', language === 'fa' ? 'اتصال مخزن Git به پلتفرم' : language === 'ar' ? 'ربط مستودع Git بالمنصة' : language === 'tr' ? 'Git deposunu platforma bağlayın' : 'Connect the Git repository to the platform', language === 'fa' ? 'کانفیگ دیتابیس PostgreSQL' : language === 'ar' ? 'تهيئة قاعدة بيانات PostgreSQL' : language === 'tr' ? 'PostgreSQL veritabanını yapılandırın' : 'Configure the PostgreSQL database', language === 'fa' ? 'تست لینک‌های ایمیل و ریست پسورد' : language === 'ar' ? 'اختبار روابط البريد وإعادة تعيين كلمة المرور' : language === 'tr' ? 'E-posta ve parola sıfırlama bağlantılarını test edin' : 'Test email and password reset links', language === 'fa' ? 'تنظیم DNS برای www.momtazchem.com' : language === 'ar' ? 'إعداد DNS لـ www.momtazchem.com' : language === 'tr' ? 'www.momtazchem.com için DNS ayarlayın' : 'Configure DNS for www.momtazchem.com', language === 'fa' ? 'فعال‌سازی SSL Certificate' : language === 'ar' ? 'تفعيل SSL Certificate' : language === 'tr' ? 'SSL Certificate etkinleştirin' : 'Enable SSL Certificate', language === 'fa' ? 'تست نهایی تمام قابلیت‌ها' : language === 'ar' ? 'اختبار جميع الميزات النهائي' : language === 'tr' ? 'Tüm özellikleri son kez test edin' : 'Perform a final test of all features'];
+  const field = (id: keyof ServerConfig, label: string, placeholder: string, type = 'text') => <div className="space-y-2"><Label htmlFor={id}>{label}</Label><Input id={id} type={type} value={config[id]} onChange={e => setConfig({ ...config, [id]: e.target.value })} placeholder={placeholder} /></div>;
+  return <div dir={direction} className="container mx-auto p-6 space-y-6">
+    <div className="flex items-center gap-3 mb-6"><Server className="w-8 h-8 text-blue-600" /><div><h1 className="text-3xl font-bold">{t.title}</h1><p className="text-gray-600">{t.subtitle}</p></div></div>
+    <Tabs defaultValue="monitoring" className="w-full"><TabsList className="grid w-full grid-cols-6">
+      {tabs.map(([value, Icon, label]) => <TabsTrigger key={value} value={value} className="flex items-center gap-2"><Icon className="w-4 h-4" />{label}</TabsTrigger>)}
+    </TabsList>
+    <TabsContent value="monitoring" className="space-y-6"><Card><CardHeader><CardTitle className="flex items-center gap-2"><Activity className="w-5 h-5 text-blue-500" />{t.bi}</CardTitle><CardDescription>{t.biDesc}</CardDescription></CardHeader><CardContent><BIMonitoringDashboard /></CardContent></Card><Card><CardHeader><CardTitle className="flex items-center gap-2"><Activity className="w-5 h-5" />{t.live}</CardTitle><CardDescription>{t.liveDesc}</CardDescription></CardHeader><CardContent><SystemMonitoring /></CardContent></Card><div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><Card><CardHeader><CardTitle><Server className="inline w-5 h-5 me-2" />{t.terminal}</CardTitle><CardDescription>{t.terminalDesc}</CardDescription></CardHeader><CardContent><TerminalMonitor /></CardContent></Card><Card><CardHeader><CardTitle><Activity className="inline w-5 h-5 me-2" />{t.activity}</CardTitle><CardDescription>{t.activityDesc}</CardDescription></CardHeader><CardContent><ActivityLog /></CardContent></Card></div></TabsContent>
+    <TabsContent value="config" className="space-y-6"><Card><CardHeader><CardTitle><Settings className="inline w-5 h-5 me-2" />{t.main}</CardTitle><CardDescription>{t.production}</CardDescription></CardHeader><CardContent className="space-y-4"><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{field('frontendUrl', t.domain, 'https://www.momtazchem.com')}{field('serverIp', t.ip, '0.0.0.0')}<p className="text-xs text-gray-500 md:col-start-2">{t.ipHelp}</p>{field('nodeEnv', t.env, 'production')}{field('sessionSecret', t.secret, t.strongSecret, 'password')}</div><Alert><Info className="h-4 w-4" /><AlertDescription>{t.migrateAlert}</AlertDescription></Alert><div className="flex gap-2"><Button onClick={testConfig} disabled={isLoading}>{isLoading ? <RefreshCw className="w-4 h-4 me-2 animate-spin" /> : <Check className="w-4 h-4 me-2" />}{isLoading ? t.loading : t.test}</Button><Button variant="outline" onClick={() => copyToClipboard(generateEnvFile(), t.envFile)}>{copied === t.envFile ? <Check className="w-4 h-4 me-2" /> : <Copy className="w-4 h-4 me-2" />}{t.copyEnv}</Button></div></CardContent></Card></TabsContent>
+    <TabsContent value="domain" className="space-y-6"><Card><CardHeader><CardTitle><Globe className="inline w-5 h-5 me-2" />{t.domainManage}</CardTitle><CardDescription>{t.domainDesc}</CardDescription></CardHeader><CardContent className="space-y-4"><Alert><AlertTriangle className="h-4 w-4" /><AlertDescription><strong>{t.productionDomain}</strong> www.momtazchem.com<br />{t.emailLinks}</AlertDescription></Alert><div className="space-y-3"><h3 className="font-semibold">{t.importantLinks}</h3><div className="bg-gray-50 p-4 rounded-lg space-y-2">{[[`🔑 ${t.reset}`, '/customer-reset-password'], [`📧 ${t.verify}`, '/customer-verify-email'], [`🛒 ${t.order}`, '/customer/orders'], [`💳 ${t.receipt}`, '/customer/payment-receipt']].map(([label, path]) => <div className="flex items-center justify-between" key={path}><span>{label}</span><Badge variant="outline">{path}</Badge></div>)}</div></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4">{field('smtpHost', 'SMTP Host', 'smtp.zoho.com')}{field('smtpPort', 'SMTP Port', '587')}{field('smtpUser', 'SMTP User', 'support@momtazchem.com')}{field('smtpPass', t.smtpPass, t.smtpPass, 'password')}</div></CardContent></Card></TabsContent>
+     <TabsContent value="database" className="space-y-6"><Card><CardHeader><CardTitle><Database className="inline w-5 h-5 me-2" />{t.dbManage}</CardTitle><CardDescription>{t.dbDesc}</CardDescription></CardHeader><CardContent className="space-y-4">{field('databaseUrl', 'Database URL', 'postgresql://user:pass@host:port/database', 'password')}<Alert><Database className="h-4 w-4" /><AlertDescription><strong>{t.currentDb}</strong> {language === 'fa' ? 'اتصال فعلی در تب مانیتورینگ به‌صورت زنده بررسی می‌شود' : language === 'ar' ? 'يتم التحقق من الاتصال الحالي مباشرة في تبويب المراقبة' : language === 'tr' ? 'Mevcut bağlantı İzleme sekmesinde canlı olarak doğrulanır' : 'The current connection is verified live in the Monitoring tab'}<br /><strong>{t.compatibility}</strong> {t.anyProvider}</AlertDescription></Alert><div className="space-y-3"><h3 className="font-semibold">{t.dbSteps}</h3><ol className="list-decimal list-inside space-y-2 bg-gray-50 p-4 rounded-lg">{steps.map(step => <li key={step}>{step}</li>)}</ol></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><Button variant="outline" onClick={() => copyToClipboard('pg_dump $DATABASE_URL > backup.sql', t.exportCmd)}>{copied === t.exportCmd ? <Check className="w-4 h-4 me-2" /> : <Copy className="w-4 h-4 me-2" />}{t.copyExport}</Button><Button variant="outline" onClick={() => copyToClipboard('psql $NEW_DATABASE_URL < backup.sql', t.importCmd)}>{copied === t.importCmd ? <Check className="w-4 h-4 me-2" /> : <Copy className="w-4 h-4 me-2" />}{t.copyImport}</Button></div></CardContent></Card></TabsContent>
+     <TabsContent value="deployment" className="space-y-6"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">{platforms.map(([name, desc, icon, features]) => <Card key={String(name)} className="cursor-pointer hover:shadow-md transition-shadow"><CardHeader className="text-center"><div className="text-4xl mb-2">{icon}</div><CardTitle className="text-lg">{name}</CardTitle><CardDescription>{desc}</CardDescription></CardHeader><CardContent><div className="space-y-2"><div className="text-sm text-gray-600"><strong>{t.build}</strong> npm run build</div><div className="text-sm text-gray-600"><strong>{t.start}</strong> npm run start</div><div className="flex flex-wrap gap-1 mt-2">{(features as string[]).map(feature => <Badge key={feature} variant="secondary" className="text-xs">{feature}</Badge>)}</div></div></CardContent></Card>)}</div><Card><CardHeader><CardTitle>{t.dns}</CardTitle><CardDescription>{t.dnsDesc}</CardDescription></CardHeader><CardContent><div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm"><div>Type: CNAME</div><div>Name: www</div><div>Value: your-deployment-url.vercel.app</div><div className="mt-2 text-gray-400">{t.platformUrl}</div></div><Button className="mt-4" variant="outline" onClick={() => copyToClipboard('CNAME www your-deployment-url.vercel.app', t.dnsConfig)}>{copied === t.dnsConfig ? <Check className="w-4 h-4 me-2" /> : <Copy className="w-4 h-4 me-2" />}{t.copyDns}</Button></CardContent></Card></TabsContent>
+    <TabsContent value="migration" className="space-y-6"><Card><CardHeader><CardTitle><RefreshCw className="inline w-5 h-5 me-2" />{t.fullMigration}</CardTitle><CardDescription>{t.fromReplit}</CardDescription></CardHeader><CardContent><div className="space-y-4">{migration.map((step, index) => <div key={step} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"><div className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">{index + 1}</div><p className="font-medium flex-1">{step}</p></div>)}</div><Alert className="mt-6"><Shield className="h-4 w-4" /><AlertDescription><strong>{t.security}</strong><ul className="list-disc list-inside mt-2 space-y-1"><li>{t.https}</li><li>{t.secretTip}</li><li>{t.smtpTip}</li><li>{t.dbTip}</li></ul></AlertDescription></Alert><div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg"><h3 className="font-semibold text-green-800 mb-2">{t.checklist}</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm"><div>{t.envSet}</div><div>{t.dbMoved}</div><div>{t.dnsSet}</div><div>{t.ssl}</div><div>{t.emailTest}</div><div>{t.resetWorks}</div></div></div></CardContent></Card></TabsContent>
+    </Tabs>
+  </div>;
 }

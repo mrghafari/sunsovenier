@@ -5,6 +5,95 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Upload, FileText, CheckCircle, AlertCircle, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
+import type { Language } from '@/lib/i18n';
+
+const UPLOADER_T = {
+  en: {
+    title: 'Upload bank receipt',
+    description: 'Quickly and securely upload your bank payment receipt',
+    chooseReceipt: 'Choose bank receipt',
+    uploading: 'Uploading...',
+    uploaded: 'Bank receipt uploaded successfully',
+    retry: 'File upload failed. Please try again',
+    maxSize: 'Maximum size:',
+    formats: 'Allowed formats: JPG, PNG, GIF, WebP, PDF',
+    secureValidation: 'Automatic secure validation',
+    sizeError: (max: number) => `File size must not exceed ${max} MB`,
+    typeError: 'Only images (JPEG, PNG, GIF, WebP) and PDF files are allowed',
+    urlError: 'Could not prepare the file upload',
+    invalidUrl: 'Upload information is incomplete',
+    uploadError: 'Could not upload the file',
+    validationError: 'Could not validate the uploaded file',
+    successTitle: 'Upload successful',
+    successDescription: 'Bank receipt uploaded and validated successfully',
+    errorTitle: 'Upload failed',
+    unknownError: 'An unexpected error occurred',
+  },
+  ar: {
+    title: 'رفع الإيصال البنكي',
+    description: 'ارفع إيصال الدفع البنكي بسرعة وأمان',
+    chooseReceipt: 'اختيار الإيصال البنكي',
+    uploading: 'جارٍ الرفع...',
+    uploaded: 'تم رفع الإيصال البنكي بنجاح',
+    retry: 'فشل رفع الملف. يرجى المحاولة مرة أخرى',
+    maxSize: 'الحد الأقصى للحجم:',
+    formats: 'الصيغ المسموحة: JPG، PNG، GIF، WebP، PDF',
+    secureValidation: 'تحقق آمن وتلقائي',
+    sizeError: (max: number) => `يجب ألا يتجاوز حجم الملف ${max} ميغابايت`,
+    typeError: 'يُسمح فقط بالصور (JPEG، PNG، GIF، WebP) وملفات PDF',
+    urlError: 'تعذر تجهيز رفع الملف',
+    invalidUrl: 'معلومات الرفع غير مكتملة',
+    uploadError: 'تعذر رفع الملف',
+    validationError: 'تعذر التحقق من الملف المرفوع',
+    successTitle: 'تم الرفع بنجاح',
+    successDescription: 'تم رفع الإيصال البنكي والتحقق منه بنجاح',
+    errorTitle: 'فشل الرفع',
+    unknownError: 'حدث خطأ غير متوقع',
+  },
+  tr: {
+    title: 'Banka dekontu yükle',
+    description: 'Banka dekontunuzu hızlı ve güvenli şekilde yükleyin',
+    chooseReceipt: 'Banka dekontu seç',
+    uploading: 'Yükleniyor...',
+    uploaded: 'Banka dekontu başarıyla yüklendi',
+    retry: 'Dosya yüklenemedi. Lütfen tekrar deneyin',
+    maxSize: 'En büyük dosya boyutu:',
+    formats: 'İzin verilen biçimler: JPG, PNG, GIF, WebP, PDF',
+    secureValidation: 'Otomatik güvenli doğrulama',
+    sizeError: (max: number) => `Dosya boyutu ${max} MB değerini aşmamalıdır`,
+    typeError: 'Yalnızca görseller (JPEG, PNG, GIF, WebP) ve PDF dosyaları kabul edilir',
+    urlError: 'Dosya yüklemesi hazırlanamadı',
+    invalidUrl: 'Yükleme bilgileri eksik',
+    uploadError: 'Dosya yüklenemedi',
+    validationError: 'Yüklenen dosya doğrulanamadı',
+    successTitle: 'Yükleme başarılı',
+    successDescription: 'Banka dekontu başarıyla yüklendi ve doğrulandı',
+    errorTitle: 'Yükleme başarısız',
+    unknownError: 'Beklenmeyen bir hata oluştu',
+  },
+  fa: {
+    title: 'آپلود فیش بانکی',
+    description: 'آپلود ساده و سریع فیش واریزی بانکی',
+    chooseReceipt: 'انتخاب فیش بانکی',
+    uploading: 'در حال آپلود...',
+    uploaded: 'فیش بانکی با موفقیت آپلود شد',
+    retry: 'خطا در آپلود فایل. لطفاً دوباره تلاش کنید',
+    maxSize: 'حداکثر حجم:',
+    formats: 'فرمت‌های مجاز: JPG, PNG, GIF, WebP, PDF',
+    secureValidation: 'اعتبارسنجی خودکار و امن',
+    sizeError: (max: number) => `حجم فایل نباید از ${max} مگابایت بیشتر باشد`,
+    typeError: 'فقط فایل‌های تصویری (JPEG, PNG, GIF, WebP) و PDF مجاز هستند',
+    urlError: 'خطا در دریافت آدرس آپلود',
+    invalidUrl: 'اطلاعات مسیر آپلود ناقص است',
+    uploadError: 'خطا در آپلود فایل',
+    validationError: 'خطا در اعتبارسنجی فایل',
+    successTitle: 'آپلود موفق',
+    successDescription: 'فیش بانکی با موفقیت آپلود و اعتبارسنجی شد',
+    errorTitle: 'خطا در آپلود',
+    unknownError: 'خطای ناشناخته',
+  },
+} satisfies Record<Language, object>;
 
 interface SimpleBankReceiptUploaderProps {
   onUploadComplete?: (fileUrl: string) => void;
@@ -22,6 +111,8 @@ export function SimpleBankReceiptUploader({
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { language, direction } = useLanguage();
+  const t = UPLOADER_T[language];
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -34,12 +125,12 @@ export function SimpleBankReceiptUploader({
 
       // File validation
       if (file.size > maxFileSize) {
-        throw new Error(`حجم فایل نباید از ${Math.round(maxFileSize / 1024 / 1024)} مگابایت بیشتر باشد`);
+        throw new Error(t.sizeError(Math.round(maxFileSize / 1024 / 1024)));
       }
 
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
       if (!allowedTypes.includes(file.type)) {
-        throw new Error('فقط فایل‌های تصویری (JPEG, PNG, GIF, WebP) و PDF مجاز هستند');
+        throw new Error(t.typeError);
       }
 
       setProgress(30);
@@ -57,13 +148,12 @@ export function SimpleBankReceiptUploader({
       });
 
       if (!uploadResponse.ok) {
-        const error = await uploadResponse.json();
-        throw new Error(error.errors?.[0] || 'خطا در دریافت آدرس آپلود');
+        throw new Error(t.urlError);
       }
 
       const uploadData = await uploadResponse.json();
       if (!uploadData.success || !uploadData.uploadUrl || !uploadData.objectPath) {
-        throw new Error(uploadData.errors?.[0] || 'اطلاعات مسیر آپلود ناقص است');
+        throw new Error(t.invalidUrl);
       }
       setProgress(50);
 
@@ -75,7 +165,7 @@ export function SimpleBankReceiptUploader({
       });
 
       if (!fileUploadResponse.ok) {
-        throw new Error('خطا در آپلود فایل');
+        throw new Error(t.uploadError);
       }
 
       setProgress(80);
@@ -98,19 +188,19 @@ export function SimpleBankReceiptUploader({
       if (validationResult.success) {
         setUploadStatus('success');
         toast({
-          title: "✅ آپلود موفق",
-          description: "فیش بانکی با موفقیت آپلود و اعتبارسنجی شد"
+          title: t.successTitle,
+          description: t.successDescription,
         });
         onUploadComplete?.(uploadData.objectPath);
       } else {
-        throw new Error(validationResult.errors?.[0] || 'خطا در اعتبارسنجی فایل');
+        throw new Error(t.validationError);
       }
 
     } catch (error) {
       setUploadStatus('error');
       toast({
-        title: "❌ خطا در آپلود",
-        description: error instanceof Error ? error.message : 'خطای ناشناخته',
+        title: t.errorTitle,
+        description: error instanceof Error ? error.message : t.unknownError,
         variant: "destructive"
       });
     } finally {
@@ -133,15 +223,15 @@ export function SimpleBankReceiptUploader({
   };
 
   return (
-    <Card className={className}>
+    <Card className={className} dir={direction}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          آپلود فیش بانکی
+          {t.title}
           <Shield className="h-4 w-4 text-green-600" />
         </CardTitle>
         <CardDescription>
-          آپلود ساده و سریع فیش واریزی بانکی
+          {t.description}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -163,7 +253,7 @@ export function SimpleBankReceiptUploader({
             <Upload className="h-12 w-12 text-gray-400 mb-4" />
             <Button disabled={uploading} asChild>
               <span>
-                {uploading ? 'در حال آپلود...' : 'انتخاب فیش بانکی'}
+                {uploading ? t.uploading : t.chooseReceipt}
               </span>
             </Button>
           </label>
@@ -173,7 +263,7 @@ export function SimpleBankReceiptUploader({
         {uploading && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>در حال آپلود...</span>
+              <span>{t.uploading}</span>
               <span>{progress}%</span>
             </div>
             <Progress value={progress} className="w-full" />
@@ -185,7 +275,7 @@ export function SimpleBankReceiptUploader({
           <Alert className="border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-700">
-              فیش بانکی با موفقیت آپلود شد
+              {t.uploaded}
             </AlertDescription>
           </Alert>
         )}
@@ -194,16 +284,16 @@ export function SimpleBankReceiptUploader({
           <Alert className="border-red-200 bg-red-50">
             <AlertCircle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-700">
-              خطا در آپلود فایل. لطفاً دوباره تلاش کنید
+              {t.retry}
             </AlertDescription>
           </Alert>
         )}
 
         {/* File Constraints */}
         <div className="text-xs text-gray-500 space-y-1">
-          <p>• حداکثر حجم: {formatFileSize(maxFileSize)}</p>
-          <p>• فرمت‌های مجاز: JPG, PNG, GIF, WebP, PDF</p>
-          <p>• اعتبارسنجی خودکار و امن</p>
+          <p>• {t.maxSize} {formatFileSize(maxFileSize)}</p>
+          <p>• {t.formats}</p>
+          <p>• {t.secureValidation}</p>
         </div>
       </CardContent>
     </Card>

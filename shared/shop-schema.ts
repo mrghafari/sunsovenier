@@ -111,6 +111,8 @@ export const shopProducts = pgTable("shop_products", {
   quantityDiscounts: json("quantity_discounts"), // [{minQty: 10, discount: 0.05}, {minQty: 50, discount: 0.10}]
   isActive: boolean("is_active").default(true),
   isFeatured: boolean("is_featured").default(false),
+  contractOnly: boolean("contract_only").notNull().default(false),
+  isBulkSale: boolean("is_bulk_sale").notNull().default(false),
   // Marketplace vendor field
   vendorId: integer("vendor_id"), // Reference to vendor (null = owned by Momtazchem)
   commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }), // نرخ کمیسیون اختصاصی کالا (اگر خالی باشد از درصد پیش‌فرض وندور استفاده می‌شود)

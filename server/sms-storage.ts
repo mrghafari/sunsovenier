@@ -233,31 +233,32 @@ export class SmsStorage implements ISmsStorage {
     totalVerifications: number;
     verificationsSentToday: number;
     successfulVerifications: number;
+    totalSent: number;
+    accepted: number;
+    sent: number;
+    pending: number;
+    failed: number;
+    delivered: number;
     customersWithSmsEnabled: number;
     systemEnabled: boolean;
   }> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Get total verifications
-    const totalVerifications = await smsDb
-      .select({ count: smsVerifications.id })
-      .from(smsVerifications);
-    
-    // Get verifications sent today
-    const verificationsSentToday = await smsDb
-      .select({ count: smsVerifications.id })
-      .from(smsVerifications)
-      .where(gt(smsVerifications.createdAt, today));
-    
-    // Get successful verifications
-    const successfulVerifications = await smsDb
-      .select({ count: smsVerifications.id })
-      .from(smsVerifications)
-      .where(eq(smsVerifications.isUsed, true));
-    
-    // Get customers with SMS enabled from CRM
+    // Statistics on this page describe outbound messages, not verification
+    // attempts.  In particular, a used verification code is not delivery
+    // evidence and must never be counted as a delivered SMS.
     const { pool } = await import('./db');
+    const smsResult = await pool.query(`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE status = 'accepted')::int AS accepted,
+        COUNT(*) FILTER (WHERE status = 'sent')::int AS sent,
+        COUNT(*) FILTER (WHERE status = 'pending')::int AS pending,
+        COUNT(*) FILTER (WHERE status = 'failed')::int AS failed,
+        COUNT(*) FILTER (WHERE status = 'delivered')::int AS delivered,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE)::int AS sent_today
+      FROM sms_logs
+    `);
+    const smsCounts = smsResult.rows[0] || {};
+
     const customersResult = await pool.query(`
       SELECT COUNT(*) as count
       FROM crm_customers
@@ -268,10 +269,20 @@ export class SmsStorage implements ISmsStorage {
     // Get system status
     const systemSettings = await this.getSmsSettings();
     
+    const totalSent = Number(smsCounts.total || 0);
+    const accepted = Number(smsCounts.accepted || 0);
     return {
-      totalVerifications: totalVerifications.length,
-      verificationsSentToday: verificationsSentToday.length,
-      successfulVerifications: successfulVerifications.length,
+      // Retain the legacy keys for clients, but source them from sms_logs.
+      totalVerifications: totalSent,
+      verificationsSentToday: Number(smsCounts.sent_today || 0),
+      successfulVerifications: accepted,
+      totalSent,
+      accepted,
+      sent: Number(smsCounts.sent || 0),
+      pending: Number(smsCounts.pending || 0),
+      failed: Number(smsCounts.failed || 0),
+      // This is deliberately only an explicit provider status in sms_logs.
+      delivered: Number(smsCounts.delivered || 0),
       customersWithSmsEnabled: customersWithSmsEnabledCount,
       systemEnabled: systemSettings?.isEnabled || false
     };

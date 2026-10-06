@@ -1,4 +1,6 @@
-import express, { type Express, Request, Response, NextFunction } from "express";
+import express, { type Express, type RequestHandler, Request, Response, NextFunction } from "express";
+import { siteManagementModuleIds } from "@shared/site-management-modules";
+import { loadingPermissionDefinition } from "./modules/loading/registration";
 import { registerFibRoutes } from "./fib-routes";
 import { createServer, type Server } from "http";
 import { logBuffer } from "./log-buffer";
@@ -9,6 +11,8 @@ import fs from "fs";
 import puppeteer from "puppeteer";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
+import { customerOrderErrorResponse } from "./customer-order-errors";
+import { settleLegacyWalletCheckout } from "./legacy-wallet-checkout";
 import { emailService } from "./email-service";
 import { storage } from "./storage";
 import { insertLeadSchema, insertLeadActivitySchema } from "@shared/schema";
@@ -22,27 +26,32 @@ import { crmStorage } from "./crm-storage";
 import { customerCommunicationStorage } from "./customer-communication-storage";
 import { crmDb } from "./crm-db";
 import { smsStorage } from "./sms-storage";
-import { SimpleSmsStorage, simpleSmsStorage, simpleSmsDb } from "./simple-sms-storage";
 import { widgetRecommendationStorage } from "./widget-recommendation-storage";
 import { orderManagementStorage } from "./order-management-storage";
 import { walletStorage } from "./wallet-storage";
 import { requireDepartment, attachUserDepartments } from "./department-auth";
+import { requireSuperAdminRole } from "./admin-auth";
 import { insertCustomerInquirySchema, insertEmailTemplateSchema, insertCustomerSchema, insertCustomerAddressSchema, walletRechargeRequests, customerOrders, orderItems, walletTransactions, customerWallets, customerVerificationSettings } from "@shared/customer-schema";
 import { customerDb, customerPool } from "./customer-db";
 import { insertEmailCategorySchema, insertSmtpSettingSchema, insertEmailRecipientSchema, smtpConfigSchema, emailLogs, emailCategories, smtpSettings, emailRecipients, categoryEmailAssignments, insertCategoryEmailAssignmentSchema } from "@shared/email-schema";
 import { insertShopProductSchema, insertShopCategorySchema, paymentGateways, shopProducts } from "@shared/shop-schema";
 import { sendContactEmail } from "./email";
-import { insertBlogPostSchema, insertBlogPostTranslationSchema, blogPosts, blogPostTranslations } from "@shared/blog-schema";
+import { insertBlogPostSchema, blogPosts, blogPostTranslations } from "@shared/blog-schema";
+import { blogTranslationsSchema, selectBlogTranslation } from "@shared/blog-localization";
 import TemplateProcessor from "./template-processor";
 import InventoryAlertService from "./inventory-alerts";
-import { db } from "./db";
-import { sql, eq, and, or, ne, isNull, isNotNull, desc, gte, inArray } from "drizzle-orm";
+import { db, pool } from "./db";
+import { sql, eq, and, or, ne, isNull, isNotNull, desc, gte, inArray, asc } from "drizzle-orm";
 import { findCorruptedOrders, getDataIntegrityStats, validateOrderIntegrity, markCorruptedOrderAsDeleted } from './data-integrity-tools';
 import { z } from "zod";
+import {readSiteLanguageSettings,saveSiteLanguageSettings} from "./site-language-settings";
+import {languageForVisitorCountry,siteLanguageSettingsUpdateSchema,type SiteLanguageSettings} from "@shared/site-language-settings";
+import { normalizeBlogPublishDate, parseNewBlogPost } from "./blog-post-input";
 import * as schema from "@shared/schema";
+import { iranProvinces } from "../client/src/lib/iran-locations";
 const { crmCustomers, iraqiProvinces, iraqiCities, abandonedOrders, contentItems, footerSettings, paymentMethodSettings, shopSettings, aiApiSettings, insertAiApiSettingsSchema, vendors, postalServices } = schema;
 import { webrtcRooms, roomParticipants, chatMessages } from "@shared/webrtc-schema";
-import { orderManagement, shippingRates, deliveryMethods, paymentReceipts } from "@shared/order-management-schema";
+import { orderManagement, shippingRates, deliveryMethods, paymentReceipts, consolidatedOrderData, orderStatusHistory } from "@shared/order-management-schema";
 import { generateEAN13Barcode, validateEAN13, parseEAN13Barcode, isMomtazchemBarcode } from "@shared/barcode-utils";
 import { generateSmartSKU, validateSKUUniqueness } from "./ai-sku-generator";
 import { deliveryVerificationStorage } from "./delivery-verification-storage";
@@ -56,6 +65,48 @@ import { fileSecurityService, productImageSecurityService } from "./fileSecurity
 import { ObjectStorageService } from "./objectStorage";
 import { getAwsS3Service } from './aws-s3-service';
 import { sendOrderConfirmationEmail } from "./order-confirmation-email";
+import { resolveOrderStatus } from "@shared/order-status";
+import { marketingSubscribers, marketingSuppressions, marketingCampaigns, marketingCampaignRecipients } from "@shared/email-marketing-schema";
+import {
+  getOriginRouteDistances,
+  getRouteDestinationCities,
+  getRouteDistance,
+  getShippingCenter,
+  getShippingCenterCity,
+  resolveActiveCityByName,
+  resolveShippingRoute,
+  saveRouteDistance,
+  saveShippingCenter,
+  ShippingConfigurationError,
+} from "./shipping-center-service";
+import { parsePositiveIntegerId } from "./shipping-route-resolution";
+import { calculateAuthoritativeShippingCost, isActiveCanonicalShippingMethod } from "./order-shipping-pricing";
+import { assertShippingQuoteBindings, signShippingQuote, verifyShippingQuote, type ShippingQuoteClaims } from "./shipping-quote";
+import {requiresBulkContractTransport,eligibleTransportTemplates} from "@shared/bulk-transport";
+import {validateSelectedBulkTemplate} from "./bulk-order-transport";
+import {canAdminConfirmDelivery,isSiteAdminDeliveryRole,isFourDigitDeliveryCode,normalizeDeliveryConfirmationCode} from "@shared/admin-delivery-confirmation";
+import {
+  normalizeProductWeightUpdates,
+  type ProductWeightField,
+} from "./product-weight-sync";
+import { syncCanonicalKardexWeightsToShop } from "./product-weight-shop-sync";
+
+const INVOICE_LANGUAGES = ['en', 'ar', 'tr', 'fa'] as const;
+type InvoiceLanguage = typeof INVOICE_LANGUAGES[number];
+
+function parseInvoiceLanguage(value: unknown): InvoiceLanguage | null {
+  const language = String(value ?? '').toLowerCase();
+  return (INVOICE_LANGUAGES as readonly string[]).includes(language)
+    ? language as InvoiceLanguage
+    : null;
+}
+
+async function syncProductWeightsToShop(
+  product: any,
+  changedFields: ProductWeightField[],
+): Promise<boolean> {
+  return syncCanonicalKardexWeightsToShop(product, changedFields);
+}
 
 import { 
   vehicleTemplates, 
@@ -165,6 +216,10 @@ import {
 // Import sync service for automatic table synchronization
 import { globalSyncService } from './sync-service';
 import { generateSitemap } from './sitemap';
+import { incomingCorrespondence, insertIncomingCorrespondenceSchema, outgoingCorrespondence, insertOutgoingCorrespondenceSchema, insertCompanyDocumentSchema, insertBusinessCardSchema, insertCompanyImageSchema } from "@shared/company-info-schema.js";
+import { id } from "date-fns/locale";
+import { SessionData } from "express-session";
+import { registerKpiDashboardRoute } from "./kpi-dashboard";
 
 // Extend session type to include admin user and customer user
 declare module "express-session" {
@@ -520,6 +575,410 @@ const requireCustomerAuth = (req: Request, res: Response, next: NextFunction) =>
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  async function getCanonicalCheckoutCartFacts(cart: unknown) {
+    if (!cart || typeof cart !== "object" || Array.isArray(cart)) {
+      throw new ShippingConfigurationError("A product cart is required for a shipping quote.", 422);
+    }
+    const entries = Object.entries(cart as Record<string, unknown>)
+      .map(([id, quantity]) => ({ id: Number(id), quantity: Number(quantity) }))
+      .sort((a, b) => a.id - b.id);
+    if (!entries.length || entries.some((entry) =>
+      !Number.isSafeInteger(entry.id) || entry.id <= 0 || !Number.isSafeInteger(entry.quantity) || entry.quantity <= 0
+    )) {
+      throw new ShippingConfigurationError("Shipping quote cart must contain valid product IDs and quantities.", 422);
+    }
+    const products = await db.select().from(shopProducts).where(inArray(shopProducts.id, entries.map((entry) => entry.id)));
+    if (products.length !== entries.length) {
+      throw new ShippingConfigurationError("Shipping quotes are only available for active shop catalog products.", 422);
+    }
+    let totalWeightKg = 0;
+    const facts = entries.map(({ id, quantity }) => {
+      const product: any = products.find((candidate: any) => candidate.id === id);
+      const value = product.grossWeight ?? product.weight;
+      let weightKg = value == null || String(value).trim() === "" ? null : Number(value);
+      if (weightKg !== null) {
+        if (!Number.isFinite(weightKg) || weightKg < 0) {
+          throw new ShippingConfigurationError(`Product ${id} has an invalid shipping weight.`, 422);
+        }
+        const units: Record<string, number> = {
+          kg: 1, kilogram: 1, kilograms: 1, g: 0.001, gram: 0.001, grams: 0.001,
+          lb: 0.45359237, lbs: 0.45359237, pound: 0.45359237, pounds: 0.45359237,
+          oz: 0.028349523125, ounce: 0.028349523125, ounces: 0.028349523125,
+          t: 1000, ton: 1000, tonne: 1000,
+        };
+        const unit = String(product.weightUnit || "kg").trim().toLowerCase();
+        if (!(unit in units)) throw new ShippingConfigurationError(`Product ${id} uses an unsupported weight unit.`, 422);
+        weightKg *= units[unit];
+        totalWeightKg += weightKg * quantity;
+      }
+      const shippingClass = String(product.shippingClass || "").toLowerCase();
+      const isFlammable = product.isFlammable === true || shippingClass === "flammable";
+      return {
+        id,
+        quantity,
+        weightKg: weightKg === null ? null : Number(weightKg.toFixed(8)),
+        isFlammable,
+        isHazardous: shippingClass === "hazardous" && !isFlammable,
+        ...(product.isBulkSale===true?{isBulkSale:true}:{}),
+      };
+    });
+    return {
+      cart: facts,
+      totalWeightKg: Number(totalWeightKg.toFixed(8)),
+      isFlammable: facts.some((item) => item.isFlammable),
+      isHazardous: facts.some((item) => item.isHazardous),
+    };
+  }
+
+  function issueCheckoutShippingQuote(input: {
+    cartFacts: Awaited<ReturnType<typeof getCanonicalCheckoutCartFacts>>;
+    center: { cityId: number; countryCode: string };
+    destinationCityId: number;
+    distanceKm: number;
+    method: string;
+    selectedVehicles: ShippingQuoteClaims["selectedVehicles"];
+    shippingCost: number;
+    contractId?:number|null;
+  }) {
+    if (!Number.isFinite(input.shippingCost) || input.shippingCost < 0) {
+      throw new ShippingConfigurationError("Vehicle quote has no valid server-side price.", 422);
+    }
+    return signShippingQuote({
+      center: { cityId: input.center.cityId, countryCode: input.center.countryCode },
+      destinationCityId: input.destinationCityId,
+      distanceKm: input.distanceKm,
+      cart: input.cartFacts.cart,
+      totalWeightKg: input.cartFacts.totalWeightKg,
+      isFlammable: input.cartFacts.isFlammable,
+      isHazardous: input.cartFacts.isHazardous,
+      method: input.method,
+      selectedVehicles: input.selectedVehicles,
+      shippingCost: input.shippingCost,
+      contractId:input.contractId??null,
+    });
+  }
+
+  // Resolve checkout shipping from authoritative geography, catalog weights and
+  // active server-side rates. Client-calculated shipping prices are display-only.
+  async function validateAndPriceOrderShipping(input: {
+    methodSelector: unknown;
+    methodValue?: unknown;
+    selectorIsDeliveryMethod?: boolean;
+    checkoutFlow?: "shop" | "customers" | "standard_quote";
+    standardMethodsOnly?: boolean;
+    destinationCityId?: unknown;
+    destinationCity?: unknown;
+    destinationProvince?: unknown;
+    destinationCountry?: unknown;
+    cart: Record<string, unknown>;
+    shippingQuoteToken?: unknown;
+    contractId?: unknown;
+    customerId?: unknown;
+  }): Promise<{ shippingCost: number; itemSubtotal: number; totalWeight: number; productFacts: Map<number, any>; shippingQuoteVehicle?: any; destinationCityId?: number }> {
+    const productIds = Object.keys(input.cart || {}).map((id) => Number(id));
+    if (!productIds.length || productIds.some((id) => !Number.isSafeInteger(id) || id <= 0)) {
+      throw new ShippingConfigurationError("Order must contain valid products.", 422);
+    }
+    const products = await db.select().from(shopProducts).where(inArray(shopProducts.id, productIds));
+    let contractPricing: Awaited<ReturnType<typeof import("./shop-contracts")["loadContractPricing"]>> | null = null;
+    if (input.contractId !== undefined && input.contractId !== null) {
+      const contractId = Number(input.contractId);
+      const customerId = Number(input.customerId);
+      if (!Number.isSafeInteger(contractId) || contractId <= 0 || !Number.isSafeInteger(customerId) || customerId <= 0) {
+        throw new ShippingConfigurationError("A valid customer login and contract are required for contract purchases.", 422);
+      }
+      try {
+        const { loadContractPricing } = await import("./shop-contracts");
+        contractPricing = await loadContractPricing(contractId, customerId, input.cart as Record<string, number>);
+      } catch (error) {
+        throw new ShippingConfigurationError(error instanceof Error ? error.message : "Contract is unavailable.", 422);
+      }
+    }
+    const productFacts = new Map<number, any>();
+    let itemSubtotal = 0;
+    let totalWeight = 0;
+    for (const id of productIds) {
+      const product: any = products.find((candidate: any) => candidate.id === id);
+      if (!product) throw new ShippingConfigurationError(`Product ${id} is unavailable.`, 422);
+      if (product.contractOnly && !contractPricing) {
+        throw new ShippingConfigurationError(
+          `Product ${id} can only be purchased through an active customer contract.`,
+          422,
+        );
+      }
+      const quantity = Number(input.cart[String(id)]);
+      if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+        throw new ShippingConfigurationError(`Invalid quantity for product ${id}.`, 422);
+      }
+      const weightValue = product.grossWeight || product.weight;
+      let weight = weightValue == null || String(weightValue).trim() === "" ? null : Number(weightValue);
+      if (weight != null && (!Number.isFinite(weight) || weight < 0)) {
+        throw new ShippingConfigurationError(`Product ${id} has an invalid shipping weight.`, 422);
+      }
+      if (weight !== null) {
+        const unit = String(product.weightUnit || "kg").trim().toLowerCase();
+        const kgFactor: Record<string, number> = {
+          kg: 1, kilogram: 1, kilograms: 1, g: 0.001, gram: 0.001, grams: 0.001,
+          lb: 0.45359237, lbs: 0.45359237, pound: 0.45359237, pounds: 0.45359237,
+          oz: 0.028349523125, ounce: 0.028349523125, ounces: 0.028349523125,
+          t: 1000, ton: 1000, tonne: 1000,
+        };
+        if (!(unit in kgFactor)) throw new ShippingConfigurationError(`Product ${id} uses an unsupported weight unit.`, 422);
+        weight *= kgFactor[unit];
+      }
+      let unitPrice = Math.round(Number(product.price));
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        throw new ShippingConfigurationError(`Product ${id} has an invalid catalog price.`, 422);
+      }
+      let discounts: any = product.bulkPurchaseEnabled ? product.bulkPurchaseDiscounts : product.quantityDiscounts;
+      if (typeof discounts === "string") {
+        try { discounts = JSON.parse(discounts); } catch { discounts = []; }
+      }
+      if (Array.isArray(discounts)) {
+        const applicable = discounts
+          .filter((discount: any) => quantity >= Number(discount.minQty ?? discount.min_qty ?? 0))
+          .sort((a: any, b: any) => Number(b.minQty ?? b.min_qty ?? 0) - Number(a.minQty ?? a.min_qty ?? 0))[0];
+        if (applicable) {
+          const discount = Number(applicable.discount ?? Number(applicable.discountPercent ?? applicable.discount_percent ?? 0) / 100);
+          if (Number.isFinite(discount) && discount >= 0 && discount <= 1) {
+            unitPrice = Math.round(unitPrice * (1 - discount));
+          }
+        }
+      }
+      if (contractPricing) {
+        const contractItem = contractPricing.items.get(id);
+        if (!contractItem) throw new ShippingConfigurationError(`Product ${id} is not covered by this contract.`, 422);
+        unitPrice = contractItem.unitPrice;
+      }
+      itemSubtotal += unitPrice * quantity;
+      if (weight !== null) totalWeight += weight * quantity;
+      productFacts.set(id, { ...product, quantity, unitPrice, weight });
+    }
+
+    const selector = String(input.methodSelector ?? "").trim();
+    const methodValue = String(input.methodValue ?? "").trim();
+    let selectedRate: any = null;
+    let selectedMethod: any = null;
+    if (selector && /^[1-9]\d*$/.test(selector)) {
+      if (input.selectorIsDeliveryMethod) {
+        const methodRows = await db.select().from(deliveryMethods)
+          .where(and(eq(deliveryMethods.id, Number(selector)), eq(deliveryMethods.isActive, true))).limit(1);
+        selectedMethod = methodRows[0] || null;
+      } else {
+        const rateRows = await db.select().from(shippingRates)
+          .where(and(eq(shippingRates.id, Number(selector)), eq(shippingRates.isActive, true))).limit(1);
+        selectedRate = rateRows[0] || null;
+      }
+    }
+    if (selector && /^[1-9]\d*$/.test(selector) && !selectedRate && !selectedMethod) {
+      throw new ShippingConfigurationError("The selected delivery method is inactive or unavailable.", 422);
+    }
+    const canonicalMethod = String(selectedRate?.deliveryMethod || selectedMethod?.value || methodValue || selector).toLowerCase();
+    if (!canonicalMethod || canonicalMethod === "unknown") {
+      throw new ShippingConfigurationError("An active delivery method must be selected.", 422);
+    }
+    if (selectedRate) {
+      const parentMethod = await db.select().from(deliveryMethods)
+        .where(and(eq(deliveryMethods.value, canonicalMethod), eq(deliveryMethods.isActive, true))).limit(1);
+      if (!parentMethod[0]) throw new ShippingConfigurationError("The selected delivery method is inactive.", 422);
+      selectedMethod = parentMethod[0];
+    }
+    if (!selectedMethod) {
+      const methods = await db.select().from(deliveryMethods)
+        .where(and(eq(deliveryMethods.value, canonicalMethod), eq(deliveryMethods.isActive, true))).limit(1);
+      selectedMethod = methods[0] || null;
+    }
+    if (!selectedMethod) throw new ShippingConfigurationError("The selected delivery method is inactive or unavailable.", 422);
+    if (contractPricing?.shippingMode) {
+      try {
+        const { assertContractShippingMode } = await import("./shop-contracts");
+        assertContractShippingMode(contractPricing.shippingMode, canonicalMethod);
+      } catch (error) {
+        throw new ShippingConfigurationError(error instanceof Error ? error.message : "The shipping method does not match this contract.", 422);
+      }
+    }
+    const isPickupMethod = ["pickup", "personal_pickup", "self_pickup", "store_pickup"].includes(canonicalMethod);
+    if (input.standardMethodsOnly && (isPickupMethod || canonicalMethod === "smart_vehicle")) {
+      throw new ShippingConfigurationError("Only active standard delivery methods can be quoted.", 422);
+    }
+    if (isPickupMethod) {
+      return { shippingCost: 0, itemSubtotal, totalWeight, productFacts };
+    }
+
+    const countryName = String(input.destinationCountry ?? "").trim();
+    let countryCode: string | undefined;
+    if (countryName) {
+      const countryResult = await pool.query(
+        `SELECT code FROM geography_countries
+         WHERE is_active = true
+           AND (UPPER(code) = UPPER($1)
+             OR LOWER(name_english) = LOWER($1)
+             OR LOWER(name_arabic) = LOWER($1)
+             OR LOWER(name_persian) = LOWER($1))
+         LIMIT 1`,
+        [countryName],
+      );
+      countryCode = countryResult.rows[0]?.code;
+      if (!countryCode) throw new ShippingConfigurationError("Destination country is not active or recognized.", 422);
+    }
+    const route = await resolveShippingRoute({
+      destinationCityId: input.destinationCityId,
+      destinationCity: input.destinationCity,
+      destinationProvince: input.destinationProvince,
+      destinationCountryCode: countryCode,
+    });
+    const cityResult = await pool.query(
+      `SELECT c.name, c.name_arabic, c.name_english,
+              p.name AS province_name, p.name_arabic AS province_name_arabic,
+              p.name_english AS province_name_english
+       FROM iraqi_cities c JOIN iraqi_provinces p ON p.id = c.province_id
+       WHERE c.id = $1 AND c.is_active = true AND p.is_active = true LIMIT 1`,
+      [route.destinationCityId],
+    );
+    if (!cityResult.rows[0]) throw new ShippingConfigurationError("Destination city is not active.", 422);
+    const destinationCity = cityResult.rows[0].name;
+    const destinationProvince = cityResult.rows[0].province_name;
+    const normalizedCityNames = [cityResult.rows[0].name, cityResult.rows[0].name_arabic, cityResult.rows[0].name_english]
+      .filter(Boolean).map((name: string) => name.trim().toLocaleLowerCase());
+    const normalizedProvinceNames = [
+      cityResult.rows[0].province_name,
+      cityResult.rows[0].province_name_arabic,
+      cityResult.rows[0].province_name_english,
+    ].filter(Boolean).map((name: string) => name.trim().toLocaleLowerCase());
+    const matchesRateDestination = (candidate: any) =>
+      (!candidate.cityName || normalizedCityNames.includes(candidate.cityName.trim().toLocaleLowerCase()))
+      && (!candidate.provinceName || normalizedProvinceNames.includes(candidate.provinceName.trim().toLocaleLowerCase()));
+
+    const hasHazardousProducts = [...productFacts.values()].some((product: any) =>
+      product.isFlammable === true
+      || ["hazardous", "flammable"].includes(String(product.shippingClass || "").toLowerCase()),
+    );
+    if (hasHazardousProducts && canonicalMethod !== "smart_vehicle") {
+      throw new ShippingConfigurationError("Hazardous products require smart-vehicle delivery.", 422);
+    }
+    const needsVehicleQuote = hasHazardousProducts || canonicalMethod === "smart_vehicle";
+    const bulkContract=requiresBulkContractTransport(input.contractId,[...productFacts.values()]);
+    if(bulkContract&&!isPickupMethod&&canonicalMethod!=="smart_vehicle")
+      throw new ShippingConfigurationError("Bulk contract products require a bulk-category vehicle delivery method.",422);
+    if (needsVehicleQuote) {
+      let quote: ShippingQuoteClaims;
+      try {
+        quote = verifyShippingQuote(input.shippingQuoteToken);
+      } catch (error) {
+        throw new ShippingConfigurationError(error instanceof Error ? error.message : "A valid shipping quote is required.", 422);
+      }
+      if (!hasHazardousProducts && canonicalMethod !== "smart_vehicle") {
+        throw new ShippingConfigurationError("A vehicle quote is only valid for smart-vehicle or hazardous-goods delivery.", 422);
+      }
+      const center = await getShippingCenter();
+      const currentCart = [...productFacts.entries()].map(([id, product]: [number, any]) => ({
+        id,
+        quantity: product.quantity,
+        weightKg: product.weight === null ? null : Number(Number(product.weight).toFixed(8)),
+        isFlammable: product.isFlammable === true || String(product.shippingClass || "").toLowerCase() === "flammable",
+        isHazardous: String(product.shippingClass || "").toLowerCase() === "hazardous" && product.isFlammable !== true,
+        ...(product.isBulkSale===true?{isBulkSale:true}:{}),
+      })).sort((a, b) => a.id - b.id);
+      const currentFlammable = currentCart.some((item) => item.isFlammable);
+      const currentHazardous = currentCart.some((item) => item.isHazardous);
+      if(bulkContract){
+        const ids=quote.selectedVehicles.map(v=>Number(v.id));
+        if(ids.some(id=>!Number.isSafeInteger(id)||id<=0))
+          throw new ShippingConfigurationError("Invalid bulk vehicle quote.",422);
+        const activeBulk=await db.select().from(vehicleTemplates).where(and(
+          inArray(vehicleTemplates.id,ids),eq(vehicleTemplates.isActive,true),eq(vehicleTemplates.transportCategory,"bulk")));
+        if(new Set(ids).size!==activeBulk.length||quote.selectedVehicles.some(v=>v.transportCategory!=="bulk"))
+          throw new ShippingConfigurationError("The selected bulk vehicle is no longer active in the bulk category. Recalculate shipping.",422);
+        if(activeBulk.some(v=>(currentFlammable&&(v.supportsFlammable!==true||v.notAllowedFlammable===true))||
+          (currentHazardous&&v.supportsHazardous!==true)))
+          throw new ShippingConfigurationError("The selected bulk vehicle's safety capabilities changed. Recalculate shipping.",422);
+      }
+      try {
+        assertShippingQuoteBindings(quote, {
+          center,
+          destinationCityId: route.destinationCityId,
+          distanceKm: route.distanceKm,
+          cart: currentCart,
+          contractId:contractPricing?Number(input.contractId):null,
+          totalWeightKg: Number(totalWeight.toFixed(8)),
+          isFlammable: currentFlammable,
+          isHazardous: currentHazardous,
+          method: input.checkoutFlow === "shop" ? "vehicle_quote" : "smart_vehicle",
+        });
+        if (
+          input.checkoutFlow === "shop"
+          && (
+            canonicalMethod !== "smart_vehicle"
+            || !isActiveCanonicalShippingMethod(selectedMethod, "smart_vehicle")
+          )
+        ) {
+          throw new Error("The shop checkout vehicle quote requires an active smart_vehicle delivery method.");
+        }
+        if (input.checkoutFlow === "customers" && canonicalMethod !== "smart_vehicle") {
+          throw new Error("The customer checkout vehicle quote requires smart_vehicle delivery.");
+        }
+        if (input.checkoutFlow === "standard_quote") {
+          throw new Error("Standard shipping quotes cannot be used for vehicle delivery.");
+        }
+      } catch (error) {
+        throw new ShippingConfigurationError(error instanceof Error ? error.message : "Shipping quote bindings do not match.", 422);
+      }
+      return {
+        shippingCost: quote.shippingCost,
+        itemSubtotal,
+        totalWeight,
+        productFacts,
+        shippingQuoteVehicle: quote.selectedVehicles,
+      };
+    }
+
+    if (input.standardMethodsOnly && (canonicalMethod === "smart_vehicle" || isPickupMethod)) {
+      throw new ShippingConfigurationError("Only active standard delivery methods can be quoted.", 422);
+    }
+    let rate = selectedRate;
+    if (!rate) {
+      if (!selectedMethod) throw new ShippingConfigurationError("The selected delivery method is inactive or unavailable.", 422);
+      const rates = await db.select().from(shippingRates)
+        .where(and(eq(shippingRates.deliveryMethod, canonicalMethod), eq(shippingRates.isActive, true)));
+      rate = rates
+        .filter(matchesRateDestination)
+        .sort((a: any, b: any) =>
+          Number(Boolean(b.cityName)) - Number(Boolean(a.cityName))
+          || Number(Boolean(b.provinceName)) - Number(Boolean(a.provinceName)))[0] || null;
+    }
+    if (rate && !matchesRateDestination(rate)) {
+      throw new ShippingConfigurationError("The selected shipping rate does not cover the active destination city.", 422);
+    }
+    if (input.standardMethodsOnly && !rate) {
+      throw new ShippingConfigurationError("No active shipping rate covers the selected destination.", 422);
+    }
+    const pricing = rate || selectedMethod;
+    if (!pricing) throw new ShippingConfigurationError("No active server-side shipping rate is available for this destination.", 422);
+    const basePrice = rate?.basePrice ?? selectedMethod?.baseCost;
+    const pricePerKg = rate?.pricePerKg ?? selectedMethod?.costPerKg ?? 0;
+    if (pricePerKg > 0 && [...productFacts.values()].some((product: any) => product.weight === null)) {
+      throw new ShippingConfigurationError("Shipping price requires a catalog weight for every order item.", 422);
+    }
+    let shippingCost: number;
+    try {
+      shippingCost = calculateAuthoritativeShippingCost({
+        basePrice,
+        pricePerKg,
+        totalWeightKg: totalWeight,
+        itemSubtotal,
+        freeShippingThreshold: rate?.freeShippingThreshold ?? selectedMethod?.freeShippingThreshold,
+      });
+    } catch {
+      throw new ShippingConfigurationError("The selected delivery method has no valid server-side price.", 422);
+    }
+    return {
+      shippingCost,
+      itemSubtotal,
+      totalWeight,
+      productFacts,
+      ...(input.standardMethodsOnly ? { destinationCityId: route.destinationCityId } : {}),
+    };
+  }
   // Initialize sync service at startup
   console.log('🔄 [SYNC SERVICE] Initializing automatic table synchronization system...');
   try {
@@ -533,6 +992,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount OAuth routes
   const authRoutes = (await import('./auth-routes')).default;
   app.use('/api/auth', authRoutes);
+  const { registerShopContractRoutes } = await import("./shop-contracts");
+  registerShopContractRoutes(app);
   console.log('✅ [OAUTH] Authentication routes registered at /api/auth');
   
   // Import department auth functions
@@ -540,39 +1001,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Create requireAdmin alias for better semantics
   const requireAdmin = requireAuth;
+  registerKpiDashboardRoute(app, requireAdmin);
   
-  // Super Admin authentication middleware - simplified for debugging
-  const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
-    console.log('🔐 [SUPER ADMIN AUTH] Session details:', {
-      adminId: req.session?.adminId,
-      isAuthenticated: req.session?.isAuthenticated,
-      sessionID: req.sessionID
-    });
-
-    // Check for admin authentication in any available form
-    const adminId = req.session?.adminId;
-    const isAuthenticated = req.session?.isAuthenticated;
-    
-    if (!adminId && !isAuthenticated) {
-      console.log('❌ [SUPER ADMIN AUTH] No admin authentication found');
-      return res.status(401).json({ 
-        success: false, 
-        message: "احراز هویت سوپر ادمین مورد نیاز است" 
-      });
-    }
-
-    // Admin ID 15 is always super admin, or if we have admin session
-    if (adminId === 15 || adminId || isAuthenticated) {
-      console.log(`✅ [SUPER ADMIN AUTH] Access granted for admin ${adminId}`);
-      return next();
-    }
-
-    console.log('❌ [SUPER ADMIN AUTH] Access denied - insufficient permissions');
-    return res.status(403).json({ 
-      success: false, 
-      message: "دسترسی محدود به سوپر ادمین" 
-    });
-  };
+  // Every route carrying this name must verify an active super-admin role.
+  // A generic authenticated customer or non-super-admin session is not enough.
+  const requireSuperAdmin = requireSuperAdminRole;
+  const {registerCustomerCodeRoutes}=await import("./customer-codes");
+  registerCustomerCodeRoutes(app,requireSuperAdminRole);
   
   // Add department middleware to all authenticated routes (excluding ticket creation for guest access)
   app.use('/api', (req, res, next) => {
@@ -643,7 +1078,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         textContent: row.text_content,
         category: row.category,
         categoryName: row.category,
-        language: row.language || 'fa',
+        language: row.language || 'en',
         is_active: row.is_active,
         isActive: row.is_active,
         is_default: row.is_default,
@@ -695,7 +1130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           html_content = ${html_content},
           text_content = ${text_content || ''},
           category = ${category},
-          language = ${language || 'fa'},
+          language = ${language || 'en'},
           is_active = ${is_active},
           updated_at = NOW()
         WHERE id = ${templateId}
@@ -741,6 +1176,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Sitemap generation error:', error);
       res.status(500).send('Error generating sitemap');
     }
+  });
+
+  app.get('/llms.txt', (_req, res) => {
+    res.type('text/plain; charset=utf-8').send(`# Momtazchem
+
+> Momtazchem supplies chemical products and industrial solutions for fuel additives, water treatment, paints and thinners, agriculture, and related industries.
+
+## Primary pages
+- [Home](https://momtazchem.com/)
+- [Products](https://momtazchem.com/shop)
+- [Services](https://momtazchem.com/services)
+- [About Momtazchem](https://momtazchem.com/about)
+- [Blog and technical articles](https://momtazchem.com/blog)
+- [Contact](https://momtazchem.com/contact)
+- [Request a quote](https://momtazchem.com/quote)
+
+## Languages
+The website and its editorial content are available in English, Arabic, Turkish, and Persian where translations have been published.
+
+## Usage guidance
+Use the canonical page URL when citing Momtazchem. Product availability, prices, specifications, and commercial terms should be confirmed through the website or a direct quotation.
+`);
   });
 
   // Data Integrity Test Page
@@ -1008,7 +1465,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { generateInvoicePDF } = await import('./pdfkit-generator');
       
-      const invoiceData = req.body;
+      const requestedLanguage = parseInvoiceLanguage(req.body?.language || 'en');
+      if (!requestedLanguage) {
+        return res.status(400).json({
+          success: false,
+          message: 'زبان فاکتور نامعتبر است'
+        });
+      }
+      const invoiceData = { ...req.body, language: requestedLanguage };
       console.log('Invoice data received:', invoiceData);
       
       // Use frozen tax amounts from order instead of recalculating
@@ -1056,6 +1520,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currency: customerOrders.currency,
           paymentMethod: customerOrders.paymentMethod,
            paymentStatus: customerOrders.paymentStatus,
+          invoiceType: customerOrders.invoiceType,
+          financialReviewedAt: orderManagement.financialReviewedAt,
+          managementStatus: orderManagement.currentStatus,
           status: customerOrders.status,
           createdAt: customerOrders.createdAt,
           vatAmount: customerOrders.vatAmount, // Frozen VAT amount from order creation
@@ -1069,6 +1536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .from(customerOrders)
         .leftJoin(crmCustomers, eq(customerOrders.customerId, crmCustomers.id))
+        .leftJoin(orderManagement, eq(orderManagement.customerOrderId, customerOrders.id))
         .where(eq(customerOrders.id, orderId));
 
       if (!orderResult.length) {
@@ -1079,8 +1547,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (order.customerId !== req.session.customerId) {
         return res.status(403).json({ success: false, message: 'دسترسی به این سفارش مجاز نیست' });
       }
-      const requestedLanguage = String(req.query.lang || 'en').toLowerCase();
-      if (!['en', 'ar', 'tr', 'fa'].includes(requestedLanguage)) {
+      const rejectedStatuses = new Set(['financial_rejected', 'finance_rejected', 'rejected']);
+      if (
+        rejectedStatuses.has(String(order.status || '').toLowerCase()) ||
+        rejectedStatuses.has(String(order.managementStatus || '').toLowerCase()) ||
+        order.invoiceType === 'voided'
+      ) {
+        return res.status(410).json({
+          success: false,
+          message: 'پیش‌فاکتور این سفارش پس از رد واحد مالی باطل شده است'
+        });
+      }
+      if (order.invoiceType !== 'proforma') {
+        return res.status(409).json({
+          success: false,
+          message: 'این سفارش پیش‌فاکتور فعال ندارد'
+        });
+      }
+      if (order.paymentStatus === 'receipt_uploaded' && !order.financialReviewedAt) {
+        return res.status(400).json({
+          success: false,
+          message: 'فاکتور نهایی پس از تأیید واحد مالی قابل دانلود است'
+        });
+      }
+      const requestedLanguage = parseInvoiceLanguage(req.query.lang || 'en');
+      if (!requestedLanguage) {
         return res.status(400).json({ success: false, message: 'زبان نامعتبر است' });
       }
 
@@ -1239,8 +1730,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (order.customerId !== req.session.customerId) {
         return res.status(403).json({ success: false, message: 'دسترسی به این سفارش مجاز نیست' });
       }
-      const requestedLanguage = String(req.query.lang || 'en').toLowerCase();
-      if (!['en', 'ar', 'tr', 'fa'].includes(requestedLanguage)) {
+      const requestedLanguage = parseInvoiceLanguage(req.query.lang || 'en');
+      if (!requestedLanguage) {
         return res.status(400).json({ success: false, message: 'زبان نامعتبر است' });
       }
 
@@ -1277,6 +1768,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get order items
       const itemsResult = await db
         .select({
+          productId: orderItems.productId,
           productName: orderItems.productName,
           quantity: orderItems.quantity,
           unitPrice: orderItems.unitPrice,
@@ -1284,6 +1776,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .from(orderItems)
         .where(eq(orderItems.orderId, orderId));
+      const { getSoldBatchAllocationsByProduct } = await import('./order-batch-allocations');
+      const soldBatchesByProduct = await getSoldBatchAllocationsByProduct(orderId);
 
       // Calculate subtotal from items - IQD whole numbers only  
       const subtotal = Math.round(itemsResult.reduce((sum, item) => {
@@ -1320,6 +1814,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quantity: item.quantity,
           unitPrice: Math.round(parseFloat(item.unitPrice)),
           total: Math.round(parseFloat(item.totalPrice || '0')),
+          batches: item.productId ? soldBatchesByProduct[item.productId] || [] : [],
         })),
         subtotal: subtotal,
         vatAmount: storedVatAmount, // Use frozen amount from order creation
@@ -3271,6 +3766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Set up session with appropriate user type
       if (isCustomUser) {
+        req.session.adminId = undefined;
         req.session.customUserId = user.id;
         req.session.isAuthenticated = true;
         console.log(`✅ [LOGIN] Session configured for custom user ${user.id} (customer session cleared):`, {
@@ -3279,6 +3775,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sessionId: req.sessionID
         });
       } else {
+        req.session.customUserId = undefined;
+        req.session.customUserEmail = undefined;
+        req.session.customUserName = undefined;
+        req.session.customUserRole = undefined;
+        req.session.customUserPermissions = undefined;
         req.session.adminId = user.id;
         req.session.isAuthenticated = true;
         console.log(`✅ [LOGIN] Session configured for admin ${user.id} (customer session cleared):`, {
@@ -3393,10 +3894,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       let user = null;
       let userType = 'admin';
+
+      if (req.session.adminId && req.session.customUserId) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid admin session"
+        });
+      }
       
       if (req.session.adminId) {
         // Standard admin user
-        user = await storage.getUserById(req.session.adminId);
+        const adminUser = await storage.getUserById(req.session.adminId);
+        if (adminUser) {
+          const roleResult = await pool.query(`
+            SELECT name, display_name
+            FROM admin_roles
+            WHERE id = $1 AND is_active = true
+          `, [adminUser.roleId]);
+          user = {
+            ...adminUser,
+            roleName: roleResult.rows[0]?.name || 'admin',
+            roleDisplayName: roleResult.rows[0]?.display_name || 'Administrator'
+          };
+        }
         userType = 'admin';
       } else if (req.session.customUserId) {
         // Custom user - fetch from custom_users table
@@ -3406,7 +3926,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                  cr.name as role_name, cr.display_name as role_display_name
           FROM custom_users cu
           LEFT JOIN custom_roles cr ON cu.role_id = cr.id
-          WHERE cu.id = $1 AND cu.is_active = true
+          WHERE cu.id = $1 AND cu.is_active = true AND cr.is_active = true
         `, [req.session.customUserId]);
         
         if (result.rows.length === 0) {
@@ -4528,8 +5048,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Endpoint to serve uploaded files from object storage
   app.get("/objects/uploads/:fileId", async (req, res) => {
+    const { fileId } = req.params;
     try {
-      const { fileId } = req.params;
       console.log('🖼️ [FILE SERVE] Serving file:', fileId);
       
       const objectStorageService = new ObjectStorageService();
@@ -4543,6 +5063,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error) {
       console.error('❌ [FILE SERVE] Error serving file:', error);
+
+      // Legacy receipts were originally stored in Replit Object Storage.
+      // Production may not be able to read that historical bucket, so retain
+      // the same stable app URL while serving migrated copies from private S3.
+      if (/^[a-f0-9-]{36}$/i.test(fileId)) {
+        try {
+          const legacyTypes = [
+            ['pdf', 'application/pdf'],
+            ['png', 'image/png'],
+            ['jpg', 'image/jpeg'],
+            ['jpeg', 'image/jpeg'],
+            ['webp', 'image/webp'],
+          ] as const;
+          for (const [extension, contentType] of legacyTypes) {
+            const fallbackFile = await getAwsS3Service().getFile(`legacy-object-uploads/${fileId}.${extension}`);
+            if (fallbackFile) {
+              res.set({
+                'Content-Type': contentType,
+                'Content-Length': String(fallbackFile.length),
+                'Content-Disposition': 'inline',
+                'Cache-Control': 'private, max-age=300',
+                'X-Content-Type-Options': 'nosniff',
+              });
+              return res.send(fallbackFile);
+            }
+          }
+        } catch (fallbackError) {
+          console.error('❌ [FILE SERVE] S3 fallback failed:', fallbackError);
+        }
+      }
+
       if (error.message.includes('not found') || error.name === 'ObjectNotFoundError') {
         return res.status(404).json({ 
           success: false, 
@@ -5000,7 +5551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE barcode = $1
         ORDER BY created_at DESC
       `, [barcode]);
-      
+
       res.json({
         success: true,
         barcode,
@@ -5054,7 +5605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { db, showcaseDb } = await import('./db');
       const { shopProducts } = await import('../shared/shop-schema');
       const { showcaseProducts } = await import('../shared/showcase-schema');
-      const { eq } = await import('drizzle-orm');
+      const { eq, and } = await import('drizzle-orm');
       
       if (isNaN(shopProductId)) {
         return res.status(400).json({
@@ -5189,7 +5740,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isVariant: productData.isVariant || false,
         variantType: productData.variantType || null,
         variantValue: productData.variantValue || null,
-        isFlammable: productData.isFlammable || false
+        isFlammable: productData.isFlammable || false,
+        contractOnly: productData.contractOnly === true,
+        isBulkSale: productData.isBulkSale === true
       };
       
       const product = await storage.createProduct(showcaseProductData);
@@ -5394,11 +5947,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               barcode: oldProduct.barcode,
               batchNumber: productData.newBatchNumber.trim(),
               stockQuantity: productData.inventoryAddition,
+              imageUrl: productData.imageUrl,
+              imageUrls: productData.imageUrls,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             };
             
             await shopStorage.addBatch(batchData);
+            const totalStock = await shopStorage.syncBatchStockTotal(oldProduct.barcode);
             
             // Clean up batch fields from productData
             delete productData.inventoryAddition;
@@ -5409,7 +5965,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               success: true,
               message: "بچ جدید با موفقیت ایجاد شد",
               batchNumber: batchData.batchNumber,
-              stockQuantity: batchData.stockQuantity
+              stockQuantity: batchData.stockQuantity,
+              totalStock
             });
             
           } catch (batchError) {
@@ -5421,6 +5978,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
         }
+      }
+
+      let changedWeightFields: ProductWeightField[] = [];
+      try {
+        const hasWeightChanges =
+          productData.netWeight !== undefined || productData.grossWeight !== undefined;
+        const existingForWeightValidation = hasWeightChanges
+          ? await storage.getProductById(id)
+          : undefined;
+        const weightUpdates = normalizeProductWeightUpdates(
+          productData,
+          existingForWeightValidation,
+        );
+        changedWeightFields = Object.keys(weightUpdates) as ProductWeightField[];
+        Object.assign(productData, weightUpdates);
+      } catch (weightError) {
+        return res.status(400).json({
+          success: false,
+          message: weightError instanceof Error ? weightError.message : "Invalid product weight",
+        });
       }
       
       // Handle inventory addition without batch (add to existing stock)
@@ -5440,13 +6017,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Map frontend fields to backend fields for update
       const mappedData = {
         ...productData,
-        price: productData.unitPrice || productData.price,
-        priceUnit: productData.currency || productData.priceUnit || 'IQD',
-        imageUrls: productData.imageUrl ? [productData.imageUrl] : (productData.imageUrls || [])
+        ...(productData.unitPrice !== undefined || productData.price !== undefined
+          ? { price: productData.unitPrice ?? productData.price }
+          : {}),
+        ...(productData.currency !== undefined || productData.priceUnit !== undefined
+          ? { priceUnit: productData.currency ?? productData.priceUnit }
+          : {}),
+        ...(productData.imageUrl !== undefined || productData.imageUrls !== undefined
+          ? {
+              imageUrl: productData.imageUrl ?? productData.imageUrls?.[0] ?? null,
+              imageUrls: Array.isArray(productData.imageUrls)
+                ? productData.imageUrls
+                : (productData.imageUrl ? [productData.imageUrl] : [])
+            }
+          : {})
       };
       
       // Update showcase product instead of shop product for admin panel
       const product = await storage.updateProduct(id, mappedData);
+
+      // Uploaded media is saved through this lightweight PATCH endpoint.
+      // Keep the customer-facing shop copy in sync so admins do not need to
+      // press the full "Update" button after an upload.
+      const hasUploadedMediaUpdate =
+        productData.imageUrl !== undefined ||
+        productData.imageUrls !== undefined ||
+        productData.model3dKey !== undefined ||
+        productData.model3dFileName !== undefined ||
+        productData.model3dUploadDate !== undefined ||
+        productData.displayMode !== undefined;
+
+      if (hasUploadedMediaUpdate && product.syncWithShop) {
+        const existingShopProducts = await shopStorage.getShopProducts();
+        const existingShopProduct = existingShopProducts.find(
+          (shopProduct) => shopProduct.name === product.name
+        );
+
+        if (existingShopProduct) {
+          await shopStorage.updateShopProduct(existingShopProduct.id, {
+            ...(productData.imageUrl !== undefined || productData.imageUrls !== undefined
+              ? {
+                  imageUrls: product.imageUrls ||
+                    (product.imageUrl ? [product.imageUrl] : [])
+                }
+              : {}),
+            ...(productData.displayMode !== undefined
+              ? { displayMode: product.displayMode }
+              : {}),
+            ...(productData.model3dKey !== undefined
+              ? { model3dKey: product.model3dKey }
+              : {}),
+            ...(productData.model3dFileName !== undefined
+              ? { model3dFileName: product.model3dFileName }
+              : {}),
+            ...(productData.model3dUploadDate !== undefined
+              ? { model3dUploadDate: product.model3dUploadDate }
+              : {})
+          });
+        }
+      }
+
+      if (changedWeightFields.length > 0) {
+        try {
+          await syncProductWeightsToShop(product, changedWeightFields);
+        } catch (weightSyncError) {
+          console.error(`Failed to sync product weights to shop for product ${id}:`, weightSyncError);
+        }
+      }
+
       res.json(product);
     } catch (error) {
       console.error("Error updating product:", error);
@@ -5500,9 +6138,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =============================================================================
-  // IRAQI GEOGRAPHIC DATA API ENDPOINTS
+  // CENTRAL GEOGRAPHIC DATA API ENDPOINTS
   // =============================================================================
 
+  let geographySeedPromise: Promise<void> | null = null;
+  const ensureCentralGeography = () => {
+    if (geographySeedPromise) return geographySeedPromise;
+    geographySeedPromise = (async () => {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(`
+          INSERT INTO geography_countries (code, name_english, name_arabic, name_persian)
+          VALUES
+            ('IQ', 'Iraq', 'العراق', 'عراق'),
+            ('IR', 'Iran', 'إيران', 'ایران'),
+            ('TR', 'Turkey', 'تركيا', 'ترکیه')
+          ON CONFLICT (code) DO UPDATE SET
+            name_english = EXCLUDED.name_english,
+            name_arabic = EXCLUDED.name_arabic,
+            name_persian = EXCLUDED.name_persian,
+            is_active = true
+        `);
+        await client.query(`UPDATE iraqi_provinces SET country_code = 'IQ' WHERE country_code IS NULL`);
+        await client.query(`UPDATE iraqi_cities SET country_code = 'IQ' WHERE country_code IS NULL`);
+        await client.query(`
+          SELECT setval(
+            pg_get_serial_sequence('iraqi_provinces', 'id'),
+            COALESCE((SELECT MAX(id) FROM iraqi_provinces), 1),
+            (SELECT COUNT(*) > 0 FROM iraqi_provinces)
+          )
+        `);
+        await client.query(`
+          SELECT setval(
+            pg_get_serial_sequence('iraqi_cities', 'id'),
+            COALESCE((SELECT MAX(id) FROM iraqi_cities), 1),
+            (SELECT COUNT(*) > 0 FROM iraqi_cities)
+          )
+        `);
+        for (const province of iranProvinces) {
+          const existingRegion = await client.query(
+            `SELECT id FROM iraqi_provinces WHERE country_code = 'IR' AND name_english = $1 LIMIT 1`,
+            [province.nameEnglish],
+          );
+          let provinceId = existingRegion.rows[0]?.id;
+          if (!provinceId) {
+            const inserted = await client.query(`
+              INSERT INTO iraqi_provinces
+                (country_code, name, name_arabic, name_english, capital, region, is_active)
+              VALUES ('IR', $1, $1, $2, $1, 'iran', true)
+              RETURNING id
+            `, [province.namePersian, province.nameEnglish]);
+            provinceId = inserted.rows[0].id;
+          }
+          for (const city of province.cities) {
+            await client.query(`
+              INSERT INTO iraqi_cities
+                (country_code, name, name_arabic, name_english, province_id, province_name, region, is_active)
+              SELECT 'IR', $2, $2, $2, $1, $3, 'iran', true
+              WHERE NOT EXISTS (
+                SELECT 1 FROM iraqi_cities
+                WHERE province_id = $1 AND country_code = 'IR' AND name = $2
+              )
+            `, [provinceId, city, province.namePersian]);
+          }
+        }
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        geographySeedPromise = null;
+        throw error;
+      } finally {
+        client.release();
+      }
+    })();
+    return geographySeedPromise;
+  };
+
+  app.get('/api/geography/countries', async (_req, res) => {
+    try {
+      await ensureCentralGeography();
+      const result = await pool.query(
+        'SELECT code, name_english AS "nameEnglish", name_arabic AS "nameArabic", name_persian AS "namePersian" FROM geography_countries WHERE is_active = true ORDER BY name_english'
+      );
+      res.json({ success: true, data: result.rows });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  app.get('/api/geography/regions', async (req, res) => {
+    try {
+      await ensureCentralGeography();
+      const country = String(req.query.country || '').toUpperCase();
+      if (!['IQ', 'IR', 'TR'].includes(country)) return res.status(400).json({ success: false, message: 'Invalid country' });
+      const result = await pool.query(
+        `SELECT id, country_code AS "countryCode", name_english AS "nameEnglish",
+                name_arabic AS "nameArabic", name AS "namePersian"
+         FROM iraqi_provinces
+         WHERE country_code = $1 AND is_active = true
+         ORDER BY name`,
+        [country],
+      );
+      res.json({ success: true, data: result.rows });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  app.get('/api/geography/cities', async (req, res) => {
+    try {
+      await ensureCentralGeography();
+      const regionId = Number(req.query.regionId);
+      if (!Number.isInteger(regionId)) return res.status(400).json({ success: false, message: 'Invalid region' });
+      const result = await pool.query(
+        `SELECT id, province_id AS "regionId", country_code AS "countryCode",
+                name_english AS "nameEnglish", name_arabic AS "nameArabic", name AS "namePersian"
+         FROM iraqi_cities
+         WHERE province_id = $1 AND is_active = true
+         ORDER BY name`,
+        [regionId],
+      );
+      res.json({ success: true, data: result.rows });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Legacy Iraqi endpoints remain available for logistics compatibility.
   // Get all Iraqi provinces with trilingual support
   app.get('/api/iraqi-provinces', async (req, res) => {
     try {
@@ -5534,14 +6297,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[DEBUG] Iraqi cities endpoint called');
       const { provinceId } = req.query;
       
-      let query = db
+      const conditions = [eq(iraqiCities.isActive, true)];
+      if (provinceId) conditions.push(eq(iraqiCities.provinceId, parseInt(provinceId as string)));
+      const query = db
         .select()
         .from(iraqiCities)
-        .where(eq(iraqiCities.isActive, true));
-
-      if (provinceId) {
-        query = query.where(eq(iraqiCities.provinceId, parseInt(provinceId as string)));
-      }
+        .where(and(...conditions));
 
       const cities = await query.orderBy(iraqiCities.nameArabic);
 
@@ -5622,11 +6383,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Invalid product ID" 
         });
       }
+      const hasOwnership = await verifyVendorOwnsProduct(req, id);
+      if (!hasOwnership) {
+        console.log(`🚫 [VENDOR SECURITY] Vendor attempted to modify product they dont own: ${id}`);
+        return res.status(403).json({
+          success: false,
+          message: "شما مجاز به ویرایش این محصول نیستید"
+        });
+      }
 
       const productData = req.body;
       
       // Handle sync toggle requests (skip all validations)
       const isSyncToggle = Object.keys(productData).length === 1 && 'syncWithShop' in productData;
+      let changedWeightFields: ProductWeightField[] = [];
       
       // Handle batch addition requests (skip all validations except batch-specific ones)
       const isBatchAddition = productData.inventoryAddition && productData.newBatchNumber;
@@ -5643,18 +6413,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               barcode: oldProduct.barcode,
               batchNumber: productData.newBatchNumber.trim(),
               stockQuantity: productData.inventoryAddition,
+              imageUrl: productData.imageUrl,
+              imageUrls: productData.imageUrls,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             };
             
             await shopStorage.addBatch(batchData);
+            const totalStock = await shopStorage.syncBatchStockTotal(oldProduct.barcode);
             
             // Return immediately after batch creation
             return res.json({
               success: true,
               message: "بچ جدید با موفقیت ایجاد شد",
               batchNumber: batchData.batchNumber,
-              stockQuantity: batchData.stockQuantity
+              stockQuantity: batchData.stockQuantity,
+              totalStock
             });
             
           } catch (batchError) {
@@ -5672,6 +6446,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ 
             success: false, 
             message: "نام محصول اجباری است" 
+          });
+        }
+
+        try {
+          const hasWeightChanges =
+            productData.netWeight !== undefined || productData.grossWeight !== undefined;
+          const existingForWeightValidation = hasWeightChanges
+            ? await storage.getProductById(id)
+            : undefined;
+          const weightUpdates = normalizeProductWeightUpdates(
+            productData,
+            existingForWeightValidation,
+          );
+          changedWeightFields = Object.keys(weightUpdates) as ProductWeightField[];
+          Object.assign(productData, weightUpdates);
+        } catch (weightError) {
+          return res.status(400).json({
+            success: false,
+            message: weightError instanceof Error ? weightError.message : "Invalid product weight",
           });
         }
         
@@ -5710,6 +6503,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               barcode: oldProduct?.barcode || '',
               batchNumber: productData.newBatchNumber.trim(),
               stockQuantity: productData.inventoryAddition,
+              imageUrl: productData.imageUrl,
+              imageUrls: productData.imageUrls,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             };
@@ -5739,6 +6534,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log(`✅ [INVENTORY-ADDITION] Inventory addition completed`);
       }
+
+      // These are form-only controls and are not showcase_products columns.
+      // The form sends them even when no inventory is being added.
+      delete productData.inventoryAddition;
+      delete productData.newBatchNumber;
       
       const isStockUpdate = productData.stockQuantity !== undefined && 
                            oldProduct && 
@@ -5958,6 +6758,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (syncError) {
         console.log("Auto-sync failed after update:", syncError);
       }
+
+      let shopWeightUpdated = false;
+      if (changedWeightFields.length > 0) {
+        try {
+          // Only the canonical batch owns the shared shop weight for this barcode.
+          shopWeightUpdated = await syncProductWeightsToShop(product, changedWeightFields);
+        } catch (weightSyncError) {
+          console.error(`Failed to sync product weights to shop for product ${id}:`, weightSyncError);
+        }
+      }
       
       const responseProduct = product;
       console.log(`✅ [DEBUG] Product update completed successfully for product ${id}`);
@@ -5965,7 +6775,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         success: true, 
         message: isSyncToggle ? "وضعیت نمایش در فروشگاه به‌روزرسانی شد" : "محصول با موفقیت به‌روزرسانی شد",
-        product: responseProduct 
+        product: responseProduct,
+        shopWeightUpdated,
       });
     } catch (error: any) {
       console.error("Error updating showcase product:", error);
@@ -5992,12 +6803,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (error.code === '23514') { // Check constraint violation
         statusCode = 400;
         errorMessage = "مقدار نامعتبر وارد شده";
+      } else if (error.message?.startsWith('خطا:')) {
+        statusCode = 400;
+        errorMessage = error.message;
       } else if (error.message?.includes('authentication')) {
         statusCode = 401;
         errorMessage = "احراز هویت مورد نیاز است";
       }
       
-      res.status(statusCode).json({ 
+      res.status(statusCode).json({
         success: false, 
         message: errorMessage
       });
@@ -7762,13 +8576,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       'blog': 'مدیریت بلاگ',
       'factory': 'مدیریت کارخانه',
       'user_management': 'مدیریت کاربران',
-      'shop_management': 'مدیریت فروشگاه',
+      'shop_management': 'Commercial',
       'procedures': 'مدیریت روش‌ها',
       'order_management': 'مدیریت سفارشات',
       'product_management': 'مدیریت محصولات',
       'payment_management': 'مدیریت پرداخت',
       'accounting_management': 'مدیریت حسابداری',
-      'finance': 'مدیریت مالی',
+      'loading_management': 'مدیریت بارگیری',
+      'finance': 'تایید مالی',
       'wallet_management': 'مدیریت کیف پول',
       'geography_analytics': 'آمار جغرافیایی',
       'ai_settings': 'تنظیمات هوش مصنوعی',
@@ -7777,10 +8592,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       'marketing_module': 'ماژول مارکتینگ',
       'warehouse_management': 'مدیریت انبار',
       'logistics_management': 'مدیریت لجستیک',
+      'delivery_confirmation': 'تأیید تحویل پیک / حمل‌کننده',
       'ticketing_system': 'سیستم تیکتینگ',
       'remote_desktop': 'دسکتاپ ریموت',
       'server_config': 'تنظیمات سرور',
       'company_information': 'اطلاعات شرکت',
+      'legal_affairs': 'امور حقوقی و پیمان‌ها',
       'user_guide': 'User Guide',
       'site_management': 'مدیریت سایت'
     };
@@ -7819,40 +8636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { pool } = await import('./db');
       
-      // Define the main system modules - these are the 31 Site Management modules
-      const mainModules = [
-        'syncing_shop',
-        'inquiries', 
-        'barcode',
-        'email_settings',
-        'database_backup',
-        'crm',
-        'seo',
-        'categories',
-        'sms',
-        'factory',
-        'user_management',
-        'shop_management',
-        'procedures',
-        'order_management',
-        'product_management',
-        'payment_management',
-        'accounting_management',
-        'wallet_management',
-        'geography_analytics',
-        'ai_settings',
-        'refresh_control',
-        'finance',
-        'content_management',
-        'warehouse_management',
-        'logistics_management',
-        'ticketing_system',
-        'remote_desktop',
-        'server_config',
-        'kpi_dashboard',
-        'management_dashboard',
-        'user_guide'
-      ];
+      const mainModules = getSiteManagementModules();
 
       // Get super admin role (admin@momtazchem.com has user ID 7)
       const superAdminRoleId = '7';
@@ -7908,52 +8692,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User Management sync modules endpoint
-  // Function to get current Site Management modules dynamically
-  const getSiteManagementModules = () => {
-    // This should be the SINGLE SOURCE OF TRUTH for all modules
-    // Any changes here will automatically sync to User Management
-    return [
-      'kpi_dashboard',
-      'management_dashboard',
-      'syncing_shop',
-      'shop_management', 
-      'product_management',
-      'order_management',
-      'warehouse_management',
-      'logistics_management',
-      'inquiries',
-      'crm',
-      'barcode',
-      'email_settings',
-      'database_backup',
-      'seo',
-      'categories',
-      'sms',
-      'factory',
-      'user_management',
-      'procedures',
-      'payment_management',
-      'accounting_management',
-      'finance',
-      'wallet_management',
-      'geography_analytics',
-      'ai_settings',
-      'refresh_control',
-      'content_management',
-      'ticketing_system',
-      'remote_desktop',
-      'server_config',
-      'company_information',
-      'user_guide',
-      'marketing_module',
-      'aws_s3_settings',
-      'whatsapp_crm',
-      'blog',
-            'marketplace_management',
-      'vendor_accounting',
-      // Total: 37 modules - automatically synced with Site Management
-    ];
-  };
+  const getSiteManagementModules = () => [...siteManagementModuleIds];
 
   app.post("/api/user-management/sync-modules", requireAuth, async (req, res) => {
     try {
@@ -8625,9 +9364,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Custom user login endpoint
   app.post("/api/custom-users/login", async (req, res) => {
     try {
-      const { email, password } = req.body;
+       const { email, phone, password } = req.body;
+       const loginIdentifier = String(email || phone || '').trim();
       
-      if (!email || !password) {
+       if (!loginIdentifier || !password) {
         return res.status(400).json({
           success: false,
           message: "ایمیل و رمز عبور الزامی است"
@@ -8646,8 +9386,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           cr.permissions as role_permissions
         FROM custom_users cu
         LEFT JOIN custom_roles cr ON cu.role_id = cr.id
-        WHERE cu.email = $1 AND cu.is_active = true
-      `, [email]);
+         WHERE (cu.email = $1 OR cu.phone = $1) AND cu.is_active = true
+       `, [loginIdentifier]);
 
       if (result.rows.length === 0) {
         return res.status(401).json({
@@ -8682,6 +9422,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `, [user.id]);
 
       // Set session
+      req.session.adminId = undefined;
       req.session.customUserId = user.id;
       req.session.customUserEmail = user.email;
       req.session.customUserName = user.full_name;
@@ -8689,17 +9430,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.customUserPermissions = user.role_permissions;
       req.session.isAuthenticated = true;
 
-      res.json({
-        success: true,
-        message: "ورود موفق",
-        user: {
-          id: user.id,
-          fullName: user.full_name,
-          email: user.email,
-          role: user.role_name,
-          roleDisplayName: user.role_display_name,
-          permissions: user.role_permissions
+      req.session.save((sessionError) => {
+        if (sessionError) {
+          console.error("Failed to persist custom user session:", sessionError);
+          return res.status(500).json({
+            success: false,
+            message: "خطا در ذخیره نشست کاربر",
+          });
         }
+
+        res.json({
+          success: true,
+          message: "ورود موفق",
+          user: {
+            id: user.id,
+            fullName: user.full_name,
+            email: user.email,
+            role: user.role_name,
+            roleDisplayName: user.role_display_name,
+            permissions: user.role_permissions
+          }
+        });
       });
 
     } catch (error) {
@@ -8837,6 +9588,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                 paymentStatus === 'success';
 
       if (isPaymentSuccessful) {
+        // This legacy generic endpoint has no provider signature or server-side
+        // transaction verification. Never let caller-supplied JSON finalize
+        // inventory; verified gateway-specific callbacks own paid transitions.
+        return res.status(403).json({
+          success: false,
+          message: "تأیید پرداخت فقط از مسیر امن درگاه امکان‌پذیر است"
+        });
         // Update customer order payment status
         await db
           .update(customerOrders)
@@ -8929,6 +9687,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Handle successful payments by assigning order numbers and sending to warehouse
       if (isPaymentSuccessful) {
+        // Do not trust a public callback body as proof of payment.
+        return res.status(403).json({
+          success: false,
+          message: "تأیید پرداخت فقط از مسیر امن درگاه امکان‌پذیر است"
+        });
         console.log(`✅ [PAYMENT CALLBACK] Payment successful - processing order ${orderId || orderNumber}`);
         
         try {
@@ -8978,8 +9741,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   orderForWallet.customerId || undefined
                 );
                 if (reservation) {
-                  await walletStorage.confirmReservation(reservation.id);
-                  console.log(`✅ [PAYMENT CALLBACK] Wallet reservation ${reservation.id} confirmed - ${reservation.amount} IQD deducted for order ${targetOrderId} (${orderForWallet.orderNumber})`);
+                  const confirmedReservation = reservation!;
+                  await walletStorage.confirmReservation(confirmedReservation.id);
+                  console.log(`✅ [PAYMENT CALLBACK] Wallet reservation ${confirmedReservation.id} confirmed - ${confirmedReservation.amount} IQD deducted for order ${targetOrderId} (${orderForWallet.orderNumber})`);
                 } else {
                   console.log(`ℹ️ [PAYMENT CALLBACK] No wallet reservation found for hybrid order ${targetOrderId} (${orderForWallet.orderNumber})`);
                 }
@@ -9495,6 +10259,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use upsert for each setting
       for (const setting of settings) {
+        const settingKey = setting.setting_key || setting.settingKey;
+        const settingValue = setting.setting_value ?? setting.settingValue;
+        if (settingKey === 'proforma_deadline_days' &&
+            (!/^\d+$/.test(String(settingValue)) || Number(settingValue) < 1 || Number(settingValue) > 30)) {
+          return res.status(400).json({ success: false, message: "مهلت پرداخت باید عدد صحیح بین ۱ تا ۳۰ باشد" });
+        }
+        if (settingKey === 'proforma_reminder_timezone') {
+          try { new Intl.DateTimeFormat('en-US', { timeZone: String(settingValue) }).format(); }
+          catch { return res.status(400).json({ success: false, message: "منطقه زمانی نامعتبر است" }); }
+        }
         await pool.query(`
           INSERT INTO shop_settings (
             setting_key, setting_value, setting_type, display_name, 
@@ -9514,8 +10288,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             default_value = EXCLUDED.default_value,
             updated_at = NOW()
         `, [
-          setting.setting_key || setting.settingKey,
-          setting.setting_value || setting.settingValue,
+          settingKey,
+          settingValue,
           setting.setting_type || setting.settingType,
           setting.display_name || setting.displayName,
           setting.display_name_en || setting.displayNameEn,
@@ -9554,7 +10328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await pool.query(`
         SELECT id, reminder_hour, days_before, message_template, 
                message_subject, notification_method, is_active, priority,
-               sms_template_id, email_template_id, created_at, updated_at
+               sms_template_id, email_template_id, sender_category_key, created_at, updated_at
         FROM proforma_reminder_schedule
         ORDER BY days_before ASC, reminder_hour ASC
       `);
@@ -9584,25 +10358,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive,
         priority,
         smsTemplateId,
-        emailTemplateId
+         emailTemplateId,
+         senderCategoryKey
       } = req.body;
 
-      if (reminderHour === undefined || !daysBefore || !messageTemplate || !messageSubject) {
+       const scheduleCheck = (await import('./proforma-reminder-service')).validReminderSchedule({
+         reminderHour, daysBefore, notificationMethod: notificationMethod || 'email', priority: priority ?? 1
+       });
+       if (!scheduleCheck.ok || !messageTemplate || (notificationMethod !== 'sms' && !messageSubject)) {
         return res.status(400).json({
           success: false,
-          message: "تمام فیلدهای الزامی را پر کنید"
+           message: !scheduleCheck.ok ? scheduleCheck.error : "تمام فیلدهای الزامی را پر کنید"
         });
       }
 
       const { pool } = await import('./db');
+       const channels = (await import('./proforma-reminder-service')).channelsForMethod(notificationMethod || 'email');
+       if (channels.includes('email')) {
+         const check = await pool.query(`SELECT 1 FROM email_templates e JOIN email_categories c ON c.category_key=$2 JOIN smtp_settings s ON s.category_id=c.id WHERE e.id=$1 AND e.is_active=true AND c.is_active=true AND s.is_active=true AND s.from_email ~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'`, [emailTemplateId, senderCategoryKey]);
+         if (!emailTemplateId || !senderCategoryKey || !check.rowCount) return res.status(400).json({ success:false, message:'قالب ایمیل یا SMTP فعال یافت نشد' });
+       }
+       if (channels.includes('sms')) {
+         const check = await pool.query(`SELECT 1 FROM sms_templates WHERE id=$1 AND is_active=true`, [smsTemplateId]);
+         if (!smsTemplateId || !check.rowCount) return res.status(400).json({ success:false, message:'قالب پیامک فعال یافت نشد' });
+       }
       
       console.log(`📅 [PROFORMA REMINDERS] Creating new reminder schedule...`);
 
       const result = await pool.query(`
         INSERT INTO proforma_reminder_schedule (
           reminder_hour, days_before, message_template, message_subject,
-          notification_method, is_active, priority, sms_template_id, email_template_id, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+           notification_method, is_active, priority, sms_template_id, email_template_id, sender_category_key, updated_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
         RETURNING *
       `, [
         reminderHour,
@@ -9613,7 +10400,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive !== false,
         priority || 1,
         smsTemplateId || null,
-        emailTemplateId || null
+         emailTemplateId || null,
+         senderCategoryKey || null
       ]);
 
       console.log(`✅ [PROFORMA REMINDERS] Created schedule ID: ${result.rows[0].id}`);
@@ -9645,10 +10433,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive,
         priority,
         smsTemplateId,
-        emailTemplateId
+         emailTemplateId,
+         senderCategoryKey
       } = req.body;
 
-      const { pool } = await import('./db');
+       const scheduleCheck = (await import('./proforma-reminder-service')).validReminderSchedule({
+         reminderHour, daysBefore, notificationMethod: notificationMethod || 'email', priority: priority ?? 1
+       });
+       if (!scheduleCheck.ok) return res.status(400).json({ success: false, message: scheduleCheck.error });
+       const { pool } = await import('./db');
+       const channels = (await import('./proforma-reminder-service')).channelsForMethod(notificationMethod || 'email');
+       if (channels.includes('email')) {
+         const check = await pool.query(`SELECT 1 FROM email_templates e JOIN email_categories c ON c.category_key=$2
+           JOIN smtp_settings s ON s.category_id=c.id WHERE e.id=$1 AND e.is_active=true AND c.is_active=true
+           AND s.is_active=true AND s.host IS NOT NULL AND s.username IS NOT NULL AND s.password IS NOT NULL
+           AND s.from_email ~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'`,
+           [emailTemplateId, senderCategoryKey]);
+         if (!emailTemplateId || !senderCategoryKey || !check.rowCount) return res.status(400).json({ success:false, message:'قالب ایمیل یا فرستنده SMTP فعال یافت نشد' });
+       }
+       if (channels.includes('sms')) {
+         const check = await pool.query(`SELECT 1 FROM sms_templates WHERE id=$1 AND is_active=true`, [smsTemplateId]);
+         if (!smsTemplateId || !check.rowCount) return res.status(400).json({ success:false, message:'قالب پیامک فعال یافت نشد' });
+       }
       
       console.log(`📅 [PROFORMA REMINDERS] Updating schedule ID: ${id}`);
 
@@ -9656,8 +10462,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         UPDATE proforma_reminder_schedule 
         SET reminder_hour = $1, days_before = $2, message_template = $3,
             message_subject = $4, notification_method = $5, is_active = $6,
-            priority = $7, sms_template_id = $8, email_template_id = $9, updated_at = NOW()
-        WHERE id = $10
+             priority = $7, sms_template_id = $8, email_template_id = $9, sender_category_key = $10, updated_at = NOW()
+         WHERE id = $11
         RETURNING *
       `, [
         reminderHour,
@@ -9668,7 +10474,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive !== false,
         priority || 1,
         smsTemplateId || null,
-        emailTemplateId || null,
+         emailTemplateId || null,
+         senderCategoryKey || null,
         id
       ]);
 
@@ -10200,10 +11007,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const config = {
         frontendUrl: process.env.FRONTEND_URL || CONFIG.getBaseUrl(req),
-        serverIp: process.env.SERVER_IP || '0.0.0.0',
-        nodeEnv: process.env.NODE_ENV || 'development',
-        smtpHost: process.env.SMTP_HOST || 'smtp.zoho.com',
-        smtpPort: process.env.SMTP_PORT || '587',
+        // Missing values must stay missing. A fallback here would make the
+        // admin panel report defaults as if they were actually configured.
+        serverIp: process.env.SERVER_IP || null,
+        nodeEnv: process.env.NODE_ENV || null,
+        smtpHost: process.env.SMTP_HOST || null,
+        smtpPort: process.env.SMTP_PORT || null,
         smtpUser: process.env.SMTP_USER || '',
         // Don't send sensitive data
         databaseUrl: process.env.DATABASE_URL ? '***configured***' : '',
@@ -10272,7 +11081,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: allPassed,
         testResults,
-        message: allPassed ? "همه تنظیمات صحیح است" : "برخی تنظیمات نیاز به بررسی دارند"
+        message: allPassed
+          ? "ساختار تنظیمات معتبر است؛ این بررسی به معنی تأیید اتصال سرویس‌ها نیست"
+          : "ساختار برخی تنظیمات نیاز به بررسی دارد"
       });
     } catch (error) {
       console.error("Error testing server config:", error);
@@ -10287,16 +11098,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentModules = getSiteManagementModules();
       
       // Map module IDs to their display information
-      const moduleMapping = {
+      const moduleMapping: Record<string, { name: string; description: string; category: string }> = {
         'kpi_dashboard': { name: 'شاخص‌های عملکرد (KPI)', description: 'نمایش شاخص‌های عملکرد کسب‌وکار', category: 'analytics' },
         'management_dashboard': { name: 'داشبورد مدیریتی', description: 'مرکز کنترل مدیریتی و نظارت سیستم', category: 'analytics' },
         'server_config': { name: 'تنظیمات سرور', description: 'مدیریت کانفیگ سرور و مهاجرت', category: 'system' },
         'syncing_shop': { name: 'همگام‌سازی فروشگاه', description: 'همگام‌سازی محصولات کاردکس با فروشگاه', category: 'commerce' },
-        'shop_management': { name: 'مدیریت فروشگاه', description: 'مدیریت محصولات، سفارشات و فروش', category: 'commerce' },
+        'shop_management': { name: 'Commercial', description: 'مدیریت واحدهای فروش و تدارکات', category: 'commerce' },
         'product_management': { name: 'مدیریت محصولات', description: 'مدیریت کاردکس و محصولات', category: 'commerce' },
-        'order_management': { name: 'مدیریت سفارشات', description: 'پردازش و تایید سفارشات', category: 'commerce' },
         'warehouse_management': { name: 'مدیریت انبار', description: 'کنترل موجودی و انبارداری', category: 'warehouse' },
         'logistics_management': { name: 'مدیریت لجستیک', description: 'مدیریت حمل و نقل و تحویل', category: 'logistics' },
+        'delivery_confirmation': { name: 'تأیید تحویل پیک / حمل‌کننده', description: 'تأیید تحویل سفارش توسط حمل‌کننده', category: 'logistics' },
         'inquiries': { name: 'مدیریت استعلامات', description: 'پاسخ به استعلامات مشتریان', category: 'customer' },
         'crm': { name: 'مدیریت CRM', description: 'مدیریت مشتریان و روابط', category: 'customer' },
         'barcode': { name: 'مدیریت بارکد', description: 'تولید و مدیریت بارکدها', category: 'inventory' },
@@ -10312,7 +11123,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'procedures': { name: 'مدیریت روش‌ها', description: 'مدیریت اسناد و روش‌های کاری', category: 'content' },
         'payment_management': { name: 'مدیریت پرداخت', description: 'تنظیمات درگاه پرداخت', category: 'finance' },
         'accounting_management': { name: 'مدیریت حسابداری', description: 'مدیریت فاکتورها و حسابداری کسب‌وکار', category: 'finance' },
-        'finance': { name: 'مدیریت مالی', description: 'بررسی و تایید مالی سفارشات', category: 'finance' },
+        ...loadingPermissionDefinition,
+        'finance': { name: 'تایید مالی', description: 'بررسی و تایید مالی سفارشات', category: 'finance' },
         'wallet_management': { name: 'مدیریت کیف پول', description: 'مدیریت کیف پول مشتریان', category: 'finance' },
         'geography_analytics': { name: 'آمار جغرافیایی', description: 'تحلیل آمار منطقه‌ای', category: 'analytics' },
         'ai_settings': { name: 'تنظیمات هوش مصنوعی', description: 'پیکربندی AI و SKU', category: 'system' },
@@ -10321,6 +11133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'ticketing_system': { name: 'سیستم تیکتینگ', description: 'مدیریت تیکت‌ها و پشتیبانی', category: 'support' },
         'remote_desktop': { name: 'دسکتاپ از راه دور', description: 'دسترسی از راه دور به سیستم', category: 'system' },
         'company_information': { name: 'اطلاعات شرکت', description: 'مدیریت اطلاعات و پروفایل شرکت', category: 'content' },
+        'legal_affairs': { name: 'امور حقوقی و پیمان‌ها', description: 'مدیریت امور حقوقی و قراردادهای شرکت', category: 'admin' },
         'user_guide': { name: 'راهنمای کاربر', description: 'مستندات و راهنماهای کاربری', category: 'content' },
         'marketing_module': { name: 'ماژول بازاریابی', description: 'مدیریت کمپین‌های بازاریابی', category: 'marketing' },
         'aws_s3_settings': { name: 'تنظیمات AWS S3', description: 'پیکربندی ذخیره‌سازی ابری AWS', category: 'system' }
@@ -10652,6 +11465,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🔍 [ROUTES] Financial endpoint called - using getOrdersByDepartment');
       const orders = await orderManagementStorage.getOrdersByDepartment('financial');
+      const view = req.query.view === 'rejected' ? 'rejected' : 'pending';
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const sortBy = typeof req.query.sortBy === 'string' ? req.query.sortBy : 'createdAt';
+      const sortDirection = req.query.sortDirection === 'desc' ? 'desc' : 'asc';
       
       console.log('🔍 [ROUTES] Received', orders.length, 'orders from financial department');
       
@@ -10673,10 +11491,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         receiptFileName: order.receipt?.fileName || '',
         receiptMimeType: order.receipt?.mimeType || ''
       }));
+
+      const filteredOrders = transformedOrders.filter((order) => {
+        const status = resolveOrderStatus({
+          workflowStatus: order.currentStatus,
+          orderStatus: (order as any).status,
+          paymentStatus: (order as any).paymentStatus,
+          financialReviewedAt: (order as any).financialReviewedAt,
+        }).status;
+        if (view === 'rejected') return status === 'financial_rejected';
+        return status === 'financial_reviewing' ||
+          status === 'payment_uploaded' ||
+          status === 'financial_auto_approved';
+      });
+
+      const sortableValues: Record<string, (order: any) => unknown> = {
+        id: (order) => order.id,
+        orderNumber: (order) => order.orderNumber,
+        customer: (order) => order.customer?.name ||
+          `${order.customerFirstName || ''} ${order.customerLastName || ''}`.trim(),
+        contact: (order) => order.customerEmail || order.customerPhone,
+        createdAt: (order) => order.createdAt,
+        paymentMethod: (order) => order.paymentMethod,
+        totalAmount: (order) => Number(order.totalAmount || 0),
+        currentStatus: (order) => order.currentStatus,
+        receipt: (order) => Boolean(order.receipt?.url || order.paymentReceiptUrl),
+        financialNotes: (order) => order.financialNotes,
+      };
+      const getSortValue = sortableValues[sortBy] || sortableValues.createdAt;
+      const sortedOrders = [...filteredOrders].sort((left, right) => {
+        const leftValue = getSortValue(left);
+        const rightValue = getSortValue(right);
+        const direction = sortDirection === 'asc' ? 1 : -1;
+        if (leftValue == null && rightValue == null) return left.id - right.id;
+        if (leftValue == null) return direction;
+        if (rightValue == null) return -direction;
+        if (sortBy === 'createdAt') {
+          return (new Date(String(leftValue)).getTime() - new Date(String(rightValue)).getTime()) * direction ||
+            left.id - right.id;
+        }
+        if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+          return (leftValue - rightValue) * direction || left.id - right.id;
+        }
+        return String(leftValue).localeCompare(String(rightValue), undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        }) * direction || left.id - right.id;
+      });
+      const paginatedOrders = sortedOrders.slice(offset, offset + limit);
       
       res.json({ 
         success: true, 
-        orders: transformedOrders 
+        orders: paginatedOrders,
+        total: sortedOrders.length,
+        offset,
+        limit,
+        hasMore: offset + paginatedOrders.length < sortedOrders.length,
       });
     } catch (error) {
       console.error("Error fetching financial orders:", error);
@@ -10692,6 +11562,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('🔍 [ROUTES] Logistics endpoint called - using getOrdersByDepartment');
       const orders = await orderManagementStorage.getOrdersByDepartment('logistics');
+      const limit = 100;
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
       
       console.log('🔍 [ROUTES] Received', orders.length, 'orders from logistics department');
       
@@ -10712,6 +11584,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerAddress: order.customer?.address || 'آدرس نامشخص',
         // Map order total from totalAmount field
         orderTotal: parseFloat(order.totalAmount || '0'),
+        estimatedDeliveryAt: order.estimatedDeliveryAt
+          ? new Date(order.estimatedDeliveryAt).toISOString()
+          : null,
+        estimatedDeliveryTimeZone: order.estimatedDeliveryTimeZone || null,
+        destinationCountry: order.country || "",
+        destinationCity: order.city || null,
         // Extract warehouse details
         warehouseProcessedAt: order.warehouseApprovedAt || order.createdAt,
         orderDate: order.createdAt,
@@ -10721,10 +11599,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         locationAccuracy: order.locationAccuracy,
         hasGpsLocation: !!(order.gpsLatitude && order.gpsLongitude)
       }));
+      const paginatedOrders = transformedOrders.slice(offset, offset + limit);
       
       res.json({ 
         success: true, 
-        orders: transformedOrders 
+        orders: paginatedOrders,
+        total: transformedOrders.length,
+        offset,
+        limit,
+        hasMore: offset + paginatedOrders.length < transformedOrders.length,
+        nextOffset: offset + paginatedOrders.length < transformedOrders.length ? offset + limit : null,
       });
     } catch (error) {
       console.error("Error fetching logistics orders:", error);
@@ -10739,6 +11623,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/order-management/delivered", requireAuth, async (req, res) => {
     try {
       console.log('🔍 [ROUTES] Delivered orders endpoint called');
+      const limit = 100;
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
       
       // Get delivered orders from order_management table with customer_orders join
       const orders = await db
@@ -10835,9 +11721,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         calculatedWeight: order.totalWeight || '0'
       }));
       
+      const paginatedOrders = transformedOrders.slice(offset, offset + limit);
       res.json({ 
         success: true, 
-        orders: transformedOrders 
+        orders: paginatedOrders,
+        total: transformedOrders.length,
+        offset,
+        limit,
+        hasMore: offset + paginatedOrders.length < transformedOrders.length,
+        nextOffset: offset + paginatedOrders.length < transformedOrders.length ? offset + limit : null,
       });
     } catch (error) {
       console.error("Error fetching delivered orders:", error);
@@ -11469,51 +12361,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get management dashboard data
   app.get("/api/management/dashboard", requireAuth, async (req, res) => {
     try {
+      const period = req.query.period ?? "all";
+      const salesIntervals: Record<string, string | null> = {
+        week: "7 days", month: "1 month", quarter: "3 months",
+        halfYear: "6 months", year: "1 year", all: null
+      };
+      if (typeof period !== "string" || !Object.prototype.hasOwnProperty.call(salesIntervals, period)) {
+        return res.status(400).json({ success: false, message: "Invalid sales period" });
+      }
       const { pool } = await import('./db');
-      
-      // Get comprehensive dashboard metrics
+      const [summaryResult, salesResult, statusResult, inventoryResult, contractResult, vendorCountResult, vendorSalesResult] = await Promise.all([
+        pool.query(`
+          SELECT
+            (
+              SELECT COUNT(*)::int FROM session
+              WHERE expire > NOW() AND (sess->>'customUserId') IS NOT NULL
+            ) AS online_customers
+        `),
+        pool.query(`
+          SELECT currency,
+            COALESCE(SUM(total_amount) FILTER (
+              WHERE $1::interval IS NULL OR created_at >= NOW() - $1::interval
+            ), 0)::text AS amount
+          FROM customer_orders
+          WHERE status NOT IN ('cancelled', 'failed', 'deleted', 'payment_failed', 'expired')
+            AND payment_status <> 'failed'
+          GROUP BY currency
+          ORDER BY currency
+        `, [salesIntervals[period]]),
+        pool.query(`
+          SELECT
+            COUNT(*) FILTER (WHERE current_status IN ('pending', 'finance_pending', 'payment_uploaded'))::int AS pending,
+            COUNT(*) FILTER (WHERE current_status IN ('financial_approved', 'warehouse_pending', 'warehouse_processing'))::int AS processing,
+            COUNT(*) FILTER (WHERE current_status IN ('warehouse_approved', 'warehouse_ready', 'logistics_assigned', 'logistics_dispatched', 'in_transit'))::int AS ready_to_ship,
+            COUNT(*) FILTER (WHERE current_status IN ('delivered', 'completed', 'logistics_delivered'))::int AS delivered,
+            COUNT(*) FILTER (WHERE current_status IN ('financial_rejected', 'payment_failed', 'expired', 'warehouse_rejected', 'logistics_failed'))::int AS alerts,
+            COUNT(*) FILTER (WHERE current_status IN ('pending', 'finance_pending', 'payment_uploaded'))::int AS finance_queue,
+            COUNT(*) FILTER (WHERE current_status IN ('financial_approved', 'warehouse_pending', 'warehouse_processing'))::int AS warehouse_queue,
+            COUNT(*) FILTER (WHERE current_status IN ('warehouse_approved', 'warehouse_ready', 'logistics_assigned', 'logistics_dispatched', 'in_transit'))::int AS logistics_queue
+          FROM order_management
+        `),
+        pool.query(`
+          SELECT name, COALESCE(stock_quantity, 0)::int AS stock,
+            CASE
+              WHEN COALESCE(stock_quantity, 0) <= 0 THEN 'critical'
+              WHEN COALESCE(stock_quantity, 0) <= COALESCE(low_stock_threshold, min_stock_level, 0) THEN 'low'
+              ELSE 'warning'
+            END AS status
+          FROM shop_products
+          WHERE is_active = true
+            AND COALESCE(stock_quantity, 0) <= GREATEST(COALESCE(low_stock_threshold, 0), COALESCE(min_stock_level, 0))
+          ORDER BY stock_quantity ASC, name ASC
+          LIMIT 8
+        `),
+        pool.query(`
+          SELECT sc.id, sc.number, COALESCE(NULLIF(c.company, ''),
+            NULLIF(TRIM(CONCAT_WS(' ', c.first_name, c.last_name)), ''), c.email) AS customer_name
+          FROM shop_contracts sc
+          JOIN crm_customers c ON c.id = sc.customer_id
+          WHERE sc.is_active = TRUE AND sc.ended_at IS NULL
+          ORDER BY sc.created_at DESC, sc.id DESC
+        `),
+        pool.query(`
+          SELECT COUNT(*)::int AS active_vendors
+          FROM vendors WHERE is_active = TRUE AND is_approved = TRUE
+        `),
+        pool.query(`
+          SELECT vt.vendor_id, v.vendor_name, vt.currency,
+            SUM(CASE WHEN vt.transaction_type = 'refund' THEN -ABS(vt.amount) ELSE vt.amount END)::text AS amount,
+            COUNT(DISTINCT vt.customer_order_id) FILTER (WHERE vt.transaction_type = 'sale')::int AS orders
+          FROM vendor_transactions vt
+          JOIN vendors v ON v.id = vt.vendor_id
+          JOIN customer_orders co ON co.id = vt.customer_order_id
+          WHERE vt.transaction_type IN ('sale', 'refund') AND vt.status = 'completed'
+            AND co.status NOT IN ('cancelled', 'failed', 'deleted', 'payment_failed', 'expired')
+            AND co.payment_status <> 'failed'
+          GROUP BY vt.vendor_id, v.vendor_name, vt.currency
+          ORDER BY vt.vendor_id, vt.currency
+        `)
+      ]);
+
+      const summary = summaryResult.rows[0];
+      const statuses = statusResult.rows[0];
       const dashboardData = {
         summary: {
-          dailySales: 2543000,
-          activeOrders: 47,
-          onlineCustomers: 124,
-          systemAlerts: 3
+          salesByCurrency: salesResult.rows,
+          activeOrders: statuses.pending + statuses.processing + statuses.ready_to_ship,
+          onlineCustomers: summary.online_customers,
+          systemAlerts: statuses.alerts,
+          activeContracts: contractResult.rows.length,
+          activeVendors: vendorCountResult.rows[0].active_vendors
         },
         quickStats: {
           orderStatuses: {
-            pending: 8,
-            processing: 15,
-            readyToShip: 23,
-            delivered: 145
+            pending: statuses.pending,
+            processing: statuses.processing,
+            readyToShip: statuses.ready_to_ship,
+            delivered: statuses.delivered
           },
-          departmentPerformance: {
-            finance: 85,
-            warehouse: 92,
-            logistics: 78
+          departmentQueues: {
+            finance: statuses.finance_queue,
+            warehouse: statuses.warehouse_queue,
+            logistics: statuses.logistics_queue
           },
-          criticalInventory: [
-            { name: "سولونت 402", stock: 12, status: "critical" },
-            { name: "تینر PT-300", stock: 8, status: "low" },
-            { name: "NPK Complex", stock: 25, status: "warning" }
-          ]
-        },
-        recentActivities: [
-          {
-            type: "order_delivered",
-            message: "سفارش #ORD-1234 با موفقیت تحویل داده شد",
-            timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString()
-          },
-          {
-            type: "new_customer",
-            message: "مشتری جدید \"شرکت کیمیا پتروشیمی\" ثبت‌نام کرد",
-            timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString()
-          },
-          {
-            type: "low_inventory",
-            message: "محصول \"سولونت 402\" به حد مجاز موجودی رسید",
-            timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-          }
-        ]
+          criticalInventory: inventoryResult.rows,
+          activeContractList: contractResult.rows.map(row => ({
+            id: row.id, number: row.number, customerName: row.customer_name
+          })),
+          vendorSales: vendorSalesResult.rows.map(row => ({
+            vendorId: row.vendor_id, vendorName: row.vendor_name,
+            currency: row.currency, amount: row.amount, orders: row.orders
+          }))
+        }
       };
       
       res.json({
@@ -11529,28 +12488,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get system health data
   app.get("/api/management/system-health", requireAuth, async (req, res) => {
     try {
-      // Get system health metrics
+      const os = await import('node:os');
+      const fs = await import('node:fs');
+      const { pool } = await import('./db');
+      const memory = Math.round((1 - os.freemem() / os.totalmem()) * 100);
+      const cpu = Math.min(100, Math.round((os.loadavg()[0] / Math.max(os.cpus().length, 1)) * 100));
+      let disk: number | null = null;
+      try {
+        const diskStats = fs.statfsSync(process.cwd());
+        disk = Math.round((1 - Number(diskStats.bavail) / Number(diskStats.blocks)) * 100);
+      } catch (error) {
+        console.warn('[SYSTEM HEALTH] Disk usage unavailable:', error);
+      }
+      const dbStarted = Date.now();
+      await pool.query('SELECT 1');
+      const databaseResponseMs = Date.now() - dbStarted;
       const systemHealth = {
         server: {
-          cpu: 45,
-          memory: 68,
-          disk: 32,
-          status: "healthy"
+          cpu,
+          memory,
+          disk,
+          status: "online"
         },
         services: {
           database: "online",
-          email: "online",
-          sms: "limited"
+          email: process.env.SMTP_USER && process.env.SMTP_PASS ? "configured" : "unavailable",
+          sms: "unavailable"
         },
         backup: {
-          lastBackup: "امروز 02:00",
-          status: "success",
-          nextScheduled: "فردا 02:00"
+          lastBackup: null,
+          status: "unavailable",
+          nextScheduled: null
         },
         performance: {
-          responseTime: 245, // ms
-          uptime: 99.8, // percentage
-          errorRate: 0.2 // percentage
+          responseTime: databaseResponseMs,
+          uptime: Math.round(process.uptime())
         }
       };
       
@@ -13963,7 +14935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create procedure category
-  app.post("/api/procedures/categories", requireAuth, async (req, res) => {
+  app.post("/api/procedures/categories", requireSuperAdminRole, async (req, res) => {
     try {
       const { name, description, colorCode, displayOrder } = req.body;
       
@@ -13989,7 +14961,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create procedure
-  app.post("/api/procedures", requireAuth, async (req, res) => {
+  app.post("/api/procedures", requireSuperAdminRole, async (req, res) => {
     try {
       const { title, categoryId, description, content, priority, effectiveDate, reviewDate, tags, accessLevel } = req.body;
       const userId = (req.session as any)?.adminId;
@@ -14020,7 +14992,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update procedure
-  app.put("/api/procedures/:id", requireAuth, async (req, res) => {
+  app.put("/api/procedures/:id", requireSuperAdminRole, async (req, res) => {
     try {
       const { id } = req.params;
       const { title, categoryId, description, content, priority, effectiveDate, reviewDate, tags, accessLevel } = req.body;
@@ -14052,8 +15024,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete procedure and its dependent content
+  app.delete("/api/procedures/:id", requireSuperAdminRole, async (req, res) => {
+    const { pool } = await import('./db');
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const procedureResult = await client.query(`
+        SELECT id
+        FROM procedures
+        WHERE id = $1
+        FOR UPDATE
+      `, [req.params.id]);
+
+      if (procedureResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ success: false, message: "Procedure not found" });
+      }
+
+      // Preserve historical training records while removing their deleted procedure link.
+      await client.query(`
+        UPDATE procedure_training
+        SET procedure_id = NULL
+        WHERE procedure_id = $1
+      `, [req.params.id]);
+
+      await client.query(`
+        DELETE FROM procedures
+        WHERE id = $1
+      `, [req.params.id]);
+
+      await client.query('COMMIT');
+      res.json({ success: true, message: "Procedure deleted successfully" });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error("Error deleting procedure:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+    } finally {
+      client.release();
+    }
+  });
+
   // Create safety protocol
-  app.post("/api/procedures/safety-protocols", requireAuth, async (req, res) => {
+  app.post("/api/procedures/safety-protocols", requireSuperAdminRole, async (req, res) => {
     try {
       const { title, category, description, severityLevel, procedures, firstAidSteps, evacuationPlan, requiredPpe } = req.body;
       const userId = (req.session as any)?.adminId;
@@ -14115,7 +15130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create procedure outline
-  app.post("/api/procedures/:procedureId/outlines", requireAuth, async (req, res) => {
+  app.post("/api/procedures/:procedureId/outlines", requireSuperAdminRole, async (req, res) => {
     try {
       const { procedureId } = req.params;
       const { parentId, level, orderNumber, title, content, isCollapsible } = req.body;
@@ -14138,7 +15153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create safety protocol
-  app.post("/api/procedures/safety-protocols", requireAuth, async (req, res) => {
+  app.post("/api/procedures/safety-protocols", requireSuperAdminRole, async (req, res) => {
     try {
       const { title, category, description, severityLevel, procedures, firstAidSteps, evacuationPlan, requiredPpe } = req.body;
       const userId = (req.session as any)?.adminId;
@@ -14166,7 +15181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update safety protocol
-  app.put("/api/procedures/safety-protocols/:id", requireAuth, async (req, res) => {
+  app.put("/api/procedures/safety-protocols/:id", requireSuperAdminRole, async (req, res) => {
     try {
       const { id } = req.params;
       const { title, category, description, severityLevel, procedures, firstAidSteps, evacuationPlan, requiredPpe } = req.body;
@@ -14245,7 +15260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload safety protocol document
-  app.post("/api/procedures/safety-protocols/:protocolId/documents", requireAuth, upload.single('document'), async (req, res) => {
+  app.post("/api/procedures/safety-protocols/:protocolId/documents", requireSuperAdminRole, upload.single('document'), async (req, res) => {
     try {
       const { protocolId } = req.params;
       const { title, description, version, tags } = req.body;
@@ -14357,7 +15372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete safety protocol document
-  app.delete("/api/procedures/safety-protocols/documents/:documentId", requireAuth, async (req, res) => {
+  app.delete("/api/procedures/safety-protocols/documents/:documentId", requireSuperAdminRole, async (req, res) => {
     try {
       const { documentId } = req.params;
       
@@ -14410,7 +15425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update procedure category
-  app.put("/api/procedures/categories/:id", requireAuth, async (req, res) => {
+  app.put("/api/procedures/categories/:id", requireSuperAdminRole, async (req, res) => {
     try {
       const { id } = req.params;
       const { name, description, colorCode, displayOrder } = req.body;
@@ -14438,6 +15453,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ success: false, message: "Internal server error" });
       }
+    }
+  });
+
+  // Delete an unused procedure category
+  app.delete("/api/procedures/categories/:id", requireSuperAdminRole, async (req, res) => {
+    try {
+      const { pool } = await import('./db');
+      const result = await pool.query(`
+        UPDATE procedure_categories c
+        SET is_active = false, updated_at = NOW()
+        WHERE c.id = $1
+          AND c.is_active = true
+          AND NOT EXISTS (
+            SELECT 1
+            FROM procedures p
+            WHERE p.category_id = c.id
+          )
+        RETURNING c.id
+      `, [req.params.id]);
+
+      if (result.rows.length > 0) {
+        return res.json({ success: true, message: "Category deleted successfully" });
+      }
+
+      const categoryResult = await pool.query(`
+        SELECT c.id, EXISTS (
+          SELECT 1 FROM procedures p WHERE p.category_id = c.id
+        ) AS has_procedures
+        FROM procedure_categories c
+        WHERE c.id = $1 AND c.is_active = true
+      `, [req.params.id]);
+
+      if (categoryResult.rows.length === 0) {
+        return res.status(404).json({ success: false, message: "Category not found" });
+      }
+
+      return res.status(409).json({
+        success: false,
+        message: "This category contains procedures. Delete or move them first."
+      });
+    } catch (error) {
+      console.error("Error deleting procedure category:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
     }
   });
 
@@ -14565,9 +15623,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test SMS endpoint
   app.post("/api/admin/sms/test-sms", requireAuth, async (req, res) => {
     try {
-      const { phoneNumber, message } = req.body;
+      const { phoneNumber, message, customerId, preferredLanguage, localizedMessages } = req.body;
       
-      if (!phoneNumber || !message) {
+      if (!phoneNumber || (!message && !localizedMessages)) {
         return res.status(400).json({
           success: false,
           message: "شماره تلفن و متن پیام الزامی است"
@@ -14588,6 +15646,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const settings = settingsResult.rows[0];
+      let selectedMessage = message;
+      let selectedLanguage = preferredLanguage;
+      if (localizedMessages && typeof localizedMessages === 'object') {
+        const { resolveSmsLanguage, normalizeSmsLanguage, selectLocalizedSms } =
+          await import('./sms-language');
+        if (!customerId && !preferredLanguage) {
+          return res.status(400).json({
+            success: false,
+            message: "برای شماره خام، preferredLanguage الزامی است"
+          });
+        }
+        selectedLanguage = await resolveSmsLanguage(
+          pool,
+          customerId ? Number(customerId) : undefined,
+          phoneNumber,
+          normalizeSmsLanguage(preferredLanguage),
+        );
+        selectedMessage = selectLocalizedSms(localizedMessages, selectedLanguage);
+        if (!selectedMessage) {
+          return res.status(400).json({
+            success: false,
+            message: "پیام محلی برای زبان دریافت‌کننده موجود نیست"
+          });
+        }
+      }
       
       // Log test SMS
       console.log(`📱 Test SMS Request:`, {
@@ -14616,7 +15699,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 destinations: [{
                   to: phoneNumber
                 }],
-                text: message
+                text: selectedMessage
               }]
             })
           });
@@ -14643,7 +15726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             },
             body: new URLSearchParams({
               receptor: phoneNumber,
-              message: message,
+              message: selectedMessage,
               sender: settings.sender_number || '1000596446'
             })
           });
@@ -14660,32 +15743,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error(`Kavenegar API Error: ${kavenegarData.return?.message || 'Unknown error'}`);
           }
         } else {
-          // For other providers, simulate for now
-          smsResult = {
-            success: true,
-            messageId: `PROVIDER_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-            status: 'SIMULATED'
-          };
+          throw new Error(`SMS provider "${settings.provider}" is not implemented`);
+        }
+
+        try {
+          const { smsLogs } = await import("../shared/schema");
+          await db.insert(smsLogs).values({
+            phoneNumber,
+            message: selectedMessage,
+            purpose: 'admin_test',
+            status: 'accepted',
+            smsProvider: settings.provider,
+            errorMessage: null
+          });
+        } catch (logError) {
+          console.error('Error storing outbound SMS log:', logError);
         }
 
         res.json({
           success: true,
-          message: settings.is_test_mode ? 
-            `پیام تست واقعی ارسال شد (${settings.provider})` : 
-            "پیام با موفقیت ارسال شد",
+          message: "پیام توسط ارائه‌دهنده پذیرفته شد؛ تحویل نهایی هنوز تأیید نشده است",
           messageId: smsResult.messageId,
-          status: smsResult.status,
+          status: 'accepted',
           provider: settings.provider,
-          testMode: settings.is_test_mode
+          testMode: settings.is_test_mode,
+          language: selectedLanguage
         });
         
-        console.log(`✅ Real SMS sent via ${settings.provider} - ID: ${smsResult.messageId}, Phone: ${phoneNumber}, Status: ${smsResult.status}`);
+        console.log(`✅ Real SMS sent via ${settings.provider} - ID: ${smsResult.messageId}, Phone: ${phoneNumber}, Status: ${smsResult.status}, Language: ${selectedLanguage || 'explicit-content'}`);
         
       } catch (smsError) {
         console.error('SMS sending error:', smsError);
-        res.json({
+        try {
+          const { smsLogs } = await import("../shared/schema");
+          await db.insert(smsLogs).values({
+            phoneNumber,
+            message: selectedMessage,
+            purpose: 'admin_test',
+            status: 'failed',
+            smsProvider: settings.provider,
+            errorMessage: smsError instanceof Error ? smsError.message : 'provider rejected message'
+          });
+        } catch (logError) {
+          console.error('Error storing failed outbound SMS log:', logError);
+        }
+        res.status(502).json({
           success: false,
-          message: `خطا در ارسال SMS: ${smsError.message}`,
+          message: "ارائه‌دهنده پیامک را نپذیرفت",
           provider: settings.provider,
           testMode: settings.is_test_mode
         });
@@ -14708,7 +15812,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         SELECT * FROM sms_settings WHERE id = 1
       `);
       
-      const settings = result.rows[0] || {
+      const row = result.rows[0];
+      const settings = row ? {
+        isEnabled: row.is_enabled,
+        provider: row.provider,
+        customProviderName: row.custom_provider_name || '',
+        // Credentials are write-only in the admin UI.
+        apiKey: '',
+        apiSecret: '',
+        username: row.username || '',
+        password: '',
+        senderNumber: row.sender_number || '',
+        apiEndpoint: row.api_endpoint || '',
+        serviceType: row.service_type || 'pattern',
+        patternId: row.pattern_id || '',
+        serviceCode: row.service_code || '',
+        codeLength: row.code_length,
+        codeExpiry: row.code_expiry,
+        maxAttempts: row.max_attempts,
+        rateLimitMinutes: row.rate_limit_minutes,
+        hasApiKey: Boolean(row.api_key),
+        hasApiSecret: Boolean(row.api_secret),
+        hasPassword: Boolean(row.password)
+      } : {
         isEnabled: false,
         provider: 'asiacell',
         customProviderName: '',
@@ -14724,10 +15850,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         codeLength: 6,
         codeExpiry: 300,
         maxAttempts: 3,
-        rateLimitMinutes: 5
+        rateLimitMinutes: 5,
+        hasApiKey: false,
+        hasApiSecret: false,
+        hasPassword: false
       };
 
-      res.json({ success: true, settings });
+      res.json({ success: true, data: settings, settings });
     } catch (error) {
       console.error("Error fetching SMS settings:", error);
       res.status(500).json({ success: false, message: "خطا در دریافت تنظیمات" });
@@ -14747,10 +15876,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           is_enabled = $1,
           provider = $2,
           custom_provider_name = $3,
-          api_key = $4,
-          api_secret = $5,
+          api_key = COALESCE(NULLIF($4, ''), sms_settings.api_key),
+          api_secret = COALESCE(NULLIF($5, ''), sms_settings.api_secret),
           username = $6,
-          password = $7,
+          password = COALESCE(NULLIF($7, ''), sms_settings.password),
           sender_number = $8,
           api_endpoint = $9,
           service_type = $10,
@@ -14781,7 +15910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         settings.rateLimitMinutes
       ]);
 
-      res.json({ success: true, settings: result.rows[0] });
+      res.json({ success: true });
     } catch (error) {
       console.error("Error updating SMS settings:", error);
       res.status(500).json({ success: false, message: "خطا در بروزرسانی تنظیمات" });
@@ -14801,10 +15930,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           is_enabled = $1,
           provider = $2,
           custom_provider_name = $3,
-          api_key = $4,
-          api_secret = $5,
+          api_key = COALESCE(NULLIF($4, ''), sms_settings.api_key),
+          api_secret = COALESCE(NULLIF($5, ''), sms_settings.api_secret),
           username = $6,
-          password = $7,
+          password = COALESCE(NULLIF($7, ''), sms_settings.password),
           sender_number = $8,
           api_endpoint = $9,
           service_type = $10,
@@ -14835,7 +15964,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         settings.rateLimitMinutes
       ]);
 
-      res.json({ success: true, settings: result.rows[0] });
+      res.json({ success: true });
     } catch (error) {
       console.error("Error updating SMS settings:", error);
       res.status(500).json({ success: false, message: "خطا در بروزرسانی تنظیمات" });
@@ -14962,6 +16091,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const customerData = customer.rows[0];
+      const { normalizeSmsLanguage, selectLocalizedSms } = await import('./sms-language');
+      const customerLanguage = normalizeSmsLanguage(customerData.preferred_language);
+      const fiveMinutes = { en: '5 minutes', fa: '۵ دقیقه', ar: '5 دقائق', tr: '5 dakika' }[customerLanguage];
       const authCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
       const results = [];
 
@@ -14973,10 +16105,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             templateNumber: '#AUTH01',
             categoryKey: 'admin',
             to: [customerData.email],
+            language: customerLanguage,
             variables: {
               customerName: `${customerData.first_name} ${customerData.last_name}`,
               authCode: authCode,
-              expiryTime: '5 دقیقه'
+              expiryTime: fiveMinutes
             }
           });
           results.push({ channel: 'email', success: true });
@@ -14992,9 +16125,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { createSmsService } = await import('./sms-service.js');
           const smsService = await createSmsService();
           
+          const message = selectLocalizedSms({
+            en: `${customerData.first_name}, your verification code is ${authCode}. It expires in 5 minutes. Momtaz Chemical`,
+            fa: `${customerData.first_name} عزیز، کد تأیید شما: ${authCode}\nاین کد در ۵ دقیقه منقضی می‌شود.\nممتازکم`,
+            ar: `${customerData.first_name}، رمز التحقق الخاص بك هو ${authCode}. تنتهي صلاحيته خلال 5 دقائق. ممتاز للكيماويات`,
+            tr: `${customerData.first_name}, doğrulama kodunuz: ${authCode}. Bu kod 5 dakika içinde geçerliliğini yitirir. Momtaz Chemical`,
+          }, customerLanguage)!;
           const result = await smsService.sendSms({
             to: customerData.phone,
-            message: `${customerData.first_name} عزیز، کد تایید شما: ${authCode}\nاین کد در ۵ دقیقه منقضی می‌شود.\nممتازکم`
+            message,
           });
           
           results.push({ channel: 'sms', success: result.success, error: result.error });
@@ -15046,7 +16185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get order and customer info
       const [order] = await pool.query(`
-        SELECT om.*, c.first_name, c.last_name, c.email, c.phone, c.whatsapp_number
+        SELECT om.*, c.first_name, c.last_name, c.email, c.phone, c.whatsapp_number, c.preferred_language
         FROM order_management om
         LEFT JOIN customer_orders co ON om.customer_order_id = co.id
         LEFT JOIN customers c ON co.customer_id = c.id
@@ -15058,6 +16197,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const orderData = order.rows[0];
+      const { normalizeSmsLanguage, selectLocalizedSms } = await import('./sms-language');
+      const customerLanguage = normalizeSmsLanguage(orderData.preferred_language);
       const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit code
       const results = [];
 
@@ -15069,6 +16210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             templateNumber: '#DELIVERY01',
             categoryKey: 'admin',
             to: [orderData.email],
+            language: customerLanguage,
             variables: {
               customerName: `${orderData.first_name} ${orderData.last_name}`,
               orderNumber: orderNumber,
@@ -15088,9 +16230,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { createSmsService } = await import('./sms-service.js');
           const smsService = await createSmsService();
           
+          const message = selectLocalizedSms({
+            en: `${orderData.first_name}, order ${orderNumber} is on its way. Delivery code: ${deliveryCode}. Give this code to the driver upon delivery. Momtaz Chemical`,
+            fa: `${orderData.first_name} عزیز، سفارش ${orderNumber} در راه است.\nکد تحویل: ${deliveryCode}\nاین کد را هنگام تحویل به پیک اعلام کنید.\nممتازکم`,
+            ar: `${orderData.first_name}، طلبك ${orderNumber} في الطريق. رمز التسليم: ${deliveryCode}. أعطِ هذا الرمز للسائق عند التسليم. ممتاز للكيماويات`,
+            tr: `${orderData.first_name}, ${orderNumber} numaralı siparişiniz yolda. Teslimat kodu: ${deliveryCode}. Teslimat sırasında bu kodu sürücüye verin. Momtaz Chemical`,
+          }, customerLanguage)!;
           const result = await smsService.sendSms({
             to: orderData.phone,
-            message: `${orderData.first_name} عزیز، سفارش ${orderNumber} در راه است.\nکد تحویل: ${deliveryCode}\nاین کد را هنگام تحویل به پیک اعلام کنید.\nممتازکم`
+            message,
           });
           
           results.push({ channel: 'sms', success: result.success, error: result.error });
@@ -15156,6 +16304,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const customerData = customer.rows[0];
+      const { normalizeSmsLanguage, selectLocalizedSms } = await import('./sms-language');
+      const customerLanguage = normalizeSmsLanguage(customerData.preferred_language);
+      const oneHour = { en: '1 hour', fa: '۱ ساعت', ar: 'ساعة واحدة', tr: '1 saat' }[customerLanguage];
       const crypto = await import('crypto');
       const resetToken = crypto.randomBytes(32).toString('hex');
       const resetExpires = new Date(Date.now() + 3600000); // 1 hour
@@ -15178,10 +16329,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             templateNumber: '#RESET01',
             categoryKey: 'admin',
             to: [customerData.email],
+            language: customerLanguage,
             variables: {
               customerName: `${customerData.first_name} ${customerData.last_name}`,
               resetLink: resetLink,
-              expiryTime: '1 ساعت'
+              expiryTime: oneHour
             }
           });
           results.push({ channel: 'email', success: true });
@@ -15197,9 +16349,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { createSmsService } = await import('./sms-service.js');
           const smsService = await createSmsService();
           
+          const message = selectLocalizedSms({
+            en: `${customerData.first_name}, reset your password using this link:\n${resetLink}\nThe link expires in 1 hour. Momtaz Chemical`,
+            fa: `${customerData.first_name} عزیز، برای بازیابی رمز عبور خود روی لینک زیر کلیک کنید:\n${resetLink}\nاین لینک در ۱ ساعت منقضی می‌شود.\nممتازکم`,
+            ar: `${customerData.first_name}، استخدم الرابط التالي لإعادة تعيين كلمة المرور:\n${resetLink}\nتنتهي صلاحية الرابط خلال ساعة واحدة. ممتاز للكيماويات`,
+            tr: `${customerData.first_name}, parolanızı sıfırlamak için bu bağlantıyı kullanın:\n${resetLink}\nBağlantı 1 saat içinde geçerliliğini yitirir. Momtaz Chemical`,
+          }, customerLanguage)!;
           const result = await smsService.sendSms({
             to: customerData.phone,
-            message: `${customerData.first_name} عزیز، برای بازیابی رمز عبور خود روی لینک زیر کلیک کنید:\n${resetLink}\nاین لینک در ۱ ساعت منقضی می‌شود.\nممتازکم`
+            message,
           });
           
           results.push({ channel: 'sms', success: result.success, error: result.error });
@@ -15472,26 +16630,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get SMS logs (simplified statistics)
+  // Get outbound SMS logs. Verification-code tables are intentionally not
+  // used here: consuming a code proves verification, not SMS delivery.
   app.get("/api/admin/sms/logs", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
-      
-      // Get SMS logs from customer verification codes
       const logsResult = await pool.query(`
         SELECT 
-          cvc.id,
-          CONCAT(c.first_name, ' ', c.last_name) as recipient_name,
-          cvc.phone_number as recipient_phone,
-          'کد تایید شما: ' || cvc.verification_code as message_text,
-          cvc.created_at as sent_at,
-          CASE 
-            WHEN cvc.is_used = true THEN 'delivered'
-            ELSE 'sent'
-          END as status
-        FROM customer_verification_codes cvc
-        LEFT JOIN crm_customers c ON c.phone = cvc.phone_number
-        ORDER BY cvc.created_at DESC
+          sl.id,
+          COALESCE(
+            NULLIF(CONCAT_WS(' ', crm.first_name, crm.last_name), ''),
+            NULLIF(CONCAT_WS(' ', portal.first_name, portal.last_name), ''),
+            'نامشخص'
+          ) AS recipient_name,
+          sl.phone_number AS recipient_phone,
+          sl.message AS message_text,
+          sl.created_at AS sent_at,
+          sl.status,
+          sl.sms_provider AS provider,
+          sl.error_message
+        FROM sms_logs sl
+        LEFT JOIN crm_customers crm ON crm.phone = sl.phone_number
+        LEFT JOIN customers portal ON portal.phone = sl.phone_number
+        ORDER BY sl.created_at DESC
         LIMIT 100
       `);
 
@@ -15501,7 +16662,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recipientPhone: row.recipient_phone,
         messageText: row.message_text,
         sentAt: row.sent_at,
-        status: row.status
+         status: row.status,
+         provider: row.provider,
+         errorMessage: row.error_message
       }));
 
       res.json({ success: true, data: logs });
@@ -16155,6 +17318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         address,
         secondaryAddress,
         postalCode,
+        secondaryPostalCode,
         alternatePhone,
         province,
         state,
@@ -16208,10 +17372,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Validate mandatory fields
-      if (!email || !phone || !country || !province || !city || !address) {
+      if (!email || !phone || !country || !province || !city || !address || !preferredLanguage) {
         return res.status(400).json({ 
           success: false, 
-          message: "ایمیل، شماره تلفن، کشور، استان، شهر و آدرس اجباری هستند" 
+          message: "ایمیل، شماره تلفن، کشور، استان، شهر، آدرس و زبان ترجیحی اجباری هستند"
+        });
+      }
+      if (!['en', 'fa', 'ar', 'tr'].includes(preferredLanguage)) {
+        return res.status(400).json({
+          success: false,
+          message: "زبان ترجیحی معتبر نیست",
         });
       }
 
@@ -16238,11 +17408,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         address,
         secondaryAddress: secondaryAddress || null,
         postalCode: postalCode || null,
+        secondaryPostalCode: secondaryPostalCode || null,
         industry: industry || null,
         businessType: businessType || null,
         companySize: companySize || null,
         communicationPreference: communicationPreference || 'email',
-        preferredLanguage: preferredLanguage || 'en',
+        preferredLanguage,
         marketingConsent: marketingConsent || false,
         productInterests: productInterests || null,
         creditLimit: creditLimit || null,
@@ -16309,27 +17480,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           VALUES (${crmCustomer.id}, ${verificationCode}, ${phone}, ${new Date(Date.now() + 10 * 60 * 1000)})
         `);
         
-        // Get SMS template 4 for registration verification
-        const template = await simpleSmsStorage.getTemplateById(4);
-        
-        if (template && template.templateContent && phone) {
-          // Replace variables in template
-          let smsMessage = template.templateContent;
-          smsMessage = smsMessage.replace(/\{\{customer_name\}\}/g, `${firstName} ${lastName}`);
-          smsMessage = smsMessage.replace(/\{\{verification_code\}\}/g, verificationCode);
-          
-          // Here you would integrate with your SMS provider
-          // For now, we'll log the message and mark it as sent
-          console.log(`📱 [SMS VERIFICATION] Registration verification sent to ${phone} - Template: ${template.templateName}`);
-          
-          // Increment template usage using direct SQL
-          await simpleSmsDb.execute(sql`
-            UPDATE simple_sms_templates 
-            SET usage_count = usage_count + 1, 
-                last_used = NOW(), 
-                updated_at = NOW() 
-            WHERE id = ${4}
-          `);
+        if (phone) {
+          const { createSmsService } = await import('./sms-service');
+          const customerName = `${firstName} ${lastName}`.trim();
+          const smsService = await createSmsService();
+          const sendResult = await smsService.sendLocalizedSystemTemplate({
+            templateKey: 'registration_verification',
+            phone,
+            customerId: crmCustomer.id,
+            language: preferredLanguage,
+            variables: {
+              customer_name: customerName,
+              verification_code: verificationCode,
+            },
+            fallbackMessages: {
+              en: `{{customer_name}}, your registration verification code is {{verification_code}}. It expires in 10 minutes. Momtaz Chemical`,
+              fa: `{{customer_name}} عزیز، کد تأیید ثبت‌نام شما: {{verification_code}}\nاین کد تا ۱۰ دقیقه معتبر است.\nممتازکم`,
+              ar: `{{customer_name}}، رمز التحقق من التسجيل هو {{verification_code}}. تنتهي صلاحيته خلال 10 دقائق. ممتاز للكيماويات`,
+              tr: `{{customer_name}}, kayıt doğrulama kodunuz: {{verification_code}}. Bu kod 10 dakika içinde geçerliliğini yitirir. Momtaz Chemical`,
+            },
+          });
+          if (!sendResult.success) {
+            throw new Error(sendResult.error || 'SMS provider rejected registration verification');
+          }
+          console.log(`📱 [SMS VERIFICATION] Registration verification accepted for ${phone} (${sendResult.language})`);
           
           // Log SMS activity in CRM
           await crmStorage.logCustomerActivity({
@@ -16339,7 +17513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             performedBy: 'system',
             activityData: {
               phone: phone,
-              template_id: 8,
+              template_id: sendResult.templateId || null,
               verification_code: verificationCode,
               sent_at: new Date().toISOString()
             }
@@ -16497,24 +17671,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         VALUES (${customer.id}, ${verificationCode}, ${phone}, ${new Date(Date.now() + 10 * 60 * 1000)})
       `);
 
-      // Get SMS template 4 for resend
-      const template = await simpleSmsStorage.getTemplateById(4);
-      
-      if (template && template.templateContent) {
-        let smsMessage = template.templateContent;
-        smsMessage = smsMessage.replace(/\{\{customer_name\}\}/g, `${customer.firstName} ${customer.lastName}`);
-        smsMessage = smsMessage.replace(/\{\{verification_code\}\}/g, verificationCode);
-        
-        console.log(`📱 [SMS RESEND] Verification code resent to ${phone}: ${smsMessage}`);
-        
-        // Increment template usage
-        await simpleSmsDb.execute(sql`
-          UPDATE simple_sms_templates 
-          SET usage_count = usage_count + 1, 
-              last_used = NOW(), 
-              updated_at = NOW() 
-          WHERE id = ${4}
-        `);
+      {
+        const { createSmsService } = await import('./sms-service');
+        const customerName = `${customer.firstName} ${customer.lastName}`.trim();
+        const smsService = await createSmsService();
+        const sendResult = await smsService.sendLocalizedSystemTemplate({
+          templateKey: 'registration_verification',
+          phone,
+          customerId: customer.id,
+          language: customer.preferredLanguage,
+          variables: {
+            customer_name: customerName,
+            verification_code: verificationCode,
+          },
+          fallbackMessages: {
+            en: `{{customer_name}}, your registration verification code is {{verification_code}}. It expires in 10 minutes. Momtaz Chemical`,
+            fa: `{{customer_name}} عزیز، کد تأیید ثبت‌نام شما: {{verification_code}}\nاین کد تا ۱۰ دقیقه معتبر است.\nممتازکم`,
+            ar: `{{customer_name}}، رمز التحقق من التسجيل هو {{verification_code}}. تنتهي صلاحيته خلال 10 دقائق. ممتاز للكيماويات`,
+            tr: `{{customer_name}}, kayıt doğrulama kodunuz: {{verification_code}}. Bu kod 10 dakika içinde geçerliliğini yitirir. Momtaz Chemical`,
+          },
+        });
+        if (!sendResult.success) {
+          throw new Error(sendResult.error || 'SMS provider rejected registration verification resend');
+        }
+        console.log(`📱 [SMS RESEND] Verification code accepted for ${phone} (${sendResult.language})`);
         
         // Log resend activity
         await crmStorage.logCustomerActivity({
@@ -16524,7 +17704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           performedBy: 'system',
           activityData: {
             phone: phone,
-            templateUsed: template.templateName,
+            templateUsed: sendResult.templateId || `localized-${sendResult.language}-fallback`,
             verificationCode: verificationCode
           }
         });
@@ -16545,15 +17725,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/customers/login", async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const identifier = String(req.body.identifier || req.body.email || '').trim();
+      const { password } = req.body;
       
       // ONLY authenticate via CRM (single source of truth)
-      const crmCustomer = await crmStorage.getCrmCustomerByEmail(email);
+      const crmCustomer = await crmStorage.getCrmCustomerByLoginIdentifier(identifier);
       
       if (!crmCustomer || !crmCustomer.passwordHash) {
         return res.status(401).json({ 
           success: false, 
-          message: "ایمیل یا رمز عبور اشتباه است" 
+          message: "ایمیل، موبایل یا رمز عبور اشتباه است"
         });
       }
       
@@ -16562,7 +17743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!isValidPassword) {
         return res.status(401).json({ 
           success: false, 
-          message: "ایمیل یا رمز عبور اشتباه است" 
+          message: "ایمیل، موبایل یا رمز عبور اشتباه است"
         });
       }
 
@@ -17357,6 +18538,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PERSISTENT CART ENDPOINTS (CUSTOMER SECTION)
   // =============================================================================
 
+  // Reconcile a complete cart snapshot for guests and authenticated customers.
+  // This endpoint only reserves exact FIFO batches; it never changes physical stock.
+  app.post("/api/cart/inventory-reservations", async (req, res) => {
+    try {
+      const customerId = (req.session as any)?.customerId || null;
+      const sessionId = req.sessionID;
+      if (!sessionId) {
+        return res.status(400).json({ success: false, message: "شناسه جلسه سبد خرید موجود نیست" });
+      }
+      if (req.body?.persistCart && !customerId) {
+        return res.status(401).json({ success: false, message: "برای ذخیره سبد خرید وارد حساب شوید" });
+      }
+      const { cart } = req.body || {};
+      const { reconcileCartReservations, ownerKeyForRequest } =
+        await import("./cart-inventory-reservation");
+      const ownerKey = ownerKeyForRequest(sessionId, customerId);
+      const result = await reconcileCartReservations({
+        ownerKey,
+        sessionId,
+        customerId,
+        cart: cart || {},
+        persistCustomerCart: req.body?.persistCart === true,
+        includeAvailability: req.body?.includeAvailability !== false
+      });
+      return res.json({ success: true, ...result });
+    } catch (error) {
+      if (error instanceof (await import("./cart-inventory-reservation")).InsufficientCartInventoryError) {
+        const inventoryError = error as any;
+        const { getOwnerReservationQuantities, getAvailableQuantities, ownerKeyForRequest } =
+          await import("./cart-inventory-reservation");
+        const ownerCart = await getOwnerReservationQuantities(
+          ownerKeyForRequest(req.sessionID, (req.session as any)?.customerId || null)
+        );
+        const requestedCart = req.body?.cart || {};
+        const productIds = [
+          ...new Set([
+            ...Object.keys(ownerCart).map(Number),
+            ...(Array.isArray(requestedCart)
+              ? requestedCart.map((item: any) => Number(item.productId))
+              : Object.keys(requestedCart).map(Number))
+          ])
+        ].filter(id => Number.isInteger(id) && id > 0);
+        return res.status(409).json({
+          success: false,
+          message: "موجودی کافی نیست",
+          acceptedCart: ownerCart,
+          availability: await getAvailableQuantities(productIds),
+          productId: inventoryError.productId,
+          requested: inventoryError.requested,
+          available: inventoryError.available
+        });
+      }
+      console.error("❌ [CART RESERVATION] Reconciliation failed:", error);
+      return res.status(500).json({ success: false, message: "خطا در رزرو موجودی" });
+    }
+  });
+
   // Get customer's persistent cart
   app.get("/api/customers/persistent-cart", requireCustomerAuth, async (req, res) => {
     try {
@@ -17412,15 +18650,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🛒 [PERSISTENT CART] Cart data:', cartData);
       
       const { pool } = await import('./db');
+      const { reconcileCartReservations, ownerKeyForRequest } = await import("./cart-inventory-reservation");
+      const sessionId = req.sessionID;
+      await reconcileCartReservations({
+        ownerKey: ownerKeyForRequest(sessionId, customerId),
+        sessionId,
+        customerId,
+        cart: cartData || {}
+      });
       
-      // Upsert cart data (insert or update)
+      // Opening the shop or restoring an unchanged cart is not cart activity.
+      // Preserve updated_at unless the actual JSON cart snapshot changed.
       await pool.query(`
         INSERT INTO persistent_carts (customer_id, cart_data, updated_at)
         VALUES ($1, $2, NOW())
         ON CONFLICT (customer_id)
         DO UPDATE SET 
-          cart_data = $2,
+          cart_data = EXCLUDED.cart_data,
           updated_at = NOW()
+        WHERE persistent_carts.cart_data IS DISTINCT FROM EXCLUDED.cart_data
       `, [customerId, JSON.stringify(cartData)]);
       
       console.log('✅ [PERSISTENT CART] Cart synced successfully');
@@ -17462,6 +18710,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update product quantity
       cartData[productId] = quantity;
+      const { reconcileCartReservations, ownerKeyForRequest } = await import("./cart-inventory-reservation");
+      await reconcileCartReservations({
+        ownerKey: ownerKeyForRequest(req.sessionID, customerId),
+        sessionId: req.sessionID,
+        customerId,
+        cart: cartData
+      });
       
       // Upsert cart data
       await pool.query(`
@@ -17516,6 +18771,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update product quantity
       cartData[productId] = quantity;
+      const { reconcileCartReservations, ownerKeyForRequest } = await import("./cart-inventory-reservation");
+      await reconcileCartReservations({
+        ownerKey: ownerKeyForRequest(req.sessionID, customerId),
+        sessionId: req.sessionID,
+        customerId,
+        cart: cartData
+      });
       
       // Update cart data
       await pool.query(`
@@ -17567,6 +18829,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Remove product
       delete cartData[productId];
+      const { reconcileCartReservations, ownerKeyForRequest } = await import("./cart-inventory-reservation");
+      await reconcileCartReservations({
+        ownerKey: ownerKeyForRequest(req.sessionID, customerId),
+        sessionId: req.sessionID,
+        customerId,
+        cart: cartData
+      });
       
       // Update cart data
       await pool.query(`
@@ -17597,6 +18866,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🛒 [PERSISTENT CART CLEAR] Clearing cart for customer:', customerId);
       
       const { pool } = await import('./db');
+      const { releaseOwnerReservations, ownerKeyForRequest } = await import("./cart-inventory-reservation");
+      await releaseOwnerReservations(ownerKeyForRequest(req.sessionID, customerId));
       const result = await pool.query(`
         DELETE FROM persistent_carts 
         WHERE customer_id = $1
@@ -17872,6 +19143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         address,
         secondaryAddress,
         postalCode,
+        secondaryPostalCode,
         industry,
         businessType,
         companySize,
@@ -17911,6 +19183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           address,
           secondaryAddress: secondaryAddress || null,
           postalCode: postalCode || null,
+          secondaryPostalCode: secondaryPostalCode || null,
           industry: industry || null,
           businessType: businessType || null,
           companySize: companySize || null,
@@ -17988,10 +19261,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create shop order and integrate with CRM
   app.post("/api/shop/orders", async (req, res) => {
+    let contractHoldId: string | null = null;
+    let contractOrderId: number | null = null;
     try {
+      if (req.body?.contractId != null &&
+          (String(req.body.paymentMethod || "").toLowerCase().includes("wallet") ||
+            Number(req.body.walletAmountUsed ?? 0) !== 0)) {
+        return res.status(422).json({
+          success: false,
+          code: "CONTRACT_WALLET_UNSUPPORTED",
+          message: "پرداخت کیف پول برای خرید قراردادی در دسترس نیست. لطفاً روش پرداخت دیگری انتخاب کنید.",
+        });
+      }
       const customerId = (req.session as any)?.customerId;
       const crmCustomerId = (req.session as any)?.crmCustomerId;
-      const { items, customerInfo, recipientInfo, totalAmount, shippingCost, notes, shippingMethod, paymentMethod, walletAmountUsed, remainingAmount, vatAmount, dutiesAmount, vehicleType, totalWeight } = req.body;
+      const { items, customerInfo, recipientInfo, totalAmount, shippingCost, notes, shippingMethod, paymentMethod, walletAmountUsed, remainingAmount, vatAmount, dutiesAmount, vehicleType, totalWeight, shippingQuoteToken } = req.body;
+      const reservationItems = Array.isArray(items) ? items : [];
+      if (req.body.contractId != null && (
+        !reservationItems.length ||
+        reservationItems.some((item: any) =>
+          !Number.isSafeInteger(Number(item.productId)) || Number(item.productId) <= 0 ||
+          !Number.isSafeInteger(Number(item.quantity)) || Number(item.quantity) <= 0)
+      )) {
+        return res.status(422).json({ success: false, message: "Contract order contains invalid items." });
+      }
+      let shippingFacts: Awaited<ReturnType<typeof validateAndPriceOrderShipping>>;
+      let selectedBulkVehicleTemplateId:number|null=null;
+      try {
+        const checkoutCart = reservationItems.reduce((cart: Record<string, number>, item: any) => {
+          const productId = Number(item.productId);
+          const quantity = Number(item.quantity);
+          if (Number.isSafeInteger(productId) && productId > 0 && Number.isSafeInteger(quantity) && quantity > 0) {
+            cart[String(productId)] = (cart[String(productId)] || 0) + quantity;
+          }
+          return cart;
+        }, {});
+        shippingFacts = await validateAndPriceOrderShipping({
+          methodSelector: shippingMethod,
+          selectorIsDeliveryMethod: true,
+          destinationCityId: recipientInfo?.deliveryCityId ?? recipientInfo?.cityId,
+          destinationCity: recipientInfo?.deliveryCity || customerInfo?.city,
+          destinationProvince: recipientInfo?.deliveryProvince || customerInfo?.province,
+          destinationCountry: recipientInfo?.deliveryCountry || customerInfo?.country,
+          cart: checkoutCart,
+          shippingQuoteToken,
+          contractId: req.body.contractId,
+          customerId: crmCustomerId ?? customerId,
+        });
+        selectedBulkVehicleTemplateId=await validateSelectedBulkTemplate({
+          contractId:req.body.contractId,products:[...shippingFacts.productFacts.values()],
+          selectedTemplateId:req.body.selectedBulkVehicleTemplateId,quotedVehicles:shippingFacts.shippingQuoteVehicle,
+        });
+      } catch (shippingError) {
+        const statusCode = shippingError instanceof ShippingConfigurationError && shippingError.statusCode === 503 ? 503 : 422;
+        return res.status(statusCode).json({
+          success: false,
+          message: shippingError instanceof Error ? shippingError.message : "Unable to verify shipping for this order.",
+          code: "SHIPPING_VALIDATION_FAILED",
+        });
+      }
+      const serverVehicleType = shippingFacts.shippingQuoteVehicle?.[0]?.type ?? vehicleType ?? null;
+      const shopTax = await calculateOrderTaxes(shippingFacts.itemSubtotal);
+      const serverShippingCost = shippingFacts.shippingCost;
+      const serverVatAmount = Math.round(shopTax.vatAmount || 0);
+      const serverDutiesAmount = Math.round(shopTax.dutiesAmount || 0);
+      const serverTotalAmount = Math.round(shippingFacts.itemSubtotal + serverShippingCost + serverVatAmount + serverDutiesAmount);
+      const reservationCart = reservationItems.reduce((cart: Record<number, number>, item: any) => {
+        const productId = Number(item.productId);
+        const quantity = Math.floor(Number(item.quantity));
+        if (Number.isInteger(productId) && productId > 0 && quantity > 0) {
+          cart[productId] = (cart[productId] || 0) + quantity;
+        }
+        return cart;
+      }, {});
+      const reservationModule = await import("./cart-inventory-reservation");
+      if (!req.sessionID) {
+        return res.status(400).json({ success: false, message: "جلسه سبد خرید معتبر نیست" });
+      }
+      try {
+        await reservationModule.reconcileCartReservations({
+          ownerKey: reservationModule.ownerKeyForRequest(req.sessionID, customerId),
+          sessionId: req.sessionID,
+          customerId,
+          cart: reservationCart,
+        });
+      } catch (reservationError) {
+        if (reservationError instanceof reservationModule.InsufficientCartInventoryError) {
+          return res.status(409).json({
+            success: false,
+            message: "موجودی برای تکمیل سفارش کافی نیست",
+            productId: reservationError.productId,
+            available: reservationError.available,
+          });
+        }
+        throw reservationError;
+      }
+      if (req.body.contractId != null) {
+        try {
+          const { claimContractCart } = await import("./shop-contracts");
+          contractHoldId = await claimContractCart(
+            Number(req.body.contractId), Number(crmCustomerId ?? customerId), reservationCart,
+            new Map([...shippingFacts.productFacts].map(([id, product]) => [id, product.unitPrice])),
+          );
+        } catch (error) {
+          return res.status(409).json({ success: false, message: error instanceof Error ? error.message : "Contract allocation failed." });
+        }
+      }
       
       console.log('🛒 [ORDER DEBUG] Order data received:', {
         paymentMethod,
@@ -18040,7 +19415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           country: customerInfo.country,
           city: customerInfo.city,
           address: customerInfo.address,
-          orderValue: totalAmount,
+          orderValue: serverTotalAmount,
         };
 
         const crmCustomer = await crmStorage.createOrUpdateCustomerFromOrder(orderData);
@@ -18058,6 +19433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle wallet payments with smart conversion
       let finalPaymentStatus = "pending";
       let actualWalletUsed = 0;
+      let accountingWalletDeferred = false;
       let finalPaymentMethod = paymentMethod || "bank_transfer";
       
       // Import currency utilities for IQD formatting
@@ -18065,9 +19441,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Process wallet payment if walletAmountUsed is provided (for all payment methods including hybrid)
       // Convert all amounts to whole numbers for IQD
-      const walletUsage = formatIQDAmount(walletAmountUsed || 0);
-      const remaining = formatIQDAmount(remainingAmount || totalAmount);
-      const formattedTotalAmount = formatIQDAmount(totalAmount);
+      const walletUsage = formatIQDAmount(Math.min(serverTotalAmount, Math.max(0, Number(walletAmountUsed) || 0)));
+      const remaining = formatIQDAmount(Math.max(0, serverTotalAmount - walletUsage));
+      const formattedTotalAmount = formatIQDAmount(serverTotalAmount);
       
       // Smart conversion for wallet_combined payment method
       if (paymentMethod === 'wallet_combined') {
@@ -18185,6 +19561,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               finalPaymentStatus = "pending"; // Not paid yet - waiting for bank confirmation
               console.log('💰 [PAYMENT STATUS] Set to PENDING - wallet_partial awaiting bank payment');
             } else if (finalPaymentMethod === 'wallet_full') {
+              const accountingWallet = await import("./modules/accounting/wallet");
+              accountingWalletDeferred = await accountingWallet.shouldDeferWalletCheckout(Number(customerId && crmCustomerId || 0));
+              if (accountingWalletDeferred) {
+                actualWalletUsed = 0;
+                finalPaymentStatus = "pending";
+              } else {
               // Full wallet payment - deduct immediately
               const transaction = await walletStorage.debitWallet(
                 customerIdToUse,
@@ -18199,9 +19581,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               actualWalletUsed = walletUsage;
               finalPaymentStatus = "paid"; // Fully paid by wallet
               console.log('💰 [PAYMENT STATUS] Set to PAID - wallet_full payment complete');
+              }
             }
 
           } catch (error) {
+            if (error instanceof Error && error.name === "AccountingError") throw error;
             console.error('❌ [WALLET ERROR] Failed to process wallet payment:', error);
             // Don't fail the order if wallet payment fails - set to pending
             finalPaymentStatus = "pending";
@@ -18220,18 +19604,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const orderData = {
         orderNumber, // Will be null for bank payments initially
         customerId: customerId || null,
-        totalAmount: Math.round(totalAmount).toString(),
-        shippingCost: Math.round(shippingCost || 0).toString(),
-        vatAmount: Math.round(vatAmount || 0).toString(), // Store frozen VAT amount from frontend calculation
-        surchargeAmount: Math.round(dutiesAmount || 0).toString(), // Store frozen duties amount from frontend calculation
+        transportCategory:requiresBulkContractTransport(req.body.contractId,[...shippingFacts.productFacts.values()])?"bulk":"standard",
+        bulkVehicleTemplateId:selectedBulkVehicleTemplateId??(shippingFacts.shippingQuoteVehicle?.[0]?.transportCategory==="bulk"?Number(shippingFacts.shippingQuoteVehicle[0].id):null),
+        ...(contractHoldId !== null || accountingWalletDeferred ? { currency: "IQD" } : {}),
+        totalAmount: Math.round(serverTotalAmount).toString(),
+        shippingCost: Math.round(serverShippingCost).toString(),
+        vatAmount: serverVatAmount.toString(),
+        surchargeAmount: serverDutiesAmount.toString(),
         status: 'pending' as const,
-        paymentStatus: finalPaymentStatus,
+        // A paid transition is written only after items and exact batch
+        // reservations are attached, so its trigger can finalize atomically.
+        paymentStatus: "pending",
         paymentMethod: finalPaymentMethod,
         walletAmountUsed: Math.round(actualWalletUsed).toString(),
         shippingAddress: {
-          address: finalCustomerInfo.address,
-          city: finalCustomerInfo.city,
-          country: finalCustomerInfo.country,
+          name: recipientInfo?.recipientName || `${finalCustomerInfo.firstName || ''} ${finalCustomerInfo.lastName || ''}`.trim(),
+          phone: recipientInfo?.recipientPhone || finalCustomerInfo.phone || '',
+          address: recipientInfo?.recipientAddress || finalCustomerInfo.address,
+          city: recipientInfo?.deliveryCity || customerInfo?.city || '',
+          province: recipientInfo?.deliveryProvince || '',
+          country: recipientInfo?.deliveryCountry || customerInfo?.country || '',
+          postalCode: recipientInfo?.deliveryPostalCode || '',
         },
         notes: notes || '',
         ...(customerId ? {} : {
@@ -18247,14 +19640,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recipientName: recipientInfo?.recipientName || '',
         recipientPhone: recipientInfo?.recipientPhone || '',
         recipientAddress: recipientInfo?.recipientAddress || '',
-        vehicleType: vehicleType || null, // Customer's selected vehicle from checkout
+        vehicleType: serverVehicleType, // Signed server quote metadata for vehicle delivery
+        ...(req.body.contractId != null ? { contractId: Number(req.body.contractId) } : {}),
       };
 
       const order = await customerStorage.createOrder(orderData);
-
+      if (contractHoldId !== null) contractOrderId = order.id;
+      const reservationOwnerKey = reservationModule.ownerKeyForRequest(req.sessionID, customerId);
+      const attachedReservations = await reservationModule.attachOwnerReservationsToOrder(
+        reservationOwnerKey,
+        order.id,
+        reservationItems.map((item: any) => Number(item.productId)),
+        reservationModule.reservationExpiryForPayment(finalPaymentMethod),
+      );
+      for (const item of reservationItems) {
+        const quantity = Number(item.quantity) || 0;
+        if ((attachedReservations[Number(item.productId)] || 0) < quantity) {
+          await reservationModule.releaseOrderReservations(order.id);
+          throw new Error(`Order ${order.id} was created without a complete inventory reservation`);
+        }
+      }
       // Create order items and update stock - IQD whole numbers only
       for (const item of items) {
-        const unitPrice = Math.round(parseFloat(item.unitPrice || item.price || '0') || 0);
+        const authoritativeProduct = shippingFacts.productFacts.get(Number(item.productId));
+        const unitPrice = Math.round(authoritativeProduct?.unitPrice || 0);
         const quantity = parseInt(item.quantity || '1') || 1;
         
         await customerStorage.createOrderItem({
@@ -18267,26 +19676,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           productSku: item.productSku || '',
         });
 
-        // Update product stock using unified inventory manager
-        try {
-          console.log(`🛒 UNIFIED STOCK UPDATE - Product ${item.productName} (ID: ${item.productId})`);
-          
-          // Use unified inventory manager for single source of truth
-          const { UnifiedInventoryManager } = await import('./unified-inventory-manager');
-          const success = await UnifiedInventoryManager.reduceInventoryForOrder([{
-            productName: item.productName,
-            quantity: item.quantity
-          }]);
-          
-          if (success) {
-            console.log(`✅ Stock updated successfully using unified system for product ${item.productId}`);
-          } else {
-            console.log(`⚠️ Failed to update stock for product ${item.productId}`);
-          }
-        } catch (stockError) {
-          console.error(`Error updating stock for product ${item.productId}:`, stockError);
-          // Continue with other products even if stock update fails
-        }
+        // Physical showcase stock is finalized by cart reservations on payment.
+        // Never run the legacy read/modify/write inventory reducer here.
+      }
+      if (contractHoldId !== null) {
+        const { attachContractHold } = await import("./shop-contracts");
+        await attachContractHold(contractHoldId, order.id);
+      }
+      if (finalPaymentStatus === "paid") {
+        await db
+          .update(customerOrders)
+          .set({ paymentStatus: "paid", updatedAt: new Date() })
+          .where(eq(customerOrders.id, order.id));
       }
 
       // Log order activity in CRM
@@ -18294,10 +19695,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await crmStorage.logCustomerActivity({
           customerId: finalCrmCustomerId,
           activityType: 'order_placed',
-          description: `سفارش جدید به مبلغ $${totalAmount} ثبت شد`,
+          description: `سفارش جدید به مبلغ $${serverTotalAmount} ثبت شد`,
           activityData: {
             orderId: order.id,
-            totalAmount,
+            totalAmount: serverTotalAmount,
             itemCount: items.length,
             source: 'website',
             orderDate: new Date().toISOString(),
@@ -18321,22 +19722,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if hybrid payment is required (wallet partially used + remaining amount)
       // CRITICAL FIX: Use the frontend's calculated remaining amount if provided, otherwise calculate
       let remainingAmountToPay;
-      if (remainingAmount !== undefined && remainingAmount !== null) {
-        // Frontend provided exact remaining amount - use it directly (format as whole number for IQD)
-        remainingAmountToPay = formatIQDAmount(remainingAmount);
-        console.log('💡 [REMAINING AMOUNT] Using frontend calculated value:', {
-          frontendRemaining: remainingAmount,
-          parsedValue: remainingAmountToPay
-        });
-      } else {
-        // Fallback: calculate remaining amount (format as whole number for IQD)
-        remainingAmountToPay = formatIQDAmount(Math.max(0, formattedTotalAmount - actualWalletUsed));
-        console.log('🔢 [REMAINING AMOUNT] Backend calculated value:', {
-          totalAmount: formattedTotalAmount,
-          actualWalletUsed,
-          calculatedRemaining: remainingAmountToPay
-        });
-      }
+      remainingAmountToPay = formatIQDAmount(Math.max(0, formattedTotalAmount - actualWalletUsed));
       
       // Critical fix: For full wallet payments, completely bypass bank payment logic
       const isFullWalletPayment = finalPaymentMethod === 'wallet_full';
@@ -18371,6 +19757,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // If wallet covers full amount, mark as paid and route to finance department
+      if (accountingWalletDeferred) {
+        const {prepareWalletOrder} = await import("./modules/accounting/wallet");
+        await prepareWalletOrder(order.id,Number(crmCustomerId));
+        return res.json({success:true,requiresBankPayment:false,paymentMethod:"wallet_full",
+          message:"سفارش منتظر تأیید مالی و بلوکه‌کردن موجودی حساب نزد شرکت است.",
+          order:{id:order.id,orderNumber:order.orderNumber,totalAmount:order.totalAmount,
+            status:"finance_pending",paymentStatus:"pending",paymentMethod:"wallet_full"},
+          orderId:order.id,orderNumber:order.orderNumber,
+          awaitingFinanceApproval:true,walletDebited:false});
+      }
       if (isFullWalletPayment || walletCoversFullAmount) {
         console.log('✅ [FULL WALLET] Payment covers full amount - routing to finance department', {
           isFullWalletPayment,
@@ -18400,7 +19796,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               currentStatus: 'finance_pending' as any,
               paymentMethod: 'wallet_full',
               deliveryMethod: shippingMethod || 'courier',
-              vehicleType: vehicleType || null,
+                vehicleType: serverVehicleType,
               totalWeight: totalWeight ? parseFloat(totalWeight).toFixed(3) : null,
               weightUnit: 'kg',
             });
@@ -18415,7 +19811,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               notes: notes || "",
               totalWeight: totalWeight ? parseFloat(totalWeight).toFixed(3) : null,
               weightUnit: 'kg',
-              vehicleType: vehicleType || null,
+              vehicleType: serverVehicleType,
               paymentMethod: 'wallet_full' as const,
               deliveryMethod: shippingMethod || 'courier',
             });
@@ -18555,17 +19951,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         message: "خطا در ثبت سفارش"
       });
+    } finally {
+      if (contractOrderId !== null && (res.statusCode < 200 || res.statusCode >= 300)) {
+        try {
+          await db
+            .update(customerOrders)
+            .set({ status: "cancelled", paymentStatus: "failed", updatedAt: new Date() })
+            .where(eq(customerOrders.id, contractOrderId));
+        } catch (recoveryError) {
+          console.error(`Failed to mark contract order ${contractOrderId} as cancelled/failed:`, recoveryError);
+        }
+        try {
+          const reservationModule = await import("./cart-inventory-reservation");
+          await reservationModule.releaseOrderReservations(contractOrderId);
+        } catch (recoveryError) {
+          console.error(`Failed to release inventory reservations for contract order ${contractOrderId}:`, recoveryError);
+        }
+      }
+      if (contractHoldId !== null && (res.statusCode < 200 || res.statusCode >= 300)) {
+        try {
+          const { releaseContractHold } = await import("./shop-contracts");
+          await releaseContractHold(contractHoldId);
+        } catch (recoveryError) {
+          console.error("Failed to release contract allocation:", recoveryError);
+        }
+      }
     }
   });
 
   // Create customer order (from BilingualPurchaseForm)
   app.post("/api/customers/orders", async (req, res) => {
+    let contractHoldId: string | null = null;
+    let contractOrderId: number | null = null;
+    const orderRequestId = crypto.randomUUID();
+    let committedLegacyWalletOrder: {
+      id: number; orderNumber: string; totalAmount: string; paymentStatus: string;
+      paymentMethod: string; status: string;
+    } | null = null;
     console.log('🚀 [ENDPOINT] /api/customers/orders called with timestamp:', req.query.t);
     console.log('🚀 [ENDPOINT] Request method:', req.method);
     console.log('🚀 [ENDPOINT] Request URL:', req.url);
-    console.log('🚀 [ENDPOINT] Request headers:', JSON.stringify(req.headers, null, 2));
     
     try {
+      if (req.body?.contractId != null &&
+          (String(req.body.paymentMethod || "").toLowerCase().includes("wallet") ||
+            Number(req.body.walletAmountUsed ?? 0) !== 0)) {
+        return res.status(422).json({
+          success: false,
+          code: "CONTRACT_WALLET_UNSUPPORTED",
+          message: "پرداخت کیف پول برای خرید قراردادی در دسترس نیست. لطفاً روش پرداخت دیگری انتخاب کنید.",
+        });
+      }
       const customerId = (req.session as any)?.customerId;
       const crmCustomerId = (req.session as any)?.crmCustomerId;
       const orderData = req.body;
@@ -18574,7 +20010,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔍 [DEBUG RAW] orderData.deliveryMethod =', JSON.stringify(orderData.deliveryMethod));
       console.log('🔍 [DEBUG RAW] typeof orderData.deliveryMethod =', typeof orderData.deliveryMethod);
       const checkoutDeliveryMethod = orderData.deliveryMethod || 'courier';
-      const checkoutVehicleType = orderData.vehicleType || null;
+      let checkoutVehicleType = orderData.vehicleType || null;
       console.log(`📦 [CHECKOUT PERSIST] Delivery method: ${checkoutDeliveryMethod}, vehicle: ${checkoutVehicleType}`);
       
       console.log('🚀 [ENDPOINT] Session data:', {
@@ -18629,6 +20065,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phone: orderData.phone
       });
 
+      let shippingFacts: Awaited<ReturnType<typeof validateAndPriceOrderShipping>>;
+      let selectedBulkVehicleTemplateId:number|null=null;
+      try {
+        shippingFacts = await validateAndPriceOrderShipping({
+          methodSelector: orderData.selectedShippingMethod,
+          methodValue: orderData.deliveryMethod,
+          destinationCityId: orderData.destinationCityId ?? orderData.cityId ?? orderData.activeDeliveryInfo?.activeCityId,
+          destinationCity: orderData.activeDeliveryInfo?.activeDeliveryCity || orderData.city,
+          destinationProvince: orderData.activeDeliveryInfo?.activeDeliveryProvince || orderData.province,
+          destinationCountry: orderData.activeDeliveryInfo?.activeDeliveryCountry || orderData.country,
+          cart: orderData.cart || {},
+          shippingQuoteToken: orderData.shippingQuoteToken,
+          contractId: orderData.contractId,
+          customerId: crmCustomerId ?? customerId,
+        });
+        selectedBulkVehicleTemplateId=await validateSelectedBulkTemplate({
+          contractId:orderData.contractId,products:[...shippingFacts.productFacts.values()],
+          selectedTemplateId:orderData.selectedBulkVehicleTemplateId,quotedVehicles:shippingFacts.shippingQuoteVehicle,
+        });
+      } catch (shippingError) {
+        const statusCode = shippingError instanceof ShippingConfigurationError && shippingError.statusCode === 503 ? 503 : 422;
+        return res.status(statusCode).json({
+          success: false,
+          message: shippingError instanceof Error ? shippingError.message : "Unable to verify shipping for this order.",
+          code: "SHIPPING_VALIDATION_FAILED",
+        });
+      }
+      checkoutVehicleType = shippingFacts.shippingQuoteVehicle?.[0]?.type ?? checkoutVehicleType;
+
       // Extract customer information from form data
       const customerInfo = {
         name: orderData.customerName,
@@ -18640,43 +20105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         notes: orderData.notes || '', // Add notes from form
       };
 
-      // Calculate total weight from cart items BEFORE creating order
-      let calculatedTotalWeight = 0;
-      try {
-        const cartItems = orderData.cart || {};
-        for (const [productIdStr, quantity] of Object.entries(cartItems)) {
-          const productId = parseInt(productIdStr);
-          const qty = typeof quantity === 'number' ? quantity : parseInt(String(quantity)) || 1;
-          
-          const productWeight = await db.select({ grossWeight: shopProducts.grossWeight, weight: shopProducts.weight })
-            .from(shopProducts)
-            .where(eq(shopProducts.id, productId))
-            .limit(1);
-          
-
-          if (productWeight.length > 0) {
-            // Use grossWeight if available, otherwise fallback to legacy weight column
-            const weightValue = productWeight[0].grossWeight || productWeight[0].weight;
-            if (weightValue) {
-              const weight = parseFloat(weightValue.toString());
-              calculatedTotalWeight += weight * qty;
-            }
-          }
-
-
-
-        }
-        console.log(`🏋️ [WEIGHT PRE-CALC] Calculated total weight before order creation: ${calculatedTotalWeight}kg`);
-      } catch (weightError) {
-        console.error(`⚠️ [WEIGHT PRE-CALC] Error calculating weight:`, weightError);
-      }
-      
-      // CRITICAL: Use frontend-provided weight if server calculation failed or returned 0
-      if (calculatedTotalWeight <= 0 && orderData.totalWeight && orderData.totalWeight > 0) {
-        calculatedTotalWeight = parseFloat(orderData.totalWeight.toString());
-        console.log(`🏋️ [WEIGHT FALLBACK] Using frontend-provided weight: ${calculatedTotalWeight}kg`);
-      }
-
+      const calculatedTotalWeight = shippingFacts.totalWeight;
 
       // 🔒 SEQUENTIAL: Generate M[YY][NNNNN] order number using transaction-safe system
       const { OrderManagementStorage } = await import('./order-management-storage');
@@ -18688,12 +20117,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate order totals and taxes (using dynamic tax settings)
       // Note: orderData.totalAmount from frontend already includes all components
       // We need to extract the actual item subtotal for proper VAT calculation
-      const itemsSubtotal = orderData.subtotalAmount || 0;
-      const shippingAmount = orderData.shippingCost || 0;
+      const itemsSubtotal = shippingFacts.itemSubtotal;
+      const shippingAmount = shippingFacts.shippingCost;
       
       // Get current tax rates from tax_settings table and freeze them for this order
       const taxCalculation = await calculateOrderTaxes(itemsSubtotal);
-      const totalAmount = itemsSubtotal + shippingAmount + taxCalculation.vatAmount + taxCalculation.dutiesAmount;
+      taxCalculation.vatAmount = Math.round(taxCalculation.vatAmount);
+      taxCalculation.dutiesAmount = Math.round(taxCalculation.dutiesAmount);
+      const totalAmount = Math.round(itemsSubtotal + shippingAmount + taxCalculation.vatAmount + taxCalculation.dutiesAmount);
       
       console.log('💰 [ORDER TAX] Tax calculation for order:', {
         itemsSubtotal,
@@ -18719,9 +20150,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Verify the wallet's accounting/legacy boundary before numbering,
+      // reservations or money writes, not after starting order creation.
+      let accountingCustomerWalletDeferred = false;
+      if (["wallet_full", "wallet_partial"].includes(orderData.paymentMethod)) {
+        const requestedWallet = Math.min(
+          Math.round(totalAmount),
+          Math.max(0, Math.round(parseFloat(orderData.walletAmountUsed || 0))),
+        );
+        if (requestedWallet > 0 && Math.max(0, Math.round(totalAmount) - requestedWallet) <= 1) {
+          const accountingWallet = await import("./modules/accounting/wallet");
+          accountingCustomerWalletDeferred = await accountingWallet.shouldDeferWalletCheckout(Number(crmCustomerId || 0));
+        }
+      }
+
+      const reservationModule = await import("./cart-inventory-reservation");
+      if (!req.sessionID) {
+        return res.status(400).json({ success: false, message: "جلسه سبد خرید معتبر نیست" });
+      }
+      const reservationCart = orderData.cart || {};
+      try {
+        await reservationModule.reconcileCartReservations({
+          ownerKey: reservationModule.ownerKeyForRequest(req.sessionID, customerId),
+          sessionId: req.sessionID,
+          customerId,
+          cart: reservationCart,
+        });
+      } catch (reservationError) {
+        if (reservationError instanceof reservationModule.InsufficientCartInventoryError) {
+          return res.status(409).json({
+            success: false,
+            message: "موجودی برای تکمیل سفارش کافی نیست",
+            productId: reservationError.productId,
+            available: reservationError.available,
+          });
+        }
+        throw reservationError;
+      }
+      if (orderData.contractId != null) {
+        try {
+          const { claimContractCart } = await import("./shop-contracts");
+          contractHoldId = await claimContractCart(
+            Number(orderData.contractId), Number(crmCustomerId ?? customerId), reservationCart,
+            new Map([...shippingFacts.productFacts].map(([id, product]) => [id, product.unitPrice])),
+          );
+        } catch (error) {
+          return res.status(409).json({ success: false, message: error instanceof Error ? error.message : "Contract allocation failed." });
+        }
+      }
+
       // Handle payment method processing
       let finalPaymentStatus = "pending";
       let walletAmountUsed = 0;
+      let pendingLegacyWalletDebit = 0;
       let remainingAmount = totalAmount;
       let finalPaymentMethod = orderData.paymentMethod || "traditional";
 
@@ -18755,8 +20236,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Generate order number immediately for wallet payments
         orderNumber = await orderManagementStorage.generateOrderNumberInTransaction();
         
-        walletAmountUsed = Math.round(parseFloat(orderData.walletAmountUsed || 0));
-        remainingAmount = Math.round(parseFloat(orderData.remainingAmount !== undefined && orderData.remainingAmount !== null ? orderData.remainingAmount : totalAmount));
+        walletAmountUsed = Math.min(
+          Math.round(totalAmount),
+          Math.max(0, Math.round(parseFloat(orderData.walletAmountUsed || 0))),
+        );
+        remainingAmount = Math.max(0, Math.round(totalAmount) - walletAmountUsed);
         
         console.log('💰 [PERMANENT WALLET ORDER] Processing wallet payment:', {
           orderNumber,
@@ -18772,20 +20256,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // CRITICAL: For wallet_partial payments, RESERVE funds instead of deducting
             // Actual deduction happens ONLY after bank payment is confirmed
             if (Math.round(remainingAmount) <= 1) {
-              // Full wallet payment - deduct immediately
-              const transaction = await walletStorage.debitWallet(
-                finalCustomerId,
-                walletAmountUsed,
-                `پرداخت سفارش ${orderNumber}`,
-                'order',
-                undefined, // reference ID will be set after order creation
-                undefined  // no admin processing this
-              );
-              
-              console.log(`✅ [PERMANENT ORDER] Wallet payment processed: ${walletAmountUsed} IQD deducted for order ${orderNumber}`);
+              if (accountingCustomerWalletDeferred) {
+                walletAmountUsed = 0;
+                finalPaymentStatus = "pending";
+                finalPaymentMethod = "wallet_full";
+              } else {
+              // Debit only when the order/items exist, in the same transaction
+              // as payment_status=paid. A database guard failure rolls it back.
+              pendingLegacyWalletDebit = walletAmountUsed;
               finalPaymentStatus = "paid"; // Fully paid by wallet
               finalPaymentMethod = "wallet_full"; // Ensure correct method
               console.log(`🏪 [WAREHOUSE DIRECT] Order ${orderNumber} fully paid by wallet - direct to warehouse`);
+              }
             } else {
               // Partial wallet payment - RESERVE funds, don't deduct yet
               const reservation = await walletStorage.reserveWallet(
@@ -18803,6 +20285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log(`🏦 [BANK REQUIRED] Order ${orderNumber} - wallet reserved, remaining ${remainingAmount} needs bank payment`);
             }
           } catch (walletError) {
+            if (walletError instanceof Error && walletError.name === "AccountingError") throw walletError;
             console.log(`❌ Wallet payment failed for order ${orderNumber}:`, walletError);
             // TODO: Delete the order to free up the number
             return res.status(400).json({
@@ -18836,13 +20319,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const order = await customerStorage.createOrder({
         customerId: finalCustomerId,
+        transportCategory:requiresBulkContractTransport(orderData.contractId,[...shippingFacts.productFacts.values()])?"bulk":"standard",
+        bulkVehicleTemplateId:selectedBulkVehicleTemplateId??(shippingFacts.shippingQuoteVehicle?.[0]?.transportCategory==="bulk"?Number(shippingFacts.shippingQuoteVehicle[0].id):null),
+        ...(orderData.contractId != null ? { contractId: Number(orderData.contractId) } : {}),
         orderNumber,
         status: "pending",
-        paymentStatus: finalPaymentStatus,
+        // Keep the header pending until order items and reservations exist.
+        paymentStatus: "pending",
         paymentMethod: finalPaymentMethod,
         totalAmount: Math.round(totalAmount).toString(),
         shippingCost: Math.round(shippingAmount).toString(),
-        currency: orderData.currency || "IQD",
+        currency: contractHoldId !== null || accountingCustomerWalletDeferred ? "IQD" : (orderData.currency || "IQD"),
         notes: orderData.notes || "",
           // Add calculated weight
           totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
@@ -18866,8 +20353,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: customerInfo.name,
           phone: customerInfo.phone,
           address: customerInfo.address,
-          city: customerInfo.city,
+          city: orderData.activeDeliveryInfo?.activeDeliveryCity || orderData.city,
           postalCode: customerInfo.postalCode,
+          country: orderData.activeDeliveryInfo?.activeDeliveryCountry || orderData.country,
           gpsLatitude: orderData.gpsLatitude,
           gpsLongitude: orderData.gpsLongitude,
         }),
@@ -18897,7 +20385,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         carrier: null,
 
       });
+      if (contractHoldId !== null) contractOrderId = order.id;
 
+      const reservationOwnerKey = reservationModule.ownerKeyForRequest(req.sessionID, customerId);
+      const requestedProductIds = Object.keys(reservationCart).map(Number);
+      const attachedReservations = await reservationModule.attachOwnerReservationsToOrder(
+        reservationOwnerKey,
+        order.id,
+        requestedProductIds,
+        reservationModule.reservationExpiryForPayment(finalPaymentMethod),
+      );
+      for (const [productId, rawQuantity] of Object.entries(reservationCart)) {
+        const quantity = Number(rawQuantity) || 0;
+        if ((attachedReservations[Number(productId)] || 0) < quantity) {
+          await reservationModule.releaseOrderReservations(order.id);
+          throw new Error(`Order ${order.id} was created without a complete inventory reservation`);
+        }
+      }
+      const inventoryReservedForOrder = Object.entries(reservationCart).every(
+        ([productId, rawQuantity]) =>
+          (attachedReservations[Number(productId)] || 0) >= (Number(rawQuantity) || 0),
+      );
       console.log('🚚 [ORDER CREATED] Enhanced order with delivery tracking:', {
         orderId: order.id,
         orderNumber: order.orderNumber,
@@ -18906,68 +20414,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeDeliveryInfo: orderData.activeDeliveryInfo
       });
 
-      // Save secondary address and alternate phone to CRM customer profile if provided
-      if (finalCustomerId && (orderData.activeDeliveryInfo?.isSecondAddressUsed || orderData.recipientInfo?.recipientPhone)) {
-        try {
-          const { pool } = await import('./db');
-          const updateFields: string[] = [];
-          const updateValues: any[] = [];
-          let paramIndex = 1;
-          
-          // Save second address if used
-          if (orderData.activeDeliveryInfo?.isSecondAddressUsed && orderData.recipientInfo?.recipientAddress) {
-            updateFields.push(`secondary_address = $${paramIndex++}`);
-            updateValues.push(orderData.recipientInfo.recipientAddress);
-          }
-          
-          // Save alternate phone if different from primary
-          if (orderData.activeDeliveryInfo?.isDifferentPhoneUsed && orderData.recipientInfo?.recipientPhone) {
-            updateFields.push(`alternate_phone = $${paramIndex++}`);
-            updateValues.push(orderData.recipientInfo.recipientPhone);
-          }
-          
-          if (updateFields.length > 0) {
-            updateValues.push(finalCustomerId);
-            await pool.query(
-              `UPDATE crm_customers SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`,
-              updateValues
-            );
-            console.log(`📋 [CRM UPDATE] Saved secondary address/phone for customer ${finalCustomerId}`);
-          }
-        } catch (crmUpdateError) {
-          console.error('⚠️ [CRM UPDATE] Failed to save secondary address/phone:', crmUpdateError);
-        }
-      }
-
-      // Server-side discount calculation matching frontend logic
-      const getServerDiscountedPrice = (product: any, qty: number): number => {
-        const basePrice = Math.round(parseFloat(product.price || '0'));
-        if (basePrice <= 0) return 0;
-
-        let discounts: any[] = [];
-        if (product.bulkPurchaseEnabled || product.bulk_purchase_enabled) {
-          let bulk = product.bulkPurchaseDiscounts || product.bulk_purchase_discounts;
-          if (typeof bulk === 'string') { try { bulk = JSON.parse(bulk); } catch { bulk = []; } }
-          discounts = Array.isArray(bulk) ? bulk : [];
-        } else {
-          let general = product.quantityDiscounts || product.quantity_discounts;
-          if (typeof general === 'string') { try { general = JSON.parse(general); } catch { general = []; } }
-          discounts = Array.isArray(general) ? general : [];
-        }
-
-        if (discounts.length > 0) {
-          const applicable = discounts
-            .filter((d: any) => qty >= parseInt(d.minQty || d.min_qty || '0'))
-            .sort((a: any, b: any) => parseInt(b.minQty || b.min_qty || '0') - parseInt(a.minQty || a.min_qty || '0'));
-
-          if (applicable.length > 0) {
-            const d = applicable[0];
-            const discountValue = d.discount || (parseFloat(d.discountPercent || d.discount_percent || '0') / 100);
-            return Math.round(basePrice * (1 - discountValue));
-          }
-        }
-        return basePrice;
-      };
+      // Delivery details belong to this order's snapshot. New titled
+      // addresses are saved through /api/customers/addresses; a checkout must
+      // not overwrite the customer's single legacy CRM secondary-address slot.
 
       // Create order items from cart
       if (orderData.cart) {
@@ -18976,7 +20425,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const product = await shopStorage.getShopProductById(parseInt(productId as string));
             if (product) {
               const qty = quantity as number;
-              const discountedUnitPrice = getServerDiscountedPrice(product, qty);
+              const discountedUnitPrice = shippingFacts.productFacts.get(Number(productId))?.unitPrice;
+              if (!Number.isSafeInteger(discountedUnitPrice) || qty !== shippingFacts.productFacts.get(Number(productId))?.quantity) {
+                throw new Error(`Authoritative price or quantity is missing for product ${productId}`);
+              }
               console.log(`💰 [DISCOUNT CALC] Product ${product.name}: base=${product.price}, discounted=${discountedUnitPrice}, qty=${qty}`);
 
               await customerStorage.createOrderItem({
@@ -19048,8 +20500,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               }
 
-              // Update product stock with batch tracking
-              if (product.stockQuantity !== null && product.stockQuantity !== undefined) {
+              // Legacy stock reducers are bypassed whenever the exact batch
+              // reservation covers this order. Payment finalization owns the
+              // physical showcase decrement.
+              if (!inventoryReservedForOrder && product.stockQuantity !== null && product.stockQuantity !== undefined) {
                 const currentStock = product.stockQuantity;
                 const quantityToSell = quantity as number;
                 
@@ -19113,8 +20567,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           } catch (productError) {
             console.error(`Error processing product ${productId}:`, productError);
+            if (contractHoldId !== null) throw productError;
             // Continue with other products even if one fails
           }
+        }
+      }
+      if (contractHoldId !== null) {
+        const { attachContractHold } = await import("./shop-contracts");
+        await attachContractHold(contractHoldId, order.id);
+      }
+      if (finalPaymentStatus === "paid") {
+        if (pendingLegacyWalletDebit > 0) {
+          await settleLegacyWalletCheckout({
+            customerId: finalCustomerId, orderId: order.id,
+            orderNumber: orderNumber!, amount: pendingLegacyWalletDebit,
+          });
+          committedLegacyWalletOrder = {
+            id: order.id, orderNumber: orderNumber!, totalAmount: order.totalAmount,
+            paymentStatus: "paid", paymentMethod: "wallet_full", status: order.status,
+          };
+          console.log(`✅ [PERMANENT ORDER] Wallet debit and paid status committed together for ${orderNumber}`);
+        } else {
+          await db.update(customerOrders)
+            .set({ paymentStatus: "paid", updatedAt: new Date() })
+            .where(eq(customerOrders.id, order.id));
         }
       }
 
@@ -19144,7 +20620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: customerForCrm?.email || `customer${finalCustomerId}@temp.local`,
           firstName: firstName,
           lastName: lastName,
-          company: customerForCrm?.company || null,
+          company: customerForCrm?.company || undefined,
           phone: customerInfo.phone,
           country: customerInfo.country || 'Iraq', // Use form country or default
           city: customerInfo.city || 'Unknown',
@@ -19263,7 +20739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
 
-        let orderMgmtData = {
+        let orderMgmtData: any = {
           // CRITICAL: Add delivery method from checkout for logistics display
           deliveryMethod: checkoutDeliveryMethod,
           customerOrderId: order.id,
@@ -19512,7 +20988,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // 🗑️ DELETE ORDER: Bank routing failed
           console.log(`🗑️ [ORDER CLEANUP] Deleting order ${order.id} - bank routing failed`);
-          await customerStorage.deleteTemporaryOrder(order.id);
+          if (contractHoldId === null) await customerStorage.deleteTemporaryOrder(order.id);
           
           return res.status(400).json({
             success: false,
@@ -19523,6 +20999,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // 💰 [PURE_WALLET] Handle pure wallet payment method FIRST (before bank routing)
+      if (accountingCustomerWalletDeferred) {
+        const {prepareWalletOrder} = await import("./modules/accounting/wallet");
+        await prepareWalletOrder(order.id,Number(crmCustomerId));
+        return res.json({success:true,requiresBankPayment:false,paymentMethod:"wallet_full",
+          message:"سفارش منتظر تأیید مالی و بلوکه‌کردن موجودی حساب نزد شرکت است.",
+          order:{id:order.id,orderNumber:order.orderNumber,totalAmount:order.totalAmount,
+            status:"finance_pending",paymentStatus:"pending",paymentMethod:"wallet_full"},
+          orderId:order.id,orderNumber:order.orderNumber,
+          awaitingFinanceApproval:true,walletDebited:false});
+      }
       if (finalPaymentMethod === 'wallet' || finalPaymentMethod === 'wallet_full') {
         console.log(`💰 [PURE_WALLET] Processing pure wallet payment for ${totalAmount} IQD`);
         
@@ -19804,7 +21290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else {
             // 🗑️ DELETE ORDER: Bank routing failed
             console.log(`🗑️ [ORDER CLEANUP] Deleting order ${order.id} - bank routing failed`);
-            await customerStorage.deleteTemporaryOrder(order.id);
+            if (contractHoldId === null) await customerStorage.deleteTemporaryOrder(order.id);
             
             return res.status(400).json({
               success: false,
@@ -19866,11 +21352,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'UNSUPPORTED_PAYMENT_METHOD'
       });
     } catch (error) {
-      console.error("❌ [ORDER CREATION ERROR] Full error details:"); console.error("Error message:", error instanceof Error ? error.message : String(error)); console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
-      res.status(500).json({
-        success: false,
-        message: "Failed to create order"
-      });
+      const failure = customerOrderErrorResponse(error, req.body?.language, orderRequestId);
+      console.error(`❌ [ORDER CREATION ERROR] Reference: ${orderRequestId}; code: ${failure.body.code}`);
+      console.error("Error message:", error instanceof Error ? error.message : "Unknown order error");
+      console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+      if (error instanceof Error && error.cause instanceof Error) {
+        const cause = error.cause as Error & { code?: string };
+        console.error(`Database cause [${orderRequestId}]:`, cause.code || "unknown", cause.message);
+      }
+      // Payment and an order already exist. A later processing failure is not
+      // a failed payment: acknowledge the saved order rather than invite retry.
+      if (committedLegacyWalletOrder) {
+        return res.json({
+          success: true, requiresBankPayment: false, paymentMethod: "wallet_full",
+          order: committedLegacyWalletOrder, orderId: committedLegacyWalletOrder.id,
+          orderNumber: committedLegacyWalletOrder.orderNumber,
+          processingPending: true, requestId: orderRequestId,
+          message: "Order and payment are recorded. Further processing is pending; do not submit again.",
+        });
+      }
+      res.status(failure.status).json(failure.body);
+    } finally {
+      if (contractOrderId !== null && (res.statusCode < 200 || res.statusCode >= 300)) {
+        try {
+          await db
+            .update(customerOrders)
+            .set({ status: "cancelled", paymentStatus: "failed", updatedAt: new Date() })
+            .where(eq(customerOrders.id, contractOrderId));
+        } catch (recoveryError) {
+          console.error(`Failed to mark contract order ${contractOrderId} as cancelled/failed:`, recoveryError);
+        }
+        try {
+          const reservationModule = await import("./cart-inventory-reservation");
+          await reservationModule.releaseOrderReservations(contractOrderId);
+        } catch (recoveryError) {
+          console.error(`Failed to release inventory reservations for contract order ${contractOrderId}:`, recoveryError);
+        }
+      }
+      if (contractHoldId !== null && (res.statusCode < 200 || res.statusCode >= 300)) {
+        try {
+          const { releaseContractHold } = await import("./shop-contracts");
+          await releaseContractHold(contractHoldId);
+        } catch (recoveryError) {
+          console.error("Failed to release contract allocation:", recoveryError);
+        }
+      }
     }
   });
 
@@ -19900,12 +21426,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const detailedOrders = await Promise.all(
         displayOrders.map(async (order) => {
           const items = await customerStorage.getOrderItems(order.id);
+          const paymentStatus = String(order.paymentStatus || '').toLowerCase();
+          const isGracePayment =
+            order.paymentMethod === 'bank_transfer_grace' ||
+            order.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
+          const isAwaitingPayment =
+            order.status === 'pending' ||
+            order.status === 'payment_grace_period';
+          const hasPayment =
+            ['paid', 'completed', 'successful', 'success', 'receipt_uploaded'].includes(paymentStatus) ||
+            Boolean(order.receiptPath);
           return {
             ...order,
             items,
-            orderType: order.orderType === 'temporary' || 
-                      order.orderCategory === 'temporary' || 
-                      order.paymentMethod === 'bank_transfer_grace' ? 'temporary' : 'regular'
+            orderType: isGracePayment && isAwaitingPayment && !hasPayment ? 'temporary' : 'regular',
+            orderCategory: isGracePayment && isAwaitingPayment && !hasPayment ? 'temporary' : 'regular',
           };
         })
       );
@@ -19920,6 +21455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           co.id,
           co.order_number,
           co.customer_id,
+          co.contract_id,
           co.total_amount,
           co.shipping_cost,
           co.vat_amount,
@@ -19957,6 +21493,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE co.customer_id = $1
         ORDER BY co.created_at DESC
       `, [finalCustomerId]);
+
+      const contractOrderIds = [
+        ...detailedOrders.map((order: any) => order.id),
+        ...allOrdersResult.rows.map((order: any) => order.id),
+      ];
+      const {
+        getCustomerOrderContractSummaries,
+        enrichOrderWithContractSummary,
+      } = await import("./shop-contracts");
+      const contractSummariesByOrderId = contractOrderIds.length
+        ? await getCustomerOrderContractSummaries(finalCustomerId, contractOrderIds)
+        : new Map<number, any>();
       
       // Get order items in a single batch query (optimized to prevent connection timeout)
       const orderIds = allOrdersResult.rows.map((o: any) => o.id);
@@ -19971,7 +21519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             oi.quantity,
             oi.unit_price,
             oi.total_price,
-            p.name as product_name,
+            COALESCE(oi.product_name, p.name) as product_name,
             p.sku,
             p.category
           FROM order_items oi
@@ -19984,7 +21532,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!allItemsMap[item.order_id]) {
             allItemsMap[item.order_id] = [];
           }
-          allItemsMap[item.order_id].push(item);
+          allItemsMap[item.order_id].push({
+            id: item.id,
+            orderId: item.order_id,
+            productId: item.product_id,
+            productName: item.product_name,
+            quantity: item.quantity,
+            unitPrice: item.unit_price,
+            totalPrice: item.total_price,
+            sku: item.sku,
+            category: item.category
+          });
         });
       }
       
@@ -19995,45 +21553,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
 
       // Format customer orders to match regular order structure
-      const customerOrders = allOrdersWithItems.map((row: any) => ({
-        id: row.id,
-        orderNumber: row.order_number,
-        status: row.status,
-        totalAmount: row.total_amount,
-        shippingCost: row.shipping_cost,
-        vatAmount: row.vat_amount,
-        surchargeAmount: row.surcharge_amount,
-        vatRate: row.vat_rate,
-        surchargeRate: row.surcharge_rate,
-        currency: row.currency,
-        paymentStatus: row.payment_status,
-        paymentMethod: row.payment_method,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        items: row.items || [],
-        orderType: row.order_category, // 'temporary' or 'regular'
-        orderCategory: row.order_category, // New field for order classification
-        currentStatus: row.current_status, // Current order status in workflow
-        financiallyApproved: row.financial_reviewed_at !== null,
-        gracePeriodExpires: row.payment_grace_period_end,
-        gracePeriodStatus: row.grace_period_status,
-        hoursRemaining: Math.max(0, Math.floor(row.hours_remaining || 0)),
-        isOrderLocked: row.is_order_locked,
-        paymentGracePeriodStart: row.payment_grace_period_start,
-        paymentGracePeriodEnd: row.payment_grace_period_end,
-        customerName: row.guest_name,
-        customerEmail: row.guest_email,
-        customerPhone: row.recipient_phone,
-        recipientName: row.recipient_name,
-        recipientAddress: row.recipient_address
-      }));
+      const customerOrders = allOrdersWithItems.map((row: any) => {
+        const contractSummary = contractSummariesByOrderId.get(Number(row.id)) ?? null;
+        const contractFields = {
+          id: row.id,
+          orderNumber: row.order_number,
+          contractId: row.contract_id == null ? null : Number(row.contract_id),
+          contractNumber: row.contractNumber ?? row.contract_number ?? null,
+        };
+        const enrichedContractFields = enrichOrderWithContractSummary(contractFields, contractSummary);
+        return {
+          ...enrichedContractFields,
+          status: row.status,
+          totalAmount: row.total_amount,
+          shippingCost: row.shipping_cost,
+          vatAmount: row.vat_amount,
+          surchargeAmount: row.surcharge_amount,
+          vatRate: row.vat_rate,
+          surchargeRate: row.surcharge_rate,
+          currency: row.currency,
+          paymentStatus: row.payment_status,
+          paymentMethod: row.payment_method,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          items: row.items || [],
+          orderType: row.order_category, // 'temporary' or 'regular'
+          orderCategory: row.order_category, // New field for order classification
+          currentStatus: row.current_status, // Current order status in workflow
+          financiallyApproved: row.financial_reviewed_at !== null,
+          gracePeriodExpires: row.payment_grace_period_end,
+          gracePeriodStatus: row.grace_period_status,
+          hoursRemaining: Math.max(0, Math.floor(row.hours_remaining || 0)),
+          isOrderLocked: row.is_order_locked,
+          paymentGracePeriodStart: row.payment_grace_period_start,
+          paymentGracePeriodEnd: row.payment_grace_period_end,
+          customerName: row.guest_name,
+          customerEmail: row.guest_email,
+          customerPhone: row.recipient_phone,
+          recipientName: row.recipient_name,
+          recipientPhone: row.recipient_phone,
+          recipientAddress: row.recipient_address
+        };
+      });
+
+      const managementByOrderId = new Map(
+        allOrdersResult.rows.map((row: any) => [row.id, row])
+      );
+      const enrichedDetailedOrders = detailedOrders.map((order: any) => {
+        const management = managementByOrderId.get(order.id);
+        const contractSummary = contractSummariesByOrderId.get(Number(order.id)) ?? null;
+        const isExpiredGraceCancellation =
+          order.status === 'deleted' &&
+          (
+            order.paymentMethod === 'bank_transfer_grace' ||
+            order.paymentMethod === 'واریز بانکی با مهلت 3 روزه'
+          );
+        const enrichedOrder = {
+          ...enrichOrderWithContractSummary({
+            ...order,
+            contractId: management?.contract_id ?? order.contractId,
+          }, contractSummary),
+          financialReviewedAt: management?.financial_reviewed_at ?? null,
+          financiallyApproved: management?.financial_reviewed_at != null,
+          currentStatus: management?.current_status ?? order.status,
+          managementStatus: management?.current_status ?? order.status,
+          cancellationReason: order.rejectionReason ||
+            (isExpiredGraceCancellation
+              ? 'سفارش پس از پایان مهلت پرداخت توسط سیستم لغو شد'
+              : null),
+        };
+        const terminalOrOutboundStatuses = new Set([
+          'warehouse_approved',
+          'logistics_assigned',
+          'logistics_dispatched',
+          'in_transit',
+          'shipped',
+          'delivered',
+          'completed',
+        ]);
+        const hasLeftTemporaryFlow = terminalOrOutboundStatuses.has(
+          String(enrichedOrder.currentStatus || enrichedOrder.status || '').toLowerCase(),
+        );
+        return {
+          ...enrichedOrder,
+          orderType: hasLeftTemporaryFlow ? 'regular' : enrichedOrder.orderType,
+          orderCategory: hasLeftTemporaryFlow ? 'regular' : enrichedOrder.orderCategory,
+          statusProjection: resolveOrderStatus({
+            workflowStatus: enrichedOrder.currentStatus,
+            orderStatus: enrichedOrder.status,
+            paymentStatus: enrichedOrder.paymentStatus,
+            paymentMethod: enrichedOrder.paymentMethod,
+            financialReviewedAt: enrichedOrder.financialReviewedAt,
+          }),
+        };
+      });
 
       // Get abandoned orders and carts information from enhanced profile data
       const profileData = await customerStorage.getOrdersForProfile(finalCustomerId);
       
       res.json({
         success: true,
-        orders: detailedOrders,
+        orders: enrichedDetailedOrders,
         totalOrders: totalOrders, // Total number of orders from new method
         hiddenOrders: hiddenOrders, // Number of hidden orders as purchase history
         abandonedOrders: profileData.abandonedOrders,
@@ -20043,9 +21663,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hasAbandonedCarts: profileData.hasAbandonedCarts,
         abandonedCartsCount: profileData.abandonedCarts.length,
         displayInfo: {
-          totalDisplayed: detailedOrders.length,
-          hasTemporaryOrder: detailedOrders.some(order => order.orderType === 'temporary'),
-          hasRegularOrder: detailedOrders.some(order => order.orderType === 'regular'),
+          totalDisplayed: enrichedDetailedOrders.length,
+          hasTemporaryOrder: enrichedDetailedOrders.some(order => order.orderType === 'temporary'),
+          hasRegularOrder: enrichedDetailedOrders.some(order => order.orderType === 'regular'),
           message: hiddenOrders > 0 ? `${hiddenOrders} سفارش دیگر در سوابق خرید مخفی است` : 'همه سفارشات نمایش داده شده'
         }
       });
@@ -20204,7 +21824,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('🔍 [COMPLETE HISTORY API] Customer purchase history request received');
       
       // Get customer ID from session
-      const customerId = req.session?.customerId || req.session?.crmCustomerId;
+      const customerId = req.session?.crmCustomerId || req.session?.customerId;
       
       if (!customerId) {
         console.log('❌ [COMPLETE HISTORY API] No customer session found');
@@ -20218,13 +21838,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use customerStorage to get complete order history
       const orders = await customerStorage.getCompleteOrderHistory(customerId);
+      const orderIds = orders.map((order: any) => order.id);
+      let managementByOrderId = new Map<number, any>();
+      let contractSummariesByOrderId = new Map<number, any>();
+      const {
+        getCustomerOrderContractSummaries,
+        enrichOrderWithContractSummary,
+      } = await import("./shop-contracts");
+
+      if (orderIds.length > 0) {
+        const { pool } = await import('./db');
+        const managementResult = await pool.query(`
+          SELECT om.customer_order_id, om.current_status, om.financial_reviewed_at,
+                 om.financial_notes, co.contract_id
+          FROM order_management om
+          LEFT JOIN customer_orders co ON co.id = om.customer_order_id
+          WHERE om.customer_order_id = ANY($1)
+        `, [orderIds]);
+        managementByOrderId = new Map(
+          managementResult.rows.map((row: any) => [row.customer_order_id, row])
+        );
+        contractSummariesByOrderId = await getCustomerOrderContractSummaries(customerId, orderIds);
+      }
+
+      const enrichedOrders = orders.map((order: any) => {
+        const management = managementByOrderId.get(order.id);
+        const contractSummary = contractSummariesByOrderId.get(Number(order.id)) ?? null;
+        const enrichedOrder = {
+          ...enrichOrderWithContractSummary({
+            ...order,
+            contractId: management?.contract_id ?? order.contractId,
+          }, contractSummary),
+          financialReviewedAt: management?.financial_reviewed_at ?? null,
+          financiallyApproved: management?.financial_reviewed_at != null,
+          currentStatus: management?.current_status ?? order.status,
+          managementStatus: management?.current_status ?? order.status,
+          financialNotes: management?.financial_notes ?? order.financialNotes,
+        };
+        return {
+          ...enrichedOrder,
+          statusProjection: resolveOrderStatus({
+            workflowStatus: enrichedOrder.currentStatus,
+            orderStatus: enrichedOrder.status,
+            paymentStatus: enrichedOrder.paymentStatus,
+            paymentMethod: enrichedOrder.paymentMethod,
+            financialReviewedAt: enrichedOrder.financialReviewedAt,
+          }),
+        };
+      });
       
       console.log(`✅ [COMPLETE HISTORY API] Successfully loaded ${orders.length} orders for customer ${customerId}`);
       
       res.json({
         success: true,
-        orders: orders,
-        totalCount: orders.length
+        orders: enrichedOrders,
+        totalCount: enrichedOrders.length
       });
 
     } catch (error) {
@@ -20715,7 +22383,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isActive: iraqiProvinces.isActive
         })
         .from(iraqiProvinces)
-        .where(eq(iraqiProvinces.isActive, true))
+        .where(and(
+          eq(iraqiProvinces.countryCode, 'IQ'),
+          eq(iraqiProvinces.isActive, true)
+        ))
         .orderBy(iraqiProvinces.nameArabic);
       
       res.json({
@@ -20740,7 +22411,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const provinceId = req.query.provinceId ? parseInt(req.query.provinceId as string) : null;
       
-      let whereConditions = [eq(iraqiCities.isActive, true)];
+      let whereConditions = [
+        eq(iraqiCities.countryCode, 'IQ'),
+        eq(iraqiCities.isActive, true)
+      ];
       
       // Add province filter if provided
       if (provinceId && !isNaN(provinceId)) {
@@ -20782,6 +22456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select()
         .from(iraqiCities)
         .where(and(
+          eq(iraqiCities.countryCode, 'IQ'),
           eq(iraqiCities.provinceId, provinceId),
           eq(iraqiCities.isActive, true)
         ))
@@ -21558,15 +23233,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Shipping origin and directed road-distance administration.
+  app.get("/api/admin/logistics/shipping-center", requireModuleAccess('logistics_management', 'view'), async (_req, res) => {
+    try {
+      res.json({ success: true, data: await getShippingCenter() });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Failed to get shipping center" });
+    }
+  });
+
+  app.put("/api/admin/logistics/shipping-center", requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
+    try {
+      res.json({ success: true, data: await saveShippingCenter(req.body) });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Failed to update shipping center" });
+    }
+  });
+
+  app.get("/api/logistics/shipping-center", async (_req, res) => {
+    try {
+      res.json({ success: true, data: await getShippingCenter() });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Shipping center is unavailable" });
+    }
+  });
+
+  app.post("/api/shipping/quote-standard", async (req, res) => {
+    const cart = req.body?.cart;
+    const methodId = parsePositiveIntegerId(req.body?.shippingMethod);
+    if (!cart || typeof cart !== "object" || Array.isArray(cart) ||
+        Object.keys(cart).length === 0 || Object.keys(cart).length > 100 || !methodId ||
+        (req.body?.selectorIsDeliveryMethod !== undefined && typeof req.body.selectorIsDeliveryMethod !== "boolean")) {
+      return res.status(400).json({ success: false, message: "A valid cart and shipping method are required." });
+    }
+    try {
+      const quote = await validateAndPriceOrderShipping({
+        methodSelector: methodId,
+        selectorIsDeliveryMethod: req.body.selectorIsDeliveryMethod === true,
+        checkoutFlow: "standard_quote",
+        standardMethodsOnly: true,
+        destinationCityId: req.body.destinationCityId,
+        destinationCity: req.body.destinationCity,
+        destinationProvince: req.body.destinationProvince,
+        destinationCountry: req.body.destinationCountryCode ?? req.body.destinationCountry,
+        cart,
+        contractId: req.body.contractId,
+        customerId: (req.session as any)?.crmCustomerId ?? (req.session as any)?.customerId,
+      });
+      res.json({
+        success: true,
+        data: {
+          shippingCost: quote.shippingCost,
+          destinationCityId: quote.destinationCityId,
+        },
+      });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      if (statusCode === 500) console.error("Failed to quote standard shipping:", error);
+      res.status(statusCode).json({
+        success: false,
+        message: statusCode === 500 ? "Unable to calculate shipping for this route." : (error as Error).message,
+        code: "SHIPPING_QUOTE_UNAVAILABLE",
+      });
+    }
+  });
+
+  app.get("/api/admin/logistics/route-distances", requireModuleAccess('logistics_management', 'view'), async (req, res) => {
+    try {
+      const originCityId = parsePositiveIntegerId(req.query.originCityId);
+      if (!originCityId) {
+        return res.status(400).json({ success: false, message: "originCityId must be a positive integer." });
+      }
+      const data = await getOriginRouteDistances(originCityId);
+      res.json({ success: true, data });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Failed to get route distances" });
+    }
+  });
+
+  app.get("/api/admin/logistics/route-destinations", requireModuleAccess('logistics_management', 'view'), async (req, res) => {
+    try {
+      const originCityId = parsePositiveIntegerId(req.query.originCityId);
+      if (!originCityId) {
+        return res.status(400).json({ success: false, message: "originCityId must be a positive integer." });
+      }
+      res.json({ success: true, data: await getRouteDestinationCities(originCityId) });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Failed to get route destinations" });
+    }
+  });
+
+  app.put("/api/admin/logistics/route-distances", requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
+    try {
+      const data = await saveRouteDistance(req.body);
+      res.json({ success: true, data });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Failed to save route distance" });
+    }
+  });
+
   // Calculate shipping cost for a city and weight
   app.post("/api/logistics/calculate-shipping", async (req, res) => {
     try {
-      const { cityName, provinceName, weight, deliveryMethod, orderValue } = req.body;
+      const { cityName, provinceName, weight, deliveryMethod, orderValue, destinationCountryCode, countryCode } = req.body;
       
       if (!cityName || !weight) {
         return res.status(400).json({ 
           success: false, 
           message: "City name and weight are required" 
+        });
+      }
+
+      const center = await getShippingCenter();
+      const requestedCountry = destinationCountryCode ?? countryCode;
+      if (requestedCountry && String(requestedCountry).toUpperCase() !== center.countryCode.toUpperCase()) {
+        throw new ShippingConfigurationError("Cross-country shipping is unavailable; destination must be in the selected shipping center country.", 422);
+      }
+      const destination = await resolveActiveCityByName(
+        [String(cityName)],
+        provinceName ? [String(provinceName)] : [],
+        center.countryCode,
+      );
+      const route = await getRouteDistance(center.cityId, destination.id);
+      if (!route) {
+        return res.status(422).json({
+          success: false,
+          message: `Road distance is unavailable from the selected shipping center to ${cityName}.`,
+          code: "ROUTE_DISTANCE_UNAVAILABLE",
         });
       }
 
@@ -21632,9 +23431,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error calculating shipping cost:", error);
-      res.status(500).json({ 
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({
         success: false, 
-        message: "Failed to calculate shipping cost" 
+        message: error instanceof Error ? error.message : "Failed to calculate shipping cost"
       });
     }
   });
@@ -22224,7 +24024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload procedure document
-  app.post("/api/procedures/:procedureId/documents", requireAuth, (req, res, next) => {
+  app.post("/api/procedures/:procedureId/documents", requireSuperAdminRole, (req, res, next) => {
     upload.single('document')(req, res, (err) => {
       if (err) {
         return res.status(400).json({ success: false, message: err.message });
@@ -22366,7 +24166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload procedure document
-  app.post("/api/procedures/:procedureId/documents", requireAuth, upload.single('document'), async (req, res) => {
+  app.post("/api/procedures/:procedureId/documents", requireSuperAdminRole, upload.single('document'), async (req, res) => {
     try {
       const { procedureId } = req.params;
       const { title, description } = req.body;
@@ -22426,7 +24226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete procedure document
-  app.delete("/api/procedures/documents/:documentId", requireAuth, async (req, res) => {
+  app.delete("/api/procedures/documents/:documentId", requireSuperAdminRole, async (req, res) => {
     try {
       const { documentId } = req.params;
       
@@ -22436,7 +24236,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const docResult = await pool.query(`
         SELECT file_path, file_name
         FROM procedure_documents
-        WHERE id = $1 AND is_active = true
+        WHERE id = $1
+          AND is_active = true
+          AND (document_type IS NULL OR document_type = 'procedure')
       `, [documentId]);
 
       if (docResult.rows.length === 0) {
@@ -22802,7 +24604,9 @@ ${procedure.content}
         // Send confirmation email to customer using Template #05 - Follow-up Response
         try {
           const { emailStorage } = await import('./email-storage');
-          const followUpTemplate = await emailStorage.getTemplateByNumber('#05');
+          const { resolveEmailLanguage } = await import('./sms-language');
+          const recipientLanguage = await resolveEmailLanguage(pool, inquiryData.contactEmail);
+          const followUpTemplate = await emailStorage.getTemplateByNumber('#05', recipientLanguage);
           
           if (followUpTemplate) {
             console.log(`📧 Using Template #05 - ${followUpTemplate.templateName}`);
@@ -22813,22 +24617,20 @@ ${procedure.content}
               subjectText: followUpTemplate.subject
             });
             
+            const customerName = inquiryData.contactEmail.split('@')[0] || 'Customer';
+            const responseText = {
+              en: `Dear ${customerName},\n\nThank you for your inquiry. Our technical team has reviewed your request and will send pricing, specifications, and availability within 24 hours.\n\nBest regards,\nMomtaz Chemical Technical Team`,
+              fa: `${customerName} گرامی،\n\nاز استعلام شما سپاسگزاریم. تیم فنی ما درخواست شما را بررسی کرده و قیمت، مشخصات و وضعیت موجودی را حداکثر تا ۲۴ ساعت آینده ارسال می‌کند.\n\nبا احترام،\nتیم فنی ممتازکم`,
+              ar: `عزيزي ${customerName}،\n\nشكرًا لاستفسارك. راجع فريقنا الفني طلبك وسيرسل الأسعار والمواصفات وحالة التوفر خلال 24 ساعة.\n\nمع أطيب التحيات،\nالفريق الفني لممتاز للكيماويات`,
+              tr: `Sayın ${customerName},\n\nTalebiniz için teşekkür ederiz. Teknik ekibimiz talebinizi inceledi; fiyat, teknik özellikler ve stok durumunu 24 saat içinde gönderecektir.\n\nSaygılarımızla,\nMomtaz Chemical Teknik Ekibi`,
+            }[recipientLanguage];
             const templateVariables = {
-              customer_name: inquiryData.contactEmail.split('@')[0] || 'Valued Customer',
+              customer_name: customerName,
               inquiry_number: inquiry.inquiryNumber,
               inquiry_subject: inquiryData.subject || 'General Inquiry',
               inquiry_category: inquiryData.category || 'general',
               customer_message: inquiryData.message || 'No specific message provided',
-              response_text: `Dear ${inquiryData.contactEmail.split('@')[0] || 'Customer'},
-
-Thank you for your inquiry about our ${inquiryData.category || 'chemical products'}. We are pleased to provide you with detailed information about this product. 
-
-Our technical team has reviewed your requirements and will send you a comprehensive quote including pricing, specifications, and availability within 24 hours. 
-
-If you need immediate assistance or have specific technical questions, please feel free to contact us directly.
-
-Best regards,
-Momtaz Chemical Technical Team`,
+              response_text: responseText,
               contact_phone: '+964 770 999 6771',
               contact_email: 'info@momtazchem.com'
             };
@@ -22865,6 +24667,7 @@ Momtaz Chemical Technical Team`,
             await UniversalEmailService.sendEmail({
               categoryKey: 'notifications',
               to: [inquiryData.contactEmail],
+              language: recipientLanguage,
               subject: processedSubject,
               html: processedHtml,
               templateNumber: '#05',
@@ -23290,6 +25093,64 @@ Momtaz Chemical Technical Team`,
   });
 
   // Shop/E-commerce API endpoints - Inventory-based product management
+
+  const ensureMarketplaceDisplaySettings = async () => {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS marketplace_display_settings (
+        id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+        vendor_entry_visible BOOLEAN NOT NULL DEFAULT TRUE,
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_by INTEGER
+      )
+    `);
+    await pool.query(`
+      INSERT INTO marketplace_display_settings (id, vendor_entry_visible)
+      VALUES (1, TRUE)
+      ON CONFLICT (id) DO NOTHING
+    `);
+  };
+
+  app.get("/api/marketplace/display-settings", async (_req, res) => {
+    try {
+      await ensureMarketplaceDisplaySettings();
+      const result = await pool.query(`
+        SELECT vendor_entry_visible AS "vendorEntryVisible"
+        FROM marketplace_display_settings
+        WHERE id = 1
+      `);
+      res.json({
+        success: true,
+        vendorEntryVisible: result.rows[0]?.vendorEntryVisible !== false,
+      });
+    } catch (error) {
+      console.error("Error fetching marketplace display settings:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch marketplace display settings" });
+    }
+  });
+
+  app.patch("/api/admin/marketplace/display-settings", requireAuth, async (req, res) => {
+    try {
+      if (typeof req.body?.vendorEntryVisible !== "boolean") {
+        return res.status(400).json({ success: false, message: "vendorEntryVisible must be boolean" });
+      }
+      await ensureMarketplaceDisplaySettings();
+      const result = await pool.query(`
+        UPDATE marketplace_display_settings
+        SET vendor_entry_visible = $1,
+            updated_at = NOW(),
+            updated_by = $2
+        WHERE id = 1
+        RETURNING vendor_entry_visible AS "vendorEntryVisible"
+      `, [req.body.vendorEntryVisible, req.session.adminId || null]);
+      res.json({
+        success: true,
+        vendorEntryVisible: result.rows[0].vendorEntryVisible,
+      });
+    } catch (error) {
+      console.error("Error updating marketplace display settings:", error);
+      res.status(500).json({ success: false, message: "Failed to update marketplace display settings" });
+    }
+  });
   
   // Admin endpoint - Get ALL shop products including out of stock (for inventory management)
   app.get("/api/admin/shop-products", requireAuth, async (req, res) => {
@@ -23315,19 +25176,51 @@ Momtaz Chemical Technical Team`,
   });
 
   app.get("/api/shop/products", async (req, res) => {
+    res.setHeader("Cache-Control", "private, no-store");
+    res.vary("Cookie");
     try {
       const products = await shopStorage.getShopProducts();
+      const session = req.session as any;
+      const rawCustomerId = session?.crmCustomerId ?? session?.customerId;
+      const customerId = Number(rawCustomerId);
+      const eligibleContractProductIds = new Set<number>();
+      if (Number.isSafeInteger(customerId) && customerId > 0) {
+        const contractProducts = await pool.query(
+          `SELECT DISTINCT ci.product_id
+             FROM shop_contracts c
+             JOIN shop_contract_items ci ON ci.contract_id = c.id
+            WHERE c.customer_id = $1 AND c.is_active = TRUE AND ci.is_active = TRUE`,
+          [customerId],
+        );
+        for (const row of contractProducts.rows) {
+          const productId = Number(row.product_id);
+          if (Number.isSafeInteger(productId) && productId > 0) {
+            eligibleContractProductIds.add(productId);
+          }
+        }
+      }
+      const customerProducts = products.filter(product =>
+        !product.contractOnly || eligibleContractProductIds.has(Number(product.id))
+      );
+      const { getAvailableQuantities } = await import("./cart-inventory-reservation");
+      const availableQuantities = await getAvailableQuantities(customerProducts.map(product => product.id));
       
       // Map database fields to frontend expected format
-      const mappedProducts = products.map(product => ({
+      const mappedProducts = customerProducts.map(product => {
+        const available = availableQuantities[product.id] ?? Number(product.stockQuantity || 0);
+        return {
         ...product,
+        stockQuantity: available,
+        availableQuantity: available,
+        inStock: available > 0 || Boolean(product.showWhenOutOfStock),
         imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
         imageUrls: product.imageUrls || [], // Include the full array of images
         unitPrice: product.price,
         currency: (product.priceUnit === 'IQD' || !product.priceUnit || product.priceUnit === 'unit') ? 'IQD' : product.priceUnit,
         weight: product.weight,
         weightUnit: product.weightUnit
-      }));
+        };
+      });
       
       res.json(mappedProducts);
     } catch (error) {
@@ -23347,6 +25240,8 @@ Momtaz Chemical Technical Team`,
   });
 
   app.get("/api/shop/products/:id", async (req, res) => {
+    res.setHeader("Cache-Control", "private, no-store");
+    res.vary("Cookie");
     try {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
@@ -23356,6 +25251,25 @@ Momtaz Chemical Technical Team`,
       const product = await shopStorage.getShopProductById(productId);
       if (!product) {
         return res.status(404).json({ success: false, message: "Product not found" });
+      }
+      if (product.contractOnly) {
+        const session = req.session as any;
+        const rawCustomerId = session?.crmCustomerId ?? session?.customerId;
+        const customerId = Number(rawCustomerId);
+        if (!Number.isSafeInteger(customerId) || customerId <= 0) {
+          return res.status(404).json({ success: false, message: "Product not found" });
+        }
+        const eligible = await pool.query(
+          `SELECT 1
+             FROM shop_contracts c
+             JOIN shop_contract_items ci ON ci.contract_id = c.id
+            WHERE c.customer_id = $1 AND c.is_active = TRUE AND ci.is_active = TRUE AND ci.product_id = $2
+            LIMIT 1`,
+          [customerId, productId],
+        );
+        if (eligible.rowCount === 0) {
+          return res.status(404).json({ success: false, message: "Product not found" });
+        }
       }
       
       // Map database fields to frontend expected format
@@ -23428,6 +25342,8 @@ Momtaz Chemical Technical Team`,
 
   // Advanced shop product search
   app.get("/api/shop/search", async (req, res) => {
+    res.setHeader("Cache-Control", "private, no-store");
+    res.vary("Cookie");
     try {
       const {
         q: query = '',
@@ -23442,12 +25358,33 @@ Momtaz Chemical Technical Team`,
         offset = 0
       } = req.query;
 
+      const session = req.session as any;
+      const rawCustomerId = session?.crmCustomerId ?? session?.customerId;
+      const customerId = Number(rawCustomerId);
+      const eligibleContractProductIds: number[] = [];
+      if (Number.isSafeInteger(customerId) && customerId > 0) {
+        const contractProducts = await pool.query(
+          `SELECT DISTINCT ci.product_id
+             FROM shop_contracts c
+             JOIN shop_contract_items ci ON ci.contract_id = c.id
+            WHERE c.customer_id = $1 AND c.is_active = TRUE AND ci.is_active = TRUE`,
+          [customerId],
+        );
+        for (const row of contractProducts.rows) {
+          const productId = Number(row.product_id);
+          if (Number.isSafeInteger(productId) && productId > 0) {
+            eligibleContractProductIds.push(productId);
+          }
+        }
+      }
+
       const filters = {
         category: category as string,
         priceMin: priceMin ? parseFloat(priceMin as string) : undefined,
         priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
         inStock: inStock ? inStock === 'true' : undefined,
         tags: tags ? (Array.isArray(tags) ? tags as string[] : [tags as string]) : undefined,
+        eligibleContractProductIds,
         sortBy: sortBy as 'name' | 'price' | 'created' | 'relevance',
         sortOrder: sortOrder as 'asc' | 'desc',
         limit: parseInt(limit as string) || 50,
@@ -23455,6 +25392,10 @@ Momtaz Chemical Technical Team`,
       };
 
       const searchResults = await shopStorage.searchShopProducts(query as string, filters);
+      const { getAvailableQuantities } = await import("./cart-inventory-reservation");
+      const availableQuantities = await getAvailableQuantities(
+        searchResults.products.map(product => product.id),
+      );
       
       // Batch fetch vendor names for vendor products
       const vendorIds = [...new Set(searchResults.products.filter(p => p.vendorId).map(p => p.vendorId!))];
@@ -23469,16 +25410,25 @@ Momtaz Chemical Technical Team`,
       }
 
       // Map database fields to frontend expected format
-      const mappedProducts = searchResults.products.map(product => ({
-        ...product,
-        imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
-        imageUrls: product.imageUrls || [],
-        unitPrice: product.price,
-        currency: (product.priceUnit === 'IQD' || !product.priceUnit || product.priceUnit === 'unit') ? 'IQD' : product.priceUnit,
-        weight: product.weight,
-        weightUnit: product.weightUnit,
-        vendorName: product.vendorId ? (vendorMap[product.vendorId] || null) : null
-      }));
+      const mappedProducts = searchResults.products.map(product => {
+        // Keep search results consistent with /api/shop/products. Physical
+        // stock that is held by active carts or submitted orders is not
+        // sellable and must not be shown as available to another customer.
+        const available = availableQuantities[product.id] ?? Number(product.stockQuantity || 0);
+        return {
+          ...product,
+          stockQuantity: available,
+          availableQuantity: available,
+          inStock: available > 0 || Boolean(product.showWhenOutOfStock),
+          imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
+          imageUrls: product.imageUrls || [],
+          unitPrice: product.price,
+          currency: (product.priceUnit === 'IQD' || !product.priceUnit || product.priceUnit === 'unit') ? 'IQD' : product.priceUnit,
+          weight: product.weight,
+          weightUnit: product.weightUnit,
+          vendorName: product.vendorId ? (vendorMap[product.vendorId] || null) : null
+        };
+      });
       
       res.json({
         success: true,
@@ -24071,7 +26021,7 @@ Momtaz Chemical Technical Team`,
   });
 
   // REAL INVOICES API - DIFFERENT PATH TO AVOID MIDDLEWARE
-  app.get("/api/invoices/paid", async (req, res) => {
+  app.get("/api/invoices/paid", requireModuleAccess('shop_management', 'view'), async (req, res) => {
     console.log('🔍 [REAL INVOICE DEBUG] Real invoices API called!');
     
     try {
@@ -24083,22 +26033,24 @@ Momtaz Chemical Technical Team`,
       // Query with JOIN to get customer names
       const query = `
         SELECT co.id, co.order_number, co.customer_id, co.total_amount, co.status, 
-               co.payment_method, co.created_at, co.updated_at,
+               co.payment_method, co.currency, co.created_at, co.updated_at,
                co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
                c.first_name as customer_first_name, c.last_name as customer_last_name, 
-               c.email as customer_email, c.phone as customer_phone,
-               c.address as customer_address, c.city as customer_city, 
+               COALESCE(NULLIF(TRIM(c.email), ''), NULLIF(TRIM(co.guest_email), '')) as customer_email,
+               c.phone as customer_phone,
+               c.address as customer_address, c.city_region as customer_city,
                c.province as customer_province
         FROM customer_orders co
-        LEFT JOIN customers c ON co.customer_id = c.id
-        WHERE co.status IN ('completed', 'delivered')
-           OR co.payment_method IN ('wallet_full', 'wallet_partial', 'bank_transfer')
+        LEFT JOIN crm_customers c ON co.customer_id = c.id
+        WHERE (co.status IN ('completed', 'delivered')
+           OR co.payment_method IN ('wallet_full', 'wallet_partial', 'bank_transfer'))
+          AND co.status NOT IN ('cancelled', 'failed', 'deleted', 'payment_failed', 'expired')
+          AND co.payment_status IS DISTINCT FROM 'failed'
         ORDER BY co.created_at DESC
-        LIMIT 10
       `;
       
       const result = await db.execute(sql.raw(query));
-      console.log(`✅ [REAL INVOICE DEBUG] SQL Result type:`, typeof result, result);
+      console.log(`✅ [REAL INVOICE DEBUG] SQL result received`);
       
       // Handle different result formats safely
       let orders = [];
@@ -24134,7 +26086,7 @@ Momtaz Chemical Technical Team`,
           const items = orderItems.map((item: any) => ({
             id: item.id,
             productId: item.product_id,
-            productName: item.product_name || item.sku || 'محصول نامشخص',
+             productName: item.product_name || item.product_sku || 'محصول نامشخص',
             quantity: item.quantity,
             unitPrice: item.unit_price,
             totalPrice: item.total_price
@@ -24203,26 +26155,132 @@ Momtaz Chemical Technical Team`,
     }
   });
 
+  app.get("/api/invoices/senders", requireModuleAccess('shop_management', 'view'), async (_req, res) => {
+    try {
+      return res.json({ success: true, senders: await emailService.listInvoiceSenders() });
+    } catch (error) {
+      console.error("Failed to list invoice senders:", error);
+      return res.status(500).json({ success: false, message: "Could not load email senders" });
+    }
+  });
+
+  // Render the same authoritative PDF for preview, printing, downloading and emailing.
+  app.get("/api/invoices/paid/:id/pdf", requireModuleAccess('shop_management', 'view'), async (req, res) => {
+    const orderId = Number(req.params.id);
+    if (!Number.isSafeInteger(orderId) || orderId < 1) {
+      return res.status(400).json({ success: false, message: "Invalid order ID" });
+    }
+    const requestedLanguage = req.query.lang === undefined ? null : parseInvoiceLanguage(req.query.lang);
+    if (req.query.lang !== undefined && !requestedLanguage) {
+      return res.status(400).json({ success: false, message: "Invalid invoice language" });
+    }
+    try {
+      const { loadPaidInvoice, createPaidInvoicePdf } = await import('./paid-invoice-pdf');
+      const invoice = await loadPaidInvoice(orderId);
+      if (!invoice) return res.status(404).json({ success: false, message: "Issuable order not found" });
+      if (!invoice.items.length) return res.status(422).json({ success: false, message: "Order has no invoice items" });
+      const language = requestedLanguage || parseInvoiceLanguage(invoice.order.preferred_language) || 'en';
+      const pdf = await createPaidInvoicePdf(invoice, language);
+      const filename = String(invoice.order.order_number || `M-${orderId}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="invoice-${filename}.pdf"`);
+      res.setHeader('Cache-Control', 'private, no-store');
+      return res.send(pdf);
+    } catch (error) {
+      console.error("Failed to render paid invoice PDF:", error);
+      return res.status(500).json({ success: false, message: "Could not generate invoice PDF" });
+    }
+  });
+
+  app.post("/api/invoices/paid/:id/send", requireModuleAccess('shop_management', 'edit'), async (req, res) => {
+    const orderId = Number(req.params.id);
+    if (!Number.isSafeInteger(orderId) || orderId < 1) {
+      return res.status(400).json({ success: false, message: "Invalid order ID" });
+    }
+    const senderId = Number(req.body?.senderId);
+    const language = parseInvoiceLanguage(req.body?.language);
+    if (!Number.isSafeInteger(senderId) || senderId < 1 || typeof req.body?.expectedEmail !== 'string' || !language) {
+      return res.status(400).json({ success: false, message: "Select a sender and language, and confirm the customer email" });
+    }
+    try {
+      const { loadPaidInvoice, createPaidInvoicePdf } = await import('./paid-invoice-pdf');
+      const invoice = await loadPaidInvoice(orderId);
+      if (!invoice) return res.status(404).json({ success: false, message: "Issuable order not found" });
+      const email = String(invoice.order.email || '').trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(422).json({ success: false, message: "Customer has no valid email address" });
+      }
+      if (email.toLowerCase() !== req.body.expectedEmail.trim().toLowerCase()) {
+        return res.status(409).json({ success: false, message: "Customer email changed; refresh the invoice list" });
+      }
+      if (!invoice.items.length) return res.status(422).json({ success: false, message: "Order has no invoice items" });
+      const pdf = await createPaidInvoicePdf(invoice, language);
+      const orderNumber = String(invoice.order.order_number || `M-${orderId}`);
+      const filename = orderNumber.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const emailCopy = {
+        en: { subject: `Invoice for order ${orderNumber}`, text: `Dear customer,\nYour invoice for order ${orderNumber} is attached as a PDF.\nMomtaz Chemical` },
+        ar: { subject: `فاتورة الطلب ${orderNumber}`, text: `عميلنا العزيز،\nمرفق فاتورة الطلب ${orderNumber} بصيغة PDF.\nممتازكيم` },
+        tr: { subject: `${orderNumber} numaralı sipariş faturası`, text: `Değerli müşterimiz,\n${orderNumber} numaralı siparişinizin faturası PDF olarak ektedir.\nMomtaz Chemical` },
+        fa: { subject: `فاکتور سفارش ${orderNumber}`, text: `مشتری گرامی،\nفاکتور سفارش ${orderNumber} به صورت PDF پیوست شده است.\nممتازشیمی` },
+      }[language];
+      await emailService.sendPdfAttachment({
+        to: email, subject: emailCopy.subject, text: emailCopy.text, senderId,
+        filename: `invoice-${filename}.pdf`, content: pdf,
+      });
+      return res.json({ success: true, recipient: email });
+    } catch (error) {
+      console.error(`Failed to submit invoice email for order ${orderId}:`, error);
+      return res.status(502).json({ success: false, message: "Invoice email was not accepted by the mail server" });
+    }
+  });
+
   // REAL ORDERS API - DIFFERENT PATH TO AVOID MIDDLEWARE 
   app.get("/api/orders/all", async (req, res) => {
     console.log('🔍 [REAL ORDERS DEBUG] Real orders API called!');
     
     try {
       // Query with JOIN to get all orders with customer names
-      const query = `
+      const query = sql`
         SELECT co.id, co.order_number, co.customer_id, co.total_amount, co.status, 
-               co.payment_method, co.created_at, co.updated_at, co.carrier,
+               co.payment_status, co.payment_method, co.currency, co.notes,
+               co.created_at, co.updated_at, co.carrier,
                co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
+               om.payment_method AS management_payment_method,
+               om.wallet_amount_used, om.bank_amount_paid,
+               COALESCE(
+                 (
+                   SELECT osh.created_at
+                   FROM order_status_history osh
+                   WHERE osh.order_management_id = (
+                     SELECT om.id
+                     FROM order_management om
+                     WHERE om.customer_order_id = co.id
+                     ORDER BY om.id DESC
+                     LIMIT 1
+                   )
+                   ORDER BY osh.created_at DESC
+                   LIMIT 1
+                 ),
+                 co.updated_at,
+                 co.created_at
+               ) AS status_changed_at,
                c.first_name as customer_first_name, c.last_name as customer_last_name, 
                c.email as customer_email, c.phone as customer_phone, c.company as customer_company,
                c.address as customer_address
         FROM customer_orders co
-        LEFT JOIN customers c ON co.customer_id = c.id
+        LEFT JOIN crm_customers c ON co.customer_id = c.id
+        LEFT JOIN LATERAL (
+          SELECT payment_method, wallet_amount_used, bank_amount_paid
+          FROM order_management
+          WHERE customer_order_id = co.id
+          ORDER BY id DESC
+          LIMIT 1
+        ) om ON true
         ORDER BY co.created_at DESC
         LIMIT 50
       `;
       
-      const result = await db.execute(sql.raw(query));
+      const result = await db.execute(query);
       console.log(`✅ [REAL ORDERS DEBUG] SQL Result type:`, typeof result);
       
       // Handle different result formats safely
@@ -24241,13 +26299,38 @@ Momtaz Chemical Technical Team`,
         orders.map(async (order: any) => {
           // Get order items
           try {
-            const itemsQuery = `SELECT * FROM order_items WHERE order_id = ${order.id}`;
-            const itemsResult = await db.execute(sql.raw(itemsQuery));
-            const items = itemsResult?.rows || [];
+            const orderId = Number(order.id);
+            if (!Number.isSafeInteger(orderId) || orderId < 1) throw new Error("Invalid order id");
+            const itemsResult = await db.execute(sql`
+              SELECT id, product_id, product_name, product_sku, quantity, unit,
+                     unit_price, total_price, specifications, notes
+              FROM order_items
+              WHERE order_id = ${orderId}
+              ORDER BY id ASC
+            `);
+            const itemRows = Array.isArray(itemsResult) ? itemsResult : itemsResult?.rows || [];
+            const items = itemRows.map((item: any) => ({
+              id: item.id,
+              productId: item.product_id,
+              productName: item.product_name,
+              productSku: item.product_sku,
+              quantity: item.quantity,
+              unit: item.unit,
+              unitPrice: item.unit_price,
+              totalPrice: item.total_price,
+              specifications: item.specifications,
+              notes: item.notes,
+            }));
 
             // Create customer object
             let customer = null;
-            if (order.customer_id && order.customer_first_name) {
+            if (
+              order.customer_id ||
+              order.customer_first_name ||
+              order.customer_last_name ||
+              order.customer_email ||
+              order.customer_phone
+            ) {
               customer = {
                 id: order.customer_id,
                 firstName: order.customer_first_name,
@@ -24265,19 +26348,25 @@ Momtaz Chemical Technical Team`,
               orderNumber: order.order_number,
               totalAmount: order.total_amount,
               status: order.status,
-              paymentMethod: order.payment_method,
+              statusChangedAt: order.status_changed_at,
+              paymentStatus: order.payment_status,
+              paymentMethod: order.management_payment_method ?? order.payment_method,
+              walletAmountUsed: order.wallet_amount_used ?? "0",
+              bankAmountPaid: order.bank_amount_paid ?? "0",
+              currency: order.currency,
               carrier: order.carrier,
               createdAt: order.created_at,
-          notes: order.notes,
-          customerNotes: order.notes,
+              notes: order.notes,
+              customerNotes: order.notes,
               updatedAt: order.updated_at,
               orderDate: order.created_at,
               items: items,
               customer: customer,
-              customerName: customer ? `${customer.firstName} ${customer.lastName}` : 'نامشخص',
+              customerName: customer
+                ? [customer.firstName, customer.lastName].filter(Boolean).join(' ') || customer.company || 'نامشخص'
+                : 'نامشخص',
               mobileNumber: customer?.phone || 'نامشخص',
               email: customer?.email || 'نامشخص',
-              walletAmountUsed: 0,
             };
           } catch (itemError) {
             console.error(`Error getting items for order ${order.id}:`, itemError);
@@ -24287,7 +26376,12 @@ Momtaz Chemical Technical Team`,
               orderNumber: order.order_number,
               totalAmount: order.total_amount,
               status: order.status,
-              paymentMethod: order.payment_method,
+              statusChangedAt: order.status_changed_at,
+              paymentStatus: order.payment_status,
+              paymentMethod: order.management_payment_method ?? order.payment_method,
+              walletAmountUsed: order.wallet_amount_used ?? "0",
+              bankAmountPaid: order.bank_amount_paid ?? "0",
+              currency: order.currency,
               carrier: order.carrier,
               createdAt: order.created_at,
           notes: order.notes,
@@ -24299,7 +26393,6 @@ Momtaz Chemical Technical Team`,
               customerName: 'نامشخص',
               mobileNumber: 'نامشخص',
               email: 'نامشخص',
-              walletAmountUsed: 0,
             };
           }
         })
@@ -27004,12 +29097,40 @@ Leading Chemical Solutions Provider
   });
 
   // Get all CRM customers with pagination
+  const withCustomerPurchaseTotals = async <T extends { id: number }>(customers: T[]) => {
+    if (customers.length === 0) return customers.map(customer => ({ ...customer, purchaseTotals: [] }));
+    const totals = await customerDb
+      .select({
+        customerId: customerOrders.customerId,
+        currency: customerOrders.currency,
+        amount: sql<string>`sum(${customerOrders.totalAmount})::text`,
+      })
+      .from(customerOrders)
+      .where(and(
+        inArray(customerOrders.customerId, customers.map(customer => customer.id)),
+        sql`${customerOrders.status} not in ('cancelled', 'failed', 'deleted')`,
+        ne(customerOrders.paymentStatus, "failed"),
+      ))
+      .groupBy(customerOrders.customerId, customerOrders.currency);
+
+    const byCustomer = new Map<number, Array<{ currency: string; amount: string }>>();
+    for (const total of totals) {
+      const entries = byCustomer.get(total.customerId) || [];
+      entries.push({ currency: total.currency, amount: total.amount });
+      byCustomer.set(total.customerId, entries);
+    }
+    return customers.map(customer => ({
+      ...customer,
+      purchaseTotals: (byCustomer.get(customer.id) || []).sort((a, b) => a.currency.localeCompare(b.currency)),
+    }));
+  };
+
   app.get("/api/crm/customers", requireAuth, async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = parseInt(req.query.offset as string) || 0;
       
-      const customers = await crmStorage.getCrmCustomers(limit, offset);
+      const customers = await withCustomerPurchaseTotals(await crmStorage.getCrmCustomers(limit, offset));
       res.json({
         success: true,
         data: customers,
@@ -27039,7 +29160,7 @@ Leading Chemical Solutions Provider
         });
       }
 
-      const customers = await crmStorage.searchCrmCustomers(query);
+      const customers = await withCustomerPurchaseTotals(await crmStorage.searchCrmCustomers(query));
       res.json({
         success: true,
         data: customers
@@ -27311,13 +29432,72 @@ Leading Chemical Solutions Provider
   app.put("/api/crm/customers/:id", requireAuth, async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
-      const updateData = req.body;
+      const updateData = { ...req.body };
       
       console.log("🔧 [CRM UPDATE] Customer ID:", customerId);
       console.log("🔧 [CRM UPDATE] Update data received:", JSON.stringify(updateData, null, 2));
       console.log("🔧 [CRM UPDATE] cityRegion field:", updateData.cityRegion);
       console.log("🔧 [CRM UPDATE] province field:", updateData.province);
       
+      const currentCustomer = await crmStorage.getCrmCustomerById(customerId);
+      if (!currentCustomer) {
+        return res.status(404).json({ success: false, message: "Customer not found" });
+      }
+
+      if (typeof updateData.email === 'string') {
+        const normalizedEmail = updateData.email.trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+          return res.status(400).json({ success: false, message: "آدرس ایمیل معتبر نیست" });
+        }
+
+        if (normalizedEmail !== currentCustomer.email.toLowerCase()) {
+          const client = await pool.connect();
+          try {
+            await client.query('BEGIN');
+            const duplicateCrm = await client.query(
+              'SELECT 1 FROM crm_customers WHERE lower(email) = $1 AND id <> $2 LIMIT 1',
+              [normalizedEmail, customerId],
+            );
+            const duplicatePortal = await client.query(
+              'SELECT 1 FROM customers WHERE lower(email) = $1 AND lower(email) <> $2 LIMIT 1',
+              [normalizedEmail, currentCustomer.email.toLowerCase()],
+            );
+            if (duplicateCrm.rowCount || duplicatePortal.rowCount) {
+              await client.query('ROLLBACK');
+              return res.status(409).json({ success: false, message: "این ایمیل قبلاً برای مشتری دیگری ثبت شده است" });
+            }
+
+            await client.query(
+              'UPDATE crm_customers SET email = $1, updated_at = now() WHERE id = $2',
+              [normalizedEmail, customerId],
+            );
+            await client.query(
+              'UPDATE customers SET email = $1, email_verified = false, updated_at = now() WHERE lower(email) = $2',
+              [normalizedEmail, currentCustomer.email.toLowerCase()],
+            );
+            await client.query('COMMIT');
+          } catch (emailUpdateError) {
+            await client.query('ROLLBACK');
+            throw emailUpdateError;
+          } finally {
+            client.release();
+          }
+
+          await crmStorage.logCustomerActivity({
+            customerId,
+            activityType: 'email_changed_by_admin',
+            description: 'آدرس ایمیل مشتری توسط مدیر تغییر کرد',
+            performedBy: `admin:${(req.session as any).adminId || 'unknown'}`,
+            activityData: {
+              previousEmail: currentCustomer.email,
+              newEmail: normalizedEmail,
+              changedAt: new Date().toISOString(),
+            },
+          });
+        }
+        delete updateData.email;
+      }
+
       const customer = await crmStorage.updateCrmCustomer(customerId, updateData);
       
       console.log("🔧 [CRM UPDATE] Updated customer:", JSON.stringify(customer, null, 2));
@@ -27330,7 +29510,7 @@ Leading Chemical Solutions Provider
     } catch (error: any) {
       console.error("Error updating CRM customer:", error);
       // Check if it's a duplicate error message
-      if (error.message && (error.message.includes("ایمیل تکراری است") || error.message.includes("شماره تلفن تکراری است"))) {
+      if (error.code === '23505' || (error.message && (error.message.includes("ایمیل تکراری است") || error.message.includes("شماره تلفن تکراری است")))) {
         return res.status(400).json({
           success: false,
           message: error.message
@@ -27627,6 +29807,7 @@ Leading Chemical Solutions Provider
         address,
         secondaryAddress,
         postalCode,
+        secondaryPostalCode,
         alternatePhone,
         industry,
         businessType,
@@ -27696,8 +29877,9 @@ Leading Chemical Solutions Provider
         address: address || currentCustomer.address,
         
         // Additional contact info
-        secondaryAddress: secondaryAddress || currentCustomer.secondaryAddress,
-        postalCode: postalCode || currentCustomer.postalCode,
+        secondaryAddress: secondaryAddress ?? currentCustomer.secondaryAddress,
+        postalCode: postalCode ?? currentCustomer.postalCode,
+        secondaryPostalCode: secondaryPostalCode ?? currentCustomer.secondaryPostalCode,
         alternatePhone: alternatePhone || currentCustomer.alternatePhone,
         
         // Business information
@@ -28109,37 +30291,27 @@ ${message ? `Additional Requirements:\n${message}` : ''}
 
   // Language settings - public read
   app.get("/api/public/language-settings", async (req, res) => {
+    res.set("Cache-Control","no-store");
     try {
-      const { pool } = await import('./db');
-      const result = await pool.query(
-        `SELECT setting_value FROM shop_settings WHERE setting_key = 'language_settings' LIMIT 1`
-      );
-      if (result.rows.length > 0) {
-        res.json({ success: true, data: JSON.parse(result.rows[0].setting_value) });
-      } else {
-        // Default: all languages enabled
-        res.json({ success: true, data: { en: true, ar: true, ku: true, tr: true, fa: true } });
-      }
+      res.json({success:true,data:await readSiteLanguageSettings()});
     } catch (error) {
-      res.json({ success: true, data: { en: true, ar: true, ku: true, tr: true, fa: true } });
+      console.error("[LANGUAGE SETTINGS] Read failed",error);
+      res.status(500).json({success:false,message:"Unable to load site language settings"});
     }
   });
 
-  const geoLanguageCache = new Map<string, { countryCode: string; language: "en" | "ar" | "tr" | "fa"; expiresAt: number }>();
+  const geoLanguageCache = new Map<string, { countryCode: string; expiresAt: number }>();
 
   // Detect a first-time visitor's language from their IP country. Manual
   // language choices are handled and preserved by the client.
   app.get("/api/public/detect-language", async (req, res) => {
-    const languageForCountry = (countryCode: string): "en" | "ar" | "tr" | "fa" => {
-      switch (countryCode.toUpperCase()) {
-        case "IR": return "fa";
-        case "IQ": return "ar";
-        case "TR": return "tr";
-        default: return "en";
-      }
-    };
-
+    res.set("Cache-Control","no-store");
+    let settings:SiteLanguageSettings|undefined;
     try {
+      settings=await readSiteLanguageSettings();
+      if(settings.initialLanguageMode==="fixed"){
+        return res.json({success:true,data:{countryCode:null,language:settings.defaultLanguage,mode:"fixed"}});
+      }
       const countryHeaderNames = [
         "cf-ipcountry",
         "x-vercel-ip-country",
@@ -28155,7 +30327,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       if (headerCountry) {
         return res.json({
           success: true,
-          data: { countryCode: headerCountry, language: languageForCountry(headerCountry) },
+          data: { countryCode: headerCountry, language: languageForVisitorCountry(settings,headerCountry),mode:"ip" },
         });
       }
 
@@ -28168,7 +30340,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       if (cached && cached.expiresAt > Date.now()) {
         return res.json({
           success: true,
-          data: { countryCode: cached.countryCode, language: cached.language },
+          data: { countryCode: cached.countryCode, language: languageForVisitorCountry(settings,cached.countryCode),mode:"ip" },
         });
       }
 
@@ -28199,34 +30371,31 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         }
       }
 
-      const language = languageForCountry(countryCode);
+      const language = languageForVisitorCountry(settings,countryCode);
       geoLanguageCache.set(clientIp, {
         countryCode,
-        language,
         expiresAt: Date.now() + 24 * 60 * 60 * 1000,
       });
-      res.json({ success: true, data: { countryCode: countryCode || null, language } });
+      res.json({ success: true, data: { countryCode: countryCode || null, language,mode:"ip" } });
     } catch (error) {
-      console.warn("[LANGUAGE DETECTION] Falling back to English:", error);
-      res.json({ success: true, data: { countryCode: null, language: "en" } });
+      console.warn("[LANGUAGE DETECTION] Detection unavailable:", error);
+      if(!settings)return res.status(500).json({success:false,message:"Unable to load site language settings"});
+      res.json({ success: true, data: { countryCode: null, language: settings.defaultLanguage,mode:settings.initialLanguageMode } });
     }
   });
 
   // Language settings - admin update
   app.put("/api/admin/language-settings", requireAuth, async (req, res) => {
     try {
-      const { en, ar, ku, tr, fa } = req.body;
-      if (en === false && ar === false && ku === false && tr === false && fa === false) {
-        return res.status(400).json({ success: false, message: "حداقل یک زبان باید فعال باشد" });
+      const parsed=siteLanguageSettingsUpdateSchema.safeParse(req.body);
+      if(!parsed.success){
+        return res.status(400).json({success:false,message:"تنظیمات نامعتبر است؛ حداقل یک زبان سایت باید فعال باشد"});
       }
-      const value = JSON.stringify({ en: !!en, ar: !!ar, ku: !!ku, tr: !!tr, fa: !!fa });
-      const { pool } = await import('./db');
-      await pool.query(`
-        INSERT INTO shop_settings (setting_key, setting_value, setting_type, display_name, category, is_public)
-        VALUES ('language_settings', $1, 'json', 'تنظیمات زبان‌های سایت', 'appearance', true)
-        ON CONFLICT (setting_key) DO UPDATE SET setting_value = $1, updated_at = NOW()
-      `, [value]);
-      res.json({ success: true, message: "تنظیمات زبان با موفقیت ذخیره شد", data: { en: !!en, ar: !!ar, ku: !!ku, tr: !!tr, fa: !!fa } });
+      let settings:SiteLanguageSettings;
+      if(parsed.data.defaultLanguage!==undefined&&parsed.data[parsed.data.defaultLanguage]===false)
+        return res.status(400).json({success:false,message:"زبان اولیه باید از زبان‌های فعال سایت انتخاب شود"});
+      settings=await saveSiteLanguageSettings(parsed.data);
+      res.json({ success: true, message: "تنظیمات زبان با موفقیت ذخیره شد", data: settings });
     } catch (error) {
       console.error("Error updating language settings:", error);
       res.status(500).json({ success: false, message: "خطا در ذخیره تنظیمات زبان" });
@@ -28565,9 +30734,11 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   // Generate language-specific sitemap
   app.get("/sitemap-:language.xml", async (req, res) => {
     try {
-      const { seoStorage } = await import('./seo-storage');
       const { language } = req.params;
-      const sitemapXml = await seoStorage.generateSitemap(language);
+      if (!['en', 'ar', 'tr', 'fa'].includes(language)) {
+        return res.status(404).send("Unsupported sitemap language");
+      }
+      const sitemapXml = await generateSitemap(language);
       res.set('Content-Type', 'application/xml');
       res.send(sitemapXml);
     } catch (error) {
@@ -28689,19 +30860,6 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     }
   });
 
-  // Generate and serve XML sitemap
-  app.get("/sitemap.xml", async (req, res) => {
-    try {
-      const { seoStorage } = await import('./seo-storage');
-      const sitemapXml = await seoStorage.generateSitemap();
-      res.set('Content-Type', 'application/xml');
-      res.send(sitemapXml);
-    } catch (error) {
-      console.error("Error generating sitemap:", error);
-      res.status(500).send("Error generating sitemap");
-    }
-  });
-
   // Generate and serve robots.txt
   app.get("/robots.txt", async (req, res) => {
     try {
@@ -28712,6 +30870,29 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     } catch (error) {
       console.error("Error generating robots.txt:", error);
       res.status(500).send("Error generating robots.txt");
+    }
+  });
+
+  app.use(async (req, res, next) => {
+    if (
+      req.method !== 'GET' ||
+      req.path.startsWith('/api/') ||
+      req.path.startsWith('/admin/') ||
+      req.path.includes('.')
+    ) {
+      return next();
+    }
+
+    try {
+      const { seoStorage } = await import('./seo-storage');
+      const redirect = await seoStorage.getRedirectByFromUrl(req.path);
+      if (!redirect || redirect.toUrl === req.path) return next();
+
+      await seoStorage.incrementRedirectHit(redirect.id);
+      return res.redirect(redirect.statusCode || 301, redirect.toUrl);
+    } catch (error) {
+      console.error('SEO redirect lookup failed:', error);
+      return next();
     }
   });
 
@@ -29295,13 +31476,22 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         expiresAt
       });
       
-      // Here you would integrate with SMS provider (Kavenegar, etc.)
-      // For now, we'll just log the code for development
-      console.log(`SMS Verification Code for ${phone}: ${code}`);
+      const { createSmsService } = await import('./sms-service');
+      const smsService = await createSmsService();
+      const sendResult = await smsService.sendVerificationCode(phone, code);
+
+      if (!sendResult.success) {
+        console.error('[SMS VERIFICATION] Provider rejected verification SMS:', sendResult.error);
+        return res.status(502).json({
+          success: false,
+          message: "ارائه‌دهنده پیامک کد تأیید را نپذیرفت"
+        });
+      }
       
       res.json({ 
         success: true, 
-        message: "کد تأیید ارسال شد",
+        message: "کد تأیید توسط ارائه‌دهنده پیامک پذیرفته شد",
+        messageId: sendResult.messageId,
         // In production, don't send the code in response
         ...(process.env.NODE_ENV === 'development' && { code })
       });
@@ -29365,6 +31555,9 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       if (!req.session?.customerId) {
         return res.status(401).json({ success: false, message: "احراز هویت نشده" });
       }
+      if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+        return res.status(400).json({ success: false, message: "اطلاعات آدرس نامعتبر است" });
+      }
 
       // Get customer info to auto-fill firstName and lastName
       const customer = await crmStorage.getCrmCustomerById(req.session.customerId);
@@ -29382,6 +31575,9 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       const newAddress = await customerAddressStorage.createAddress(addressData);
       res.json({ success: true, address: newAddress, message: "آدرس جدید با موفقیت ایجاد شد" });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ success: false, message: "اطلاعات آدرس نامعتبر است", errors: error.errors });
+      }
       console.error("Error creating address:", error);
       res.status(500).json({ success: false, message: "خطا در ایجاد آدرس جدید" });
     }
@@ -29394,16 +31590,36 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         return res.status(401).json({ success: false, message: "احراز هویت نشده" });
       }
 
-      const addressId = parseInt(req.params.id);
+      const addressId = Number(req.params.id);
+      if (!/^[1-9]\d*$/.test(req.params.id) || !Number.isSafeInteger(addressId)) {
+        return res.status(400).json({ success: false, message: "شناسه آدرس نامعتبر است" });
+      }
       const existingAddress = await customerAddressStorage.getAddressById(addressId);
       
       if (!existingAddress || existingAddress.customerId !== req.session.customerId) {
         return res.status(404).json({ success: false, message: "آدرس یافت نشد" });
       }
 
-      const updatedAddress = await customerAddressStorage.updateAddress(addressId, req.body);
+      if (!req.body || typeof req.body !== "object" || Array.isArray(req.body) ||
+          ["id", "customerId", "isDefault", "default"].some((key) => Object.prototype.hasOwnProperty.call(req.body, key))) {
+        return res.status(400).json({ success: false, message: "تغییر مالکیت یا آدرس پیش‌فرض مجاز نیست" });
+      }
+
+      const validatedAddress = insertCustomerAddressSchema.parse({ ...existingAddress, ...req.body });
+      const {
+        customerId: _customerId,
+        isDefault: _isDefault,
+        ...addressData
+      } = validatedAddress;
+      const updatedAddress = await customerAddressStorage.updateAddress(addressId, req.session.customerId, addressData);
+      if (!updatedAddress) {
+        return res.status(404).json({ success: false, message: "آدرس یافت نشد" });
+      }
       res.json({ success: true, address: updatedAddress, message: "آدرس با موفقیت بروزرسانی شد" });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ success: false, message: "اطلاعات آدرس نامعتبر است", errors: error.errors });
+      }
       console.error("Error updating address:", error);
       res.status(500).json({ success: false, message: "خطا در بروزرسانی آدرس" });
     }
@@ -29416,14 +31632,20 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         return res.status(401).json({ success: false, message: "احراز هویت نشده" });
       }
 
-      const addressId = parseInt(req.params.id);
+      const addressId = Number(req.params.id);
+      if (!/^[1-9]\d*$/.test(req.params.id) || !Number.isSafeInteger(addressId)) {
+        return res.status(400).json({ success: false, message: "شناسه آدرس نامعتبر است" });
+      }
       const existingAddress = await customerAddressStorage.getAddressById(addressId);
       
       if (!existingAddress || existingAddress.customerId !== req.session.customerId) {
         return res.status(404).json({ success: false, message: "آدرس یافت نشد" });
       }
 
-      await customerAddressStorage.deleteAddress(addressId);
+      const deleted = await customerAddressStorage.deleteAddress(addressId, req.session.customerId);
+      if (!deleted) {
+        return res.status(404).json({ success: false, message: "آدرس یافت نشد" });
+      }
       res.json({ success: true, message: "آدرس با موفقیت حذف شد" });
     } catch (error) {
       console.error("Error deleting address:", error);
@@ -29438,14 +31660,20 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         return res.status(401).json({ success: false, message: "احراز هویت نشده" });
       }
 
-      const addressId = parseInt(req.params.id);
+      const addressId = Number(req.params.id);
+      if (!/^[1-9]\d*$/.test(req.params.id) || !Number.isSafeInteger(addressId)) {
+        return res.status(400).json({ success: false, message: "شناسه آدرس نامعتبر است" });
+      }
       const existingAddress = await customerAddressStorage.getAddressById(addressId);
       
       if (!existingAddress || existingAddress.customerId !== req.session.customerId) {
         return res.status(404).json({ success: false, message: "آدرس یافت نشد" });
       }
 
-      await customerAddressStorage.setDefaultAddress(req.session.customerId, addressId);
+      const updated = await customerAddressStorage.setDefaultAddress(req.session.customerId, addressId);
+      if (!updated) {
+        return res.status(404).json({ success: false, message: "آدرس یافت نشد" });
+      }
       res.json({ success: true, message: "آدرس پیش‌فرض تنظیم شد" });
     } catch (error) {
       console.error("Error setting default address:", error);
@@ -29751,6 +31979,41 @@ ${message ? `Additional Requirements:\n${message}` : ''}
 
   // Approve financial order with smart wallet management (public access for financial department)
   app.post('/api/finance/orders/:id/approve', async (req: Request, res: Response) => {
+    // Preserve legacy ID semantics (management ID), but new prepaid orders never enter the old paid/debit branch.
+    try {
+      const {pool}=await import("./db");
+      const installed=await pool.query("select to_regclass('public.accounting_wallet_orders') as relation");
+      if(installed.rows[0].relation) {
+        const linked=await pool.query(`select o.order_id from accounting_wallet_orders o
+          join order_management m on m.customer_order_id=o.order_id where m.id=$1`,[req.params.id]);
+        if(linked.rows.length) {
+          const {resolveAccountingAccess,assertAccountingOrigin}=await import("./modules/accounting/access");
+          assertAccountingOrigin(req);
+          const {approveWalletOrder}=await import("./modules/accounting/wallet");
+          const actor=await resolveAccountingAccess(req);
+          const result=await approveWalletOrder(linked.rows[0].order_id,String(req.body.notes||""),actor);
+          return res.json({success:true,message:"تأیید مالی انجام شد؛ مبلغ حساب نزد شرکت بلوکه شد و هنوز کسر نشده است.",...result});
+        }
+      }
+      const creditInstalled=await pool.query("select to_regclass('public.accounting_credit_cutovers') as relation");
+      if(creditInstalled.rows[0].relation) {
+        const candidate=await pool.query(`select o.id from order_management m join customer_orders o on o.id=m.customer_order_id
+          join accounting_credit_cutovers g on g.company_id=o.accounting_company_id and g.processing_ready
+          where m.id=$1 and o.created_at>=g.enabled_at`,[req.params.id]);
+        if(candidate.rows.length) {
+          const {resolveAccountingAccess,assertAccountingOrigin}=await import("./modules/accounting/access");
+          assertAccountingOrigin(req);
+          const {approveCreditOrder}=await import("./modules/accounting/credit-orders");
+          const result=await approveCreditOrder(candidate.rows[0].id,String(req.body.notes||""),await resolveAccountingAccess(req));
+          return res.json({success:true,message:"تأیید اعتباری انجام شد؛ پرداخت همچنان در انتظار است و از حساب مشتری کسر نشده است.",...result});
+        }
+      }
+    } catch(e) {
+      const {AccountingError}=await import("./modules/accounting/access");
+      return res.status(e instanceof AccountingError?e.status:409).json({
+        success:false,code:e instanceof AccountingError?e.code:"WALLET_APPROVAL_FAILED",
+        message:e instanceof AccountingError?e.message:"Financial approval failed; no successful hold is implied"});
+    }
     try {
       const orderId = parseInt(req.params.id);
       const { notes, receiptAmount } = req.body; // receiptAmount: مبلغ واریزی در فیش
@@ -29959,9 +32222,13 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         'financial', 
         notes || 'Payment rejected by financial department'
       );
+      const { voidRejectedOrderProforma } = await import('./invoice-lifecycle');
+      const proformaVoided = await voidRejectedOrderProforma(updatedOrder.customerOrderId);
+      const { restoreRejectedOrderInventory } = await import('./cart-inventory-reservation');
+      const inventoryRestoration = await restoreRejectedOrderInventory(updatedOrder.customerOrderId);
 
       console.log(`❌ [FINANCE] Order ${orderId} rejected by financial department`);
-      res.json({ success: true, order: updatedOrder, message: 'پرداخت رد شد' });
+      res.json({ success: true, order: updatedOrder, proformaVoided, inventoryRestoration, message: 'پرداخت رد شد' });
     } catch (error) {
       console.error('Error rejecting financial order:', error);
       res.status(500).json({ success: false, message: 'خطا در رد پرداخت' });
@@ -30020,11 +32287,18 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   });
 
   // Get orders for specific department (respects workflow sequence)
-  app.get('/api/order-management/:department', async (req, res) => {
+  app.get('/api/order-management/:department', async (req, res, next) => {
     try {
       const department = req.params.department as 'financial' | 'warehouse' | 'logistics';
+
+      // Warehouse has dedicated routes below that return both current work and
+      // warehouse history. Let Express continue to those routes instead of
+      // shadowing them with this generic department handler.
+      if (department === 'warehouse') {
+        return next();
+      }
       
-      if (!['financial', 'warehouse', 'logistics'].includes(department)) {
+      if (!['financial', 'logistics'].includes(department)) {
         return res.status(400).json({ success: false, message: 'بخش نامعتبر است' });
       }
 
@@ -30168,6 +32442,9 @@ ${message ? `Additional Requirements:\n${message}` : ''}
 
       // CRITICAL: Process wallet refund when order is cancelled
       if (newStatus === 'cancelled' || newStatus === 'financial_rejected') {
+        const { restoreRejectedOrderInventory } = await import('./cart-inventory-reservation');
+        const inventoryRestoration = await restoreRejectedOrderInventory(updatedOrder.customerOrderId);
+        console.log(`📦 [INVENTORY RESTORE] Order ${updatedOrder.customerOrderId}:`, inventoryRestoration);
         try {
           // Get the customer order to check payment method
           const customerOrder = await customerStorage.getOrderById(updatedOrder.customerOrderId);
@@ -30291,63 +32568,57 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   // WAREHOUSE DEPARTMENT API ROUTES
   // =============================================================================
 
+  app.get('/api/order-management/warehouse/counts', requireAuth, async (_req, res) => {
+    try {
+      const counts = await orderManagementStorage.getWarehouseOrderCounts();
+      res.set('Cache-Control', 'no-store');
+      res.json({ success: true, ...counts });
+    } catch (error) {
+      console.error('📦 [WAREHOUSE] Error fetching warehouse counts:', error);
+      res.status(500).json({ success: false, message: 'خطا در دریافت تعداد سفارشات انبار' });
+    }
+  });
+
   // Warehouse orders - Get orders approved by financial department
   app.get('/api/order-management/warehouse', requireAuth, async (req, res) => {
     try {
-      console.log('📦 [WAREHOUSE] Fetching warehouse orders...');
-      
-      // Get orders that are approved by financial department and ready for warehouse processing
-      const { pool } = await import('./db');
-      const result = await pool.query(`
-        SELECT 
-          o.id,
-          o.customer_name as "customerName",
-          o.customer_email as "customerEmail", 
-          o.total_amount as "totalAmount",
-          o.status,
-          o.created_at as "createdAt",
-          o.shipping_address as "shippingAddress",
-          o.payment_method as "paymentMethod",
-          o.notes,
-          o.warehouse_notes as "warehouseNotes",
-          o.financial_approved_at as "financialApprovedAt",
-          o.fulfilled_at as "fulfilledAt",
-          o.fulfilled_by as "fulfilledBy",
-          om.total_weight as "totalWeight",
-          om.weight_unit as "weightUnit",
-          COALESCE(
-            json_agg(
-              json_build_object(
-                'id', oi.id,
-                'name', oi.name,
-                'quantity', oi.quantity,
-                'price', oi.price,
-                'sku', oi.sku,
-                'barcode', oi.barcode,
-                'vendor_id', sp.vendor_id,
-                'vendor_name', v.vendor_name
-              )
-            ) FILTER (WHERE oi.id IS NOT NULL),
-            '[]'::json
-          ) as items
-        FROM orders o
-        LEFT JOIN order_items oi ON o.id = oi.order_id
-        LEFT JOIN shop_products sp ON oi.product_id = sp.id
-        LEFT JOIN vendors v ON sp.vendor_id = v.id
-        LEFT JOIN order_management om ON o.id = om.customer_order_id
-        WHERE o.status IN ('financial_approved', 'warehouse_pending', 'warehouse_processing', 'warehouse_verified', 'warehouse_approved')
-        GROUP BY o.id, o.customer_name, o.customer_email, o.total_amount, o.status, 
-                 o.created_at, o.shipping_address, o.payment_method, o.notes, 
-                 o.warehouse_notes, o.financial_approved_at, o.fulfilled_at, o.fulfilled_by,
-                 om.total_weight, om.weight_unit
-        ORDER BY o.financial_approved_at DESC
-      `);
-      
-      const orders = result.rows;
-      console.log('📦 [WAREHOUSE] Found financial approved orders:', orders.length);
-      console.log('📦 [WAREHOUSE] Orders ready for warehouse processing:', JSON.stringify(orders, null, 2));
-      res.json({ success: true, orders });
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const view = req.query.view === 'history' ? 'history' : 'current';
+      const { orders, total } = await orderManagementStorage.getWarehouseOrdersPage(view, limit, offset);
+      res.set('Cache-Control', 'no-store');
+      res.json({
+        success: true,
+        orders: view === 'current' ? orders : [],
+        historyOrders: view === 'history' ? orders : [],
+        total,
+        offset,
+        limit,
+        hasMore: offset + limit < total,
+      });
     } catch (error) {
+      console.error('📦 [WAREHOUSE] Error fetching warehouse orders:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطا در دریافت سفارشات انبار',
+      });
+    }
+  });
+
+  // Warehouse order history - orders that have already left the warehouse.
+  app.get('/api/order-management/warehouse/history', requireAuth, async (req, res) => {
+    try {
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const { orders, total } = await orderManagementStorage.getWarehouseOrdersPage('history', limit, offset);
+      res.set('Cache-Control', 'no-store');
+      res.json({ success: true, orders, total, offset, limit, hasMore: offset + limit < total });
+    } catch (error) {
+      console.error('📚 [WAREHOUSE HISTORY] Error fetching warehouse history:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطا در دریافت سابقه سفارشات انبار',
+      });
     }
   });
 
@@ -30535,7 +32806,25 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   // Shipping cost calculation endpoint
   app.post('/api/logistics/calculate-shipping', async (req, res) => {
     try {
-      const { deliveryMethod, city, province, orderTotal, weight } = req.body;
+      const { deliveryMethod, city, province, orderTotal, weight, destinationCountryCode, countryCode } = req.body;
+      const center = await getShippingCenter();
+      const requestedCountry = destinationCountryCode ?? countryCode;
+      if (requestedCountry && String(requestedCountry).toUpperCase() !== center.countryCode.toUpperCase()) {
+        throw new ShippingConfigurationError("Cross-country shipping is unavailable; destination must be in the selected shipping center country.", 422);
+      }
+      const destination = await resolveActiveCityByName(
+        [String(city ?? "")],
+        province ? [String(province)] : [],
+        center.countryCode,
+      );
+      const route = await getRouteDistance(center.cityId, destination.id);
+      if (!route) {
+        return res.status(422).json({
+          success: false,
+          message: `Road distance is unavailable from the selected shipping center to ${city}.`,
+          code: "ROUTE_DISTANCE_UNAVAILABLE",
+        });
+      }
       const shippingCost = await orderManagementStorage.calculateShippingCost({
         deliveryMethod,
         city,
@@ -30546,9 +32835,10 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       res.json({ success: true, data: { shippingCost } });
     } catch (error) {
       console.error('Error calculating shipping cost:', error);
-      res.status(500).json({ 
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({
         success: false, 
-        message: error.message || 'خطا در محاسبه هزینه حمل و نقل' 
+        message: error instanceof Error ? error.message : 'خطا در محاسبه هزینه حمل و نقل',
       });
     }
   });
@@ -30570,7 +32860,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   });
 
   // Update order delivery information (enhanced logistics details)
-  app.post('/api/logistics/orders/:orderId/delivery-info', async (req, res) => {
+  app.post('/api/logistics/orders/:orderId/delivery-info', requireAuth, attachUserDepartments as RequestHandler, requireDepartment('logistics') as RequestHandler, async (req, res) => {
     try {
       const { orderId } = req.params;
       const updatedOrder = await orderManagementStorage.updateDeliveryInfo(
@@ -30585,7 +32875,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   });
 
   // Update delivery information for an order
-  app.put('/api/logistics/orders/:id/delivery-info', async (req, res) => {
+  app.put('/api/logistics/orders/:id/delivery-info', requireAuth, attachUserDepartments as RequestHandler, requireDepartment('logistics') as RequestHandler, async (req, res) => {
     try {
       const orderId = parseInt(req.params.id);
       const deliveryInfo = req.body;
@@ -31232,85 +33522,102 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         destinationProvince: rawDestinationProvince, 
         cart, 
         useSecondaryAddress, 
-        secondaryAddress, 
-        originCity: rawOriginCity = 'اربیل' 
+        secondaryAddress,
+        destinationCountryCode,
+        countryCode,
+        contractId,
+        selectedVehicleTemplateId,
       } = req.body;
 
       // Standardize city and province names to Arabic format
       const destinationCity = standardizeCityName(rawDestinationCity);
       const destinationProvince = standardizeProvinceName(rawDestinationProvince);
-      const originCity = standardizeCityName(rawOriginCity);
+      const center = await getShippingCenter();
+      const originCityData = await getShippingCenterCity();
+      const checkoutCartFacts = cart && typeof cart === "object" && Object.keys(cart).length > 0
+        ? await getCanonicalCheckoutCartFacts(cart)
+        : null;
+      let verifiedContractId:number|null=null;
+      if(contractId!=null){
+        const customerSession=req.session as any;
+        const customerId=Number(customerSession?.crmCustomerId??customerSession?.customerId);
+        if(!checkoutCartFacts||!Number.isSafeInteger(Number(contractId))||Number(contractId)<=0||!customerId)
+          return res.status(422).json({success:false,message:"A customer login and valid contract are required."});
+        const {loadContractPricing}=await import("./shop-contracts");
+        try{await loadContractPricing(Number(contractId),customerId,cart);}
+        catch(error){return res.status(422).json({success:false,message:error instanceof Error?error.message:"Contract unavailable"});}
+        verifiedContractId=Number(contractId);
+      }
+      const bulkTransport=requiresBulkContractTransport(verifiedContractId,checkoutCartFacts?.cart??[]);
+      const templateId=selectedVehicleTemplateId==null?null:Number(selectedVehicleTemplateId);
+      if(templateId!==null&&(!bulkTransport||!Number.isSafeInteger(templateId)||templateId<=0))
+        return res.status(422).json({success:false,message:"Invalid bulk vehicle template selection."});
 
       console.log('🔤 [STANDARDIZATION] Name standardization:', {
-        raw: { originCity: rawOriginCity, destinationCity: rawDestinationCity, destinationProvince: rawDestinationProvince },
-        standardized: { originCity, destinationCity, destinationProvince }
+        raw: { destinationCity: rawDestinationCity, destinationProvince: rawDestinationProvince },
+        standardized: { originCity: originCityData.name, destinationCity, destinationProvince },
+        shippingCenter: center
       });
       
-      if (!weight || !destinationCity) {
+      if ((!weight && !checkoutCartFacts) || !destinationCity) {
         return res.status(400).json({
           success: false,
           message: "وزن محموله و شهر مقصد اجباری است"
         });
       }
+      const requestedDestinationCountry = destinationCountryCode ?? countryCode;
+      if (requestedDestinationCountry && String(requestedDestinationCountry).toUpperCase() !== center.countryCode.toUpperCase()) {
+        return res.status(422).json({
+          success: false,
+          message: "Cross-country shipping is unavailable; destination must be in the selected shipping center country.",
+          code: "CROSS_COUNTRY_SHIPPING_UNAVAILABLE",
+        });
+      }
 
       // Get vehicle templates  
-      const { vehicleTemplates: vehicleTemplatesTable, iraqiCities } = await import('@shared/logistics-schema');
+      const { vehicleTemplates: vehicleTemplatesTable } = await import('@shared/logistics-schema');
       
-      const vehicleTemplates = await db.select().from(vehicleTemplatesTable).where(eq(vehicleTemplatesTable.isActive, true));
+      const activeTemplates=await db.select().from(vehicleTemplatesTable).where(eq(vehicleTemplatesTable.isActive,true));
+      const vehicleTemplates=eligibleTransportTemplates(activeTemplates,bulkTransport?"bulk":"standard",templateId);
       
       if (!vehicleTemplates.length) {
-        return res.status(500).json({
+        return res.status(422).json({
           success: false,
-          message: "هیچ الگوی خودرویی در دسترس نیست"
+          message: bulkTransport?"هیچ قالب خودروی فعال در دستهٔ فله‌ای برای این انتخاب وجود ندارد":"هیچ الگوی خودرویی در دسترس نیست"
         });
       }
 
-      // Get origin and destination city data for distance calculation and bus line check
-      console.log('🔍 [DEBUG] Starting city queries for:', { originCity, destinationCity });
-      
-      let originCityData, destinationCityData;
+      // Use the persisted center and exact active country/province/city matches.
+      let destinationCityData;
       try {
-        console.log('🔍 [DEBUG] Schema available:', { hasIraqiCities: !!iraqiCities, hasDb: !!db, hasEq: !!eq });
-        
-        originCityData = await db.select().from(iraqiCities).where(eq(iraqiCities.nameArabic, originCity)).limit(1);
-        destinationCityData = await db.select().from(iraqiCities).where(eq(iraqiCities.nameArabic, destinationCity)).limit(1);
-        
-        console.log('🔍 [QUERY DEBUG]', {
-          originQuery: originCity,
-          destinationQuery: destinationCity,
-          originResult: originCityData.length,
-          destinationResult: destinationCityData.length
-        });
+        destinationCityData = await resolveActiveCityByName(
+          [String(rawDestinationCity ?? ""), String(destinationCity ?? "")],
+          [String(rawDestinationProvince ?? ""), String(destinationProvince ?? "")],
+          center.countryCode,
+        );
       } catch (error) {
         console.error('❌ [CITY QUERY ERROR]', error);
-        return res.status(500).json({
+        const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+        return res.status(statusCode).json({
           success: false,
-          message: "خطا در دریافت اطلاعات شهرها"
+          message: error instanceof Error ? error.message : "خطا در دریافت اطلاعات شهرها",
         });
       }
 
-      if (!destinationCityData || destinationCityData.length === 0) {
-        return res.status(400).json({
+      const route = await getRouteDistance(center.cityId, destinationCityData.id);
+      if (!route) {
+        return res.status(422).json({
           success: false,
-          message: "شهر مقصد در پایگاه داده یافت نشد"
+          message: `Road distance is unavailable from the selected shipping center to ${destinationCity}.`,
+          code: "ROUTE_DISTANCE_UNAVAILABLE",
         });
       }
-
-      if (!originCityData || originCityData.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "شهر مبدا در پایگاه داده یافت نشد"
-        });
-      }
-
-      const originCity_data = originCityData[0];
-      const destinationCity_data = destinationCityData[0];
-      
-      const distance = parseFloat(destinationCity_data.distanceFromErbilKm || '0');
-      const weightKg = parseFloat(weight);
+      const distance = route.distanceKm;
+      const weightKg = checkoutCartFacts?.totalWeightKg ?? parseFloat(weight);
 
       // Check if cart contains flammable products FIRST (before checking bus lines)
-      let containsFlammableProducts = false;
+      let containsFlammableProducts = checkoutCartFacts?.isFlammable ?? false;
+      const containsHazardousProducts = checkoutCartFacts?.isHazardous ?? containsFlammableProducts;
       if (cart && typeof cart === 'object') {
         // Get product IDs from cart (cart is in format { productId: quantity })
         const productIds = Object.keys(cart).map(id => parseInt(id));
@@ -31373,9 +33680,10 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       // SAFETY CHECK: Filter vehicles based on flammable materials
       console.log('🔥 [SAFETY FILTER] Applying flammable materials filtering');
       const safeVehicles = vehicleTemplates.filter(template => {
-        if (containsFlammableProducts) {
+        if (containsFlammableProducts || containsHazardousProducts) {
           // Only vehicles that support flammable materials
-          const isAuthorized = template.supportsFlammable === true;
+          const isAuthorized = (!containsFlammableProducts || template.supportsFlammable === true)
+            && (!containsHazardousProducts || template.supportsHazardous === true);
           console.log(`🚛 [VEHICLE] ${template.name}: ${isAuthorized ? '✅ AUTHORIZED' : '❌ EXCLUDED'} for flammable transport`);
           return isAuthorized;
         }
@@ -31414,7 +33722,8 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         }
 
         // Check flammable products compatibility
-        if (containsFlammableProducts && !template.supportsFlammable) {
+        if ((containsFlammableProducts && !template.supportsFlammable)
+          || (containsHazardousProducts && !template.supportsHazardous)) {
           console.log(`🔥 [FLAMMABLE CHECK] Vehicle ${template.name} cannot transport flammable materials`);
           return null; // Vehicle cannot transport flammable materials
         }
@@ -31652,6 +33961,23 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         cost: optimalVehicle.totalCost,
         alternativeCount: alternatives.length
       });
+      const shippingQuoteToken = checkoutCartFacts
+        ? issueCheckoutShippingQuote({
+          cartFacts: checkoutCartFacts,
+          center,
+          destinationCityId: destinationCityData.id,
+          distanceKm: distance,
+          method: "vehicle_quote",
+          contractId:verifiedContractId,
+          selectedVehicles: optimalSolution.vehicles.map((vehicle: any) => ({
+            id: vehicle.vehicleId,
+            name: String(vehicle.vehicleName),
+            type: String(vehicle.vehicleType),
+            transportCategory:bulkTransport?"bulk":"standard",
+          })),
+          shippingCost: optimalSolution.totalCost,
+        })
+        : undefined;
 
       // Track abandoned cart if customer information is available
       if (req.isAuthenticated && req.isAuthenticated()) {
@@ -31696,15 +34022,17 @@ ${message ? `Additional Requirements:\n${message}` : ''}
             destination: destinationCity,
             distance: distance,
             routeType: optimalVehicle.routeType
-          }
+          },
+          ...(shippingQuoteToken ? { shippingQuoteToken } : {}),
         }
       });
 
     } catch (error) {
       console.error('❌ [DELIVERY COST] Calculation error:', error);
-      res.status(500).json({
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({
         success: false,
-        message: "خطا در محاسبه هزینه ارسال"
+        message: error instanceof Error ? error.message : "خطا در محاسبه هزینه ارسال"
       });
     }
   });
@@ -31907,7 +34235,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   };
 
   // Helper function to send individual reminders
-  const sendAbandonedOrderReminder = async (order: AbandonedOrder, reminderType: 'first' | 'second' | 'final') => {
+  const sendAbandonedOrderReminder = async (order: schema.AbandonedOrder, reminderType: 'first' | 'second' | 'final') => {
     if (!order.customerEmail && !order.customerPhone) {
       throw new Error('No contact information available');
     }
@@ -31916,17 +34244,30 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     const totalValue = parseFloat(order.totalAmount || '0');
     const walletAmount = parseFloat(order.walletAmountUsed || '0');
     const bankAmount = parseFloat(order.bankAmountPending || '0');
+    const { resolveSmsLanguage, selectLocalizedSms } = await import('./sms-language');
+    const preferredLanguage = await resolveSmsLanguage(
+      pool,
+      order.customerId || undefined,
+      order.customerPhone || undefined,
+    );
+    const customerLabel = {
+      en: order.customerName || 'Dear customer',
+      fa: order.customerName || 'مشتری گرامی',
+      ar: order.customerName || 'عميلنا العزيز',
+      tr: order.customerName || 'Değerli müşterimiz',
+    }[preferredLanguage];
+    const orderNumber = order.hybridOrderNumber || `AO-${order.id}`;
 
     // Email reminder
     if (order.customerEmail) {
       const templateName = reminderType === 'first' ? 'سفارش رها شده - یادآوری اول' : 
                           reminderType === 'second' ? 'سفارش رها شده - یادآوری دوم' : 
                           'سفارش رها شده - یادآوری نهایی';
-      const emailTemplate = await emailStorage.getTemplateByName(templateName);
+      const emailTemplate = await emailStorage.getTemplateByName(templateName, preferredLanguage);
       if (emailTemplate) {
         const personalizedContent = emailTemplate.htmlContent
-          .replace(/{{customerName}}/g, order.customerName || 'مشتری گرامی')
-          .replace(/{{orderNumber}}/g, order.hybridOrderNumber || `AO-${order.id}`)
+          .replace(/{{customerName}}/g, customerLabel)
+          .replace(/{{orderNumber}}/g, orderNumber)
           .replace(/{{totalAmount}}/g, totalValue.toLocaleString())
           .replace(/{{walletAmount}}/g, walletAmount.toLocaleString())
           .replace(/{{bankAmount}}/g, bankAmount.toLocaleString())
@@ -31945,18 +34286,32 @@ ${message ? `Additional Requirements:\n${message}` : ''}
 
     // SMS reminder
     if (order.customerPhone) {
-      let smsMessage = '';
-      switch (reminderType) {
-        case 'first':
-          smsMessage = `${order.customerName || 'مشتری گرامی'}، سفارش شما ${order.hybridOrderNumber || `AO-${order.id}`} به مبلغ ${totalValue.toLocaleString()} دینار ناتمام است. ${walletAmount > 0 ? `مبلغ ${walletAmount.toLocaleString()} دینار از کیف پول کسر شده و ${bankAmount.toLocaleString()} دینار نیاز به پرداخت بانکی دارد.` : ''} برای تکمیل: momtazchem.com`;
-          break;
-        case 'second':
-          smsMessage = `یادآوری مجدد: سفارش ${order.hybridOrderNumber || `AO-${order.id}`} شما به مبلغ ${totalValue.toLocaleString()} دینار در انتظار تکمیل پرداخت است. ممتازکم - momtazchem.com`;
-          break;
-        case 'final':
-          smsMessage = `آخرین فرصت: سفارش ${order.hybridOrderNumber || `AO-${order.id}`} شما به زودی منقضی می‌شود. مبلغ ${bankAmount.toLocaleString()} دینار نیاز به پرداخت دارد. ممتازکم`;
-          break;
-      }
+      const amounts = {
+        total: totalValue.toLocaleString(preferredLanguage),
+        wallet: walletAmount.toLocaleString(preferredLanguage),
+        bank: bankAmount.toLocaleString(preferredLanguage),
+      };
+      const messages = {
+        first: {
+          en: `${customerLabel}, order ${orderNumber} for IQD ${amounts.total} is incomplete. ${walletAmount > 0 ? `IQD ${amounts.wallet} was deducted from your wallet and IQD ${amounts.bank} remains for bank payment. ` : ''}Complete it at momtazchem.com`,
+          fa: `${customerLabel}، سفارش ${orderNumber} به مبلغ ${amounts.total} دینار ناتمام است. ${walletAmount > 0 ? `${amounts.wallet} دینار از کیف پول کسر شده و ${amounts.bank} دینار نیاز به پرداخت بانکی دارد. ` : ''}تکمیل: momtazchem.com`,
+          ar: `${customerLabel}، الطلب ${orderNumber} بقيمة ${amounts.total} دينار غير مكتمل. ${walletAmount > 0 ? `تم خصم ${amounts.wallet} دينار من محفظتك ويتبقى ${amounts.bank} دينار للدفع المصرفي. ` : ''}للإكمال: momtazchem.com`,
+          tr: `${customerLabel}, ${orderNumber} numaralı ${amounts.total} IQD tutarındaki siparişiniz tamamlanmadı. ${walletAmount > 0 ? `Cüzdanınızdan ${amounts.wallet} IQD düşüldü; banka ödemesi için ${amounts.bank} IQD kaldı. ` : ''}Tamamlamak için: momtazchem.com`,
+        },
+        second: {
+          en: `Reminder: Your order ${orderNumber} for IQD ${amounts.total} is awaiting payment completion. Momtaz Chem - momtazchem.com`,
+          fa: `یادآوری: سفارش ${orderNumber} شما به مبلغ ${amounts.total} دینار در انتظار تکمیل پرداخت است. ممتازکم - momtazchem.com`,
+          ar: `تذكير: طلبك ${orderNumber} بقيمة ${amounts.total} دينار بانتظار إكمال الدفع. ممتاز كيم - momtazchem.com`,
+          tr: `Hatırlatma: ${orderNumber} numaralı ${amounts.total} IQD tutarındaki siparişiniz ödemenin tamamlanmasını bekliyor. Momtaz Chem - momtazchem.com`,
+        },
+        final: {
+          en: `Final notice: Your order ${orderNumber} will expire soon. IQD ${amounts.bank} remains to be paid. Momtaz Chem`,
+          fa: `آخرین فرصت: سفارش ${orderNumber} شما به‌زودی منقضی می‌شود. مبلغ ${amounts.bank} دینار نیاز به پرداخت دارد. ممتازکم`,
+          ar: `التنبيه الأخير: سينتهي طلبك ${orderNumber} قريباً. يتبقى دفع ${amounts.bank} دينار. ممتاز كيم`,
+          tr: `Son bildirim: ${orderNumber} numaralı siparişiniz yakında sona erecek. Ödenmesi gereken tutar: ${amounts.bank} IQD. Momtaz Chem`,
+        },
+      } as const;
+      const smsMessage = selectLocalizedSms(messages[reminderType], preferredLanguage)!;
 
       await smsStorage.sendSMS({
         to: order.customerPhone,
@@ -32195,6 +34550,119 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     };
   }
 
+  function requireModuleAccess(moduleId: string, capability: 'view' | 'edit') {
+    return async (req: any, res: any, next: any) => {
+      const session = req.session as any;
+      const hasAdminIdentity = Boolean(session?.adminId);
+      const hasCustomIdentity = Boolean(session?.customUserId);
+      if (!session?.isAuthenticated || hasAdminIdentity === hasCustomIdentity) {
+        return res.status(401).json({ success: false, message: "احراز هویت الزامی است" });
+      }
+
+      try {
+        if (hasCustomIdentity) {
+          const result = await pool.query(`
+            SELECT cr.name, cr.permissions
+            FROM custom_users cu
+            JOIN custom_roles cr ON cr.id = cu.role_id
+            WHERE cu.id = $1 AND cu.is_active = true AND cr.is_active = true
+          `, [session.customUserId]);
+          const role = result.rows[0];
+          const permissions = Array.isArray(role?.permissions)
+            ? role.permissions
+            : JSON.parse(role?.permissions || '[]');
+          if (['super_admin', 'Supper Admin', 'admin'].includes(role?.name) || permissions.includes(moduleId)) return next();
+        } else {
+          const result = await pool.query(`
+            SELECT ar.id::text AS role_id, ar.name
+            FROM users u
+            JOIN admin_roles ar ON ar.id = u.role_id
+            WHERE u.id = $1 AND u.is_active = true AND ar.is_active = true
+          `, [session.adminId]);
+          const role = result.rows[0];
+          if (['super_admin', 'Supper Admin', 'admin'].includes(role?.name)
+              || (moduleId === 'shop_management' && role?.name === 'shop_admin')) return next();
+          if (role?.role_id) {
+            const permission = await pool.query(`
+              SELECT can_view, can_edit, can_approve
+              FROM module_permissions
+              WHERE role_id = $1 AND module_id = $2
+              LIMIT 1
+            `, [role.role_id, moduleId]);
+            const allowed = capability === 'view'
+              ? permission.rows[0]?.can_view
+              : permission.rows[0]?.can_edit || permission.rows[0]?.can_approve;
+            if (allowed) return next();
+          }
+        }
+
+        return res.status(403).json({ success: false, message: "دسترسی کافی وجود ندارد" });
+      } catch (error) {
+        console.error("Module access check failed:", error);
+        return res.status(500).json({ success: false, message: "بررسی دسترسی انجام نشد" });
+      }
+    };
+  }
+
+  // Site-admin-only gate for the back-office confirmation flow. Custom courier
+  // roles must use the dedicated mobile endpoint instead.
+  function requireSiteAdminDeliveryConfirmation(req: any, res: any, next: any) {
+    const session = req.session as any;
+    if (!session?.isAuthenticated || Boolean(session.adminId) === Boolean(session.customUserId)) {
+      return res.status(401).json({ success: false, message: "احراز هویت الزامی است" });
+    }
+    const identityColumn = session.adminId ? 'adminId' : 'customUserId';
+    pool.query(
+      session.adminId
+        ? `SELECT ar.name FROM users u JOIN admin_roles ar ON ar.id = u.role_id WHERE u.id = $1 AND u.is_active = true AND ar.is_active = true`
+        : `SELECT cr.name FROM custom_users cu JOIN custom_roles cr ON cr.id = cu.role_id WHERE cu.id = $1 AND cu.is_active = true AND cr.is_active = true`,
+      [session[identityColumn]]
+    ).then((result) => {
+      if (isSiteAdminDeliveryRole(result.rows[0]?.name)) return next();
+      return res.status(403).json({ success: false, message: "دسترسی کافی وجود ندارد" });
+    }).catch((error) => {
+      console.error("Site admin access check failed:", error);
+      return res.status(500).json({ success: false, message: "بررسی دسترسی انجام نشد" });
+    });
+  }
+
+  function requireCustomDeliveryUser(req: any, res: any, next: any) {
+    const session = req.session as any;
+    if (!session?.customUserId || session?.adminId) {
+      return res.status(401).json({ success: false, message: "احراز هویت الزامی است" });
+    }
+    pool.query(`SELECT cr.permissions FROM custom_users cu JOIN custom_roles cr ON cr.id = cu.role_id WHERE cu.id = $1 AND cu.is_active = true AND cr.is_active = true`, [session.customUserId])
+      .then((result) => {
+        const permissions = Array.isArray(result.rows[0]?.permissions) ? result.rows[0].permissions : JSON.parse(result.rows[0]?.permissions || '[]');
+        if (permissions.includes('delivery_confirmation')) return next();
+        return res.status(403).json({ success: false, message: "دسترسی کافی وجود ندارد" });
+      }).catch(() => res.status(500).json({ success: false, message: "بررسی دسترسی انجام نشد" }));
+  }
+
+  const deliveryCodeAttempts = new Map<string, { count: number; resetAt: number }>();
+  function checkDeliveryCodeRateLimit(actor: string, orderNumber: string) {
+    const now = Date.now();
+    if (deliveryCodeAttempts.size > 10000) {
+      for (const [key, value] of deliveryCodeAttempts) if (value.resetAt <= now) deliveryCodeAttempts.delete(key);
+      if (deliveryCodeAttempts.size > 10000) {
+        const first = deliveryCodeAttempts.keys().next().value;
+        if (first) deliveryCodeAttempts.delete(first);
+      }
+    }
+    const key = `${actor}:${orderNumber}`;
+    const current = deliveryCodeAttempts.get(key);
+    if (!current || current.resetAt <= now) {
+      deliveryCodeAttempts.set(key, { count: 0, resetAt: now + 15 * 60 * 1000 });
+      return { allowed: true, key };
+    }
+    return { allowed: current.count < 5, key };
+  }
+  function recordDeliveryCodeFailure(key: string) {
+    const current = deliveryCodeAttempts.get(key);
+    if (current) current.count += 1;
+  }
+  function clearDeliveryCodeAttempts(key: string) { deliveryCodeAttempts.delete(key); }
+
   // ============================================================================
   // LOGISTICS DEPARTMENT ROUTES
   // ============================================================================
@@ -32375,6 +34843,12 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       } = req.body;
       
       if (action === 'approve') {
+        const order = await orderManagementStorage.getOrderById(orderId);
+        if (!order) {
+          return res.status(404).json({ success: false, message: "سفارش یافت نشد" });
+        }
+        const { finalizeOrderReservations } = await import('./cart-inventory-reservation');
+        await finalizeOrderReservations(order.customerOrderId);
         await orderManagementStorage.updateOrderStatus(
           orderId,
           'logistics_approved',
@@ -32736,8 +35210,8 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       // Get order details
       const [order] = await db
         .select()
-        .from(orders)
-        .where(eq(orders.id, orderId))
+        .from(schema.orders)
+        .where(eq(schema.orders.id, orderId))
         .limit(1);
 
       if (!order) {
@@ -32772,29 +35246,110 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   });
 
   // Verify delivery code
-  app.post('/api/logistics/verify-delivery', async (req, res) => {
+  app.post('/api/logistics/verify-delivery', requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
     try {
-      const { verificationCode, customerOrderId, courierName, verificationNotes } = req.body;
-
-      const result = await deliveryVerificationStorage.verifyDeliveryCode({
+      const {
         verificationCode,
         customerOrderId,
         courierName,
-        verificationNotes
-      });
+        verificationNotes,
+        latitude,
+        longitude,
+        accuracy,
+      } = req.body;
 
-      if (result.success) {
-        // Update order status to delivered
-        await db
-          .update(orders)
-          .set({
-            status: 'delivered',
-            deliveredAt: new Date(),
-            deliveryNotes: verificationNotes || 'تحویل با کد تأیید پیامک'
-          })
-          .where(eq(orders.id, customerOrderId));
+      const parsedLatitude = Number(latitude);
+      const parsedLongitude = Number(longitude);
+      const parsedAccuracy = Number(accuracy);
+      if (
+        !Number.isFinite(parsedLatitude) ||
+        !Number.isFinite(parsedLongitude) ||
+        parsedLatitude < -90 ||
+        parsedLatitude > 90 ||
+        parsedLongitude < -180 ||
+        parsedLongitude > 180 ||
+        !Number.isFinite(parsedAccuracy) ||
+        parsedAccuracy < 0 ||
+        parsedAccuracy > 10000
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'برای تأیید تحویل، موقعیت GPS معتبر الزامی است',
+        });
       }
 
+      const { deliveryVerificationCodes: smsCodes } = await import('@shared/delivery-verification-schema');
+      const result = await db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(${Number(customerOrderId)})`);
+        const [codeRecord] = await tx.select()
+          .from(smsCodes)
+          .where(and(
+            eq(smsCodes.verificationCode, verificationCode),
+            eq(smsCodes.customerOrderId, Number(customerOrderId)),
+            eq(smsCodes.isActive, true),
+            eq(smsCodes.isUsed, false),
+          ))
+          .limit(1);
+
+        if (!codeRecord || new Date() > codeRecord.expiresAt) return null;
+
+        const [managedOrder] = await tx.select()
+          .from(orderManagement)
+          .where(eq(orderManagement.id, codeRecord.orderManagementId))
+          .limit(1);
+        if (
+          !managedOrder ||
+          managedOrder.isVerified ||
+          ['delivered', 'logistics_delivered', 'completed'].includes(managedOrder.currentStatus)
+        ) return 'already-verified' as const;
+
+        await tx.update(smsCodes)
+          .set({
+            isUsed: true,
+            isActive: false,
+            verifiedAt: new Date(),
+            verifiedBy: courierName,
+            verificationNotes: verificationNotes || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(smsCodes.id, codeRecord.id));
+
+        await tx.update(orderManagement)
+          .set({
+            currentStatus: 'logistics_delivered',
+            isVerified: true,
+            verifiedAt: new Date(),
+            actualDeliveryDate: new Date(),
+            deliveryCode: null,
+            carrierLatitude: parsedLatitude.toString(),
+            carrierLongitude: parsedLongitude.toString(),
+            carrierLocationAccuracy: parsedAccuracy.toString(),
+            carrierLocationCapturedAt: new Date(),
+            carrierLocationSource: 'mobile',
+            logisticsNotes: verificationNotes || 'تحویل با کد تأیید پیامک',
+            updatedAt: new Date(),
+          })
+          .where(eq(orderManagement.id, managedOrder.id));
+
+        await tx.insert(gpsDeliveryConfirmations).values({
+          deliveryVerificationId: codeRecord.id,
+          customerOrderId: Number(customerOrderId),
+          latitude: parsedLatitude.toString(),
+          longitude: parsedLongitude.toString(),
+          accuracy: parsedAccuracy.toString(),
+          deliveryPersonName: courierName,
+          deliveryPersonPhone: managedOrder.deliveryPersonPhone || 'not-provided',
+          verificationTime: new Date(),
+          deliveryNotes: verificationNotes || null,
+        });
+
+        return { success: true, message: 'کد تأیید با موفقیت تأیید شد و تحویل ثبت شد' };
+      });
+
+      if (!result) return res.status(400).json({ success: false, message: 'کد تأیید نامعتبر یا منقضی شده است' });
+      if (result === 'already-verified') {
+        return res.status(409).json({ success: false, message: 'این تحویل قبلاً تأیید شده است' });
+      }
       res.json(result);
     } catch (error) {
       console.error('Error verifying delivery code:', error);
@@ -33453,6 +36008,26 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   app.get('/api/financial/approved-orders', async (req, res) => {
     try {
       console.log('✅ [APPROVED ORDERS] Fetching financially approved orders...');
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const sortByMap: Record<string, string> = {
+        id: 'om.id',
+        orderNumber: 'co.order_number',
+        customer: "COALESCE(CONCAT(crm.first_name, ' ', crm.last_name), co.guest_name, co.guest_email)",
+        contact: 'COALESCE(crm.email, co.guest_email, crm.phone)',
+        createdAt: 'om.created_at',
+        financialReviewedAt: 'om.financial_reviewed_at',
+        paymentMethod: 'co.payment_method',
+        totalAmount: 'co.total_amount',
+        currentStatus: 'om.current_status',
+        receipt: '(om.payment_receipt_url IS NOT NULL)',
+        financialNotes: 'om.financial_notes',
+      };
+      const sortBy = typeof req.query.sortBy === 'string' && sortByMap[req.query.sortBy]
+        ? req.query.sortBy
+        : 'financialReviewedAt';
+      const sortDirection = req.query.sortDirection === 'asc' ? 'ASC' : 'DESC';
+      const sortColumn = sortByMap[sortBy];
       
       const { pool } = await import('./db');
       const result = await pool.query(`
@@ -33466,6 +36041,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           co.guest_name,
           co.payment_method,
           co.payment_status,
+          co.notes as customer_notes,
           co.status as customer_status,
           co.invoice_type,
           co.invoice_converted_at,
@@ -33474,16 +36050,27 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           crm.phone as customer_phone,
           crm.email as customer_email,
           crm.address as customer_address,
-          crm.city_region as customer_city_region
+          crm.city_region as customer_city_region,
+          COUNT(*) OVER()::int as total_count
         FROM order_management om
         LEFT JOIN customer_orders co ON om.customer_order_id = co.id
         LEFT JOIN crm_customers crm ON co.customer_id = crm.id
-        WHERE om.current_status IN ('warehouse_pending', 'warehouse_ready', 'logistics_pending', 'out_for_delivery', 'delivered')
+        WHERE om.current_status IN (
+          'financial_approved',
+          'warehouse_pending',
+          'warehouse_processing',
+          'warehouse_ready',
+          'warehouse_approved',
+          'logistics_pending',
+          'logistics_dispatched',
+          'out_for_delivery',
+          'delivered'
+        )
           AND om.financial_reviewed_at IS NOT NULL
           AND om.financial_reviewer_id IS NOT NULL
-        ORDER BY om.financial_reviewed_at DESC
-        LIMIT 50
-      `);
+        ORDER BY ${sortColumn} ${sortDirection} NULLS LAST, om.id ASC
+        LIMIT $1 OFFSET $2
+      `, [limit, offset]);
       
       // Helper function for payment source labels
       function getPaymentSourceLabel(paymentMethod: string) {
@@ -33496,34 +36083,55 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         }
       }
       
-      const mappedOrders = result.rows.map(row => ({
-        id: row.id,
-        customerOrderId: row.customer_order_id,
-        orderNumber: row.order_number,
-        currentStatus: row.current_status,
-        paymentMethod: row.payment_method || 'نامشخص',
-        paymentSourceLabel: getPaymentSourceLabel(row.payment_method),
-        totalAmount: row.total_amount || '0',
-        customerName: row.customer_name || row.guest_email || 'مشتری ناشناس',
-        customerEmail: row.customer_email || row.guest_email,
-        customerPhone: row.customer_phone || null,
-        createdAt: row.created_at,
-        financialNotes: row.financial_notes,
-        financialReviewedAt: row.financial_reviewed_at,
-        invoiceType: row.invoice_type,
-        invoiceConvertedAt: row.invoice_converted_at,
-        shippingAddress: {
-          name: row.customer_name || 'نام نامشخص',
-          phone: row.customer_phone || '',
-          address: row.customer_address || '',
-          city: row.customer_city_region || '',
-          postalCode: ''
-        }
-      }));
+      const mappedOrders = result.rows.map(row => {
+        const statusProjection = resolveOrderStatus({
+          workflowStatus: row.current_status,
+          orderStatus: row.customer_status,
+          paymentStatus: row.payment_status,
+          paymentMethod: row.payment_method,
+          financialReviewedAt: row.financial_reviewed_at,
+        });
+        return {
+          id: row.id,
+          customerOrderId: row.customer_order_id,
+          orderNumber: row.order_number,
+          currentStatus: row.current_status,
+          status: row.customer_status,
+          paymentStatus: row.payment_status,
+          statusProjection,
+          paymentMethod: row.payment_method || 'نامشخص',
+          paymentSourceLabel: getPaymentSourceLabel(row.payment_method),
+          totalAmount: row.total_amount || '0',
+          customerName: row.customer_name || row.guest_email || 'مشتری ناشناس',
+          customerEmail: row.customer_email || row.guest_email,
+          customerPhone: row.customer_phone || null,
+          createdAt: row.created_at,
+          financialNotes: row.financial_notes,
+          customerNotes: row.customer_notes,
+          financialReviewedAt: row.financial_reviewed_at,
+          invoiceType: row.invoice_type,
+          invoiceConvertedAt: row.invoice_converted_at,
+          shippingAddress: {
+            name: row.customer_name || 'نام نامشخص',
+            phone: row.customer_phone || '',
+            address: row.customer_address || '',
+            city: row.customer_city_region || '',
+            postalCode: ''
+          }
+        };
+      });
       
       console.log(`✅ [APPROVED ORDERS] Found ${mappedOrders.length} approved orders`);
       
-      res.json(mappedOrders);
+      const total = result.rows[0]?.total_count || 0;
+      res.json({
+        success: true,
+        orders: mappedOrders,
+        total,
+        offset,
+        limit,
+        hasMore: offset + mappedOrders.length < total,
+      });
     } catch (error) {
       console.error('❌ [APPROVED ORDERS] Error fetching approved orders:', error);
       res.status(500).json({ 
@@ -33560,6 +36168,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       const { pool } = await import('./db');
       const result = await pool.query(`
         SELECT 
+           COUNT(*) OVER()::int as total_count,
           co.id,
           co.order_number as "orderNumber",
           COALESCE(co.guest_name, 'نامشخص') as "customerName", 
@@ -33598,10 +36207,17 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           -- 4. Bank transfer receipts uploaded but stuck in financial review
           (om.current_status = 'payment_uploaded' AND co.payment_method = 'bank_transfer_grace' AND co.payment_status = 'receipt_uploaded' AND co.updated_at < NOW() - INTERVAL '2 hours')
         )
-        ORDER BY co.created_at DESC
-      `);
-      
-      const orphanedOrders = result.rows;
+         ORDER BY co.created_at DESC
+         LIMIT $1 OFFSET $2
+       `, [
+         Math.min(Math.max(Number(req.query.limit) || 100, 1), 100),
+         Math.max(Number(req.query.offset) || 0, 0),
+       ]);
+
+       const orphanedOrders = result.rows;
+       const totalOrphaned = result.rows[0]?.total_count || 0;
+       const offset = Math.max(Number(req.query.offset) || 0, 0);
+       const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
       console.log(`🧟 [ORPHANED ORDERS] Found ${orphanedOrders.length} orphaned/problematic orders`);
       
       if (orphanedOrders.length > 0) {
@@ -33630,7 +36246,10 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         success: true, 
         orders: orphanedOrders,
         categorized: categorized,
-        totalOrphaned: orphanedOrders.length,
+         totalOrphaned,
+         offset,
+         limit,
+         hasMore: offset + orphanedOrders.length < totalOrphaned,
         stats: {
           total: orphanedOrders.length,
           trulyOrphaned: categorized.trulyOrphaned.length,
@@ -33905,17 +36524,22 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   app.get('/api/financial/temporary-orders', async (req, res) => {
     try {
       const result = await customerPool.query(`
-        SELECT om.*, co.order_number, co.total_amount, co.currency,
+         SELECT om.*, co.order_number, co.total_amount, co.currency,
                co.guest_name, co.guest_email, 
-               co.created_at, co.shipping_address, co.billing_address
+                co.created_at, co.shipping_address, co.billing_address,
+                COUNT(*) OVER()::int AS total_count
         FROM order_management om
         LEFT JOIN customer_orders co ON om.customer_order_id = co.id
         WHERE co.order_number LIKE '%TEST%' 
            OR co.order_number LIKE '%DEMO%' 
            OR co.order_number LIKE '%TEMP%'
            OR om.current_status = 'temporary'
-        ORDER BY om.created_at DESC
-      `);
+         ORDER BY om.created_at DESC
+         LIMIT $1 OFFSET $2
+       `, [
+         Math.min(Math.max(Number(req.query.limit) || 100, 1), 100),
+         Math.max(Number(req.query.offset) || 0, 0),
+       ]);
       
       const transformedOrders = result.rows.map(row => ({
         id: row.id,
@@ -33931,7 +36555,17 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         billingAddress: row.billing_address
       }));
 
-      res.json({ success: true, orders: transformedOrders });
+       const total = result.rows[0]?.total_count || 0;
+       const offset = Math.max(Number(req.query.offset) || 0, 0);
+       const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+       res.json({
+         success: true,
+         orders: transformedOrders,
+         total,
+         offset,
+         limit,
+         hasMore: offset + transformedOrders.length < total,
+       });
     } catch (error) {
       console.error('❌ [TEMPORARY ORDERS] Error:', error);
       res.status(500).json({ 
@@ -34158,7 +36792,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       
       // Use warehouse_pending status from schema to properly transfer to warehouse
       const { orderStatuses } = await import('../shared/order-management-schema');
-      await orderManagementStorage.updateOrderStatus(
+      const updatedOrder = await orderManagementStorage.updateOrderStatus(
         orderId,
         orderStatuses.WAREHOUSE_PENDING, // Transfer directly to warehouse pending
         reviewerId,
@@ -34188,13 +36822,15 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       const { notes } = req.body;
       const adminId = req.session.adminId!;
       
-      await orderManagementStorage.updateOrderStatus(
+      const updatedOrder = await orderManagementStorage.updateOrderStatus(
         orderId,
         'financial_rejected',
         adminId,
         'financial',
         notes || 'رد شده توسط بخش مالی'
       );
+      const { voidRejectedOrderProforma } = await import('./invoice-lifecycle');
+      await voidRejectedOrderProforma(updatedOrder.customerOrderId);
 
       // Send website notification and email to customer (NO SMS)
       const orderMgmt = await orderManagementStorage.getOrderManagementById(orderId);
@@ -34727,13 +37363,14 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         console.log(`🔍 [DEBUG] SUPER ADMIN PATH ACTIVATED for ${legacyUser[0].email}`);
         const allModules = [
           "kpi_dashboard", "management_dashboard", "syncing_shop", "shop_management",
-          "product_management", "order_management", "warehouse_management", "logistics_management",
+          "product_management", "order_management", "warehouse_management", "logistics_management", "delivery_confirmation",
           "inquiries", "crm", "barcode", "email_settings", "database_backup", "seo",
           "categories", "sms", "factory", "user_management", "procedures", "payment_management",
           "accounting_management", "finance", "wallet_management", "geography_analytics",
           "ai_settings", "refresh_control", "content_management", "ticketing_system",
           "remote_desktop", "server_config", "company_information", "user_guide",
-          "marketing_module", "aws_s3_settings", "whatsapp_crm", "blog", "marketplace_management", "vendor_accounting"
+          "marketing_module", "aws_s3_settings", "whatsapp_crm", "blog", "marketplace_management", "vendor_accounting",
+          "legal_affairs"
         ];
         
         console.log("🔍 [CRITICAL DEBUG] marketplace_management included:", allModules.includes("marketplace_management"));
@@ -34771,7 +37408,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         console.log(`🔍 [CRITICAL DEBUG] Found modules containing 'واتساپ':`, persianModules.filter(m => m.includes('واتساپ')));
         console.log(`🔍 [DEBUG] کیا شاخص‌های عملکرد (KPI) in persianModules?`, persianModules.includes('شاخص‌های عملکرد (KPI)'));
         console.log(`🔍 [DEBUG] داشبورد مدیریتی in persianModules?`, persianModules.includes('داشبورد مدیریتی'));
-        console.log(`🔍 [DEBUG] finance mapping: ${normalizedModules.includes('finance')} → ${persianModules.includes('مدیریت مالی')}`);
+        console.log(`🔍 [DEBUG] finance mapping: ${normalizedModules.includes('finance')} → ${persianModules.includes('تایید مالی')}`);
         console.log(`🔍 [DEBUG] geography_analytics mapping: ${normalizedModules.includes('geography_analytics')} → ${persianModules.includes('آمار جغرافیایی')}`);
 
         return res.json({
@@ -35002,13 +37639,16 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           notes || 'آماده شده از انبار'
         );
       } else {
-        await orderManagementStorage.updateOrderStatus(
+        const updatedOrder = await orderManagementStorage.updateOrderStatus(
           orderId,
           'warehouse_rejected',
           assigneeId,
           'warehouse',
           notes || 'عدم موجودی در انبار'
         );
+        const { restoreRejectedOrderInventory } = await import('./cart-inventory-reservation');
+        const inventoryRestoration = await restoreRejectedOrderInventory(updatedOrder.customerOrderId);
+        console.log(`📦 [WAREHOUSE REJECT] Restored order ${updatedOrder.customerOrderId}:`, inventoryRestoration);
       }
 
       res.json({ success: true, message: "سفارش با موفقیت پردازش شد" });
@@ -36488,7 +39128,7 @@ momtazchem.com
   // =============================================================================
 
   // Get all international markets
-  app.get('/api/marketing/international-markets', requireAuth, async (req, res) => {
+  app.get('/api/marketing/international-markets', requireSuperAdminRole, async (req, res) => {
     try {
       const markets = await db.select().from(internationalMarkets).orderBy(desc(internationalMarkets.priority));
       res.json({ success: true, data: markets });
@@ -36499,7 +39139,7 @@ momtazchem.com
   });
 
   // Create new international market
-  app.post('/api/marketing/international-markets', requireAuth, async (req, res) => {
+  app.post('/api/marketing/international-markets', requireSuperAdminRole, async (req, res) => {
     try {
       const validatedData = insertInternationalMarketSchema.parse(req.body);
       const [market] = await db.insert(internationalMarkets).values(validatedData).returning();
@@ -36511,7 +39151,7 @@ momtazchem.com
   });
 
   // Update international market
-  app.put('/api/marketing/international-markets/:id', requireAuth, async (req, res) => {
+  app.put('/api/marketing/international-markets/:id', requireSuperAdminRole, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const validatedData = insertInternationalMarketSchema.parse(req.body);
@@ -36533,7 +39173,7 @@ momtazchem.com
   });
 
   // Delete international market
-  app.delete('/api/marketing/international-markets/:id', requireAuth, async (req, res) => {
+  app.delete('/api/marketing/international-markets/:id', requireSuperAdminRole, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const [deletedMarket] = await db
@@ -36553,7 +39193,7 @@ momtazchem.com
   });
 
   // Get all market segments
-  app.get('/api/marketing/market-segments', requireAuth, async (req, res) => {
+  app.get('/api/marketing/market-segments', requireSuperAdminRole, async (req, res) => {
     try {
       const segments = await db.select().from(marketSegments).orderBy(desc(marketSegments.createdAt));
       res.json({ success: true, data: segments });
@@ -36564,7 +39204,7 @@ momtazchem.com
   });
 
   // Create new market segment
-  app.post('/api/marketing/market-segments', requireAuth, async (req, res) => {
+  app.post('/api/marketing/market-segments', requireSuperAdminRole, async (req, res) => {
     try {
       const validatedData = insertMarketSegmentSchema.parse(req.body);
       const [segment] = await db.insert(marketSegments).values(validatedData).returning();
@@ -36576,7 +39216,7 @@ momtazchem.com
   });
 
   // Get all competitor analysis
-  app.get('/api/marketing/competitor-analysis', requireAuth, async (req, res) => {
+  app.get('/api/marketing/competitor-analysis', requireSuperAdminRole, async (req, res) => {
     try {
       const analysis = await db.select().from(competitorAnalysis).orderBy(desc(competitorAnalysis.lastAnalyzed));
       res.json({ success: true, data: analysis });
@@ -36587,7 +39227,7 @@ momtazchem.com
   });
 
   // Create new competitor analysis
-  app.post('/api/marketing/competitor-analysis', requireAuth, async (req, res) => {
+  app.post('/api/marketing/competitor-analysis', requireSuperAdminRole, async (req, res) => {
     try {
       const validatedData = insertCompetitorAnalysisSchema.parse(req.body);
       const [analysis] = await db.insert(competitorAnalysis).values(validatedData).returning();
@@ -36599,7 +39239,7 @@ momtazchem.com
   });
 
   // Get all market intelligence
-  app.get('/api/marketing/market-intelligence', requireAuth, async (req, res) => {
+  app.get('/api/marketing/market-intelligence', requireSuperAdminRole, async (req, res) => {
     try {
       const intel = await db.select().from(marketIntelligence).orderBy(desc(marketIntelligence.createdAt));
       res.json({ success: true, data: intel });
@@ -36610,7 +39250,7 @@ momtazchem.com
   });
 
   // Create new market intelligence entry
-  app.post('/api/marketing/market-intelligence', requireAuth, async (req, res) => {
+  app.post('/api/marketing/market-intelligence', requireSuperAdminRole, async (req, res) => {
     try {
       const validatedData = insertMarketIntelligenceSchema.parse(req.body);
       const [intel] = await db.insert(marketIntelligence).values(validatedData).returning();
@@ -36622,7 +39262,7 @@ momtazchem.com
   });
 
   // Get marketing dashboard statistics
-  app.get('/api/marketing/dashboard-stats', requireAuth, async (req, res) => {
+  app.get('/api/marketing/dashboard-stats', requireSuperAdminRole, async (req, res) => {
     try {
       const [marketsCount] = await db.select({ count: sql<number>`count(*)` }).from(internationalMarkets);
       const [activeMarketsCount] = await db.select({ count: sql<number>`count(*)` }).from(internationalMarkets).where(eq(internationalMarkets.status, 'active'));
@@ -36653,6 +39293,346 @@ momtazchem.com
     } catch (error) {
       console.error('Error fetching marketing dashboard stats:', error);
       res.status(500).json({ success: false, message: 'خطا در دریافت آمار داشبورد مارکتینگ' });
+    }
+  });
+
+  // =============================================================================
+  // PERMISSIONED MARKETING EMAILS
+  // =============================================================================
+  // These routes deliberately do not use UniversalEmailService: that service adds
+  // configured recipients/CC/BCC when a recipient is missing, which is unsafe for
+  // campaign mail. Queueing only snapshots eligible recipients; a worker is the
+  // only component allowed to perform delivery.
+  const normalizeMarketingEmail = (value: unknown) => String(value || '').trim().toLowerCase();
+  const marketingEmailIsValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  const marketingToken = (value: string) => {
+    if (!process.env.SESSION_SECRET) throw new Error('SESSION_SECRET is required for marketing links');
+    return crypto.createHmac('sha256', process.env.SESSION_SECRET).update(value).digest('hex');
+  };
+  const marketingPublicOrigin = (req: Request) => {
+    const candidate = process.env.MARKETING_PUBLIC_ORIGIN;
+    if (!candidate) throw new Error('MARKETING_PUBLIC_ORIGIN is required');
+    const origin = new URL(candidate);
+    const developmentHttp = process.env.NODE_ENV === 'development' && origin.protocol === 'http:' && origin.hostname === 'localhost';
+    if ((!developmentHttp && origin.protocol !== 'https:') || origin.username || origin.password ||
+        !origin.hostname || origin.pathname !== '/' && origin.pathname !== '') {
+      throw new Error('Invalid public origin');
+    }
+    return origin.origin;
+  };
+  const sendMarketingConfirmation = async (req: Request, email: string, _name: string | null, token: string) => {
+    const smtp = await emailStorage.getOtpSmtpSetting();
+    if (!smtp) throw new Error('No active SMTP configuration is available');
+    const transporter = nodemailer.createTransport({
+      host: smtp.host, port: smtp.port, secure: smtp.secure ?? smtp.port === 465,
+      auth: { user: smtp.username, pass: smtp.password },
+    });
+    const url = `${marketingPublicOrigin(req)}/api/marketing/subscribe/confirm/${encodeURIComponent(token)}`;
+    await transporter.sendMail({
+      from: `${smtp.fromName} <${smtp.fromEmail}>`, to: email, subject: 'Confirm your subscription',
+      text: `Please confirm your subscription using this link: ${url}`,
+      html: `<p>Please confirm your subscription using the link below.</p><p><a href="${url}">Confirm subscription</a></p>`,
+    });
+  };
+  const marketingUnsubscribeUrl = (req: Request, email: string) => {
+    const normalized = normalizeMarketingEmail(email);
+    return `${marketingPublicOrigin(req)}/api/marketing/unsubscribe/${Buffer.from(normalized).toString('base64url')}.${marketingToken(normalized)}`;
+  };
+
+  // Public lead capture is intentionally double opt-in. The token is returned
+  // for the caller's mail service to deliver; this route never sends mail.
+  app.post('/api/marketing/subscribe', async (req, res) => {
+    const email = normalizeMarketingEmail(req.body?.email);
+    const cleanName = typeof req.body?.name === 'string' ? req.body.name.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 120) : '';
+    const cleanSource = typeof req.body?.source === 'string' ? req.body.source.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 80) : 'website';
+    const generic = { success: true, message: 'If eligible, a confirmation message will be sent shortly.' };
+    if (!marketingEmailIsValid(email) || req.body?.consent !== true) return res.status(202).json(generic);
+    const ip = String(req.ip || 'unknown').slice(0, 128);
+    try {
+      await db.execute(sql`CREATE TABLE IF NOT EXISTS marketing_subscription_rate_limits (
+        rate_key text PRIMARY KEY, last_attempt timestamp NOT NULL DEFAULT now()
+      )`);
+      const acquired = await db.transaction(async tx => {
+        const cutoff = new Date(Date.now() - 10 * 60 * 1000);
+        const ipLock = await tx.execute(sql`INSERT INTO marketing_subscription_rate_limits (rate_key, last_attempt)
+          VALUES (${`ip:${ip}`}, NOW()) ON CONFLICT (rate_key) DO UPDATE SET last_attempt=NOW()
+          WHERE marketing_subscription_rate_limits.last_attempt <= ${cutoff} RETURNING rate_key`);
+        const emailLock = await tx.execute(sql`INSERT INTO marketing_subscription_rate_limits (rate_key, last_attempt)
+          VALUES (${`email:${email}`}, NOW()) ON CONFLICT (rate_key) DO UPDATE SET last_attempt=NOW()
+          WHERE marketing_subscription_rate_limits.last_attempt <= ${cutoff} RETURNING rate_key`);
+        return ipLock.rows.length === 1 && emailLock.rows.length === 1;
+      });
+      if (!acquired) return res.status(202).json(generic);
+    } catch (error) {
+      console.error('[MARKETING EMAIL] subscription limiter unavailable:', error);
+      return res.status(202).json(generic);
+    }
+    const token = crypto.randomBytes(32).toString('hex');
+    try {
+      const [blocked] = await db.select({ id: marketingSuppressions.id }).from(marketingSuppressions).where(eq(marketingSuppressions.email, email)).limit(1);
+      if (blocked) return res.status(202).json(generic);
+      const [created] = await db.insert(marketingSubscribers).values({
+        email, name: cleanName || null, audience: 'prospect', source: cleanSource || 'website',
+        consent: true, verified: false, status: 'pending_verification', consentAt: new Date(),
+        consentSource: typeof req.body?.consentSource === 'string' ? req.body.consentSource : 'website',
+        verificationTokenHash: marketingToken(token), verificationExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+        unsubscribeTokenHash: marketingToken(email),
+      }).onConflictDoNothing({
+        target: [marketingSubscribers.email, marketingSubscribers.audience],
+      }).returning({ id: marketingSubscribers.id });
+      if (!created) {
+        const [existing] = await db.select({ verified: marketingSubscribers.verified, status: marketingSubscribers.status })
+          .from(marketingSubscribers).where(and(eq(marketingSubscribers.email, email), eq(marketingSubscribers.audience, 'prospect'))).limit(1);
+        if (existing?.verified && existing.status === 'active') return res.status(202).json(generic);
+        await db.update(marketingSubscribers).set({
+          consent: true, verified: false, status: 'pending_verification', consentAt: new Date(),
+          verificationTokenHash: marketingToken(token), verificationExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), updatedAt: new Date(),
+        }).where(and(eq(marketingSubscribers.email, email), eq(marketingSubscribers.audience, 'prospect')));
+      }
+      try {
+        await sendMarketingConfirmation(req, email, typeof req.body?.name === 'string' ? req.body.name.trim() || null : null, token);
+      } catch (error) {
+        console.error('[MARKETING EMAIL] confirmation delivery unavailable:', error);
+        return res.status(503).json({ success: false, message: 'Subscription recorded, but confirmation delivery is currently unavailable' });
+      }
+      res.status(202).json(generic);
+    } catch (error) {
+      console.error('[MARKETING EMAIL] public subscribe failed:', error);
+      res.status(500).json({ success: false, message: 'Unable to register subscription' });
+    }
+  });
+
+  app.get('/api/marketing/subscribe/confirm/:token', async (req, res) => {
+    const hash = marketingToken(String(req.params.token || ''));
+    try {
+      const [subscriber] = await db.update(marketingSubscribers).set({
+        verified: true, status: 'active', verificationTokenHash: null, verificationExpiresAt: null,
+        updatedAt: new Date(),
+      }).where(and(eq(marketingSubscribers.verificationTokenHash, hash), gte(marketingSubscribers.verificationExpiresAt, new Date()))).returning({ email: marketingSubscribers.email });
+      if (!subscriber) return res.status(404).send('Confirmation link is invalid or expired');
+      res.status(200).send('Your subscription has been confirmed successfully.');
+    } catch {
+      res.status(400).send('Unable to confirm subscription');
+    }
+  });
+
+  app.get('/api/marketing/email-subscribers', requireSuperAdminRole, async (_req, res) => {
+    try {
+      const rows = await db.select({
+        id: marketingSubscribers.id,
+        email: marketingSubscribers.email,
+        name: marketingSubscribers.name,
+        audience: marketingSubscribers.audience,
+        source: marketingSubscribers.source,
+        consent: marketingSubscribers.consent,
+        verified: marketingSubscribers.verified,
+        status: marketingSubscribers.status,
+        createdAt: marketingSubscribers.createdAt,
+      }).from(marketingSubscribers).orderBy(desc(marketingSubscribers.createdAt)).limit(500);
+      res.json({ success: true, data: rows });
+    } catch (error) {
+      console.error('[MARKETING EMAIL] subscriber list failed:', error);
+      res.status(500).json({ success: false, message: 'Unable to load marketing subscribers' });
+    }
+  });
+
+  app.post('/api/marketing/email-subscribers', requireSuperAdminRole, async (req, res) => {
+    const email = normalizeMarketingEmail(req.body?.email);
+    if (!marketingEmailIsValid(email)) return res.status(400).json({ success: false, message: 'A valid email address is required' });
+    if (req.body?.consent !== true) return res.status(400).json({ success: false, message: 'Explicit marketing consent is required' });
+    const audience = req.body?.audience === 'prospect' ? 'prospect' : 'customer';
+    const verified = audience === 'customer';
+    try {
+      const [blocked] = await db.select({ id: marketingSuppressions.id }).from(marketingSuppressions).where(eq(marketingSuppressions.email, email)).limit(1);
+      if (blocked) return res.status(409).json({ success: false, message: 'This email is globally suppressed' });
+      const [subscriber] = await db.insert(marketingSubscribers).values({
+        email,
+        name: typeof req.body?.name === 'string' ? req.body.name.trim() || null : null,
+        audience,
+        source: typeof req.body?.source === 'string' ? req.body.source.trim() || 'admin' : 'admin',
+        consent: true,
+         verified,
+        status: 'active',
+        consentAt: new Date(),
+        consentSource: 'admin',
+        unsubscribeTokenHash: marketingToken(email),
+      }).onConflictDoUpdate({
+        target: [marketingSubscribers.email, marketingSubscribers.audience],
+        set: { consent: true, verified, status: 'active', updatedAt: new Date(), unsubscribedAt: null, unsubscribeTokenHash: marketingToken(email) },
+      }).returning();
+      if (audience === 'prospect') {
+        try {
+          const token = crypto.randomBytes(32).toString('hex');
+          await db.update(marketingSubscribers).set({
+            status: 'pending_verification', verified: false, verificationTokenHash: marketingToken(token),
+            verificationExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), updatedAt: new Date(),
+          }).where(eq(marketingSubscribers.id, subscriber.id));
+          await sendMarketingConfirmation(req, email, typeof req.body?.name === 'string' ? req.body.name.trim() || null : null, token);
+        } catch (error) {
+          console.error('[MARKETING EMAIL] admin confirmation delivery unavailable:', error);
+          return res.status(503).json({ success: false, message: 'Subscriber recorded, but confirmation delivery is currently unavailable' });
+        }
+      }
+      res.status(201).json({ success: true, data: { ...subscriber, verificationTokenHash: undefined, unsubscribeTokenHash: undefined } });
+    } catch (error) {
+      console.error('[MARKETING EMAIL] subscriber save failed:', error);
+      res.status(500).json({ success: false, message: 'Unable to save subscriber' });
+    }
+  });
+
+  app.get('/api/marketing/email-audience-preview', requireSuperAdminRole, async (_req, res) => {
+    try {
+      const customerResult = await customerPool.query(`
+        SELECT id, email, CONCAT_WS(' ', first_name, last_name) AS name
+        FROM customers
+        WHERE marketing_consent = true
+          AND is_active = true
+          AND email_verified = true
+          AND COALESCE(communication_preference, 'email') = 'email'
+          AND email ~* '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'
+      `);
+      const prospects = await db.select({ id: marketingSubscribers.id, email: marketingSubscribers.email, name: marketingSubscribers.name })
+        .from(marketingSubscribers)
+        .where(and(eq(marketingSubscribers.audience, 'prospect'), eq(marketingSubscribers.consent, true), eq(marketingSubscribers.verified, true), eq(marketingSubscribers.status, 'active')));
+      const suppressionRows = await db.select({ email: marketingSuppressions.email }).from(marketingSuppressions);
+      const suppressed = new Set(suppressionRows.map(row => normalizeMarketingEmail(row.email)));
+      const seen = new Set<string>();
+      const customers = customerResult.rows.filter(row => {
+        const email = normalizeMarketingEmail(row.email);
+        if (seen.has(email) || suppressed.has(email)) return false;
+        seen.add(email);
+        return true;
+      }).map(row => ({ id: row.id, email: normalizeMarketingEmail(row.email), name: row.name || null, audience: 'customer' }));
+      const eligibleProspects = prospects.filter(row => {
+        const email = normalizeMarketingEmail(row.email);
+        if (seen.has(email) || suppressed.has(email)) return false;
+        seen.add(email);
+        return marketingEmailIsValid(email);
+      }).map(row => ({ id: row.id, email: row.email, name: row.name, audience: 'prospect' }));
+      res.json({ success: true, data: { customers, prospects: eligibleProspects, total: customers.length + eligibleProspects.length } });
+    } catch (error) {
+      console.error('[MARKETING EMAIL] audience preview failed:', error);
+      res.status(500).json({ success: false, message: 'Unable to calculate eligible audience' });
+    }
+  });
+
+  app.get('/api/marketing/email-campaigns', requireSuperAdminRole, async (_req, res) => {
+    try {
+      const campaigns = await db.select().from(marketingCampaigns).orderBy(desc(marketingCampaigns.createdAt)).limit(100);
+      res.json({ success: true, data: campaigns });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Unable to load email campaigns' });
+    }
+  });
+
+  app.post('/api/marketing/email-campaigns', requireSuperAdminRole, async (req, res) => {
+    const name = String(req.body?.name || '').trim();
+    const subject = String(req.body?.subject || '').trim();
+    const htmlContent = String(req.body?.htmlContent || '').trim();
+    if (!name || !subject || !htmlContent) return res.status(400).json({ success: false, message: 'Name, subject and HTML content are required' });
+    const audience = ['customers', 'prospects', 'all'].includes(req.body?.audience) ? req.body.audience : 'all';
+    try {
+      const [campaign] = await db.insert(marketingCampaigns).values({
+        name, subject, htmlContent, textContent: typeof req.body?.textContent === 'string' ? req.body.textContent : null,
+        audience, status: 'draft', createdBy: req.session.adminId || null,
+      }).returning();
+      res.status(201).json({ success: true, data: campaign });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Unable to create email campaign' });
+    }
+  });
+
+  app.get('/api/marketing/email-campaigns/:id/recipients', requireSuperAdminRole, async (req, res) => {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'Invalid campaign id' });
+    try {
+      const recipients = await db.select().from(marketingCampaignRecipients).where(eq(marketingCampaignRecipients.campaignId, id)).orderBy(asc(marketingCampaignRecipients.id)).limit(1000);
+      res.json({ success: true, data: recipients });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Unable to load campaign recipients' });
+    }
+  });
+
+  app.post('/api/marketing/email-campaigns/:id/queue', requireSuperAdminRole, async (req, res) => {
+    const campaignId = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(campaignId)) return res.status(400).json({ success: false, message: 'Invalid campaign id' });
+    try {
+      const [campaign] = await db.select().from(marketingCampaigns).where(eq(marketingCampaigns.id, campaignId)).limit(1);
+      if (!campaign) return res.status(404).json({ success: false, message: 'Campaign not found' });
+      if (!['draft', 'paused'].includes(campaign.status)) return res.status(409).json({ success: false, message: 'Campaign cannot be queued from its current state' });
+      const customerResult = await customerPool.query(`
+        SELECT id, email, CONCAT_WS(' ', first_name, last_name) AS name
+        FROM customers
+        WHERE marketing_consent = true AND is_active = true AND email_verified = true
+          AND COALESCE(communication_preference, 'email') = 'email'
+          AND email ~* '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'
+      `);
+      const prospects = await db.select({ id: marketingSubscribers.id, email: marketingSubscribers.email, name: marketingSubscribers.name })
+        .from(marketingSubscribers)
+        .where(and(eq(marketingSubscribers.audience, 'prospect'), eq(marketingSubscribers.consent, true), eq(marketingSubscribers.verified, true), eq(marketingSubscribers.status, 'active')));
+      const suppressionRows = await db.select({ email: marketingSuppressions.email }).from(marketingSuppressions);
+      const suppressed = new Set(suppressionRows.map(row => normalizeMarketingEmail(row.email)));
+      const audience = campaign.audience;
+      const candidates = [
+        ...(audience !== 'prospects' ? customerResult.rows.map(row => ({ subscriberId: null, audience: 'customer', email: normalizeMarketingEmail(row.email), name: row.name || null })) : []),
+        ...(audience !== 'customers' ? prospects.map(row => ({ subscriberId: row.id, audience: 'prospect', email: normalizeMarketingEmail(row.email), name: row.name || null })) : []),
+      ];
+      const deduped = [...new Map(candidates.filter(row => marketingEmailIsValid(row.email) && !suppressed.has(row.email)).map(row => [row.email, row])).values()];
+      const inserted = await db.transaction(async tx => {
+        let count = 0;
+        for (const row of deduped) {
+          const [recipient] = await tx.insert(marketingCampaignRecipients).values({
+            campaignId, subscriberId: row.subscriberId, email: row.email, normalizedEmail: row.email,
+            audience: row.audience, name: row.name, unsubscribeUrl: marketingUnsubscribeUrl(req, row.email), status: 'pending',
+          }).onConflictDoNothing().returning({ id: marketingCampaignRecipients.id });
+          if (recipient) count += 1;
+        }
+        const [pending] = await tx.select({ count: sql<number>`count(*)` })
+          .from(marketingCampaignRecipients)
+          .where(and(eq(marketingCampaignRecipients.campaignId, campaignId), eq(marketingCampaignRecipients.status, 'pending')));
+        const totalPending = Number(pending?.count || 0);
+        if (count > 0 || totalPending > 0) {
+          await tx.update(marketingCampaigns).set({ status: 'queued', queuedAt: new Date(), updatedAt: new Date() }).where(eq(marketingCampaigns.id, campaignId));
+        }
+        return { inserted: count, pending: totalPending };
+      });
+      res.json({ success: true, data: { campaignId, queued: inserted.inserted, pending: inserted.pending, status: inserted.pending > 0 ? 'queued' : campaign.status } });
+    } catch (error) {
+      console.error('[MARKETING EMAIL] queue failed:', error);
+      const unavailable = error instanceof Error && /MARKETING_PUBLIC_ORIGIN|SESSION_SECRET|public origin/i.test(error.message);
+      res.status(unavailable ? 503 : 500).json({ success: false, message: unavailable ? 'Marketing public origin or signing configuration is unavailable' : 'Unable to queue email campaign' });
+    }
+  });
+
+  app.post('/api/marketing/email-campaigns/:id/pause', requireSuperAdminRole, async (req, res) => {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'Invalid campaign id' });
+    const [campaign] = await db.update(marketingCampaigns).set({ status: 'paused', updatedAt: new Date() }).where(and(eq(marketingCampaigns.id, id), inArray(marketingCampaigns.status, ['queued', 'running']))).returning();
+    if (!campaign) return res.status(404).json({ success: false, message: 'Campaign not found or cannot be paused' });
+    res.json({ success: true, data: campaign });
+  });
+
+  app.post('/api/marketing/email-campaigns/:id/cancel', requireSuperAdminRole, async (req, res) => {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'Invalid campaign id' });
+    const [campaign] = await db.update(marketingCampaigns).set({ status: 'cancelled', updatedAt: new Date() }).where(and(eq(marketingCampaigns.id, id), ne(marketingCampaigns.status, 'completed'))).returning();
+    if (!campaign) return res.status(404).json({ success: false, message: 'Campaign not found or already completed' });
+    res.json({ success: true, data: campaign });
+  });
+
+  app.get('/api/marketing/unsubscribe/:token', async (req, res) => {
+    try {
+      marketingPublicOrigin(req);
+      const token = String(req.params.token || '');
+      const [encodedEmail, signature] = token.split('.');
+      const email = Buffer.from(encodedEmail || '', 'base64url').toString('utf8');
+      if (!marketingEmailIsValid(email) || signature !== marketingToken(email)) return res.status(400).send('Unable to process unsubscribe request');
+      await db.insert(marketingSuppressions).values({ email, reason: 'unsubscribe' }).onConflictDoNothing();
+      await db.update(marketingSubscribers).set({ status: 'unsubscribed', consent: false, unsubscribedAt: new Date(), updatedAt: new Date() }).where(eq(marketingSubscribers.email, email));
+      res.status(200).send('You have been unsubscribed successfully.');
+    } catch (error) {
+      const unavailable = error instanceof Error && /MARKETING_PUBLIC_ORIGIN|public origin/i.test(error.message);
+      res.status(unavailable ? 503 : 400).send(unavailable ? 'Unsubscribe service is temporarily unavailable' : 'Unable to process unsubscribe request');
     }
   });
 
@@ -36844,7 +39824,7 @@ momtazchem.com
   app.get('/api/invoices/:id/download', async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
-      const invoice = await invoiceStorage.getInvoiceById(invoiceId);
+      const invoice = (await invoiceStorage.getInvoiceById(invoiceId))!;
       
       if (!invoice) {
         return res.status(404).json({ success: false, message: 'Invoice not found' });
@@ -36854,12 +39834,58 @@ momtazchem.com
       const items = await invoiceStorage.getInvoiceItems(invoiceId);
       
       // Get customer and order information
-      const order = await shopStorage.getOrderById(invoice.orderId);
-      const customer = await crmStorage.getCrmCustomerById(invoice.customerId);
+      const order = (await shopStorage.getOrderById(invoice.orderId))!;
+      const customer = (await crmStorage.getCrmCustomerById(invoice.customerId))!;
       
       if (!order || !customer) {
         return res.status(404).json({ success: false, message: 'Order or customer not found' });
       }
+
+      // The management UI explicitly supplies the active site language. Use
+      // the same PDF renderer as the other invoice exports so configured logo
+      // handling and RTL text behavior are consistent.
+      const requestedLanguage = parseInvoiceLanguage(req.query.lang || 'en');
+      if (!requestedLanguage) {
+        return res.status(400).json({ success: false, message: 'زبان نامعتبر است' });
+      }
+      const { generateInvoicePDF } = await import('./pdfkit-generator');
+      const { getSoldBatchAllocationsByProduct } = await import('./order-batch-allocations');
+      const soldBatchesByProduct = await getSoldBatchAllocationsByProduct(invoice.orderId);
+      const localizedPdfBuffer = await generateInvoicePDF({
+        invoiceType: invoice.type === 'proforma' ? 'PROFORMA' : 'FINAL',
+        invoiceNumber: invoice.invoiceNumber,
+        orderNumber: order.orderNumber,
+        invoiceDate: invoice.issueDate || invoice.createdAt,
+        language: requestedLanguage,
+        companyInfo: invoice.companyInfo,
+        customer: {
+          name: `${customer.firstName || ''} ${customer.lastName || ''}`.trim(),
+          email: customer.email,
+          phone: customer.phone,
+          address: [customer.address, customer.province, customer.country].filter(Boolean).join(', '),
+          company: customer.company,
+        },
+        items: items.map(item => ({
+          name: item.productName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          total: item.totalPrice,
+          batches: soldBatchesByProduct[item.productId] || [],
+        })),
+        subtotal: invoice.subtotal,
+        vatAmount: invoice.taxAmount,
+        dutiesAmount: 0,
+        shippingCost: invoice.shippingAmount,
+        discountAmount: invoice.discountAmount,
+        total: invoice.totalAmount,
+        currency: invoice.currency || 'IQD',
+        paymentStatus: invoice.status,
+        notes: invoice.notes,
+      });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`);
+      res.setHeader('Content-Length', localizedPdfBuffer.length.toString());
+      return res.send(localizedPdfBuffer);
 
       // Generate PDF content based on language with multi-language support
       const isRTL = ['ar', 'ku'].includes(invoice.language); // Arabic and Kurdish are RTL
@@ -37221,19 +40247,19 @@ momtazchem.com
                         <td class="multilingual-text"><strong>${t.subtotal}:</strong></td>
                         <td class="multilingual-text"><strong>${invoice.subtotal} ${invoice.currency}</strong></td>
                     </tr>
-                    ${invoice.discountAmount && parseFloat(invoice.discountAmount) > 0 ? `
+                    ${invoice.discountAmount && parseFloat(invoice.discountAmount || '0') > 0 ? `
                     <tr>
                         <td class="multilingual-text"><strong>${t.discount}:</strong></td>
                         <td class="multilingual-text"><strong>-${invoice.discountAmount} ${invoice.currency}</strong></td>
                     </tr>
                     ` : ''}
-                    ${invoice.shippingAmount && parseFloat(invoice.shippingAmount) > 0 ? `
+                    ${invoice.shippingAmount && parseFloat(invoice.shippingAmount || '0') > 0 ? `
                     <tr>
                         <td class="multilingual-text"><strong>${t.shipping}:</strong></td>
                         <td class="multilingual-text"><strong>${invoice.shippingAmount} ${invoice.currency}</strong></td>
                     </tr>
                     ` : ''}
-                    ${invoice.taxAmount && parseFloat(invoice.taxAmount) > 0 ? `
+                    ${invoice.taxAmount && parseFloat(invoice.taxAmount || '0') > 0 ? `
                     <tr>
                         <td class="multilingual-text"><strong>${t.tax}:</strong></td>
                         <td class="multilingual-text"><strong>${invoice.taxAmount} ${invoice.currency}</strong></td>
@@ -38547,17 +41573,17 @@ momtazchem.com
     try {
       // Get orders with pending payment status
       const pendingOrders = await db.select({
-        orderId: orders.id,
-        orderNumber: orders.orderNumber,
-        customerId: orders.customerId,
-        totalAmount: orders.totalAmount,
-        paymentMethod: orders.paymentMethod,
-        paymentGatewayId: orders.paymentGatewayId,
-        createdAt: orders.createdAt
+        orderId: schema.orders.id,
+        orderNumber: schema.orders.orderNumber,
+        customerId: schema.orders.customerId,
+        totalAmount: schema.orders.totalAmount,
+        paymentMethod: schema.orders.paymentMethod,
+        paymentGatewayId: schema.orders.paymentGatewayId,
+        createdAt: schema.orders.createdAt
       })
-      .from(orders)
-      .where(eq(orders.paymentStatus, 'pending'))
-      .orderBy(desc(orders.createdAt));
+      .from(schema.orders)
+      .where(eq(schema.orders.paymentStatus, 'pending'))
+      .orderBy(desc(schema.orders.createdAt));
 
       // Get customer details for each order
       const ordersWithCustomers = await Promise.all(
@@ -40222,6 +43248,7 @@ momtazchem.com
           startDate.setDate(now.getDate() - 30);
           break;
         case '3m':
+        case '90d':
           startDate.setMonth(now.getMonth() - 3);
           break;
         case '1y':
@@ -40231,54 +43258,58 @@ momtazchem.com
           startDate.setDate(now.getDate() - 30);
       }
 
-      // Get total unique customers count across all regions
-      const totalCustomersResult = await customerDb.select({
-        totalUniqueCustomers: sql`count(distinct ${customerOrders.customerId})::int`.as('totalUniqueCustomers')
-      })
-      .from(customerOrders)
-      .where(
-        and(
-          isNotNull(sql`${customerOrders.shippingAddress}->>'country'`),
-          isNotNull(sql`${customerOrders.shippingAddress}->>'city'`)
-        )
-      );
+      const regionFilter = region !== 'all'
+        ? sql`AND (
+            COALESCE(NULLIF(co.shipping_address->>'country', ''), NULLIF(c.country, ''), 'Unknown') = ${region}
+            OR COALESCE(NULLIF(co.shipping_address->>'city', ''), NULLIF(c.city_region, ''), NULLIF(c.province, ''), 'Unknown') = ${region}
+          )`
+        : sql``;
 
-      const totalUniqueCustomers = totalCustomersResult[0]?.totalUniqueCustomers || 0;
+      const totalCustomersQuery = await db.execute(sql`
+        SELECT COUNT(DISTINCT co.customer_id)::int AS total_unique_customers
+        FROM customer_orders co
+        LEFT JOIN crm_customers c ON c.id = co.customer_id
+        WHERE co.created_at >= ${startDate}
+          AND COALESCE(co.status, '') NOT IN ('cancelled', 'failed', 'deleted')
+          ${regionFilter}
+      `);
+      const totalCustomerRows = (totalCustomersQuery as any).rows || totalCustomersQuery;
+      const totalUniqueCustomers = Number(totalCustomerRows[0]?.total_unique_customers) || 0;
 
-      // Get orders with geographic data from shipping_address JSON
-      const geoData = await customerDb.select({
-        country: sql`${customerOrders.shippingAddress}->>'country'`.as('country'),
-        city: sql`${customerOrders.shippingAddress}->>'city'`.as('city'),
-        totalOrders: sql`count(*)::int`.as('totalOrders'),
-        totalRevenue: sql`sum(${customerOrders.totalAmount})::numeric`.as('totalRevenue'),
-        customerCount: sql`count(distinct ${customerOrders.customerId})::int`.as('customerCount')
-      })
-      .from(customerOrders)
-      .where(
-        and(
-          isNotNull(sql`${customerOrders.shippingAddress}->>'country'`),
-          isNotNull(sql`${customerOrders.shippingAddress}->>'city'`)
-        )
-      )
-      .groupBy(sql`${customerOrders.shippingAddress}->>'country'`, sql`${customerOrders.shippingAddress}->>'city'`)
-      .orderBy(sql`sum(${customerOrders.totalAmount}) desc`)
-      .limit(20);
+      const geoQuery = await db.execute(sql`
+        SELECT
+          COALESCE(NULLIF(co.shipping_address->>'country', ''), NULLIF(c.country, ''), 'Unknown') AS country,
+          COALESCE(NULLIF(co.shipping_address->>'city', ''), NULLIF(c.city_region, ''), NULLIF(c.province, ''), 'Unknown') AS city,
+          COUNT(*)::int AS total_orders,
+          COALESCE(SUM(co.total_amount), 0)::numeric AS total_revenue,
+          COUNT(DISTINCT co.customer_id)::int AS customer_count
+        FROM customer_orders co
+        LEFT JOIN crm_customers c ON c.id = co.customer_id
+        WHERE co.created_at >= ${startDate}
+          AND COALESCE(co.status, '') NOT IN ('cancelled', 'failed', 'deleted')
+          ${regionFilter}
+        GROUP BY 1, 2
+        ORDER BY total_revenue DESC
+        LIMIT 20
+      `);
+      const geoRows = (geoQuery as any).rows || geoQuery;
       
-      console.log('🌍 [GEO] Query result:', geoData.length, 'records found');
+      console.log('🌍 [GEO] Query result:', geoRows.length, 'records found');
       console.log('🌍 [GEO] Total unique customers:', totalUniqueCustomers);
       
       // Process data to add calculated fields and match frontend expectations
-      const processedData = geoData.map((region) => {
-        const totalRevenue = Number(region.totalRevenue) || 0;
-        const avgOrderValue = region.totalOrders > 0 ? totalRevenue / region.totalOrders : 0;
+      const processedData = geoRows.map((region: any) => {
+        const totalRevenue = Number(region.total_revenue) || 0;
+        const totalOrders = Number(region.total_orders) || 0;
+        const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
         
         return {
           region: `${region.country}, ${region.city}`, // Combined region field for frontend
           country: region.country,
           city: region.city,
-          totalOrders: region.totalOrders,
+          totalOrders,
           totalRevenue: totalRevenue,
-          customerCount: region.customerCount,
+          customerCount: Number(region.customer_count) || 0,
           avgOrderValue: Number(avgOrderValue.toFixed(2)),
           topProducts: [] // Simplified for now
         };
@@ -40298,6 +43329,82 @@ momtazchem.com
     }
   });
 
+  app.get('/api/analytics/geographic/orders', async (req, res) => {
+    try {
+      const { period = '30d', country, city } = req.query;
+      if (typeof country !== 'string' || typeof city !== 'string') {
+        return res.status(400).json({ success: false, message: 'Country and city are required' });
+      }
+
+      const now = new Date();
+      const startDate = new Date();
+      switch (period) {
+        case '7d':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '30d':
+          startDate.setDate(now.getDate() - 30);
+          break;
+        case '3m':
+        case '90d':
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        case '1y':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+        default:
+          startDate.setDate(now.getDate() - 30);
+      }
+
+      const result = await db.execute(sql`
+        SELECT
+          co.id,
+          co.order_number,
+          co.status,
+          co.total_amount,
+          co.payment_method,
+          co.created_at,
+          co.customer_id,
+          c.first_name,
+          c.last_name,
+          c.company,
+          c.phone,
+          c.email
+        FROM customer_orders co
+        LEFT JOIN crm_customers c ON c.id = co.customer_id
+        WHERE co.created_at >= ${startDate}
+          AND COALESCE(co.status, '') NOT IN ('cancelled', 'failed', 'deleted')
+          AND COALESCE(NULLIF(co.shipping_address->>'country', ''), NULLIF(c.country, ''), 'Unknown') = ${country}
+          AND COALESCE(NULLIF(co.shipping_address->>'city', ''), NULLIF(c.city_region, ''), NULLIF(c.province, ''), 'Unknown') = ${city}
+        ORDER BY co.created_at DESC
+        LIMIT 200
+      `);
+      const rows = (result as any).rows || result;
+
+      res.json({
+        success: true,
+        data: rows.map((order: any) => ({
+          id: order.id,
+          orderNumber: order.order_number,
+          status: order.status,
+          totalAmount: Number(order.total_amount) || 0,
+          paymentMethod: order.payment_method,
+          createdAt: order.created_at,
+          customerId: order.customer_id,
+          customerName:
+            [order.first_name, order.last_name].filter(Boolean).join(' ') ||
+            order.company ||
+            'Unknown',
+          phone: order.phone || '',
+          email: order.email || ''
+        }))
+      });
+    } catch (error) {
+      console.error('Geographic region orders API error:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch region orders' });
+    }
+  });
+
   app.get('/api/analytics/products', async (req, res) => {
     try {
       const { period = '30d', product = 'all' } = req.query;
@@ -40313,6 +43420,7 @@ momtazchem.com
           startDate.setDate(now.getDate() - 30);
           break;
         case '3m':
+        case '90d':
           startDate.setMonth(now.getMonth() - 3);
           break;
         case '1y':
@@ -40343,7 +43451,8 @@ momtazchem.com
         .innerJoin(customerOrders, eq(orderItems.orderId, customerOrders.id))
         .where(and(
           eq(orderItems.productId, product.id),
-          gte(customerOrders.createdAt, startDate)
+          gte(customerOrders.createdAt, startDate),
+          sql`COALESCE(${customerOrders.status}, '') NOT IN ('cancelled', 'failed', 'deleted')`
         ));
 
         const sales = salesData[0] || { totalSales: 0, revenue: 0 };
@@ -40370,20 +43479,23 @@ momtazchem.com
           const regionsQuery = await customerDb.execute(sql`
             SELECT 
               COALESCE(
-                (shipping_address->>'country'),
+                NULLIF(co.shipping_address->>'country', ''),
+                NULLIF(c.country, ''),
                 CASE 
-                  WHEN shipping_address::text LIKE '%Iran%' THEN 'Iran'
-                  WHEN shipping_address::text LIKE '%Iraq%' THEN 'Iraq' 
-                  WHEN shipping_address::text LIKE '%Turkey%' THEN 'Turkey'
+                  WHEN co.shipping_address::text LIKE '%Iran%' THEN 'Iran'
+                  WHEN co.shipping_address::text LIKE '%Iraq%' THEN 'Iraq'
+                  WHEN co.shipping_address::text LIKE '%Turkey%' THEN 'Turkey'
                   ELSE 'Unknown'
                 END
               ) as region,
               COALESCE(
-                (shipping_address->>'city'),
+                NULLIF(co.shipping_address->>'city', ''),
+                NULLIF(c.city_region, ''),
+                NULLIF(c.province, ''),
                 CASE 
-                  WHEN shipping_address::text LIKE '%تهران%' OR shipping_address::text LIKE '%Tehran%' THEN 'Tehran'
-                  WHEN shipping_address::text LIKE '%بغداد%' OR shipping_address::text LIKE '%Baghdad%' THEN 'Baghdad'
-                  WHEN shipping_address::text LIKE '%اربیل%' OR shipping_address::text LIKE '%Erbil%' THEN 'Erbil'
+                  WHEN co.shipping_address::text LIKE '%تهران%' OR co.shipping_address::text LIKE '%Tehran%' THEN 'Tehran'
+                  WHEN co.shipping_address::text LIKE '%بغداد%' OR co.shipping_address::text LIKE '%Baghdad%' THEN 'Baghdad'
+                  WHEN co.shipping_address::text LIKE '%اربیل%' OR co.shipping_address::text LIKE '%Erbil%' THEN 'Erbil'
                   ELSE 'Unknown'
                 END
               ) as city,
@@ -40392,25 +43504,29 @@ momtazchem.com
             FROM order_items oi
             INNER JOIN customer_orders co ON oi.order_id = co.id
             INNER JOIN shop_products sp ON oi.product_id = sp.id
+            LEFT JOIN crm_customers c ON c.id = co.customer_id
             WHERE sp.name = ${productInfo.name}
               AND co.created_at >= ${startDate.toISOString()}
-              AND co.shipping_address IS NOT NULL
+              AND COALESCE(co.status, '') NOT IN ('cancelled', 'failed', 'deleted')
             GROUP BY 
               COALESCE(
-                (shipping_address->>'country'),
+                NULLIF(co.shipping_address->>'country', ''),
+                NULLIF(c.country, ''),
                 CASE 
-                  WHEN shipping_address::text LIKE '%Iran%' THEN 'Iran'
-                  WHEN shipping_address::text LIKE '%Iraq%' THEN 'Iraq' 
-                  WHEN shipping_address::text LIKE '%Turkey%' THEN 'Turkey'
+                  WHEN co.shipping_address::text LIKE '%Iran%' THEN 'Iran'
+                  WHEN co.shipping_address::text LIKE '%Iraq%' THEN 'Iraq'
+                  WHEN co.shipping_address::text LIKE '%Turkey%' THEN 'Turkey'
                   ELSE 'Unknown'
                 END
               ),
               COALESCE(
-                (shipping_address->>'city'),
+                NULLIF(co.shipping_address->>'city', ''),
+                NULLIF(c.city_region, ''),
+                NULLIF(c.province, ''),
                 CASE 
-                  WHEN shipping_address::text LIKE '%تهران%' OR shipping_address::text LIKE '%Tehran%' THEN 'Tehran'
-                  WHEN shipping_address::text LIKE '%بغداد%' OR shipping_address::text LIKE '%Baghdad%' THEN 'Baghdad'
-                  WHEN shipping_address::text LIKE '%اربیل%' OR shipping_address::text LIKE '%Erbil%' THEN 'Erbil'
+                  WHEN co.shipping_address::text LIKE '%تهران%' OR co.shipping_address::text LIKE '%Tehran%' THEN 'Tehran'
+                  WHEN co.shipping_address::text LIKE '%بغداد%' OR co.shipping_address::text LIKE '%Baghdad%' THEN 'Baghdad'
+                  WHEN co.shipping_address::text LIKE '%اربیل%' OR co.shipping_address::text LIKE '%Erbil%' THEN 'Erbil'
                   ELSE 'Unknown'
                 END
               )
@@ -41683,7 +44799,7 @@ momtazchem.com
   });
 
   // AI-powered SKU generation endpoint
-  app.post("/api/products/generate-sku", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/products/generate-sku", requireProductManagerAuth, async (req: Request, res: Response) => {
     try {
       const productData = req.body;
       
@@ -41727,7 +44843,7 @@ momtazchem.com
   });
 
   // Generate barcode endpoint
-  app.post("/api/products/generate-barcode", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/products/generate-barcode", requireProductManagerAuth, async (req: Request, res: Response) => {
     try {
       const { name, category } = req.body;
       
@@ -42617,6 +45733,11 @@ momtazchem.com
         changedByDepartment: 'financial',
         notes: notes
       });
+      const { voidRejectedOrderProforma } = await import('./invoice-lifecycle');
+      const proformaVoided = await voidRejectedOrderProforma(customerOrderId);
+      const { restoreRejectedOrderInventory } = await import('./cart-inventory-reservation');
+      const inventoryRestoration = await restoreRejectedOrderInventory(customerOrderId);
+      console.log(`📦 [INVENTORY RESTORE] Order ${customerOrderId}:`, inventoryRestoration);
 
       // Send rejection notification to customer
       if (customerInfo) {
@@ -42641,7 +45762,7 @@ momtazchem.com
         }
       }
 
-      res.json({ success: true, message: "پرداخت رد شد و اطلاع‌رسانی ارسال شد" });
+      res.json({ success: true, proformaVoided, inventoryRestoration, message: "پرداخت رد شد و اطلاع‌رسانی ارسال شد" });
     } catch (error) {
       console.error("Error rejecting finance order:", error);
       res.status(500).json({
@@ -42653,7 +45774,7 @@ momtazchem.com
   });
 
   // Warehouse Department - Get orders approved by finance
-  app.get("/api/warehouse/orders", async (req: Request, res: Response) => {
+  app.get("/api/warehouse/orders", requireAuth, async (req: Request, res: Response) => {
     try {
       console.log('📦 [WAREHOUSE] Getting warehouse orders...');
       
@@ -42689,7 +45810,10 @@ momtazchem.com
         orderItems: order.orderItems || []
       }));
       
-      res.json(transformedOrders);
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const ordersPage = transformedOrders.slice(offset, offset + limit);
+      res.json({ orders: ordersPage, total: transformedOrders.length, offset, limit, hasMore: offset + ordersPage.length < transformedOrders.length });
     } catch (error) {
       console.error('📦 [WAREHOUSE] Error fetching orders:', error);
       res.status(500).json({ 
@@ -42697,6 +45821,19 @@ momtazchem.com
         message: "خطا در دریافت سفارشات انبار",
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  });
+
+  app.get("/api/warehouse/sent-orders", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sentStatuses = ['warehouse_approved', 'logistics_assigned', 'logistics_processing', 'logistics_dispatched', 'in_transit', 'shipped', 'delivered', 'completed'];
+      const orders = await orderManagementStorage.getOrdersByStatus(sentStatuses);
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const ordersPage = orders.slice(offset, offset + limit);
+      res.json({ orders: ordersPage, total: orders.length, offset, limit, hasMore: offset + ordersPage.length < orders.length });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "خطا در دریافت سفارشات ارسال شده" });
     }
   });
 
@@ -42894,7 +46031,10 @@ momtazchem.com
   });
 
   // Warehouse Department - Save notes without approval/rejection
-  app.post("/api/warehouse/orders/:orderId/notes", requireAuth, async (req: Request, res: Response) => {
+  app.post(
+    "/api/warehouse/orders/:orderId/notes",
+    requireModuleAccess('warehouse_management', 'edit'),
+    async (req: Request, res: Response) => {
     try {
       const { db } = await import("./db");
       const { orderManagement } = await import("../shared/order-management-schema");
@@ -42939,7 +46079,8 @@ momtazchem.com
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+    },
+  );
 
 
   // Warehouse Department - Stage 1: Verify order inventory
@@ -43003,7 +46144,7 @@ momtazchem.com
     }
   });
   // Warehouse Department - Approve order (items ready)
-  app.post("/api/warehouse/orders/:orderId/approve", requireAuth, attachUserDepartments, requireDepartment('warehouse'), async (req: Request, res: Response) => {
+  app.post("/api/warehouse/orders/:orderId/approve", requireModuleAccess('warehouse_management', 'edit'), async (req: Request, res: Response) => {
     try {
       const { db } = await import("./db");
       const { orderManagement, orderStatusHistory } = await import("../shared/order-management-schema");
@@ -43017,7 +46158,7 @@ momtazchem.com
 
       // Get order details with customer information - NOW USING order_management.id (NOT customerOrderId)
       const { customerOrders } = await import("../shared/customer-schema");
-      const { crmCustomers } = await import("../shared/crm-schema");
+       const { crmCustomers } = schema;
       
       const orderDetailsQuery = await db
         .select({
@@ -43028,6 +46169,9 @@ momtazchem.com
           customerLastName: crmCustomers.lastName,
           customerEmail: crmCustomers.email,
           customerPhone: crmCustomers.phone,
+           customerLanguage: crmCustomers.preferredLanguage,
+           recipientPhone: orderManagement.recipientPhone,
+           orderNumber: customerOrders.orderNumber,
           totalAmount: customerOrders.totalAmount,
           currency: customerOrders.currency,
         })
@@ -43063,6 +46207,10 @@ momtazchem.com
         console.log(`⚠️ [WAREHOUSE] Warning: Order ${orderId} has no customer phone number for SMS`);
       }
 
+      // Physical batch stock becomes sold only when warehouse confirms outbound.
+      const { finalizeOrderReservations } = await import('./cart-inventory-reservation');
+      await finalizeOrderReservations(order.customerOrderId);
+
       // 🔒 ATOMIC UPDATE with status condition (optimistic locking) - USING order_management.id
       const updateResult = await db
         .update(orderManagement)
@@ -43077,7 +46225,8 @@ momtazchem.com
           or(
             eq(orderManagement.currentStatus, 'warehouse_pending'),
             eq(orderManagement.currentStatus, 'warehouse_processing'),
-            eq(orderManagement.currentStatus, 'financial_approved')
+            eq(orderManagement.currentStatus, 'financial_approved'),
+            eq(orderManagement.currentStatus, 'warehouse_verified')
           )
         ))
         .returning({ id: orderManagement.id });
@@ -43104,12 +46253,34 @@ momtazchem.com
 
       console.log(`✅ [WAREHOUSE] Order ${orderId} approved successfully`);
 
+      // Attempt customer messages as part of the successful transition. An
+      // autoscaled instance can stop before a detached post-response task runs.
+      let readyNotificationResults: { channel: string; success: boolean; error?: string }[] = [];
+      try {
+        const { dispatchWarehouseReadyNotification } = await import("./warehouse-ready-notification");
+        readyNotificationResults = await dispatchWarehouseReadyNotification({
+          orderNumber: order.orderNumber || undefined,
+          customerName: `${order.customerFirstName || ''} ${order.customerLastName || ''}`.trim() || 'مشتری',
+          customerPhone: order.customerPhone,
+          recipientPhone: order.recipientPhone,
+          customerEmail: order.customerEmail,
+          language: order.customerLanguage || undefined,
+        });
+        for (const result of readyNotificationResults) {
+          if (!result.success) console.error(`❌ [WAREHOUSE] ${result.channel} notification failed for order ${orderId}: ${result.error}`);
+        }
+      } catch (notificationError) {
+        console.error(`❌ [WAREHOUSE] Ready notification failed for order ${orderId}`, notificationError);
+        readyNotificationResults = [{ channel: 'notification', success: false, error: 'Notification service unavailable' }];
+      }
+
       // 🚀 ASYNC: Fire-and-forget delivery code generation and SMS
       // Response is sent immediately, background tasks continue
       res.json({ 
         success: true, 
         message: "کالا آماده شد",
-        deliveryCodeGenerated: true
+        deliveryCodeGenerated: true,
+        readyNotifications: readyNotificationResults
       });
 
       // BACKGROUND: Delivery code and SMS (after response sent)
@@ -43166,6 +46337,62 @@ momtazchem.com
     }
   });
 
+  // Customer notification configuration for the warehouse -> logistics transition.
+  // Settings are deliberately stored in the existing shop_settings table.
+  app.get("/api/warehouse/ready-notification-settings", requireModuleAccess('warehouse_management', 'view'), async (_req, res) => {
+    try {
+      const { getReadyNotificationSettings } = await import("./warehouse-ready-notification");
+      res.json({ success: true, settings: await getReadyNotificationSettings() });
+    } catch (error) {
+      console.error("Error loading warehouse notification settings:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت تنظیمات اعلان" });
+    }
+  });
+  app.put("/api/warehouse/ready-notification-settings", requireModuleAccess('warehouse_management', 'edit'), async (req, res) => {
+    try {
+      const { updateReadyNotificationSettings } = await import("./warehouse-ready-notification");
+      const body = req.body || {};
+      const input: Record<string, unknown> = {};
+      for (const key of ['emailEnabled', 'smsEnabled', 'emailTemplateId', 'smsTemplateId', 'emailTemplateIds', 'smsTemplateIds', 'senderCategoryKey']) {
+        if (Object.prototype.hasOwnProperty.call(body, key)) input[key] = body[key];
+      }
+      if (typeof input.emailEnabled !== "undefined" && typeof input.emailEnabled !== "boolean") return res.status(400).json({ success: false, message: "emailEnabled must be boolean" });
+      if (typeof input.smsEnabled !== "undefined" && typeof input.smsEnabled !== "boolean") return res.status(400).json({ success: false, message: "smsEnabled must be boolean" });
+      for (const key of ['emailTemplateId', 'smsTemplateId']) if (key in input && input[key] !== null && (!Number.isInteger(input[key]) || Number(input[key]) <= 0)) return res.status(400).json({ success: false, message: `${key} is invalid` });
+      const settings = await updateReadyNotificationSettings(input as any);
+      res.json({ success: true, settings });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid notification settings";
+      res.status(400).json({ success: false, message });
+    }
+  });
+  app.get("/api/warehouse/ready-notification-options", requireModuleAccess('warehouse_management', 'view'), async (_req, res) => {
+    try {
+      const { getReadyNotificationOptions } = await import("./warehouse-ready-notification");
+      res.json({ success: true, ...(await getReadyNotificationOptions()) });
+    } catch (error) {
+      console.error("Error loading warehouse notification options:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت گزینه‌های اعلان" });
+    }
+  });
+  app.put("/api/warehouse/ready-notification-sms-template/:id", requireModuleAccess('warehouse_management', 'edit'), async (req, res) => {
+    const id = Number(req.params.id);
+    const { content, expectedContent } = req.body || {};
+    if (!Number.isSafeInteger(id) || id <= 0 || typeof content !== "string" ||
+        !content.trim() || content.length > 4000 || typeof expectedContent !== "string") {
+      return res.status(400).json({ success: false, message: "Invalid SMS template content" });
+    }
+    try {
+      const { updateReadySmsTemplate } = await import("./warehouse-ready-notification");
+      const template = await updateReadySmsTemplate(id, content, expectedContent);
+      if (!template) return res.status(409).json({ success: false, message: "SMS template was changed or removed. Reload before editing." });
+      res.json({ success: true, template });
+    } catch (error) {
+      console.error("Error updating warehouse SMS template:", error);
+      res.status(500).json({ success: false, message: "خطا در ذخیره قالب پیامک" });
+    }
+  });
+
   app.post("/api/warehouse/orders/:orderId/reject", requireAuth, attachUserDepartments, requireDepartment('warehouse'), async (req: Request, res: Response) => {
     try {
       const { db } = await import("./db");
@@ -43178,7 +46405,11 @@ momtazchem.com
 
       // 🔒 First check current status - USING order_management.id (NOT customerOrderId)
       const currentOrder = await db
-        .select({ currentStatus: orderManagement.currentStatus, id: orderManagement.id })
+        .select({
+          currentStatus: orderManagement.currentStatus,
+          id: orderManagement.id,
+          customerOrderId: orderManagement.customerOrderId,
+        })
         .from(orderManagement)
         .where(eq(orderManagement.id, orderId))
         .limit(1);
@@ -43235,8 +46466,11 @@ momtazchem.com
         changedByDepartment: 'warehouse',
         notes: notes
       });
+      const { restoreRejectedOrderInventory } = await import('./cart-inventory-reservation');
+      const inventoryRestoration = await restoreRejectedOrderInventory(currentOrder[0].customerOrderId);
+      console.log(`📦 [WAREHOUSE REJECT] Restored order ${currentOrder[0].customerOrderId}:`, inventoryRestoration);
 
-      res.json({ success: true, message: "کالا موجود نیست" });
+      res.json({ success: true, inventoryRestoration, message: "کالا موجود نیست" });
     } catch (error) {
       console.error("Error rejecting warehouse order:", error);
       res.status(500).json({
@@ -43375,35 +46609,84 @@ momtazchem.com
     try {
       const { db } = await import("./db");
       const { orderManagement, orderStatusHistory } = await import("../shared/order-management-schema");
-      const { eq } = await import("drizzle-orm");
+      const { customerOrders } = await import("../shared/customer-schema");
+      const { getCheckoutDestination, resolveDestinationDeliveryAppointment } = await import("./delivery-appointment");
+      const { and, eq } = await import("drizzle-orm");
       
       const orderId = parseInt(req.params.orderId);
-      const { notes, trackingNumber, deliveryPersonName, deliveryPersonPhone, estimatedDeliveryDate } = req.body;
+      const {
+        notes, trackingNumber, deliveryPersonName, deliveryPersonPhone,
+        estimatedDeliveryDate, estimatedDeliveryLocal, deliveryTimeZone,
+      } = req.body;
       const adminId = req.session.adminId;
+      if (
+        typeof estimatedDeliveryLocal !== "string" || !estimatedDeliveryLocal.trim() ||
+        typeof deliveryTimeZone !== "string" || !deliveryTimeZone.trim() ||
+        estimatedDeliveryDate !== undefined
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "A complete estimatedDeliveryLocal and deliveryTimeZone appointment is required. Legacy or missing appointment data is no longer supported; refresh the logistics orders page and try again."
+        });
+      }
+      const [existingManagementOrder] = await db
+        .select({ id: orderManagement.id, currentStatus: orderManagement.currentStatus })
+        .from(orderManagement)
+        .where(eq(orderManagement.customerOrderId, orderId))
+        .limit(1);
+      if (!existingManagementOrder) return res.status(404).json({ success: false, message: "Order management record not found" });
+      const dispatchableStatuses = new Set(['warehouse_approved', 'logistics_assigned', 'logistics_processing']);
+      if (!dispatchableStatuses.has(existingManagementOrder.currentStatus)) {
+        return res.status(409).json({ success: false, message: "This order is no longer awaiting logistics dispatch. Refresh the logistics orders page before trying again." });
+      }
+
+      let estimatedDeliveryAt: Date | null = null;
+      let appointmentTimeZone: string | null = null;
+      {
+        const [checkoutOrder] = await db
+          .select({ shippingAddress: customerOrders.shippingAddress })
+          .from(customerOrders)
+          .where(eq(customerOrders.id, orderId))
+          .limit(1);
+        if (!checkoutOrder) return res.status(404).json({ success: false, message: "Order not found" });
+        const { country } = getCheckoutDestination(checkoutOrder.shippingAddress);
+        estimatedDeliveryAt = resolveDestinationDeliveryAppointment(estimatedDeliveryLocal, deliveryTimeZone, country);
+        appointmentTimeZone = deliveryTimeZone;
+      }
 
       // Generate unique 4-digit delivery code
       const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString();
 
       // Update order status to logistics_dispatched
-      await db
+      const dispatchTimestamp = new Date();
+      const [updatedManagementOrder] = await db
         .update(orderManagement)
         .set({
           currentStatus: 'logistics_dispatched',
           logisticsAssigneeId: adminId,
-          logisticsProcessedAt: new Date(),
+          logisticsProcessedAt: dispatchTimestamp,
           logisticsNotes: notes,
           deliveryCode: deliveryCode,
           trackingNumber: trackingNumber,
           deliveryPersonName: deliveryPersonName,
           deliveryPersonPhone: deliveryPersonPhone,
-          estimatedDeliveryDate: estimatedDeliveryDate ? new Date(estimatedDeliveryDate) : null,
+          estimatedDeliveryDate: null,
+          estimatedDeliveryAt,
+          estimatedDeliveryTimeZone: appointmentTimeZone,
         })
-        .where(eq(orderManagement.customerOrderId, orderId));
+        .where(and(
+          eq(orderManagement.customerOrderId, orderId),
+          eq(orderManagement.currentStatus, existingManagementOrder.currentStatus)
+        ))
+        .returning({ id: orderManagement.id });
+      if (!updatedManagementOrder) {
+        return res.status(409).json({ success: false, message: "This order was updated by another request. Refresh the logistics orders page before trying again." });
+      }
 
       // Add status history
       await db.insert(orderStatusHistory).values({
-        orderManagementId: orderId,
-        fromStatus: 'warehouse_approved',
+        orderManagementId: updatedManagementOrder.id,
+        fromStatus: existingManagementOrder.currentStatus,
         toStatus: 'logistics_dispatched',
         changedBy: adminId,
         changedByDepartment: 'logistics',
@@ -43412,7 +46695,6 @@ momtazchem.com
 
       // Get customer phone number for SMS
       const { crmCustomers } = await import("../shared/schema");
-      const { customerOrders } = await import("../shared/customer-schema");
       const orderResult = await db
         .select()
         .from(customerOrders)
@@ -43460,6 +46742,15 @@ momtazchem.com
       });
     } catch (error) {
       console.error("Error dispatching logistics order:", error);
+      if (error instanceof Error && (
+        error.message.includes("estimatedDeliveryLocal") ||
+        error.message.includes("deliveryTimeZone") ||
+        error.message.includes("local delivery time") ||
+        error.message.includes("destination country") ||
+        error.message.includes("calendar date")
+      )) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
       res.status(500).json({
         success: false,
         message: "خطا در ارسال سفارش",
@@ -46393,6 +49684,27 @@ momtazchem.com
   // Update abandoned cart settings
   app.put("/api/admin/abandoned-cart/settings", requireAuth, async (req: Request, res: Response) => {
     try {
+      const senderEmailCategory = String(req.body.senderEmailCategory || "").trim();
+      if (!senderEmailCategory) {
+        return res.status(400).json({ success: false, message: "Sender email is required" });
+      }
+      const senderResult = await pool.query(
+        `SELECT 1
+         FROM email_categories c
+         JOIN smtp_settings s ON s.category_id = c.id
+         WHERE c.category_key = $1
+           AND c.is_active = true
+           AND s.is_active = true
+           AND s.host IS NOT NULL
+           AND s.username IS NOT NULL
+           AND s.password IS NOT NULL
+           AND s.from_email ~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'
+         LIMIT 1`,
+        [senderEmailCategory],
+      );
+      if (senderResult.rowCount === 0) {
+        return res.status(400).json({ success: false, message: "Selected sender email is not available" });
+      }
       const settings = await cartStorage.updateAbandonedCartSettings(req.body);
       res.json({ success: true, data: settings });
     } catch (error) {
@@ -46404,7 +49716,12 @@ momtazchem.com
   // Get abandoned cart sessions
   app.get("/api/admin/abandoned-cart/carts", requireAuth, async (req: Request, res: Response) => {
     try {
-      const carts = await cartStorage.getAbandonedCarts();
+      const settings = await cartStorage.getAbandonedCartSettings();
+      const timeoutMinutes = Math.min(
+        10080,
+        Math.max(1, Number(settings?.timeoutMinutes) || 30),
+      );
+      const carts = await cartStorage.getAbandonedCarts(timeoutMinutes);
       res.json({ success: true, data: carts });
     } catch (error) {
       console.error("Error fetching abandoned carts:", error);
@@ -46415,8 +49732,24 @@ momtazchem.com
   // Get abandoned cart analytics
   app.get("/api/admin/abandoned-cart/analytics", requireAuth, async (req: Request, res: Response) => {
     try {
-      const analytics = await cartStorage.getAbandonedCartAnalytics();
-      res.json({ success: true, data: analytics });
+      const days = Math.min(
+        365,
+        Math.max(1, Number.parseInt(String(req.query.days ?? "30"), 10) || 30),
+      );
+      const [analytics, overallStats] = await Promise.all([
+        cartStorage.getCartRecoveryAnalytics(days),
+        cartStorage.getOverallStats(days),
+      ]);
+      res.json({
+        success: true,
+        data: {
+          days,
+          analytics,
+          overallStats,
+          // No order-linked conversion event is recorded yet.
+          recoveryTrackingAvailable: false,
+        },
+      });
     } catch (error) {
       console.error("Error fetching abandoned cart analytics:", error);
       res.status(500).json({ success: false, message: "Internal server error" });
@@ -46469,48 +49802,11 @@ momtazchem.com
 
   // Track cart session activity (duplicate endpoint removed - merged with above)
 
-  // Get abandoned cart settings
-  app.get("/api/admin/abandoned-cart/settings", requireAuth, async (req, res) => {
-    try {
-      const settings = await cartStorage.getAbandonedCartSettings();
-      res.json({ success: true, data: settings });
-    } catch (error) {
-      console.error("Error fetching abandoned cart settings:", error);
-      res.status(500).json({ success: false, message: "Failed to fetch settings" });
-    }
-  });
-
-  // Update abandoned cart settings
-  app.put("/api/admin/abandoned-cart/settings", requireAuth, async (req, res) => {
-    try {
-      const settings = req.body;
-      await cartStorage.updateAbandonedCartSettings(settings);
-      res.json({ success: true, message: "Settings updated successfully" });
-    } catch (error) {
-      console.error("Error updating abandoned cart settings:", error);
-      res.status(500).json({ success: false, message: "Failed to update settings" });
-    }
-  });
-
-  // Get abandoned carts
-  app.get("/api/admin/abandoned-cart/carts", requireAuth, async (req, res) => {
-    try {
-      const { timeout } = req.query;
-      const timeoutMinutes = timeout ? parseInt(timeout as string) : 30;
-      
-      const abandonedCarts = await cartStorage.getAbandonedCarts(timeoutMinutes);
-      res.json({ success: true, data: abandonedCarts });
-    } catch (error) {
-      console.error("Error fetching abandoned carts:", error);
-      res.status(500).json({ success: false, message: "Failed to fetch abandoned carts" });
-    }
-  });
-
   // Send abandoned cart notification
   app.post("/api/admin/abandoned-cart/notify/:cartId", requireAuth, async (req, res) => {
     try {
       const cartId = parseInt(req.params.cartId);
-      const { title, message, notificationType } = req.body;
+      const { notificationType } = req.body;
       
       // Get cart session info (check both active and abandoned carts)
       const [activeCarts, abandonedCarts] = await Promise.all([
@@ -46523,10 +49819,39 @@ momtazchem.com
         return res.status(404).json({ success: false, message: "Cart session not found" });
       }
 
+      const settings = await cartStorage.getAbandonedCartSettings();
+      if (!settings?.senderEmailCategory) {
+        return res.status(400).json({ success: false, message: "Sender email is not configured" });
+      }
+      const title = settings.notificationTitle?.trim();
+      const message = settings.notificationMessage?.trim();
+      if (!title || !message) {
+        return res.status(400).json({ success: false, message: "Notification content is not configured" });
+      }
+
+      const customer = await crmStorage.getCrmCustomerById(cartSession.customerId);
+      if (!customer?.email) {
+        return res.status(400).json({ success: false, message: "Customer email is not available" });
+      }
+
+      const { abandonedCartEmailContent } = await import('./abandoned-cart-email');
+      const emailContent = abandonedCartEmailContent(message, settings.buttonText || 'ادامه خرید');
+      const emailSent = await emailService.sendEmail(
+        {
+          to: customer.email,
+          subject: title,
+          ...emailContent,
+        },
+        settings.senderEmailCategory,
+      );
+      if (!emailSent) {
+        return res.status(502).json({ success: false, message: "Failed to send email" });
+      }
+
       await cartStorage.createNotification({
         cartSessionId: cartId,
         customerId: cartSession.customerId,
-        notificationType: notificationType || 'browser',
+        notificationType: notificationType || 'email',
         title,
         message
       });
@@ -46566,28 +49891,6 @@ momtazchem.com
     }
   });
 
-  // Get abandoned cart analytics
-  app.get("/api/admin/abandoned-cart/analytics", requireAuth, async (req, res) => {
-    try {
-      const { days } = req.query;
-      const analyticsDays = days ? parseInt(days as string) : 30;
-      
-      const analytics = await cartStorage.getCartRecoveryAnalytics(analyticsDays);
-      const overallStats = await cartStorage.getOverallStats();
-      
-      res.json({ 
-        success: true, 
-        data: {
-          analytics,
-          overallStats
-        }
-      });
-    } catch (error) {
-      console.error("Error fetching abandoned cart analytics:", error);
-      res.status(500).json({ success: false, message: "Failed to fetch analytics" });
-    }
-  });
-
   // Complete cart session (when order is placed)
   app.post("/api/cart/session/complete", async (req, res) => {
     try {
@@ -46597,6 +49900,11 @@ momtazchem.com
       }
 
       await cartStorage.clearCartSession(customerId);
+      const { releaseOwnerReservations, ownerKeyForRequest } =
+        await import("./cart-inventory-reservation");
+      if (req.sessionID) {
+        await releaseOwnerReservations(ownerKeyForRequest(req.sessionID, customerId));
+      }
       res.json({ success: true, message: "Cart session completed" });
     } catch (error) {
       console.error("Error completing cart session:", error);
@@ -46609,10 +49917,8 @@ momtazchem.com
   // ===========================================
 
   // Record GPS delivery confirmation
-  app.post("/api/gps-delivery/confirm", async (req, res) => {
+  app.post("/api/gps-delivery/confirm", requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
     try {
-      console.log('📍 [GPS-API] Delivery confirmation request:', req.body);
-      
       const gpsData = insertGpsDeliveryConfirmationSchema.parse(req.body);
       const confirmation = await gpsDeliveryStorage.recordGpsDelivery(gpsData);
       
@@ -46717,13 +50023,9 @@ momtazchem.com
   });
 
   // Get delivery heatmap data
-  app.get("/api/gps-delivery/heatmap", async (req, res) => {
+  app.get("/api/gps-delivery/heatmap", requireModuleAccess('geography_analytics', 'view'), async (req, res) => {
     try {
       const { country, city } = req.query;
-      if (!country) {
-        return res.status(400).json({ success: false, message: "Country parameter is required" });
-      }
-      
       const heatmapData = await gpsDeliveryStorage.getDeliveryHeatmapData(country as string, city as string);
       res.json({ success: true, data: heatmapData });
     } catch (error) {
@@ -46733,7 +50035,7 @@ momtazchem.com
   });
 
   // Get actual GPS delivery confirmations for table display
-  app.get("/api/gps-delivery/confirmations", async (req, res) => {
+  app.get("/api/gps-delivery/confirmations", requireModuleAccess('geography_analytics', 'view'), async (req, res) => {
     try {
       const { startDate, endDate, limit = 50 } = req.query;
       console.log('🚚 [GPS-CONFIRMATIONS] Fetching delivery confirmations');
@@ -46887,10 +50189,31 @@ momtazchem.com
 
   app.put('/api/logistics/companies/:id', requireAuth, async (req, res) => {
     try {
+      const id = Number(req.params.id);
+      if (!Number.isSafeInteger(id) || id < 1) {
+        return res.status(400).json({ success: false, message: 'شناسه شرکت نامعتبر است' });
+      }
+      const editableCompanySchema = insertTransportationCompanySchema.pick({
+        name: true,
+        contactPerson: true,
+        phone: true,
+        email: true,
+        address: true,
+        website: true,
+        maxWeight: true,
+        baseRate: true,
+        ratePerKm: true,
+        isActive: true,
+      }).partial().strict();
+      const parsed = editableCompanySchema.safeParse(req.body);
+      if (!parsed.success || Object.keys(parsed.data).length === 0 || (parsed.data.name !== undefined && !parsed.data.name.trim())) {
+        return res.status(400).json({ success: false, message: 'اطلاعات شرکت نامعتبر است' });
+      }
       const company = await logisticsStorage.updateTransportationCompany(
-        parseInt(req.params.id),
-        req.body
+        id,
+        parsed.data
       );
+      if (!company) return res.status(404).json({ success: false, message: 'شرکت حمل و نقل یافت نشد' });
       res.json({ success: true, data: company });
     } catch (error) {
       console.error('Error updating transportation company:', error);
@@ -47397,7 +50720,6 @@ momtazchem.com
         {
           logisticsAssigneeId,
           logisticsNotes: notes,
-          estimatedDeliveryDate: estimatedDeliveryDate ? new Date(estimatedDeliveryDate) : undefined
         }
       );
 
@@ -47442,6 +50764,8 @@ momtazchem.com
           vehicleType,
           vehiclePlate,
           estimatedDeliveryDate: estimatedDeliveryTime ? new Date(estimatedDeliveryTime) : undefined,
+          estimatedDeliveryAt: estimatedDeliveryTime ? null : undefined,
+          estimatedDeliveryTimeZone: estimatedDeliveryTime ? null : undefined,
           logisticsNotes: notes,
           updatedAt: new Date()
         })
@@ -47536,11 +50860,14 @@ momtazchem.com
   });
 
   // Verify delivery with customer code
-  app.post('/api/order-management/:orderId/verify-delivery', requireAuth, async (req, res) => {
+  app.post('/api/order-management/:orderId/verify-delivery', requireSiteAdminDeliveryConfirmation, async (req, res) => {
     try {
-      const orderId = parseInt(req.params.orderId);
+      const orderId = Number(req.params.orderId);
+      if (!Number.isSafeInteger(orderId) || orderId <= 0) {
+        return res.status(400).json({ success: false, message: 'شناسه سفارش معتبر نیست' });
+      }
       const { 
-        verificationCode, 
+        verificationCode: submittedCode,
         customerLocation, 
         isVerified, 
         verifiedAt, 
@@ -47552,6 +50879,18 @@ momtazchem.com
         carrierLocationCapturedAt,
         carrierLocationSource
       } = req.body;
+      if (!isFourDigitDeliveryCode(submittedCode)) {
+        return res.status(400).json({ success: false, message: 'کد تحویل باید دقیقاً چهار رقم باشد' });
+      }
+      const verificationCode = normalizeDeliveryConfirmationCode(submittedCode);
+      const session = req.session as any;
+      const attempt = checkDeliveryCodeRateLimit(
+        session.adminId ? `admin:${session.adminId}` : `custom-admin:${session.customUserId}`,
+        String(orderId),
+      );
+      if (!attempt.allowed) {
+        return res.status(429).json({ success: false, message: 'تعداد تلاش‌های ناموفق زیاد است؛ ۱۵ دقیقه بعد دوباره تلاش کنید' });
+      }
       
       console.log(`✅ [VERIFICATION] Processing delivery verification for order ${orderId}`);
       
@@ -47559,92 +50898,123 @@ momtazchem.com
       const { eq } = await import('drizzle-orm');
       const { orderManagement } = await import('../shared/order-management-schema');
       
-      // Get current delivery code for this order
-      const [currentOrder] = await db.select()
-        .from(orderManagement)
-        .where(eq(orderManagement.id, orderId))
-        .limit(1);
-
-      if (!currentOrder) {
-        return res.status(404).json({
-          success: false,
-          message: 'سفارش یافت نشد'
-        });
-      }
-
-      // Check if verification code matches expected code
-      const codeMatches = verificationCode === currentOrder.deliveryCode;
-      
-      if (!codeMatches) {
+      const hasCarrierGps = carrierLatitude !== undefined && carrierLongitude !== undefined && carrierLocationAccuracy !== undefined;
+      const parsedCarrierLatitude = Number(carrierLatitude);
+      const parsedCarrierLongitude = Number(carrierLongitude);
+      const parsedCarrierAccuracy = Number(carrierLocationAccuracy);
+      if (hasCarrierGps && (
+        !Number.isFinite(parsedCarrierLatitude) ||
+        !Number.isFinite(parsedCarrierLongitude) ||
+        parsedCarrierLatitude < -90 ||
+        parsedCarrierLatitude > 90 ||
+        parsedCarrierLongitude < -180 ||
+        parsedCarrierLongitude > 180 ||
+        !Number.isFinite(parsedCarrierAccuracy) ||
+        parsedCarrierAccuracy < 0 ||
+        parsedCarrierAccuracy > 10000
+      )) {
         return res.status(400).json({
           success: false,
-          message: 'کد تحویل اشتباه است'
+          message: 'موقعیت GPS معتبر برای تأیید تحویل الزامی است'
         });
       }
 
-      // Update order with verification status and carrier location data
-      const [updatedOrder] = await db.update(orderManagement)
-        .set({
-          isVerified: true,
-          verifiedAt: new Date(),
-          verificationLocation: customerLocation,
-          actualDeliveryDate: new Date(),
-          currentStatus: 'delivered',
-          // Save carrier location data for geography analytics
-          carrierLatitude: carrierLatitude || null,
-          carrierLongitude: carrierLongitude || null,
-          carrierLocationAccuracy: carrierLocationAccuracy || null,
-          carrierLocationCapturedAt: carrierLocationCapturedAt ? new Date(carrierLocationCapturedAt) : null,
-          carrierLocationSource: carrierLocationSource || 'mobile',
-          updatedAt: new Date()
-        })
-        .where(eq(orderManagement.id, orderId))
-        .returning();
+      const updatedOrder = await db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(${orderId})`);
 
-      // Send carrier location data to geography analytics if available
-      if (carrierLatitude && carrierLongitude && updatedOrder) {
-        try {
-          console.log(`🌍 [GEOGRAPHY] Sending carrier location data to analytics for order ${orderId}`);
-          console.log(`📍 [GEOGRAPHY] Latitude: ${carrierLatitude}, Longitude: ${carrierLongitude}, Accuracy: ${carrierLocationAccuracy}m`);
-          
-          // Here you would typically send to geography analytics service
-          // For now, we'll just log the data that would be sent
-          const geographyData = {
-            orderId: orderId,
-            customerOrderId: updatedOrder.customerOrderId,
-            carrierLocation: {
-              latitude: carrierLatitude,
-              longitude: carrierLongitude,
-              accuracy: carrierLocationAccuracy,
-              capturedAt: carrierLocationCapturedAt,
-              source: carrierLocationSource
-            },
-            deliveryInfo: {
-              deliveredAt: updatedOrder.actualDeliveryDate,
-              customerLocation: customerLocation,
-              verificationCode: verificationCode
-            },
-            customerInfo: {
-              name: `${updatedOrder.customerFirstName || ''} ${updatedOrder.customerLastName || ''}`.trim(),
-              email: updatedOrder.customerEmail,
-              phone: updatedOrder.customerPhone
-            }
-          };
-          
-          console.log(`📊 [GEOGRAPHY] Data prepared for analytics:`, JSON.stringify(geographyData, null, 2));
-          
-          // In a real implementation, you would:
-          // 1. Send to a geography analytics database
-          // 2. Trigger analytics processing
-          // 3. Update delivery route optimization
-          // 4. Update carrier performance metrics
-          
-        } catch (geoError) {
-          console.error('Error sending location data to geography analytics:', geoError);
-          // Don't fail the main delivery verification if geography analytics fails
+        const [currentOrder] = await tx.select()
+          .from(orderManagement)
+          .where(eq(orderManagement.id, orderId))
+          .limit(1).for('update');
+        if (!currentOrder) throw new Error('ORDER_NOT_FOUND');
+        if (!currentOrder.customerOrderId) throw new Error('CUSTOMER_ORDER_NOT_FOUND');
+        if (currentOrder.isVerified || ['delivered', 'logistics_delivered', 'completed'].includes(currentOrder.currentStatus)) {
+          throw new Error('DELIVERY_ALREADY_VERIFIED');
         }
+        if (!canAdminConfirmDelivery(currentOrder)) throw new Error('INVALID_DELIVERY_STATUS');
+        const [customerOrder] = await tx.select({ id: customerOrders.id, status: customerOrders.status })
+          .from(customerOrders).where(eq(customerOrders.id, currentOrder.customerOrderId)).limit(1).for('update');
+        if (!customerOrder) throw new Error('CUSTOMER_ORDER_NOT_FOUND');
+        if (['cancelled', 'canceled', 'failed', 'deleted', 'financial_rejected'].includes(customerOrder.status)) {
+          throw new Error('INVALID_DELIVERY_STATUS');
+        }
+        if (['delivered', 'completed', 'logistics_delivered'].includes(customerOrder.status)) {
+          throw new Error('DELIVERY_ALREADY_VERIFIED');
+        }
+        if (!currentOrder.deliveryCode || verificationCode !== currentOrder.deliveryCode) {
+          throw new Error('INVALID_DELIVERY_CODE');
+        }
+        const [updated] = await tx.update(orderManagement)
+          .set({
+            isVerified: true,
+            verifiedAt: new Date(),
+            verificationLocation: customerLocation,
+            actualDeliveryDate: new Date(),
+            currentStatus: 'logistics_delivered',
+            deliveryCode: null,
+             carrierLatitude: hasCarrierGps ? parsedCarrierLatitude.toString() : null,
+             carrierLongitude: hasCarrierGps ? parsedCarrierLongitude.toString() : null,
+             carrierLocationAccuracy: hasCarrierGps ? parsedCarrierAccuracy.toString() : null,
+             carrierLocationCapturedAt: hasCarrierGps ? new Date() : null,
+             carrierLocationSource: hasCarrierGps ? 'mobile' : null,
+            updatedAt: new Date()
+          })
+          .where(eq(orderManagement.id, orderId))
+          .returning();
+
+        await tx.update(consolidatedOrderData)
+          .set({ currentStatus: 'logistics_delivered' })
+          .where(eq(consolidatedOrderData.orderManagementId, currentOrder.id));
+        await tx.update(customerOrders)
+          .set({ status: 'delivered', deliveredAt: new Date(), updatedAt: new Date() })
+          .where(eq(customerOrders.id, currentOrder.customerOrderId));
+        await tx.insert(orderStatusHistory).values({
+          orderManagementId: currentOrder.id,
+          fromStatus: currentOrder.currentStatus,
+          toStatus: 'logistics_delivered',
+          changedBy: Number(req.session?.adminId) || null,
+          changedByDepartment: 'logistics',
+          notes: 'تأیید تحویل توسط مدیر سایت با کد مشتری',
+        });
+
+        if (hasCarrierGps) await tx.insert(gpsDeliveryConfirmations).values({
+          customerOrderId: currentOrder.customerOrderId,
+          latitude: parsedCarrierLatitude.toString(),
+          longitude: parsedCarrierLongitude.toString(),
+          accuracy: parsedCarrierAccuracy.toString(),
+          deliveryPersonName: currentOrder.deliveryPersonName || 'Delivery staff',
+          deliveryPersonPhone: currentOrder.deliveryPersonPhone || 'not-provided',
+          customerAddress: customerLocation || null,
+          addressMatched: false,
+          verificationTime: new Date(),
+          deliveryNotes: 'تحویل با کد مشتری و موقعیت GPS تأیید شد',
+        });
+
+        return updated;
+      }).catch((error: Error) => {
+        if (error.message === 'ORDER_NOT_FOUND') return null;
+        if (error.message === 'CUSTOMER_ORDER_NOT_FOUND') return null;
+        if (error.message === 'INVALID_DELIVERY_CODE') return false;
+        if (error.message === 'DELIVERY_ALREADY_VERIFIED') return 'already-verified';
+        if (error.message === 'INVALID_DELIVERY_STATUS') return 'invalid-status';
+        throw error;
+      });
+
+      if (updatedOrder === null) {
+        return res.status(404).json({ success: false, message: 'سفارش مرتبط یافت نشد' });
+      }
+      if (updatedOrder === false) {
+        recordDeliveryCodeFailure(attempt.key);
+        return res.status(400).json({ success: false, message: 'کد تحویل اشتباه است' });
+      }
+      if (updatedOrder === 'already-verified') {
+        return res.status(409).json({ success: false, message: 'این تحویل قبلاً تأیید شده است' });
+      }
+      if (updatedOrder === 'invalid-status') {
+        return res.status(409).json({ success: false, message: 'فقط سفارش ارسال‌شده یا سفارش دارای خودروی اختصاص‌یافته قابل تأیید تحویل است' });
       }
 
+      clearDeliveryCodeAttempts(attempt.key);
       res.json({
         success: true,
         message: 'تحویل با موفقیت تایید شد',
@@ -47659,12 +51029,171 @@ momtazchem.com
     }
   });
 
+  // Return only the customer's route destination to an authorized delivery user.
+  app.get('/api/delivery/mobile/route/:orderNumber', requireModuleAccess('delivery_confirmation', 'edit'), requireCustomDeliveryUser, async (req, res) => {
+    const normalizedOrderNumber = String(req.params.orderNumber || '')
+      .trim()
+      .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+      .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+      .toUpperCase();
+    const canonicalOrderNumber = /^\d+$/.test(normalizedOrderNumber)
+      ? `M${normalizedOrderNumber}`
+      : normalizedOrderNumber;
+    if (!canonicalOrderNumber) {
+      return res.status(400).json({ success: false, message: 'شماره سفارش معتبر الزامی است' });
+    }
+
+    try {
+      const [order] = await db.select({
+        gpsLatitude: customerOrders.gpsLatitude,
+        gpsLongitude: customerOrders.gpsLongitude,
+        deliveredAt: customerOrders.deliveredAt,
+        currentStatus: orderManagement.currentStatus,
+        isVerified: orderManagement.isVerified,
+        verifiedAt: orderManagement.verifiedAt,
+        deliveryCode: orderManagement.deliveryCode,
+      }).from(customerOrders)
+        .innerJoin(orderManagement, eq(orderManagement.customerOrderId, customerOrders.id))
+        .where(eq(customerOrders.orderNumber, canonicalOrderNumber))
+        .limit(1);
+
+      if (!order) {
+        return res.status(404).json({ success: false, message: 'سفارش پیدا نشد' });
+      }
+      const isLegacyDispatch = !order.isVerified && !order.verifiedAt && !order.deliveredAt && Boolean(order.deliveryCode);
+      const isDelivered = Boolean(order.isVerified || order.verifiedAt || order.deliveredAt) ||
+        ['delivered', 'logistics_delivered', 'completed'].includes(order.currentStatus);
+      if (isDelivered && !isLegacyDispatch) {
+        return res.status(409).json({
+          success: false,
+          code: 'ALREADY_DELIVERED',
+          message: 'این سفارش قبلاً تحویل شده است',
+        });
+      }
+      if (order.currentStatus !== 'logistics_dispatched' && !isLegacyDispatch) {
+        return res.status(409).json({
+          success: false,
+          code: 'INVALID_DELIVERY_STATUS',
+          message: 'وضعیت سفارش برای تحویل معتبر نیست',
+        });
+      }
+      const latitude = order.gpsLatitude === null ? null : Number(order.gpsLatitude);
+      const longitude = order.gpsLongitude === null ? null : Number(order.gpsLongitude);
+      const hasRoute = Number.isFinite(latitude) && Number.isFinite(longitude);
+      return res.json({
+        success: true,
+        hasRoute,
+        latitude: hasRoute ? latitude : null,
+        longitude: hasRoute ? longitude : null,
+      });
+    } catch (error) {
+      console.error('Mobile delivery route lookup failed:', error);
+      return res.status(500).json({ success: false, message: 'خطا در دریافت مسیر سفارش' });
+    }
+  });
+
+  // Courier/carrier mobile confirmation. Unlike the admin workflow, GPS is mandatory here.
+  app.post('/api/delivery/mobile/verify', requireModuleAccess('delivery_confirmation', 'edit'), requireCustomDeliveryUser, async (req, res) => {
+    const { orderNumber, deliveryCode, latitude, longitude, accuracy } = req.body || {};
+    const normalizedOrderNumber = String(orderNumber || '')
+      .trim()
+      .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+      .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+      .toUpperCase();
+    const canonicalOrderNumber = /^\d+$/.test(normalizedOrderNumber)
+      ? `M${normalizedOrderNumber}`
+      : normalizedOrderNumber;
+    const normalizedDeliveryCode = String(deliveryCode || '')
+      .trim()
+      .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+      .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+    const lat = Number(latitude), lng = Number(longitude), gpsAccuracy = Number(accuracy);
+    if (!canonicalOrderNumber || !normalizedDeliveryCode ||
+      !Number.isFinite(lat) || lat < -90 || lat > 90 ||
+      !Number.isFinite(lng) || lng < -180 || lng > 180 ||
+      !Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 10000) {
+      return res.status(400).json({ success: false, code: 'INVALID_DELIVERY_INPUT', message: 'Invalid delivery input' });
+    }
+    const session = req.session as any;
+    const actor = String(session?.customUserId || '');
+    const rate = checkDeliveryCodeRateLimit(actor, canonicalOrderNumber);
+    if (!rate.allowed) return res.status(429).json({ success: false, code: 'INVALID_DELIVERY_CODE', message: 'Invalid delivery code' });
+    const identity = await pool.query(`
+      SELECT cu.id, cu.full_name, cu.phone
+      FROM custom_users cu JOIN custom_roles cr ON cr.id = cu.role_id
+      WHERE cu.id = $1 AND cu.is_active = true AND cr.is_active = true
+    `, [session?.customUserId]);
+    if (!identity.rows[0]) return res.status(401).json({ success: false, message: 'احراز هویت الزامی است' });
+    try {
+      const result = await db.transaction(async (tx) => {
+        // Resolve the public order number from the canonical customer order.
+        // Some valid logistics orders predate or temporarily lack a consolidated row.
+        const [order] = await tx.select({ id: orderManagement.id }).from(orderManagement)
+            .innerJoin(customerOrders, eq(customerOrders.id, orderManagement.customerOrderId))
+            .where(eq(customerOrders.orderNumber, canonicalOrderNumber)).limit(1);
+        if (!order) throw new Error('ORDER_NOT_FOUND');
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(${order.id})`);
+        const [locked] = await tx.select().from(orderManagement).where(eq(orderManagement.id, order.id)).limit(1);
+        if (!locked?.customerOrderId) throw new Error('ORDER_NOT_FOUND');
+        const [customerOrder] = await tx.select({
+          deliveredAt: customerOrders.deliveredAt,
+        }).from(customerOrders).where(eq(customerOrders.id, locked.customerOrderId)).limit(1);
+        const isLegacyDispatch = !locked.isVerified && !locked.verifiedAt &&
+          !customerOrder?.deliveredAt && Boolean(locked.deliveryCode);
+        if ((locked.isVerified || ['delivered', 'logistics_delivered', 'completed'].includes(locked.currentStatus)) && !isLegacyDispatch) {
+          throw new Error('ALREADY_DELIVERED');
+        }
+        if (locked.currentStatus !== 'logistics_dispatched' && !isLegacyDispatch) throw new Error('INVALID_DELIVERY_STATUS');
+        if (!locked.deliveryCode || normalizedDeliveryCode !== String(locked.deliveryCode).trim()) {
+          throw new Error('INVALID_CODE');
+        }
+        const now = new Date();
+        await tx.update(orderManagement).set({
+          isVerified: true, verifiedAt: now, actualDeliveryDate: now,
+          currentStatus: 'logistics_delivered', deliveryCode: null,
+          carrierLatitude: lat.toString(), carrierLongitude: lng.toString(),
+          carrierLocationAccuracy: gpsAccuracy.toString(), carrierLocationCapturedAt: now,
+          carrierLocationSource: 'mobile', updatedAt: now,
+        }).where(eq(orderManagement.id, locked.id));
+        await tx.update(consolidatedOrderData).set({ currentStatus: 'logistics_delivered' })
+          .where(eq(consolidatedOrderData.orderManagementId, locked.id));
+        await tx.update(customerOrders).set({
+          status: 'delivered', deliveredAt: now, updatedAt: now,
+        }).where(eq(customerOrders.id, locked.customerOrderId));
+        await tx.insert(orderStatusHistory).values({
+          orderManagementId: locked.id, fromStatus: locked.currentStatus,
+          toStatus: 'logistics_delivered', changedBy: null, changedByDepartment: 'logistics',
+          notes: `تأیید تحویل توسط ${identity.rows[0].full_name}`,
+        });
+        await tx.insert(gpsDeliveryConfirmations).values({
+          customerOrderId: locked.customerOrderId, latitude: lat.toString(), longitude: lng.toString(),
+          accuracy: gpsAccuracy.toString(), deliveryPersonName: identity.rows[0].full_name,
+          deliveryPersonPhone: identity.rows[0].phone,
+          addressMatched: false, verificationTime: now,
+          deliveryNotes: 'تحویل توسط حمل‌کننده با کد مشتری و موقعیت GPS تأیید شد',
+        });
+        return true;
+      });
+      clearDeliveryCodeAttempts(rate.key);
+      return res.json({ success: result, message: 'تحویل با موفقیت ثبت شد' });
+    } catch (error: any) {
+      if (error.message === 'ORDER_NOT_FOUND' || error.message === 'INVALID_CODE') {
+        recordDeliveryCodeFailure(rate.key);
+        return res.status(400).json({ success: false, code: 'INVALID_DELIVERY_CODE', message: 'Invalid delivery code' });
+      }
+      if (error.message === 'ALREADY_DELIVERED') return res.status(409).json({ success: false, code: 'ALREADY_DELIVERED', message: 'Delivery already recorded' });
+      if (error.message === 'INVALID_DELIVERY_STATUS') return res.status(409).json({ success: false, code: 'INVALID_DELIVERY_STATUS', message: 'Invalid delivery status' });
+      console.error('Mobile delivery verification failed:', error);
+      return res.status(500).json({ success: false, code: 'DELIVERY_VERIFICATION_FAILED', message: 'Delivery verification failed' });
+    }
+  });
+
   // =============================================================================
   // ORPHAN ORDERS MANAGEMENT API ENDPOINTS
   // =============================================================================
 
   // Get grace period orders statistics
-  app.get("/api/orphan-orders/stats", async (req, res) => {
+  app.get("/api/orphan-orders/stats", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       
@@ -47701,7 +51230,7 @@ momtazchem.com
   });
 
   // Orphan Orders Notification Management APIs
-  app.get("/api/orphan-orders/notification-settings", async (req, res) => {
+  app.get("/api/orphan-orders/notification-settings", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       const result = await pool.query('SELECT * FROM orphan_order_notification_settings ORDER BY id DESC LIMIT 1');
@@ -47732,7 +51261,7 @@ momtazchem.com
     }
   });
 
-  app.put("/api/orphan-orders/notification-settings", async (req, res) => {
+  app.put("/api/orphan-orders/notification-settings", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       const {
@@ -47803,7 +51332,7 @@ momtazchem.com
     }
   });
 
-  app.get("/api/orphan-orders/templates", async (req, res) => {
+  app.get("/api/orphan-orders/templates", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       const result = await pool.query('SELECT * FROM orphan_order_templates ORDER BY is_default DESC, created_at DESC');
@@ -47818,7 +51347,7 @@ momtazchem.com
     }
   });
 
-  app.post("/api/orphan-orders/templates", async (req, res) => {
+  app.post("/api/orphan-orders/templates", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       const {
@@ -47857,7 +51386,7 @@ momtazchem.com
     }
   });
 
-  app.put("/api/orphan-orders/templates/:id", async (req, res) => {
+  app.put("/api/orphan-orders/templates/:id", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       const { id } = req.params;
@@ -47905,7 +51434,7 @@ momtazchem.com
     }
   });
 
-  app.delete("/api/orphan-orders/templates/:id", async (req, res) => {
+  app.delete("/api/orphan-orders/templates/:id", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       const { id } = req.params;
@@ -47922,7 +51451,7 @@ momtazchem.com
     }
   });
 
-  app.get("/api/orphan-orders/schedules", async (req, res) => {
+  app.get("/api/orphan-orders/schedules", requireAuth, async (req, res) => {
     try {
       // Return scheduled notification data
       res.json({
@@ -47952,7 +51481,7 @@ momtazchem.com
     }
   });
 
-  app.get("/api/orphan-orders/stats", async (req, res) => {
+  app.get("/api/orphan-orders/stats", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       
@@ -48002,7 +51531,7 @@ momtazchem.com
   });
 
   // Get active grace period orders
-  app.get("/api/orphan-orders/active", async (req, res) => {
+  app.get("/api/orphan-orders/active", requireAuth, async (req, res) => {
     try {
       const { db } = await import('./db');
       const { eq, and, gt } = await import('drizzle-orm');
@@ -48079,49 +51608,27 @@ momtazchem.com
   });
 
   // Send reminder notification for grace period order
-  app.post("/api/orphan-orders/:orderId/send-reminder", async (req, res) => {
+  app.post("/api/orphan-orders/:orderId/send-reminder", requireAuth, async (req, res) => {
     try {
       const { orderId } = req.params;
-      const { type } = req.body; // 'sms' or 'email'
-      
-      const { pool } = await import('./db');
-      
-      // Get order details
-      const orderResult = await pool.query(`
-        SELECT 
-          om.*,
-          co.total_amount,
-          co.currency,
-          co.recipient_name,
-          co.guest_email,
-          co.recipient_phone,
-          EXTRACT(EPOCH FROM (om.payment_grace_period_end - NOW()))/3600 as hours_remaining
-        FROM order_management om
-        LEFT JOIN customer_orders co ON om.customer_order_id = co.id
-        WHERE om.id = $1 AND om.current_status = 'payment_grace_period'
-      `, [orderId]);
-
-      if (orderResult.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: "سفارش یافت نشد"
-        });
+      const { type } = req.body;
+      if (!['sms', 'email'].includes(type) || !/^\d+$/.test(orderId)) {
+        return res.status(400).json({ success: false, message: "نوع یادآور یا شناسه سفارش نامعتبر است" });
       }
 
-      const order = orderResult.rows[0];
-      
-      // Send reminder based on type
-      if (type === 'sms') {
-        // Send SMS reminder
-        // Implementation would go here
-      } else if (type === 'email') {
-        // Send email reminder
-        // Implementation would go here
+      const { ProformaReminderService } = await import('./proforma-reminder-service');
+      const result = await ProformaReminderService.getInstance().sendManualReminder(Number(orderId), type);
+      if (!result.success) {
+        return res.status(result.error?.startsWith('No active') ? 409 : 422).json({
+          success: false,
+          message: result.error || "ارسال یادآور ناموفق بود"
+        });
       }
 
       res.json({
         success: true,
-        message: `یادآور ${type} با موفقیت ارسال شد`
+        message: `یادآور ${type} با موفقیت پذیرفته شد`,
+        status: "accepted"
       });
       
     } catch (error) {
@@ -48133,134 +51640,12 @@ momtazchem.com
     }
   });
 
-  // Get notification settings
-  app.get("/api/orphan-orders/notification-settings", async (req, res) => {
-    try {
-      // Mock notification settings
-      const settings = {
-        emailEnabled: true,
-        smsEnabled: true,
-        reminderHours: [24, 12, 1],
-        maxReminders: 3
-      };
-
-      res.json({
-        success: true,
-        settings
-      });
-    } catch (error) {
-      console.error("Error fetching notification settings:", error);
-      res.status(500).json({
-        success: false,
-        message: "خطا در دریافت تنظیمات"
-      });
-    }
-  });
-
-  // Update notification settings
-  app.put("/api/orphan-orders/notification-settings", async (req, res) => {
-    try {
-      const { emailEnabled, smsEnabled, reminderHours, maxReminders } = req.body;
-      
-      // In a real implementation, save to database
-      
-      res.json({
-        success: true,
-        message: "تنظیمات بروزرسانی شد",
-        settings: {
-          emailEnabled,
-          smsEnabled,
-          reminderHours,
-          maxReminders
-        }
-      });
-    } catch (error) {
-      console.error("Error updating notification settings:", error);
-      res.status(500).json({
-        success: false,
-        message: "خطا در بروزرسانی تنظیمات"
-      });
-    }
-  });
-
-  // Get message templates
-  app.get("/api/orphan-orders/templates", async (req, res) => {
-    try {
-      // Mock templates
-      const templates = [
-        {
-          id: 1,
-          name: "یادآور 24 ساعته",
-          type: "email",
-          subject: "یادآوری پرداخت سفارش",
-          content: "سفارش شما تا 24 ساعت دیگر منقضی می‌شود",
-          isActive: true
-        },
-        {
-          id: 2,
-          name: "یادآور SMS",
-          type: "sms",
-          subject: "",
-          content: "سفارش {{orderNumber}} تا {{hours}} ساعت دیگر منقضی می‌شود",
-          isActive: true
-        }
-      ];
-
-      res.json({
-        success: true,
-        templates
-      });
-    } catch (error) {
-      console.error("Error fetching templates:", error);
-      res.status(500).json({
-        success: false,
-        message: "خطا در دریافت قالب‌ها"
-      });
-    }
-  });
-
-  // Get notification schedules
-  app.get("/api/orphan-orders/schedules", async (req, res) => {
-    try {
-      // Mock schedules
-      const schedules = [
-        {
-          id: 1,
-          name: "یادآور 24 ساعته",
-          triggerTime: "24 hours before expiry",
-          messageType: "Email + SMS",
-          maxSends: 1,
-          isActive: true
-        },
-        {
-          id: 2,
-          name: "یادآور 1 ساعته",
-          triggerTime: "1 hour before expiry",
-          messageType: "SMS only",
-          maxSends: 1,
-          isActive: true
-        }
-      ];
-
-      res.json({
-        success: true,
-        schedules
-      });
-    } catch (error) {
-      console.error("Error fetching schedules:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "خطا در دریافت برنامه‌ریزی" 
-      });
-    }
-  });
-
   // =============================================================================
   // SIMPLE SMS TEMPLATES API ENDPOINTS
   // =============================================================================
 
-  // Get all simple SMS templates (no auth for testing)
-  app.get("/api/admin/simple-sms-templates", async (req, res) => {
+  // Get all simple SMS templates
+  app.get("/api/admin/simple-sms-templates", requireAuth, async (req, res) => {
     try {
       console.log("🚀 Fetching simple SMS templates...");
       const { simpleSmsStorage } = await import('./simple-sms-storage');
@@ -48281,7 +51666,7 @@ momtazchem.com
   });
 
   // Get simple SMS template by ID
-  app.get("/api/admin/simple-sms-templates/:id", async (req, res) => {
+  app.get("/api/admin/simple-sms-templates/:id", requireAuth, async (req, res) => {
     try {
       const { simpleSmsStorage } = await import('./simple-sms-storage');
       const template = await simpleSmsStorage.getTemplateById(parseInt(req.params.id));
@@ -48307,7 +51692,7 @@ momtazchem.com
   });
 
   // Create new simple SMS template
-  app.post("/api/admin/simple-sms-templates", async (req, res) => {
+  app.post("/api/admin/simple-sms-templates", requireAuth, async (req, res) => {
     try {
       const { insertSimpleSmsTemplateSchema } = await import('../shared/schema');
       const templateData = insertSimpleSmsTemplateSchema.parse(req.body);
@@ -48330,7 +51715,7 @@ momtazchem.com
   });
 
   // Update simple SMS template
-  app.put("/api/admin/simple-sms-templates/:id", async (req, res) => {
+  app.put("/api/admin/simple-sms-templates/:id", requireAuth, async (req, res) => {
     try {
       const { insertSimpleSmsTemplateSchema } = await import('../shared/schema');
       const updates = insertSimpleSmsTemplateSchema.partial().parse(req.body);
@@ -48353,7 +51738,7 @@ momtazchem.com
   });
 
   // Delete simple SMS template
-  app.delete("/api/admin/simple-sms-templates/:id", async (req, res) => {
+  app.delete("/api/admin/simple-sms-templates/:id", requireAuth, async (req, res) => {
     try {
       const { simpleSmsStorage } = await import('./simple-sms-storage');
       await simpleSmsStorage.deleteTemplate(parseInt(req.params.id));
@@ -48372,7 +51757,7 @@ momtazchem.com
   });
 
   // Increment template usage count
-  app.post("/api/admin/simple-sms-templates/:id/increment-usage", async (req, res) => {
+  app.post("/api/admin/simple-sms-templates/:id/increment-usage", requireAuth, async (req, res) => {
     try {
       const { simpleSmsStorage } = await import('./simple-sms-storage');
       await simpleSmsStorage.incrementTemplateUsage(parseInt(req.params.id));
@@ -48484,6 +51869,8 @@ momtazchem.com
       }
 
       const vehicleData = req.body;
+      if(vehicleData.transportCategory!==undefined&&!["standard","bulk"].includes(vehicleData.transportCategory))
+        return res.status(400).json({success:false,message:"Invalid transport category"});
       vehicleData.updatedAt = new Date();
       
       const [updatedVehicle] = await db.update(vehicleTemplates)
@@ -48511,6 +51898,8 @@ momtazchem.com
       }
 
       const vehicleData = req.body;
+      if(vehicleData.transportCategory!==undefined&&!["standard","bulk"].includes(vehicleData.transportCategory))
+        return res.status(400).json({success:false,message:"Invalid transport category"});
       vehicleData.updatedAt = new Date();
       
       const [updatedVehicle] = await db.update(vehicleTemplates)
@@ -48555,7 +51944,15 @@ momtazchem.com
   // Optimal vehicle selection endpoint
   app.post("/api/logistics/optimal-vehicle-selection", requireAuth, async (req, res) => {
     try {
-      const { orderWeight, orderVolume, distance, specialRequirements, deliveryUrgency } = req.body;
+      const {
+        orderWeight,
+        orderVolume,
+        distance,
+        specialRequirements,
+        deliveryUrgency,
+        orderNumber,
+        routeType = "urban",
+      } = req.body;
 
       // Validate required fields
       if (!orderWeight || !orderVolume || !distance) {
@@ -48636,16 +52033,29 @@ momtazchem.com
       const alternatives = scoredVehicles.slice(1, 4); // Top 3 alternatives
 
       // Save selection to history
+      const basePrice = parseFloat(optimalVehicle.basePrice || "0");
+      const distanceCost = distance * parseFloat(optimalVehicle.pricePerKm || "0");
+      const totalCost = basePrice + distanceCost;
       const selectionData = {
-        orderWeight,
-        orderVolume,
-        distance,
-        specialRequirements: specialRequirements || null,
-        deliveryUrgency: deliveryUrgency || 'normal',
-        selectedVehicleId: optimalVehicle.id,
+        orderNumber: orderNumber || `QUOTE-${Date.now()}`,
+        orderWeightKg: String(orderWeight),
+        orderVolumeM3: String(orderVolume),
+        routeType,
+        distanceKm: String(distance),
+        isHazardous: false,
+        isFlammable: false,
+        isRefrigerated: false,
+        isFragile: false,
+        selectedVehicleTemplateId: optimalVehicle.id,
         selectedVehicleName: optimalVehicle.name,
-        selectionScore: optimalVehicle.score,
-        alternativeVehicles: alternatives.map(v => ({ id: v.id, name: v.name, score: v.score })),
+        basePrice: String(basePrice),
+        weightCost: "0",
+        distanceCost: String(distanceCost),
+        totalCost: String(totalCost),
+        alternativeOptions: alternatives.map(v => ({ id: v.id, name: v.name, score: v.score })),
+        selectionAlgorithm: "cost_optimization",
+        selectionCriteria: JSON.stringify({ specialRequirements: specialRequirements || null, deliveryUrgency: deliveryUrgency || "normal" }),
+        adminUserId: req.session?.adminId ? Number(req.session.adminId) : null,
         createdAt: new Date()
       };
 
@@ -48754,34 +52164,88 @@ momtazchem.com
         orderNumber,
         weightKg,
         orderWeightKg, 
-        destinationCity, 
-        routeType = 'urban',
-        isHazardous = false,
-        isRefrigerated = false,
-        isFragile = false,
-        distanceKm = 0
+        destinationCity,
+        destinationCityId,
+        destinationProvince,
+        destinationCountryCode,
+        countryCode,
+        routeType: requestedRouteType = 'urban',
+        isHazardous: requestedIsHazardous = false,
+        isRefrigerated: requestedIsRefrigerated = false,
+        isFragile: requestedIsFragile = false,
+        cart
       } = req.body;
 
-      // Handle both weightKg and orderWeightKg parameters
-      const finalWeightKg = weightKg || orderWeightKg;
+      const checkoutCartFacts = cart && typeof cart === "object" && Object.keys(cart).length > 0
+        ? await getCanonicalCheckoutCartFacts(cart)
+        : null;
+      // Checkout weight and hazardous flags come exclusively from shop catalog facts.
+      const finalWeightKg = checkoutCartFacts?.totalWeightKg ?? Number(weightKg || orderWeightKg);
+
+      let distance: number;
+      let resolvedDestinationCityId: number | null = null;
+      const hasDestination = destinationCityId != null || (typeof destinationCity === "string" && destinationCity.trim() !== "");
+      const isCheckoutRequest = req.body.checkout === true
+        || (typeof orderNumber === "string" && orderNumber.startsWith("CART-"))
+        || !!checkoutCartFacts;
+      if (isCheckoutRequest && !checkoutCartFacts) {
+        throw new ShippingConfigurationError("Checkout vehicle quotes require a server-verifiable cart.", 422);
+      }
+      // Preserve the authenticated logistics-admin estimator, which has no
+      // destination selector. Checkout requests must always resolve a DB route.
+      if (!hasDestination && !isCheckoutRequest && req.session?.adminId && req.body.distanceKm !== undefined) {
+        const adminDistance = Number(req.body.distanceKm);
+        if (!Number.isFinite(adminDistance) || adminDistance < 0) {
+          throw new ShippingConfigurationError("Admin estimate distance must be finite and nonnegative.");
+        }
+        distance = adminDistance;
+      } else {
+        const resolvedRoute = await resolveShippingRoute({
+          destinationCityId,
+          destinationCity,
+          destinationProvince: destinationProvince ?? req.body.province,
+          destinationCountryCode: destinationCountryCode ?? countryCode,
+        });
+        distance = resolvedRoute.distanceKm;
+        resolvedDestinationCityId = resolvedRoute.destinationCityId;
+      }
+      const routeType = checkoutCartFacts
+        ? (distance > 100 ? "highway" : distance > 30 ? "interurban" : "urban")
+        : requestedRouteType;
+      const isHazardous = checkoutCartFacts ? checkoutCartFacts.isHazardous : requestedIsHazardous;
+      // These product attributes are not represented in the shop catalog, so
+      // checkout quotes do not accept client-provided refrigeration/fragile flags.
+      const isRefrigerated = checkoutCartFacts ? false : requestedIsRefrigerated;
+      const isFragile = checkoutCartFacts ? false : requestedIsFragile;
+      const makeSmartQuoteToken = async (
+        selectedVehicles: ShippingQuoteClaims["selectedVehicles"],
+        shippingCost: number,
+      ) => checkoutCartFacts && resolvedDestinationCityId !== null
+        ? issueCheckoutShippingQuote({
+          cartFacts: checkoutCartFacts,
+          center: await getShippingCenter(),
+          destinationCityId: resolvedDestinationCityId,
+          distanceKm: distance,
+          method: "smart_vehicle",
+          selectedVehicles,
+          shippingCost,
+        })
+        : undefined;
 
       console.log('🚚 [SMART VEHICLE] Selection request:', {
         orderNumber,
         finalWeightKg,
         routeType,
-        distanceKm
+        resolvedDistanceKm: distance
       });
 
       // Validate required fields
-      if (!finalWeightKg || !distanceKm) {
+      if (!Number.isFinite(Number(finalWeightKg)) || Number(finalWeightKg) < 0) {
         return res.status(400).json({ 
           success: false, 
-          message: "وزن سفارش و مسافت الزامی است" 
+          message: "وزن سفارش الزامی است"
         });
       }
-
-      // Use provided distance directly
-      const distance = distanceKm;
 
       // Get all active vehicle templates
       const vehicles = await db.select().from(vehicleTemplates)
@@ -48814,6 +52278,7 @@ momtazchem.com
         let specialOk = true;
 
         if (isHazardous && !vehicle.supportsHazardous) specialOk = false;
+        if (checkoutCartFacts?.isFlammable && !vehicle.supportsFlammable) specialOk = false;
         if (isRefrigerated && !vehicle.hasRefrigeration) specialOk = false;
         if (isFragile && !vehicle.canTransportFragile) specialOk = false;
         
@@ -48849,10 +52314,18 @@ momtazchem.com
         const multiVehicleSolution = findOptimalVehicleCombination(suitableVehicles, finalWeightKg, distance, routeType, isHazardous, isRefrigerated, isFragile);
         
         if (multiVehicleSolution) {
+          const shippingQuoteToken = await makeSmartQuoteToken(
+            multiVehicleSolution.vehicles.map((item: any) => {
+              const template = vehicles.find((candidate: any) => candidate.id === item.id);
+              return { id: item.id, name: String(template?.name ?? item.name), type: String(template?.vehicleType ?? "") };
+            }),
+            multiVehicleSolution.totalCost,
+          );
           return res.json({
             success: true,
             multiVehicleRequired: true,
             solution: multiVehicleSolution,
+            ...(shippingQuoteToken ? { shippingQuoteToken } : {}),
             selectionCriteria: {
               orderWeightKg: finalWeightKg,
               distanceKm: distance,
@@ -48914,6 +52387,10 @@ momtazchem.com
 
       const selectedVehicle = scoredVehicles[0];
       const alternatives = scoredVehicles.slice(1, 4); // Top 3 alternatives
+      const shippingQuoteToken = await makeSmartQuoteToken(
+        [{ id: selectedVehicle.id, name: String(selectedVehicle.name), type: String(selectedVehicle.vehicleType) }],
+        selectedVehicle.totalCost,
+      );
 
       console.log('🚚 [SMART VEHICLE] Selected vehicle:', {
         name: selectedVehicle.name,
@@ -48959,6 +52436,7 @@ momtazchem.com
 
       res.json({
         success: true,
+        ...(shippingQuoteToken ? { shippingQuoteToken } : {}),
         selectedVehicle: {
           id: selectedVehicle.id,
           vehicleName: selectedVehicle.name,
@@ -49009,7 +52487,14 @@ momtazchem.com
 
     } catch (error) {
       console.error("🚚 [SMART VEHICLE] Selection error:", error);
-      res.status(500).json({ success: false, message: "خطا در انتخاب وسیله بهینه" });
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error instanceof Error ? error.message : "خطا در انتخاب وسیله بهینه",
+        ...(error instanceof ShippingConfigurationError && error.statusCode === 422
+          ? { code: "ROUTE_DISTANCE_UNAVAILABLE" }
+          : {}),
+      });
     }
   });
 
@@ -49167,11 +52652,12 @@ momtazchem.com
   // UNIFIED API: Get ALL orders for comprehensive order management
   app.get('/api/orders/tracking/all', requireAuth, async (req, res) => {
     try {
+      const { getCheckoutDestination } = await import("./delivery-appointment");
       const startTime = Date.now();
       
       // 📄 PAGINATION PARAMETERS
-      const limit = parseInt(req.query.limit as string) || 100; // Default 100 orders
-      const offset = parseInt(req.query.offset as string) || 0;
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 100, 1), 100); // Fixed pages of up to 100 orders
+      const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
       
       console.log(`🔍 [PAGINATED ORDER API] Starting request with limit=${limit}, offset=${offset}...`);
 
@@ -49206,6 +52692,8 @@ momtazchem.com
           om.delivery_code,
           om.tracking_number,
           om.estimated_delivery_date,
+           om.estimated_delivery_at,
+           om.estimated_delivery_timezone,
           om.actual_delivery_date,
           om.delivery_person_name,
           om.delivery_person_phone,
@@ -49214,7 +52702,8 @@ momtazchem.com
           om.logistics_notes,
           om.financial_reviewed_at,
           om.warehouse_processed_at,
-          om.logistics_processed_at
+           om.logistics_processed_at,
+           co.shipping_address
         FROM customer_orders co
         LEFT JOIN crm_customers cc ON co.customer_id = cc.id
         LEFT JOIN order_management om ON co.id = om.customer_order_id
@@ -49255,6 +52744,17 @@ momtazchem.com
           deliveryCode: row.delivery_code,
           trackingNumber: row.tracking_number,
           estimatedDeliveryDate: row.estimated_delivery_date,
+          estimatedDeliveryAt: row.estimated_delivery_at
+            ? new Date(row.estimated_delivery_at).toISOString()
+            : null,
+          estimatedDeliveryTimeZone: row.estimated_delivery_timezone,
+          ...(() => {
+            const destination = getCheckoutDestination(row.shipping_address);
+            return {
+              destinationCountry: destination.country || "",
+              destinationCity: destination.city,
+            };
+          })(),
           actualDeliveryDate: row.actual_delivery_date,
           deliveryPersonName: row.delivery_person_name,
           deliveryPersonPhone: row.delivery_person_phone,
@@ -49644,9 +53144,11 @@ momtazchem.com
       // No longer restricted to wallet payments only
       console.log(`📄 [MANUAL CONVERT] Manual conversion requested for order ${orderNumber} with payment method: ${order.paymentMethod}`);
       
-      // Check if order has reached warehouse status
-      const isWarehouseReady = ['warehouse_ready', 'warehouse_pending', 'warehouse_processing', 
-                                'logistics_ready', 'logistics_processing', 'delivered', 'completed'].includes(order.status);
+      // A finalized batch movement is the authoritative warehouse-outbound
+      // signal. Customer-facing status aliases must never turn a proforma into
+      // a final invoice while finance or warehouse review is still pending.
+      const { orderHasFinalizedReservations } = await import('./cart-inventory-reservation');
+      const isWarehouseReady = await orderHasFinalizedReservations(order.id);
       
       if (!isWarehouseReady) {
         return res.status(400).json({
@@ -49684,6 +53186,147 @@ momtazchem.com
   // SUPER ADMIN ORDER DELETION SYSTEM - MUST BE BEFORE CATCH-ALL
   // سیستم حذف کامل سفارشات توسط سوپر ادمین
   // =============================================================================
+
+  // Atomically delete a bounded set of orders and their known dependent records.
+  // The order rows are locked and the complete request is validated before any
+  // dependent row is removed, so a partial request can never be applied.
+  app.post('/api/super-admin/orders/bulk-delete', requireSuperAdmin, async (req: Request, res: Response) => {
+    const rawOrderIds = req.body?.orderIds;
+
+    if (
+      !Array.isArray(rawOrderIds) ||
+      rawOrderIds.some(
+        (id: unknown) =>
+          typeof id !== 'number' ||
+          !Number.isSafeInteger(id) ||
+          id <= 0 ||
+          id > 2_147_483_647,
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'orderIds must be an array of positive integers',
+      });
+    }
+
+    const orderIds = [...new Set(rawOrderIds as number[])];
+    if (orderIds.length < 1 || orderIds.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'orderIds must contain between 1 and 100 unique IDs',
+      });
+    }
+
+    let client: any;
+    let transactionStarted = false;
+    try {
+      client = await customerPool.connect();
+      await client.query('BEGIN');
+      transactionStarted = true;
+
+      // Lock and resolve every requested order before touching any dependent
+      // table. This also ensures that a missing ID causes a no-op transaction.
+      const lockedOrdersResult = await client.query(
+        `SELECT id, order_number
+           FROM customer_orders
+          WHERE id = ANY($1::int[])
+          ORDER BY id
+          FOR UPDATE`,
+        [orderIds],
+      );
+      const foundIds = new Set(lockedOrdersResult.rows.map((row: { id: number }) => Number(row.id)));
+      const missingIds = orderIds.filter((id) => !foundIds.has(id));
+
+      if (missingIds.length > 0) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(404).json({
+          success: false,
+          message: 'One or more requested orders were not found',
+          missingIds,
+        });
+      }
+
+      const orderNumbers = lockedOrdersResult.rows
+        .map((row: { order_number: string | null }) => row.order_number)
+        .filter((value: string | null): value is string => Boolean(value));
+      const managementResult = await client.query(
+        'SELECT id FROM order_management WHERE customer_order_id = ANY($1::int[])',
+        [orderIds],
+      );
+      const managementIds = managementResult.rows.map((row: { id: number }) => Number(row.id));
+
+      // Remove children of order_management before removing its rows.
+      await client.query('DELETE FROM order_status_history WHERE order_management_id = ANY($1::int[])', [managementIds]);
+      await client.query('DELETE FROM delivery_codes WHERE order_management_id = ANY($1::int[])', [managementIds]);
+      await client.query('DELETE FROM order_locks WHERE order_management_id = ANY($1::int[])', [managementIds]);
+      await client.query('DELETE FROM delivery_verification_codes WHERE order_management_id = ANY($1::int[])', [managementIds]);
+      await client.query('DELETE FROM consolidated_order_data WHERE order_management_id = ANY($1::int[])', [managementIds]);
+
+      // All predicates use exact numeric IDs or exact order numbers. Text
+      // descriptions and partial LIKE matching are deliberately not used.
+      await client.query('DELETE FROM order_items WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM payment_receipts WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM gps_delivery_confirmations WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM delivery_verification_codes WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM consolidated_order_data WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM vehicle_delivery_history WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM logistics_orders WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM vendor_transactions WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM fib_payments WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM financial_transactions WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM invoices WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM proforma_reminder_logs WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM shipping_calculation_logs WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM goods_in_transit WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM shop_inventory_movements WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query(
+        `DELETE FROM wallet_transactions
+          WHERE reference_id = ANY($1::int[])
+            AND reference_type = 'order'`,
+        [orderIds],
+      );
+      await client.query('DELETE FROM vehicle_selection_history WHERE order_number = ANY($1::text[])', [orderNumbers]);
+      await client.query('DELETE FROM production_orders WHERE order_number = ANY($1::text[])', [orderNumbers]);
+      await client.query('DELETE FROM abandoned_orders WHERE hybrid_order_number = ANY($1::text[])', [orderNumbers]);
+      await client.query('DELETE FROM order_management WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM customer_orders WHERE id = ANY($1::int[])', [orderIds]);
+      await client.query('COMMIT');
+      transactionStarted = false;
+
+      const orderById = new Map(
+        lockedOrdersResult.rows.map((row: { id: number; order_number: string | null }) => [
+          Number(row.id),
+          row.order_number ?? null,
+        ]),
+      );
+      const orders = orderIds.map((id) => ({ id, orderNumber: orderById.get(id) ?? null }));
+
+      return res.json({
+        success: true,
+        deletedIds: orderIds,
+        deletedCount: orderIds.length,
+        orders,
+      });
+    } catch (error) {
+      if (client && transactionStarted) {
+        try {
+          await client.query('ROLLBACK');
+        } catch (rollbackError) {
+          console.error('[SUPER ADMIN] Bulk order deletion rollback failed:', rollbackError);
+        }
+      }
+      console.error('[SUPER ADMIN] Bulk order deletion failed:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to delete the requested orders',
+      });
+    } finally {
+      if (client) {
+        client.release();
+      }
+    }
+  });
 
   // Delete order by ID (for orders without order numbers) - SUPER ADMIN ONLY
   app.delete('/api/super-admin/orders-by-id/:orderId', requireSuperAdmin, async (req: Request, res: Response) => {
@@ -49889,7 +53532,7 @@ momtazchem.com
   // REMOVED: Duplicate endpoint - see improved version below
 
   // Production Reset - SUPER ADMIN ONLY
-  app.post('/api/super-admin/reset-for-production', requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/super-admin/reset-for-production', requireSuperAdminRole, async (req: Request, res: Response) => {
     try {
       console.log('🗑️ [PRODUCTION RESET] Starting production reset process');
       
@@ -50060,10 +53703,10 @@ momtazchem.com
       const validatedData = insertEmailTemplateSchema.parse(req.body);
       
       // Generate unique template number
-      const templateCount = await db.select({ count: sql<number>`count(*)` }).from(emailTemplates);
+      const templateCount = await db.select({ count: sql<number>`count(*)` }).from(schema.emailTemplates);
       const templateNumber = `TPL-${String(templateCount[0].count + 1).padStart(4, '0')}`;
       
-      const [newTemplate] = await db.insert(emailTemplates).values({
+      const [newTemplate] = await db.insert(schema.emailTemplates).values({
         ...validatedData,
         templateNumber,
         updatedAt: new Date()
@@ -50081,12 +53724,12 @@ momtazchem.com
       const templateId = parseInt(req.params.id);
       const validatedData = insertEmailTemplateSchema.parse(req.body);
       
-      const [updatedTemplate] = await db.update(emailTemplates)
+      const [updatedTemplate] = await db.update(schema.emailTemplates)
         .set({
           ...validatedData,
           updatedAt: new Date()
         })
-        .where(eq(emailTemplates.id, templateId))
+        .where(eq(schema.emailTemplates.id, templateId))
         .returning();
 
       if (!updatedTemplate) {
@@ -50104,8 +53747,8 @@ momtazchem.com
     try {
       const templateId = parseInt(req.params.id);
       
-      const deletedTemplate = await db.delete(emailTemplates)
-        .where(eq(emailTemplates.id, templateId))
+      const deletedTemplate = await db.delete(schema.emailTemplates)
+        .where(eq(schema.emailTemplates.id, templateId))
         .returning();
 
       if (!deletedTemplate.length) {
@@ -51289,91 +54932,6 @@ momtazchem.com
     }
   });
 
-  // Get management dashboard data with proper structure
-  app.get("/api/management/dashboard", requireAuth, async (req, res) => {
-    try {
-      console.log('📊 [DASHBOARD] Fetching management dashboard data');
-      
-      const dashboardData = {
-        summary: {
-          dailySales: Math.floor(Math.random() * 100000000), // Random sales for demo
-          activeOrders: Math.floor(Math.random() * 50) + 10,
-          onlineCustomers: Math.floor(Math.random() * 25) + 5,
-          systemAlerts: Math.floor(Math.random() * 5)
-        },
-        quickStats: {
-          orderStatuses: {
-            pending: Math.floor(Math.random() * 20) + 5,
-            processing: Math.floor(Math.random() * 15) + 3,
-            readyToShip: Math.floor(Math.random() * 10) + 2,
-            delivered: Math.floor(Math.random() * 50) + 20
-          },
-          departmentPerformance: {
-            finance: Math.floor(Math.random() * 30) + 70,
-            warehouse: Math.floor(Math.random() * 25) + 75,
-            logistics: Math.floor(Math.random() * 20) + 80
-          },
-          criticalInventory: [
-            { name: 'Solvent 402', stock: 15, status: 'low' },
-            { name: 'NPK Fertilizer', stock: 5, status: 'critical' },
-            { name: 'Paint Thinner', stock: 8, status: 'low' }
-          ]
-        }
-      };
-
-      console.log('📊 [DASHBOARD] Dashboard data prepared');
-      
-      res.json({
-        success: true,
-        data: dashboardData
-      });
-    } catch (error) {
-      console.error('📊 [DASHBOARD] Error fetching dashboard data:', error);
-      res.status(500).json({
-        success: false,
-        message: 'خطا در دریافت داده‌های داشبورد'
-      });
-    }
-  });
-
-  // Get system health data
-  app.get("/api/management/system-health", requireAuth, async (req, res) => {
-    try {
-      console.log('🔧 [SYSTEM] Fetching system health data');
-      
-      const systemHealth = {
-        server: {
-          cpu: Math.floor(Math.random() * 40) + 20, // 20-60%
-          memory: Math.floor(Math.random() * 30) + 40, // 40-70%
-          disk: Math.floor(Math.random() * 25) + 30 // 30-55%
-        },
-        services: {
-          database: 'online',
-          email: 'online',
-          sms: 'limited'
-        },
-        backup: {
-          lastBackup: new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString('fa-IR'),
-          status: 'success',
-          nextScheduled: new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString('fa-IR')
-        }
-      };
-
-      console.log('🔧 [SYSTEM] System health data prepared');
-      
-      res.json({
-        success: true,
-        data: systemHealth
-      });
-    } catch (error) {
-      console.error('🔧 [SYSTEM] Error fetching system health:', error);
-      res.status(500).json({
-        success: false,
-        message: 'خطا در دریافت وضعیت سیستم'
-      });
-    }
-  });
-
   // Get customer activities data  
   app.get("/api/management/customer-activities", requireAuth, async (req, res) => {
     try {
@@ -51621,14 +55179,12 @@ momtazchem.com
     try {
       const { provinceId } = req.query;
       
-      let query = db
+      const conditions = [eq(iraqiCities.isActive, true)];
+      if (provinceId) conditions.push(eq(iraqiCities.provinceId, parseInt(provinceId as string)));
+      const query = db
         .select()
         .from(iraqiCities)
-        .where(eq(iraqiCities.isActive, true));
-
-      if (provinceId) {
-        query = query.where(eq(iraqiCities.provinceId, parseInt(provinceId as string)));
-      }
+        .where(and(...conditions));
 
       const cities = await query.orderBy(iraqiCities.nameArabic);
 
@@ -54042,10 +57598,13 @@ momtazchem.com
     try {
       const { email } = req.params;
       const decodedEmail = decodeURIComponent(email);
+      const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit || '100'), 10) || 100, 1), 100);
+      const offset = Math.max(Number.parseInt(String(req.query.offset || '0'), 10) || 0, 0);
       console.log(`🔍 [SUPER ADMIN] Fetching customer orders for email: ${decodedEmail}`);
       
       const result = await customerPool.query(`
         SELECT 
+          COUNT(*) OVER()::int as "_filteredTotal",
           co.id, 
           co.order_number as "orderNumber", 
           co.guest_name as "customerName", 
@@ -54072,14 +57631,20 @@ momtazchem.com
           OR crm.email = $1
         )
         ORDER BY co.created_at DESC
-      `, [decodedEmail]);
+        LIMIT $2 OFFSET $3
+      `, [decodedEmail, limit + 1, offset]);
       
       console.log(`✅ [SUPER ADMIN] Found ${result.rows.length} orders for email ${decodedEmail}`);
+      const hasMore = result.rows.length > limit;
+      const rows = result.rows.slice(0, limit);
+      const total = rows[0]?._filteredTotal ?? 0;
+      const data = rows.map(({ _filteredTotal, ...order }) => order);
 
       res.json({
         success: true,
-        data: result.rows,
-        searchEmail: decodedEmail
+        data,
+        searchEmail: decodedEmail,
+        pagination: { limit, offset, total, hasMore, nextOffset: hasMore ? offset + limit : null },
       });
 
     } catch (error) {
@@ -54160,10 +57725,62 @@ momtazchem.com
   app.get('/api/super-admin/deletable-orders', requireSuperAdmin, async (req: Request, res: Response) => {
     try {
       console.log('🔍 [SUPER ADMIN] Starting enhanced deletable orders request');
-      
+
+      const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit || "100"), 10) || 100, 1), 100);
+      const offset = Math.max(Number.parseInt(String(req.query.offset || "0"), 10) || 0, 0);
+      const filters = {
+        q: String(req.query.q || "").trim(),
+        orderNumber: String(req.query.orderNumber || "").trim(),
+        customer: String(req.query.customer || "").trim(),
+        amount: String(req.query.amount || "").trim(),
+        status: String(req.query.status || "").trim(),
+        payment: String(req.query.payment || "").trim(),
+        date: String(req.query.date || "").trim(),
+      };
+      const values: unknown[] = [];
+      const where = [`(
+        co.order_number IS NOT NULL
+        OR (co.order_number IS NULL AND (
+          co.status IN ('cancelled', 'failed', 'pending')
+          OR co.payment_status IN ('failed', 'cancelled', 'pending')
+          OR co.created_at < NOW() - INTERVAL '1 hour'
+        ))
+      )`];
+      const addLikeFilter = (sql: string, value: string) => {
+        if (!value) return;
+        values.push(`%${value}%`);
+        where.push(`(${sql}) ILIKE $${values.length}`);
+      };
+      if (filters.q) {
+        values.push(`%${filters.q}%`);
+        const parameter = `$${values.length}`;
+        where.push(`(
+          COALESCE(co.order_number, '') ILIKE ${parameter}
+          OR COALESCE(co.guest_name, '') ILIKE ${parameter}
+          OR COALESCE(co.guest_email, '') ILIKE ${parameter}
+          OR COALESCE(c.first_name || ' ' || c.last_name, '') ILIKE ${parameter}
+          OR COALESCE(c.email, '') ILIKE ${parameter}
+          OR COALESCE(crm.first_name || ' ' || crm.last_name, '') ILIKE ${parameter}
+          OR COALESCE(crm.email, '') ILIKE ${parameter}
+        )`);
+      }
+      addLikeFilter(`COALESCE(co.order_number, '')`, filters.orderNumber);
+      addLikeFilter(`CONCAT_WS(' ', co.guest_name, co.guest_email, c.first_name, c.last_name, c.email, crm.first_name, crm.last_name, crm.email)`, filters.customer);
+      addLikeFilter(`COALESCE(co.total_amount::text, '')`, filters.amount);
+      addLikeFilter(`COALESCE(co.status, '')`, filters.status);
+      addLikeFilter(`CONCAT_WS(' ', co.payment_status, co.payment_method)`, filters.payment);
+      if (filters.date) {
+        values.push(filters.date);
+        where.push(`co.created_at::date = $${values.length}::date`);
+      }
+      values.push(limit + 1, offset);
+      const limitParameter = `$${values.length - 1}`;
+      const offsetParameter = `$${values.length}`;
+
       // Get orders with complete details only - filter out incomplete temporary orders
       const result = await customerPool.query(`
         SELECT 
+          COUNT(*) OVER()::int as "_filteredTotal",
           co.id, 
           co.order_number as "orderNumber", 
           co.guest_name as "customerName", 
@@ -54182,22 +57799,16 @@ momtazchem.com
         FROM customer_orders co
         LEFT JOIN customers c ON co.customer_id = c.id
         LEFT JOIN crm_customers crm ON co.customer_id = crm.id
-        WHERE (
-          -- Include orders with order numbers (completed/confirmed orders)
-          co.order_number IS NOT NULL 
-          OR 
-          -- Include failed/incomplete orders that should be cleaned up
-          (co.order_number IS NULL AND (
-            co.status IN ('cancelled', 'failed', 'pending') 
-            OR co.payment_status IN ('failed', 'cancelled', 'pending')
-            OR co.created_at < NOW() - INTERVAL '1 hour'
-          ))
-        )
+        WHERE ${where.join(" AND ")}
         ORDER BY co.created_at DESC 
-        LIMIT 100
-      `);
-      
-      const allOrders = result.rows;
+        LIMIT ${limitParameter}
+        OFFSET ${offsetParameter}
+      `, values);
+
+      const hasMore = result.rows.length > limit;
+      const pageRows = result.rows.slice(0, limit);
+      const total = pageRows[0]?._filteredTotal ?? offset;
+      const allOrders = pageRows.map(({ _filteredTotal, ...order }) => order);
       
       // Separate orders by type for better presentation
       const ordersWithNumbers = allOrders.filter(order => order.orderNumber);
@@ -54211,6 +57822,13 @@ momtazchem.com
       res.json({
         success: true,
         data: allOrders,
+        pagination: {
+          limit,
+          offset,
+          total,
+          hasMore,
+          nextOffset: hasMore ? offset + limit : null,
+        },
         summary: {
           total: allOrders.length,
           withOrderNumbers: ordersWithNumbers.length,
@@ -54418,9 +58036,9 @@ momtazchem.com
       
       console.log("✅ [INSTANT-SYNC] Sync completed:", syncResult);
       
-      res.json({
-        success: true,
-        message: "همگام‌سازی کاردکس با موفقیت انجام شد",
+      res.status(syncResult.success ? 200 : 500).json({
+        success: syncResult.success,
+        message: syncResult.message,
         result: syncResult
       });
       
@@ -54923,20 +58541,26 @@ momtazchem.com
   // =============================================================================
 
   // Get all email templates for shop admin
-  app.get('/api/shop/email-templates', async (req, res) => {
+  app.get('/api/shop/email-templates', requireAuth, async (req, res) => {
     try {
-      const { customerDb } = await import('./customer-db');
-      const { emailTemplates } = await import('../shared/customer-schema');
-      
-      const templates = await customerDb.select({
-        id: emailTemplates.id,
-        name: emailTemplates.name,
-        category: emailTemplates.category,
-        subject: emailTemplates.subject
-      })
-      .from(emailTemplates)
-      .where(eq(emailTemplates.isActive, true))
-      .orderBy(emailTemplates.createdAt);
+      const result = await pool.query(`
+        SELECT id, name, category, subject, html_content, text_content,
+               variables, language, is_default
+        FROM email_templates
+        WHERE is_active = true
+        ORDER BY created_at
+      `);
+      const templates = result.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        category: row.category,
+        subject: row.subject,
+        htmlContent: row.html_content,
+        textContent: row.text_content,
+        variables: row.variables,
+        language: row.language,
+        isDefault: row.is_default,
+      }));
 
       res.json({ success: true, data: templates });
     } catch (error) {
@@ -54946,12 +58570,10 @@ momtazchem.com
   });
 
   // Get all SMS templates for shop admin
-  app.get('/api/shop/sms-templates', async (req, res) => {
+  app.get('/api/shop/sms-templates', requireAuth, async (req, res) => {
     try {
-      const { customerPool } = await import('./customer-db');
-      
-      const result = await customerPool.query(`
-        SELECT id, template_number, template_name, category_id 
+      const result = await pool.query(`
+        SELECT id, template_number, template_name, template_content, variables, category_id
         FROM sms_templates 
         WHERE is_active = true 
         ORDER BY created_at
@@ -54961,7 +58583,9 @@ momtazchem.com
         id: row.id,
         templateNumber: row.template_number,
         templateName: row.template_name,
-        categoryId: row.category_id
+        categoryId: row.category_id,
+        templateContent: row.template_content,
+        variables: row.variables
       }));
 
       res.json({ success: true, data: templates });
@@ -54971,8 +58595,25 @@ momtazchem.com
     }
   });
 
+  // Sender metadata only: never return SMTP credentials.
+  app.get('/api/shop/email-senders', requireAuth, async (_req, res) => {
+    try {
+      const result = await pool.query(`SELECT c.category_key AS "categoryKey",
+        c.category_name AS "categoryName", s.from_email AS "fromEmail", s.from_name AS "fromName"
+        FROM email_categories c JOIN smtp_settings s ON s.category_id = c.id
+        WHERE c.is_active = true AND s.is_active = true
+          AND s.host IS NOT NULL AND s.username IS NOT NULL AND s.password IS NOT NULL
+          AND s.from_email ~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'
+        ORDER BY c.category_name`);
+      res.json({ success: true, data: result.rows });
+    } catch (error) {
+      console.error('Error fetching email senders:', error);
+      res.status(500).json({ success: false, message: 'خطا در بارگذاری فرستنده‌های ایمیل' });
+    }
+  });
+
   // Manual trigger for proforma reminders (admin only)
-  app.post('/api/admin/trigger-proforma-reminders', async (req, res) => {
+  app.post('/api/admin/trigger-proforma-reminders', requireAuth, async (req, res) => {
     try {
       console.log('🔔 [MANUAL TRIGGER] Starting proforma reminder processing...');
       
@@ -56031,7 +59672,7 @@ momtazchem.com
 
   /**
    * POST /api/admin/blog
-   * Create new blog post with both English and Arabic translations
+   * Create a blog post with one or more selected language translations
    * @access Admin only
    */
   app.post("/api/admin/blog", requireAdmin, async (req, res) => {
@@ -56039,44 +59680,18 @@ momtazchem.com
       const { post, translations } = req.body;
 
       // Validate post data
-      const validatedPost = insertBlogPostSchema.parse(post);
+      const validatedPost = parseNewBlogPost(post);
 
-      const supportedBlogLanguages = ["en", "ar", "tr", "fa"] as const;
-      if (!translations || translations.length !== supportedBlogLanguages.length) {
-        return res.status(400).json({
-          success: false,
-          message: "Translations are required for English, Arabic, Turkish, and Persian",
-        });
-      }
+      const validatedTranslations = blogTranslationsSchema.parse(translations);
 
-      const validatedTranslations = translations.map((t: any) =>
-        insertBlogPostTranslationSchema.parse(t)
-      );
-
-      const submittedLanguages = new Set(validatedTranslations.map((t: { language: string }) => t.language));
-      if (supportedBlogLanguages.some((language) => !submittedLanguages.has(language))) {
-        return res.status(400).json({
-          success: false,
-          message: "Translations are required for English, Arabic, Turkish, and Persian",
-        });
-      }
-
-      // Create blog post
-      const [newPost] = await db
-        .insert(blogPosts)
-        .values(validatedPost)
-        .returning();
-
-      // Create translations
-      const newTranslations = await db
-        .insert(blogPostTranslations)
-        .values(
-          validatedTranslations.map((t) => ({
-            ...t,
-            postId: newPost.id,
-          }))
-        )
-        .returning();
+      // Never leave a post without translations if one of the inserts fails.
+      const { newPost, newTranslations } = await db.transaction(async tx => {
+        const [newPost] = await tx.insert(blogPosts).values(validatedPost).returning();
+        const newTranslations = await tx.insert(blogPostTranslations).values(
+          validatedTranslations.map(t => ({ ...t, postId: newPost.id }))
+        ).returning();
+        return { newPost, newTranslations };
+      });
 
       res.json({
         success: true,
@@ -56087,7 +59702,7 @@ momtazchem.com
       });
     } catch (error: any) {
       console.error("Error creating blog post:", error);
-      res.status(500).json({
+      res.status(error instanceof z.ZodError ? 400 : 500).json({
         success: false,
         message: "خطا في إنشاء المقال / Error creating blog post",
         error: error.message,
@@ -56104,23 +59719,7 @@ momtazchem.com
     try {
       const postId = parseInt(req.params.id);
       const { post, translations } = req.body;
-      const supportedBlogLanguages = ["en", "ar", "tr", "fa"] as const;
-      if (!translations || translations.length !== supportedBlogLanguages.length) {
-        return res.status(400).json({
-          success: false,
-          message: "Translations are required for English, Arabic, Turkish, and Persian",
-        });
-      }
-      const validatedTranslations = translations.map((translation: any) =>
-        insertBlogPostTranslationSchema.parse(translation)
-      );
-      const submittedLanguages = new Set(validatedTranslations.map((translation: { language: string }) => translation.language));
-      if (supportedBlogLanguages.some((language) => !submittedLanguages.has(language))) {
-        return res.status(400).json({
-          success: false,
-          message: "Translations are required for English, Arabic, Turkish, and Persian",
-        });
-      }
+      const validatedTranslations = blogTranslationsSchema.parse(translations);
 
       // Check if post exists
       const existingPost = await db
@@ -56142,36 +59741,20 @@ momtazchem.com
         ...post,
         updatedAt: new Date(),
       };
-      // Convert publishDate string to Date if provided
-      if (post.publishDate) {
-        postData.publishDate = new Date(post.publishDate);
+      // The form sends a date string; Drizzle expects a Date or null.
+      if (Object.prototype.hasOwnProperty.call(post, "publishDate")) {
+        postData.publishDate = normalizeBlogPublishDate(post.publishDate);
       }
-      const [updatedPost] = await db
-        .update(blogPosts)
-        .set(postData)
-        .where(eq(blogPosts.id, postId))
-        .returning();
-
-      // Update translations if provided
-      let updatedTranslations = [];
-      if (translations && translations.length > 0) {
-        // Delete existing translations
-        await db
-          .delete(blogPostTranslations)
-          .where(eq(blogPostTranslations.postId, postId));
-
-        // Insert new translations
-        updatedTranslations = await db
-          .insert(blogPostTranslations)
-          .values(
-            validatedTranslations.map((t: Record<string, unknown>) => ({
-              ...t,
-              postId: postId,
-              updatedAt: new Date(),
-            }))
-          )
-          .returning();
-      }
+      // Deleting an omitted language and saving the rest is one atomic operation.
+      const { updatedPost, updatedTranslations } = await db.transaction(async tx => {
+        const [updatedPost] = await tx.update(blogPosts).set(postData)
+          .where(eq(blogPosts.id, postId)).returning();
+        await tx.delete(blogPostTranslations).where(eq(blogPostTranslations.postId, postId));
+        const updatedTranslations = await tx.insert(blogPostTranslations).values(
+          validatedTranslations.map(t => ({ ...t, postId, updatedAt: new Date() }))
+        ).returning();
+        return { updatedPost, updatedTranslations };
+      });
 
       res.json({
         success: true,
@@ -56182,7 +59765,7 @@ momtazchem.com
       });
     } catch (error: any) {
       console.error("Error updating blog post:", error);
-      res.status(500).json({
+      res.status(error instanceof z.ZodError ? 400 : 500).json({
         success: false,
         message: "خطا في تحديث المقال / Error updating blog post",
         error: error.message,
@@ -56257,6 +59840,18 @@ momtazchem.com
       const newStatus = currentStatus === "published" ? "draft" : "published";
       const publishDate = newStatus === "published" ? new Date() : null;
 
+      if (newStatus === "published") {
+        const translations = await db.select().from(blogPostTranslations)
+          .where(eq(blogPostTranslations.postId, postId));
+        const validation = blogTranslationsSchema.safeParse(translations);
+        if (!validation.success) {
+          return res.status(400).json({
+            success: false,
+            message: "حداقل یک زبان کامل برای انتشار لازم است / At least one complete language is required to publish",
+          });
+        }
+      }
+
       const [updatedPost] = await db
         .update(blogPosts)
         .set({
@@ -56312,9 +59907,13 @@ momtazchem.com
         });
       }
 
-      const publishedPostCondition = tag
+      const statusAndTagCondition = tag
         ? and(eq(blogPosts.status, "published"), sql`${tag} = ANY(${blogPosts.tags})`)
         : eq(blogPosts.status, "published");
+      const publishedPostCondition = and(
+        statusAndTagCondition,
+        sql`EXISTS (SELECT 1 FROM ${blogPostTranslations} bt WHERE bt.post_id = ${blogPosts.id})`
+      );
 
       const posts = await db
         .select()
@@ -56328,14 +59927,9 @@ momtazchem.com
         const translations = await db
           .select()
           .from(blogPostTranslations)
-          .where(and(
-            eq(blogPostTranslations.postId, post.id),
-            sql`${blogPostTranslations.language} IN (${language}, 'en')`
-          ));
-        const translation =
-          translations.find((item) => item.language === language) ||
-          translations.find((item) => item.language === "en");
-        return { ...post, translation };
+          .where(eq(blogPostTranslations.postId, post.id));
+        const translation = selectBlogTranslation(translations, language);
+        return { ...post, translation, availableLanguages: translations.map(item => item.language) };
       }));
 
       // Get total count
@@ -56385,8 +59979,7 @@ momtazchem.com
         });
       }
 
-      // Resolve the post from any known language slug, then return only the
-      // translation matching the currently selected site language.
+      // Resolve any retained slug, preferring the site language when available.
       const [slugTranslation] = await db
         .select()
         .from(blogPostTranslations)
@@ -56419,23 +60012,11 @@ momtazchem.com
         });
       }
 
-      const [requestedTranslation] = await db
+      const postTranslations = await db
         .select()
         .from(blogPostTranslations)
-        .where(and(
-          eq(blogPostTranslations.postId, post.id),
-          eq(blogPostTranslations.language, language as "en" | "ar" | "tr" | "fa")
-        ))
-        .limit(1);
-      const [englishTranslation] = requestedTranslation ? [] : await db
-        .select()
-        .from(blogPostTranslations)
-        .where(and(
-          eq(blogPostTranslations.postId, post.id),
-          eq(blogPostTranslations.language, "en")
-        ))
-        .limit(1);
-      const resolvedTranslation = requestedTranslation || englishTranslation;
+        .where(eq(blogPostTranslations.postId, post.id));
+      const resolvedTranslation = selectBlogTranslation(postTranslations, language);
       if (!resolvedTranslation) {
         return res.status(404).json({
           success: false,
@@ -56457,6 +60038,7 @@ momtazchem.com
           ...post,
           viewCount: (post.viewCount || 0) + 1,
           translation: resolvedTranslation,
+          availableLanguages: postTranslations.map(item => item.language),
         },
       });
     } catch (error: any) {
@@ -56527,19 +60109,14 @@ momtazchem.com
         const translations = await db
           .select()
           .from(blogPostTranslations)
-          .where(and(
-            eq(blogPostTranslations.postId, post.id),
-            sql`${blogPostTranslations.language} IN (${language}, 'en')`
-          ));
-        const translation =
-          translations.find((item) => item.language === language) ||
-          translations.find((item) => item.language === "en");
-        return { ...post, translation };
+          .where(eq(blogPostTranslations.postId, post.id));
+        const translation = selectBlogTranslation(translations, language);
+        return { ...post, translation, availableLanguages: translations.map(item => item.language) };
       }));
 
       res.json({
         success: true,
-        data: localizedRelatedPosts,
+        data: localizedRelatedPosts.filter(post => post.translation),
       });
     } catch (error: any) {
       console.error("Error fetching related blog posts:", error);
@@ -56961,15 +60538,6 @@ momtazchem.com
         console.log("[ACTIVITY] Payments query skipped:", (e as Error).message);
       }
       
-      // Add system status
-      logs.push({
-        id: Date.now(),
-        timestamp: now.toLocaleTimeString('en-US', { hour12: false }),
-        type: 'system',
-        action: 'بررسی سیستم',
-        details: 'سیستم در حال اجرا است'
-      });
-      
       // Sort by timestamp (newest first for display, but component will handle order)
       logs.sort((a, b) => a.id - b.id);
       
@@ -57209,9 +60777,9 @@ momtazchem.com
       const { key } = req.params;
       const { setting_value } = req.body;
       const { shopSettings } = await import('@shared/schema');
-      
+
       const result = await db.update(shopSettings)
-        .set({ 
+        .set({
           settingValue: setting_value,
           updatedAt: new Date()
         })
@@ -57408,8 +60976,12 @@ momtazchem.com
       
       // Validate amount is a valid positive number
       const amountNum = typeof amount === 'number' ? amount : parseFloat(String(amount).replace(/,/g, ''));
-      if (!vendorId || isNaN(amountNum) || amountNum <= 0) {
-        return res.status(400).json({ success: false, message: 'اطلاعات پرداخت نامعتبر است' });
+      if (!Number.isInteger(vendorId) || vendorId <= 0 || !Number.isFinite(amountNum) || amountNum <= 0) {
+        return res.status(400).json({
+          success: false,
+          code: 'INVALID_VENDOR_PAYMENT',
+          message: 'شناسه فروشنده یا مبلغ پرداخت نامعتبر است',
+        });
       }
 
       const { db } = await import('./db');
@@ -57434,6 +61006,9 @@ momtazchem.com
       if (amountNum > availableBalance) {
         return res.status(400).json({ 
           success: false, 
+          code: 'PAYMENT_EXCEEDS_VENDOR_BALANCE',
+          requestedAmount: amountNum,
+          availableBalance,
           message: `مبلغ پرداخت (${amountNum.toLocaleString()} IQD) بیشتر از موجودی قابل پرداخت (${availableBalance.toLocaleString()} IQD) است`
         });
       }
@@ -57631,7 +61206,23 @@ momtazchem.com
           sp.name,
           sp.sku,
           sp.barcode,
+          COALESCE(
+            NULLIF(sp.image_url, ''),
+            (
+              SELECT NULLIF(sibling.image_url, '')
+              FROM showcase_products sibling
+              WHERE sibling.is_active = true
+                AND LOWER(TRIM(sibling.name)) = LOWER(TRIM(sp.name))
+                AND NULLIF(sibling.image_url, '') IS NOT NULL
+              ORDER BY
+                CASE WHEN sibling.sku = sp.sku THEN 0 ELSE 1 END,
+                sibling.id
+              LIMIT 1
+            )
+          ) as "imageUrl",
+          sp.batch_number as "batchNumber",
           sp.stock_quantity as "stockQuantity",
+          COALESCE(sp.stock_unit, 'units') as "stockUnit",
           sp.min_stock_level as "minStockLevel",
           sp.max_stock_level as "maxStockLevel",
           COALESCE(sp.low_stock_threshold, sp.min_stock_level, 0) as "lowStockThreshold",

@@ -14,6 +14,14 @@ import { ArrowLeft, Upload, Image, Type, Globe, Palette, Save, RefreshCw, Trash2
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { translateContentManagement } from "./content-management-translations";
+import {
+  normalizeSiteLanguageSettings,
+  siteLanguages,
+  type SiteLanguage,
+  type SiteLanguageSettings,
+} from "@shared/site-language-settings";
 
 interface ContentItem {
   id: number;
@@ -93,6 +101,10 @@ export default function ContentManagement() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  // This is the interface language. selectedLanguage below intentionally
+  // remains the language of the content being edited.
+  const { language: interfaceLanguage, direction } = useLanguage();
+  const tx = (value: string) => translateContentManagement(interfaceLanguage, value);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ar' | 'ku' | 'tr' | 'fa'>('en');
   const [selectedSection, setSelectedSection] = useState<string>('product_display');
@@ -225,14 +237,14 @@ export default function ContentManagement() {
       return response.json();
     },
     onSuccess: (data, variables) => {
-      toast({ title: "تصویر آپلود شد", description: "تصویر با موفقیت در S3 ذخیره و لینک آن به‌روز شد." });
+      toast({ title: tx("Image uploaded"), description: tx("Image was saved to S3 and its link was updated.") });
       setCategoryDrafts(prev => ({ ...prev, [variables.id]: { ...prev[variables.id], imageUrl: data.url } }));
       refetchHomepageCategories();
       queryClient.invalidateQueries({ queryKey: ['/api/public/categories'] });
       setCategoryImageUploading(null);
     },
     onError: (error: Error) => {
-      toast({ title: "خطا در آپلود", description: error.message, variant: "destructive" });
+      toast({ title: tx("Upload error"), description: error.message, variant: "destructive" });
       setCategoryImageUploading(null);
     }
   });
@@ -245,12 +257,12 @@ export default function ContentManagement() {
       });
     },
     onSuccess: () => {
-      toast({ title: "کتگوری به‌روزرسانی شد", description: "تغییرات با موفقیت ذخیره شد." });
+      toast({ title: tx("Category updated"), description: tx("Changes saved successfully.") });
       refetchHomepageCategories();
       queryClient.invalidateQueries({ queryKey: ['/api/public/categories'] });
     },
     onError: () => {
-      toast({ title: "خطا", description: "ذخیره‌سازی انجام نشد.", variant: "destructive" });
+      toast({ title: tx("Error"), description: tx("Changes could not be saved."), variant: "destructive" });
     }
   });
 
@@ -267,8 +279,8 @@ export default function ContentManagement() {
     },
     onSuccess: () => {
       toast({
-        title: "محتوا به‌روزرسانی شد",
-        description: "تغییرات محتوا با موفقیت ذخیره شد."
+        title: tx("Content updated"),
+        description: tx("Content changes saved successfully.")
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/content'] });
     }
@@ -284,8 +296,8 @@ export default function ContentManagement() {
     },
     onSuccess: () => {
       toast({
-        title: "محتوا ایجاد شد",
-        description: "محتوای جدید با موفقیت ایجاد شد."
+        title: tx("Content created"),
+        description: tx("New content created successfully.")
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/content'] });
     }
@@ -303,8 +315,8 @@ export default function ContentManagement() {
     },
     onSuccess: () => {
       toast({
-        title: "تصویر آپلود شد",
-        description: "تصویر با موفقیت آپلود شد."
+        title: tx("Image uploaded"),
+        description: tx("Image uploaded successfully.")
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/content/images'] });
       if (fileInputRef.current) {
@@ -323,16 +335,16 @@ export default function ContentManagement() {
     },
     onSuccess: () => {
       toast({ 
-        title: "تصویر حذف شد",
-        description: "تصویر با موفقیت حذف شد."
+        title: tx("Image deleted"),
+        description: tx("Image deleted successfully.")
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/content/images'] });
     },
     onError: () => {
       toast({ 
-        title: "خطا در حذف تصویر", 
+        title: tx("Image deletion error"), 
         variant: "destructive",
-        description: "تصویر حذف نشد. لطفاً دوباره تلاش کنید."
+        description: tx("Image could not be deleted. Please try again.")
       });
     }
   });
@@ -350,15 +362,15 @@ export default function ContentManagement() {
     },
     onSuccess: () => {
       toast({
-        title: "محصولات کتگوری به‌روزرسانی شد",
-        description: "اختصاص محصولات با موفقیت ذخیره شد."
+        title: tx("Category products updated"),
+        description: tx("Product assignments saved successfully.")
       });
       queryClient.invalidateQueries({ queryKey: ['/api/content-management/category-products'] });
     },
     onError: () => {
       toast({
-        title: "خطا در به‌روزرسانی",
-        description: "خطا در ذخیره اختصاص محصولات.",
+        title: tx("Update error"),
+        description: tx("Could not save product assignments."),
         variant: "destructive"
       });
     }
@@ -374,8 +386,8 @@ export default function ContentManagement() {
     },
     onSuccess: () => {
       toast({
-        title: "Tawk.to Settings Updated",
-        description: "Live chat settings saved successfully."
+        title: tx("Tawk.to settings updated"),
+        description: tx("Live chat settings saved successfully.")
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/tawk-support'] });
       queryClient.invalidateQueries({ queryKey: ['/api/tawk-support'] });
@@ -387,8 +399,8 @@ export default function ContentManagement() {
     },
     onError: () => {
       toast({
-        title: "Update Failed",
-        description: "Failed to save Tawk.to settings.",
+        title: tx("Update failed"),
+        description: tx("Failed to save Tawk.to settings."),
         variant: "destructive"
       });
     }
@@ -400,8 +412,8 @@ export default function ContentManagement() {
 
     if (!file.type.startsWith('image/')) {
       toast({ 
-        title: "فایل غیرمجاز", 
-        description: "لطفاً یک فایل تصویر انتخاب کنید",
+        title: tx("Invalid file"), 
+        description: tx("Please select an image file."),
         variant: "destructive" 
       });
       return;
@@ -459,7 +471,7 @@ export default function ContentManagement() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div dir={direction} className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -471,15 +483,15 @@ export default function ContentManagement() {
                 className="hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Site Management
+                {tx("Back to Site Management")}
               </Button>
             )}
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Content Management
+                {tx("Content Management")}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Manage website content, images, and multilingual text
+                {tx("Manage website content, images, and multilingual text")}
               </p>
             </div>
           </div>
@@ -522,43 +534,43 @@ export default function ContentManagement() {
           <TabsList className="flex flex-wrap w-full h-auto gap-1 p-1">
             <TabsTrigger value="content" className="flex items-center gap-2">
               <Type className="w-4 h-4" />
-              Text Content
+              {tx("Text Content")}
             </TabsTrigger>
             <TabsTrigger value="settings-control" className="flex items-center gap-2">
               <Switch className="w-4 h-4" />
-              کنترل تنظیمات
+              {tx("Settings Control")}
             </TabsTrigger>
             <TabsTrigger value="homepage-categories" className="flex items-center gap-2">
               <Edit3 className="w-4 h-4" />
-              کتگوری‌های صفحه اصلی
+              {tx("Homepage Categories")}
             </TabsTrigger>
             <TabsTrigger value="products-display" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
-              نمایش محصولات
+              {tx("Products Display")}
             </TabsTrigger>
             <TabsTrigger value="category-products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
-              محصولات کتگوری
+              {tx("Category Products")}
             </TabsTrigger>
             <TabsTrigger value="images" className="flex items-center gap-2">
               <Image className="w-4 h-4" />
-              Images
+              {tx("Images")}
             </TabsTrigger>
             <TabsTrigger value="translations" className="flex items-center gap-2">
               <Globe className="w-4 h-4" />
-              Translations
+              {tx("Translations")}
             </TabsTrigger>
             <TabsTrigger value="theme" className="flex items-center gap-2">
               <Palette className="w-4 h-4" />
-              Theme Settings
+              {tx("Theme Settings")}
             </TabsTrigger>
             <TabsTrigger value="tawk-support" className="flex items-center gap-2">
               <MessageCircle className="w-4 h-4" />
-              Live Chat
+              {tx("Live Chat")}
             </TabsTrigger>
             <TabsTrigger value="language-settings" className="flex items-center gap-2">
               <Globe className="w-4 h-4" />
-              زبان‌های سایت
+              {tx("Site Languages")}
             </TabsTrigger>
           </TabsList>
 
@@ -568,7 +580,7 @@ export default function ContentManagement() {
               {loadingContent ? (
                 <div className="flex items-center justify-center p-8">
                   <RefreshCw className="w-6 h-6 animate-spin" />
-                  <span className="ml-2">Loading content...</span>
+                  <span className="ml-2">{tx("Loading content...")}</span>
                 </div>
               ) : (
                 <>
@@ -584,12 +596,13 @@ export default function ContentManagement() {
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant={item.isActive ? "default" : "secondary"}>
-                              {item.isActive ? "Active" : "Inactive"}
+                              {item.isActive ? tx("Active") : tx("Inactive")}
                             </Badge>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleContentEdit(item)}
+                              aria-label={tx("Edit")}
                             >
                               <Edit3 className="w-4 h-4" />
                             </Button>
@@ -616,21 +629,21 @@ export default function ContentManagement() {
                                       isActive: checked
                                     })}
                                   />
-                                  <Label>Active</Label>
+                                  <Label>{tx("Active")}</Label>
                                 </div>
                                 <div className="flex gap-2">
                                   <Button
                                     variant="outline"
                                     onClick={() => setEditingContent(null)}
                                   >
-                                    Cancel
+                                    {tx("Cancel")}
                                   </Button>
                                   <Button
                                     onClick={handleContentSave}
                                     disabled={updateContentMutation.isPending}
                                   >
                                     <Save className="w-4 h-4 mr-2" />
-                                    Save Changes
+                                    {tx("Save Changes")}
                                   </Button>
                                 </div>
                               </div>
@@ -652,7 +665,7 @@ export default function ContentManagement() {
                     <Card>
                       <CardContent className="text-center py-8">
                         <Type className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                        <p className="text-gray-500">No content found for this section and language</p>
+                        <p className="text-gray-500">{tx("No content found for this section and language")}</p>
                         <p className="text-sm text-gray-400 mt-2">
                           Content will be automatically created when you update text in the website interface
                         </p>
@@ -672,23 +685,23 @@ export default function ContentManagement() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-orange-800">
                     <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                    کنترل بنر تخفیف
+                    {tx("Discount Banner Control")}
                   </CardTitle>
                   <CardDescription>
-                    فعال/غیرفعال کردن بنر تخفیف در صفحه اصلی وب‌سایت
+                    {tx("Enable or disable the discount banner on the homepage")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {(updateContentMutation.isPending || createContentMutation.isPending) && (
                     <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-md">
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      در حال ذخیره تغییرات...
+                      {tx("Saving changes...")}
                     </div>
                   )}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-medium text-gray-900">وضعیت بنر تخفیف</h4>
-                      <p className="text-sm text-gray-600">نمایش بنر تخفیف در بالای صفحه</p>
+                      <h4 className="font-medium text-gray-900">{tx("Discount banner status")}</h4>
+                      <p className="text-sm text-gray-600">{tx("Show the discount banner at the top of the page")}</p>
                     </div>
                     <Switch
                       checked={contentItems?.find((item: ContentItem) => item.key === 'discount_banner_enabled')?.isActive || false}
@@ -719,9 +732,9 @@ export default function ContentManagement() {
                   </div>
                   
                   <div className="space-y-3">
-                    <Label>متن بنر تخفیف</Label>
+                    <Label>{tx("Discount banner text")}</Label>
                     <Textarea
-                      placeholder="متن بنر تخفیف را وارد کنید..."
+                      placeholder={tx("Enter discount banner text...")}
                       value={contentItems?.find((item: ContentItem) => item.key === 'discount_banner_text')?.content || ''}
                       disabled={updateContentMutation.isPending || createContentMutation.isPending}
                       onChange={(e) => {
@@ -757,23 +770,23 @@ export default function ContentManagement() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-blue-800">
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    کنترل تنظیمات AI
+                    {tx("AI Settings Control")}
                   </CardTitle>
                   <CardDescription>
-                    فعال/غیرفعال کردن ویژگی‌های هوش مصنوعی
+                    {tx("Enable or disable artificial intelligence features")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {(updateContentMutation.isPending || createContentMutation.isPending) && (
                     <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded-md">
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      در حال ذخیره تغییرات...
+                      {tx("Saving changes...")}
                     </div>
                   )}
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-medium text-gray-900">وضعیت AI</h4>
-                      <p className="text-sm text-gray-600">فعال‌سازی قابلیت‌های هوش مصنوعی</p>
+                      <h4 className="font-medium text-gray-900">{tx("AI status")}</h4>
+                      <p className="text-sm text-gray-600">{tx("Enable artificial intelligence features")}</p>
                     </div>
                     <div>
                       <Switch
@@ -806,9 +819,9 @@ export default function ContentManagement() {
                   </div>
                   
                   <div className="space-y-3">
-                    <Label>پیام AI</Label>
+                    <Label>{tx("AI message")}</Label>
                     <Textarea
-                      placeholder="پیام یا توضیح AI را وارد کنید..."
+                      placeholder={tx("Enter an AI message or description...")}
                       value={contentItems?.find((item: ContentItem) => item.key === 'ai_message')?.content || ''}
                       disabled={updateContentMutation.isPending || createContentMutation.isPending}
                       onChange={(e) => {
@@ -838,7 +851,7 @@ export default function ContentManagement() {
                   </div>
                   
                   <div className="space-y-3">
-                    <Label>API کلید OpenAI</Label>
+                    <Label>{tx("OpenAI API key")}</Label>
                     <Input
                       type="password"
                       placeholder="OpenAI API Key..."
@@ -881,16 +894,16 @@ export default function ContentManagement() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-purple-800">
                     <Package className="w-5 h-5" />
-                    مدیریت نمایش محصولات در دسته‌بندی‌ها
+                    {tx("Product display by category")}
                   </CardTitle>
                   <CardDescription>
-                    تنظیم نمایش تصادفی محصولات در صفحات دسته‌بندی
+                    {tx("Configure random product display on category pages")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Category Selector */}
                   <div className="space-y-3">
-                    <Label>انتخاب دسته‌بندی</Label>
+                    <Label>{tx("Select category")}</Label>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                       <SelectTrigger className="w-full">
                         <SelectValue />
@@ -899,37 +912,37 @@ export default function ContentManagement() {
                         <SelectItem value="agricultural-fertilizers">
                           <div className="flex items-center gap-2">
                             <span>🌾</span>
-                            <span>کودهای کشاورزی (Agricultural Fertilizers)</span>
+                            <span>{tx("Agricultural Fertilizers")}</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="industrial-chemicals">
                           <div className="flex items-center gap-2">
                             <span>⚗️</span>
-                            <span>مواد شیمیایی صنعتی (Industrial Chemicals)</span>
+                            <span>{tx("Industrial Chemicals")}</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="paint-solvents">
                           <div className="flex items-center gap-2">
                             <span>🎨</span>
-                            <span>حلال‌های رنگ (Paint Solvents)</span>
+                            <span>{tx("Paint Solvents")}</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="fuel-additives">
                           <div className="flex items-center gap-2">
                             <span>⛽</span>
-                            <span>افزودنی‌های سوخت (Fuel Additives)</span>
+                            <span>{tx("Fuel Additives")}</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="water-treatment">
                           <div className="flex items-center gap-2">
                             <span>💧</span>
-                            <span>تصفیه آب (Water Treatment)</span>
+                            <span>{tx("Water Treatment")}</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="other">
                           <div className="flex items-center gap-2">
                             <span>📦</span>
-                            <span>سایر محصولات (Other Products)</span>
+                            <span>{tx("Other Products")}</span>
                           </div>
                         </SelectItem>
                       </SelectContent>
@@ -940,8 +953,8 @@ export default function ContentManagement() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="flex items-center justify-between p-4 bg-white rounded-lg border">
                       <div>
-                        <h4 className="font-medium text-gray-900">نمایش تصادفی فعال</h4>
-                        <p className="text-sm text-gray-600">نمایش محصولات به صورت تصادفی در این دسته‌بندی</p>
+                        <h4 className="font-medium text-gray-900">{tx("Random display enabled")}</h4>
+                        <p className="text-sm text-gray-600">{tx("Display products randomly in this category")}</p>
                       </div>
                       <Switch
                         checked={(() => {
@@ -996,7 +1009,7 @@ export default function ContentManagement() {
                     </div>
 
                     <div className="space-y-3">
-                      <Label>تعداد محصولات نمایشی</Label>
+                      <Label>{tx("Display product count")}</Label>
                       <Select
                         value={(() => {
                           const adminItem = contentItems?.find((item: ContentItem) => item.key === `max_display_${selectedCategory}`);
@@ -1030,12 +1043,12 @@ export default function ContentManagement() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="1">1 محصول</SelectItem>
-                          <SelectItem value="2">2 محصول</SelectItem>
-                          <SelectItem value="3">3 محصول</SelectItem>
-                          <SelectItem value="4">4 محصول</SelectItem>
-                          <SelectItem value="5">5 محصول</SelectItem>
-                          <SelectItem value="6">6 محصول</SelectItem>
+                          <SelectItem value="1">1 {tx("product")}</SelectItem>
+                          <SelectItem value="2">2 {tx("product")}</SelectItem>
+                          <SelectItem value="3">3 {tx("product")}</SelectItem>
+                          <SelectItem value="4">4 {tx("product")}</SelectItem>
+                          <SelectItem value="5">5 {tx("product")}</SelectItem>
+                          <SelectItem value="6">6 {tx("product")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1048,17 +1061,17 @@ export default function ContentManagement() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="w-5 h-5" />
-                    محصولات موجود در دسته‌بندی {selectedCategory}
+                    {tx("Products available in category")} {selectedCategory}
                   </CardTitle>
                   <CardDescription>
-                    {categoryProducts?.length || 0} محصول در این دسته‌بندی موجود است
+                    {categoryProducts?.length || 0} {tx("products available in this category")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {loadingProducts ? (
                     <div className="flex items-center justify-center p-8">
                       <RefreshCw className="w-6 h-6 animate-spin" />
-                      <span className="ml-2">در حال بارگذاری محصولات...</span>
+                      <span className="ml-2">{tx("Loading products...")}</span>
                     </div>
                   ) : categoryProducts && categoryProducts.length > 0 ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1088,8 +1101,8 @@ export default function ContentManagement() {
                               variant={product.inventoryStatus === 'in_stock' ? 'default' : 'secondary'}
                               className="text-xs"
                             >
-                              {product.inventoryStatus === 'in_stock' ? '✅ موجود' : 
-                               product.inventoryStatus === 'low_stock' ? '⚠️ کم' : '❌ ناموجود'}
+                              {product.inventoryStatus === 'in_stock' ? `✅ ${tx("In stock")}` : 
+                               product.inventoryStatus === 'low_stock' ? `⚠️ ${tx("Low stock")}` : `❌ ${tx("Out of stock")}`}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
                               ID: {product.id}
@@ -1101,9 +1114,9 @@ export default function ContentManagement() {
                   ) : (
                     <div className="text-center py-8">
                       <Package className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                      <p className="text-gray-500">هیچ محصولی در این دسته‌بندی یافت نشد</p>
+                      <p className="text-gray-500">{tx("No products found in this category")}</p>
                       <p className="text-sm text-gray-400 mt-2">
-                        ابتدا محصولاتی را به این دسته‌بندی اضافه کنید
+                        {tx("Add products to this category first")}
                       </p>
                     </div>
                   )}
@@ -1116,10 +1129,10 @@ export default function ContentManagement() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-green-800">
                       <Eye className="w-5 h-5" />
-                      پیش‌نمایش نمایش تصادفی
+                      {tx("Random display preview")}
                     </CardTitle>
                     <CardDescription>
-                      مثال از نحوه نمایش محصولات در صفحه دسته‌بندی
+                      {tx("Example of how products appear on a category page")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -1220,11 +1233,11 @@ export default function ContentManagement() {
                       {/* Available Products Section */}
                       <div className="space-y-4">
                         <div>
-                          <Label className="text-sm font-medium">محصولات موجود در فروشگاه برای انتخاب</Label>
+                          <Label className="text-sm font-medium">{tx("Available store products")}</Label>
                           {loadingAvailableProducts ? (
                             <div className="flex items-center justify-center py-4">
                               <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                              در حال بارگیری...
+                              {tx("Loading...")}
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-2 max-h-60 overflow-y-auto border rounded p-3 bg-gray-50">
@@ -1269,9 +1282,9 @@ export default function ContentManagement() {
                                           </div>
                                           <div className="ml-2">
                                             {isSelected ? (
-                                              <Badge className="text-xs bg-blue-600">انتخاب شده</Badge>
+                                              <Badge className="text-xs bg-blue-600">{tx("Selected")}</Badge>
                                             ) : (
-                                              <Badge variant="outline" className="text-xs">انتخاب</Badge>
+                                              <Badge variant="outline" className="text-xs">{tx("Select")}</Badge>
                                             )}
                                           </div>
                                         </div>
@@ -1280,7 +1293,7 @@ export default function ContentManagement() {
                                   })
                               ) : (
                                 <div className="col-span-full text-center py-4 text-gray-500">
-                                  محصولی برای این کتگوری یافت نشد
+                                  {tx("No products found in this category")}
                                 </div>
                               )}
                             </div>
@@ -1290,7 +1303,7 @@ export default function ContentManagement() {
                         {/* Selected Products Preview */}
                         {selectedProductIds.length > 0 && (
                           <div>
-                            <Label className="text-sm font-medium text-green-700">محصولات انتخاب شده ({selectedProductIds.length})</Label>
+                            <Label className="text-sm font-medium text-green-700">{tx("Selected products")} ({selectedProductIds.length})</Label>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2 p-3 bg-green-50 border border-green-200 rounded">
                               {selectedProductIds.map((productId: number) => {
                                 const product = availableProducts?.find((p: any) => p.id === productId);
@@ -1336,12 +1349,12 @@ export default function ContentManagement() {
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="pt-6">
                 <div className="space-y-2 text-sm text-blue-800">
-                  <h4 className="font-medium">نحوه استفاده:</h4>
+                  <h4 className="font-medium">{tx("How to use:")}</h4>
                   <ul className="list-disc list-inside space-y-1 text-blue-700">
-                    <li>محصولات مورد نظر را از فروشگاه برای هر کتگوری انتخاب کنید</li>
-                    <li>تنظیمات به صورت خودکار ذخیره می‌شوند</li>
-                    <li>محصولات انتخاب شده در صفحات کتگوری نمایش داده خواهند شد</li>
-                    <li>برای غیرفعال کردن نمایش محصولات، از سوئیچ استفاده کنید</li>
+                    <li>{tx("Select products from the store for each category")}</li>
+                    <li>{tx("Settings are saved automatically")}</li>
+                    <li>{tx("Selected products will appear on category pages")}</li>
+                    <li>{tx("Use the switch to disable product display")}</li>
                   </ul>
                 </div>
               </CardContent>
@@ -1354,10 +1367,10 @@ export default function ContentManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Upload className="w-5 h-5" />
-                  Upload New Image
+                  {tx("Upload New Image")}
                 </CardTitle>
                 <CardDescription>
-                  Upload images for the {sections.find(s => s.value === selectedSection)?.label} section
+                  {tx("Upload images for the selected section")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1375,10 +1388,10 @@ export default function ContentManagement() {
                     className="mb-4"
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    {uploadImageMutation.isPending ? "Uploading..." : "Choose Image"}
+                    {uploadImageMutation.isPending ? tx("Uploading...") : tx("Choose Image")}
                   </Button>
                   <p className="text-sm text-gray-500">
-                    Supported formats: JPEG, PNG, WebP, SVG
+                    {tx("Supported formats: JPEG, PNG, WebP, SVG")}
                   </p>
                 </div>
               </CardContent>
@@ -1388,7 +1401,7 @@ export default function ContentManagement() {
             {loadingImages ? (
               <div className="flex items-center justify-center p-8">
                 <RefreshCw className="w-6 h-6 animate-spin" />
-                <span className="ml-2">Loading images...</span>
+                <span className="ml-2">{tx("Loading images...")}</span>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1403,7 +1416,7 @@ export default function ContentManagement() {
                         />
                         <div className="absolute top-2 right-2 flex gap-1">
                           <Badge variant={image.isActive ? "default" : "secondary"} className="text-xs">
-                            {image.isActive ? "Active" : "Inactive"}
+                            {image.isActive ? tx("Active") : tx("Inactive")}
                           </Badge>
                         </div>
                       </div>
@@ -1415,7 +1428,7 @@ export default function ContentManagement() {
                         <div className="flex justify-between mt-3">
                           <Button variant="outline" size="sm">
                             <Eye className="w-4 h-4 mr-1" />
-                            View
+                            {tx("View")}
                           </Button>
                           <Button
                             variant="outline"
@@ -1424,7 +1437,7 @@ export default function ContentManagement() {
                             disabled={deleteImageMutation.isPending}
                           >
                             <Trash2 className="w-4 h-4 mr-1" />
-                            Delete
+                            {tx("Remove")}
                           </Button>
                         </div>
                       </CardContent>
@@ -1435,9 +1448,9 @@ export default function ContentManagement() {
                     <Card>
                       <CardContent className="text-center py-8">
                         <Image className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                        <p className="text-gray-500">No images found for this section</p>
+                        <p className="text-gray-500">{tx("No images found for this section")}</p>
                         <p className="text-sm text-gray-400 mt-2">
-                          Upload images using the form above
+                          {tx("Upload images using the form above")}
                         </p>
                       </CardContent>
                     </Card>
@@ -1451,9 +1464,9 @@ export default function ContentManagement() {
           <TabsContent value="translations" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Translation Management</CardTitle>
+              <CardTitle>{tx("Translation Management")}</CardTitle>
                 <CardDescription>
-                  Manage multilingual content across all languages
+                  {tx("Manage multilingual content across all languages")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1487,7 +1500,7 @@ export default function ContentManagement() {
           <TabsContent value="theme" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Theme & Visual Settings</CardTitle>
+                <CardTitle>{tx("Theme & Visual Settings")}</CardTitle>
                 <CardDescription>
                   Customize the appearance and styling of your website
                 </CardDescription>
@@ -1495,28 +1508,28 @@ export default function ContentManagement() {
               <CardContent>
                 <div className="space-y-6">
                   <div>
-                    <Label className="text-base font-medium">Color Scheme</Label>
+                    <Label className="text-base font-medium">{tx("Color Scheme")}</Label>
                     <div className="grid grid-cols-3 gap-4 mt-2">
                       <div className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50">
                         <div className="w-full h-20 bg-gradient-to-r from-blue-500 to-cyan-500 rounded mb-2"></div>
-                        <p className="text-sm font-medium">Default Blue</p>
+                        <p className="text-sm font-medium">{tx("Default Blue")}</p>
                       </div>
                       <div className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50">
                         <div className="w-full h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded mb-2"></div>
-                        <p className="text-sm font-medium">Green Theme</p>
+                        <p className="text-sm font-medium">{tx("Green Theme")}</p>
                       </div>
                       <div className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50">
                         <div className="w-full h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded mb-2"></div>
-                        <p className="text-sm font-medium">Purple Theme</p>
+                        <p className="text-sm font-medium">{tx("Purple Theme")}</p>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <Label className="text-base font-medium">Typography</Label>
+                    <Label className="text-base font-medium">{tx("Typography")}</Label>
                     <div className="space-y-3 mt-2">
                       <div className="flex items-center justify-between">
-                        <span>Primary Font Family</span>
+                        <span>{tx("Primary Font Family")}</span>
                         <Select defaultValue="inter">
                           <SelectTrigger className="w-40">
                             <SelectValue />
@@ -1530,15 +1543,15 @@ export default function ContentManagement() {
                         </Select>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span>Font Size Scale</span>
+                        <span>{tx("Font Size Scale")}</span>
                         <Select defaultValue="medium">
                           <SelectTrigger className="w-40">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="small">Small</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="large">Large</SelectItem>
+                            <SelectItem value="small">{tx("Small")}</SelectItem>
+                            <SelectItem value="medium">{tx("Medium")}</SelectItem>
+                            <SelectItem value="large">{tx("Large")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -1546,27 +1559,27 @@ export default function ContentManagement() {
                   </div>
 
                   <div>
-                    <Label className="text-base font-medium">Layout Settings</Label>
+                    <Label className="text-base font-medium">{tx("Layout Settings")}</Label>
                     <div className="space-y-3 mt-2">
                       <div className="flex items-center justify-between">
-                        <span>Container Width</span>
+                        <span>{tx("Container Width")}</span>
                         <Select defaultValue="xl">
                           <SelectTrigger className="w-40">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="lg">Large (1024px)</SelectItem>
-                            <SelectItem value="xl">Extra Large (1280px)</SelectItem>
-                            <SelectItem value="2xl">2X Large (1536px)</SelectItem>
+                            <SelectItem value="lg">{tx("Large (1024px)")}</SelectItem>
+                            <SelectItem value="xl">{tx("Extra Large (1280px)")}</SelectItem>
+                            <SelectItem value="2xl">{tx("2X Large (1536px)")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span>Rounded Corners</span>
+                        <span>{tx("Rounded Corners")}</span>
                         <Switch />
                       </div>
                       <div className="flex items-center justify-between">
-                        <span>Drop Shadows</span>
+                        <span>{tx("Drop Shadows")}</span>
                         <Switch defaultChecked />
                       </div>
                     </div>
@@ -1581,7 +1594,7 @@ export default function ContentManagement() {
             {loadingTawk ? (
               <div className="flex items-center justify-center p-8">
                 <RefreshCw className="w-6 h-6 animate-spin" />
-                <span className="ml-2">Loading Tawk.to settings...</span>
+                <span className="ml-2">{tx("Loading Tawk.to settings...")}</span>
               </div>
             ) : (
               <Card>
@@ -1590,16 +1603,16 @@ export default function ContentManagement() {
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         <MessageCircle className="w-5 h-5" />
-                        Tawk.to Live Chat Configuration
+                        {tx("Tawk.to Live Chat Configuration")}
                       </CardTitle>
                       <CardDescription>
-                        Manage your Tawk.to live chat widget settings. Enable/disable the chat and configure the script code.
+                        {tx("Manage your Tawk.to live chat widget settings. Enable or disable chat and configure the script code.")}
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">Chat Status:</span>
+                      <span className="text-sm text-muted-foreground">{tx("Chat Status:")}</span>
                       <Badge variant={editingTawk?.isEnabled ? "default" : "secondary"}>
-                        {editingTawk?.isEnabled ? "Enabled" : "Disabled"}
+                        {editingTawk?.isEnabled ? tx("Enabled") : tx("Disabled")}
                       </Badge>
                     </div>
                   </div>
@@ -1611,10 +1624,10 @@ export default function ContentManagement() {
                       <div className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="space-y-1">
                           <Label htmlFor="tawk-enabled" className="text-base font-medium">
-                            Enable Live Chat
+                            {tx("Enable Live Chat")}
                           </Label>
                           <p className="text-sm text-muted-foreground">
-                            Turn on/off the Tawk.to chat widget on your website
+                            {tx("Turn the Tawk.to chat widget on or off on your website")}
                           </p>
                         </div>
                         <Switch
@@ -1630,10 +1643,10 @@ export default function ContentManagement() {
                       {/* Script Code Input */}
                       <div className="space-y-2">
                         <Label htmlFor="tawk-script" className="text-base font-medium">
-                          Tawk.to Script Code
+                          {tx("Tawk.to Script Code")}
                         </Label>
                         <p className="text-sm text-muted-foreground mb-2">
-                          Paste your complete Tawk.to script code here (including &lt;script&gt; tags)
+                          {tx("Paste your complete Tawk.to script code here (including script tags)")}
                         </p>
                         <Textarea
                           id="tawk-script"
@@ -1661,7 +1674,7 @@ s0.parentNode.insertBefore(s1,s0);
                       {editingTawk.propertyId && editingTawk.widgetId && (
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label className="text-sm font-medium">Property ID</Label>
+                            <Label className="text-sm font-medium">{tx("Property ID")}</Label>
                             <Input
                               value={editingTawk.propertyId}
                               readOnly
@@ -1670,7 +1683,7 @@ s0.parentNode.insertBefore(s1,s0);
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm font-medium">Widget ID</Label>
+                            <Label className="text-sm font-medium">{tx("Widget ID")}</Label>
                             <Input
                               value={editingTawk.widgetId}
                               readOnly
@@ -1684,10 +1697,10 @@ s0.parentNode.insertBefore(s1,s0);
                       {/* Notes */}
                       <div className="space-y-2">
                         <Label htmlFor="tawk-notes" className="text-base font-medium">
-                          Notes (Optional)
+                          {tx("Notes (Optional)")}
                         </Label>
                         <p className="text-sm text-muted-foreground mb-2">
-                          Add any notes or instructions for managing this integration
+                          {tx("Add notes or instructions for managing this integration")}
                         </p>
                         <Textarea
                           id="tawk-notes"
@@ -1718,12 +1731,12 @@ s0.parentNode.insertBefore(s1,s0);
                           {updateTawkMutation.isPending ? (
                             <>
                               <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                              Saving...
+                              {tx("Saving...")}
                             </>
                           ) : (
                             <>
                               <Save className="w-4 h-4 mr-2" />
-                              Save Settings
+                              {tx("Save Settings")}
                             </>
                           )}
                         </Button>
@@ -1732,14 +1745,14 @@ s0.parentNode.insertBefore(s1,s0);
                       {/* Information Box */}
                       <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                         <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-                          How to get your Tawk.to script:
+                          {tx("How to get your Tawk.to script:")}
                         </h4>
                         <ol className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-decimal list-inside">
-                          <li>Log in to your <a href="https://dashboard.tawk.to" target="_blank" rel="noopener noreferrer" className="underline">Tawk.to Dashboard</a></li>
-                          <li>Navigate to Administration &gt; Channels &gt; Chat Widget</li>
-                          <li>Copy the complete script code provided</li>
-                          <li>Paste it in the "Script Code" field above</li>
-                          <li>Enable the chat and save your settings</li>
+                          <li>{tx("Log in to your")} <a href="https://dashboard.tawk.to" target="_blank" rel="noopener noreferrer" className="underline">Tawk.to Dashboard</a></li>
+                          <li>{tx("Navigate to Administration > Channels > Chat Widget")}</li>
+                          <li>{tx("Copy the complete script code provided")}</li>
+                          <li>{tx('Paste it in the "Script Code" field above')}</li>
+                          <li>{tx("Enable the chat and save your settings")}</li>
                         </ol>
                       </div>
                     </>
@@ -1755,20 +1768,20 @@ s0.parentNode.insertBefore(s1,s0);
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Edit3 className="w-5 h-5" />
-                  ویرایش کتگوری‌های صفحه اصلی
+                  {tx("Edit Homepage Categories")}
                 </CardTitle>
                 <CardDescription>
-                  نام، توضیحات و تصویر هر کتگوری را که در بخش «پرتفولیوی محصولات» صفحه اصلی نمایش داده می‌شود ویرایش کنید.
+                  {tx("Edit the name, description, and image shown for each category in the homepage product portfolio.")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {loadingHomepageCategories ? (
                   <div className="flex items-center justify-center p-10">
                     <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
-                    <span className="mr-2 text-gray-500">در حال بارگذاری کتگوری‌ها...</span>
+                    <span className="mr-2 text-gray-500">{tx("Loading categories...")}</span>
                   </div>
                 ) : !homepageCategories || homepageCategories.length === 0 ? (
-                  <p className="text-center text-gray-400 py-10">هیچ کتگوری‌ای یافت نشد.</p>
+                  <p className="text-center text-gray-400 py-10">{tx("No categories found.")}</p>
                 ) : (
                   <div className="space-y-4">
                     {homepageCategories.map((cat) => {
@@ -1796,25 +1809,25 @@ s0.parentNode.insertBefore(s1,s0);
                                 {isEditing ? (
                                   <div className="space-y-3">
                                     <div>
-                                      <Label className="text-xs font-medium text-gray-600 mb-1 block">نام کتگوری</Label>
+                                      <Label className="text-xs font-medium text-gray-600 mb-1 block">{tx("Category name")}</Label>
                                       <Input
                                         value={currentName}
                                         onChange={(e) => setCategoryDrafts(prev => ({ ...prev, [cat.id]: { ...prev[cat.id], name: e.target.value } }))}
                                         className="h-8 text-sm"
-                                        placeholder="نام کتگوری"
+                                        placeholder={tx("Category name")}
                                       />
                                     </div>
                                     <div>
-                                      <Label className="text-xs font-medium text-gray-600 mb-1 block">توضیحات</Label>
+                                      <Label className="text-xs font-medium text-gray-600 mb-1 block">{tx("Description")}</Label>
                                       <Textarea
                                         value={currentDesc}
                                         onChange={(e) => setCategoryDrafts(prev => ({ ...prev, [cat.id]: { ...prev[cat.id], description: e.target.value } }))}
                                         className="text-sm min-h-[60px] resize-none"
-                                        placeholder="توضیح کوتاه درباره این کتگوری..."
+                                        placeholder={tx("Short description of this category...")}
                                       />
                                     </div>
                                     <div>
-                                      <Label className="text-xs font-medium text-gray-600 mb-1 block">تصویر کتگوری</Label>
+                                      <Label className="text-xs font-medium text-gray-600 mb-1 block">{tx("Category image")}</Label>
                                       {/* Hidden file input */}
                                       <input
                                         type="file"
@@ -1843,19 +1856,19 @@ s0.parentNode.insertBefore(s1,s0);
                                             onClick={() => categoryImageInputRefs.current[cat.id]?.click()}
                                           >
                                             {categoryImageUploading === cat.id ? (
-                                              <><RefreshCw className="w-3 h-3 ml-1 animate-spin" />در حال آپلود...</>
+                                              <><RefreshCw className="w-3 h-3 ml-1 animate-spin" />{tx("Uploading...")}</>
                                             ) : (
-                                              <><Upload className="w-3 h-3 ml-1" />آپلود تصویر جدید</>
+                                              <><Upload className="w-3 h-3 ml-1" />{tx("Upload new image")}</>
                                             )}
                                           </Button>
                                           {/* Dimension hint */}
                                           <div className="rounded-md bg-blue-50 border border-blue-100 px-3 py-2 flex items-start gap-2">
                                             <Image className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                                             <div className="text-xs text-blue-700 leading-relaxed">
-                                              <span className="font-semibold">ابعاد توصیه‌شده: ۸۰۰ × ۳۰۰ پیکسل</span>
-                                              <span className="text-blue-500"> (نسبت ۸:۳)</span>
+                                              <span className="font-semibold">{tx("Recommended dimensions: 800 × 300 pixels")}</span>
+                                              <span className="text-blue-500"> {tx("(8:3 ratio)")}</span>
                                               <br />
-                                              <span className="text-blue-500">فرمت: JPG، PNG یا WebP — حداکثر ۲MB</span>
+                                              <span className="text-blue-500">{tx("Format: JPG, PNG or WebP — maximum 2MB")}</span>
                                             </div>
                                           </div>
                                           {currentImage && (
@@ -1869,7 +1882,7 @@ s0.parentNode.insertBefore(s1,s0);
                                           return (
                                             <div className="flex-shrink-0 w-48">
                                               <p className="text-xs text-gray-400 mb-1 text-center">
-                                                {isCustom ? 'تصویر فعلی (S3)' : 'تصویر پیش‌فرض'}
+                                                {isCustom ? tx("Current image (S3)") : tx("Default image")}
                                               </p>
                                               <div className="w-48 rounded-lg overflow-hidden border shadow-sm" style={{ height: '72px' }}>
                                                 <img
@@ -1882,7 +1895,7 @@ s0.parentNode.insertBefore(s1,s0);
                                                 />
                                               </div>
                                               {isCustom && (
-                                                <p className="text-xs text-green-600 text-center mt-1">✓ تصویر سفارشی</p>
+                                                <p className="text-xs text-green-600 text-center mt-1">✓ {tx("Custom image")}</p>
                                               )}
                                             </div>
                                           );
@@ -1940,6 +1953,7 @@ s0.parentNode.insertBefore(s1,s0);
                                           variant="outline"
                                           onClick={() => setEditingCategory(cat)}
                                           className="h-7 px-2"
+                                          aria-label={tx("Edit")}
                                         >
                                           <Edit3 className="w-3 h-3 ml-1" />
                                           ویرایش
@@ -1947,7 +1961,7 @@ s0.parentNode.insertBefore(s1,s0);
                                       </div>
                                     </div>
                                     <p className="text-sm text-gray-500 line-clamp-2">
-                                      {cat.description || <span className="italic text-gray-400">توضیحاتی ثبت نشده</span>}
+                                      {cat.description || <span className="italic text-gray-400">{tx("No description provided")}</span>}
                                     </p>
                                     {cat.imageUrl && (
                                       <p className="text-xs text-blue-500 truncate mt-1" dir="ltr">{cat.imageUrl}</p>
@@ -1975,82 +1989,122 @@ s0.parentNode.insertBefore(s1,s0);
 }
 
 function LanguageSettingsTab() {
-  const { data: langData, isLoading } = useQuery({
+  const { language: interfaceLanguage, direction } = useLanguage();
+  const tx = (value: string) => translateContentManagement(interfaceLanguage, value);
+  const { data: langData, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['/api/public/language-settings'],
     staleTime: 0,
   });
 
-  const [settings, setSettings] = useState<Record<string, boolean>>({ en: true, ar: true, ku: true, tr: true, fa: true });
+  const [settings, setSettings] = useState<SiteLanguageSettings | null>(null);
 
   useEffect(() => {
-    if ((langData as any)?.data) {
-      setSettings((langData as any).data);
+    if (!settings && (langData as any)?.success === true && (langData as any)?.data) {
+      setSettings(normalizeSiteLanguageSettings((langData as any).data));
     }
-  }, [langData]);
+  }, [langData, settings]);
 
   const mutation = useMutation({
-    mutationFn: async (data: Record<string, boolean>) => {
+    mutationFn: async (data: SiteLanguageSettings): Promise<SiteLanguageSettings> => {
       const res = await fetch('/api/admin/language-settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(data),
       });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.message);
-      return json;
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success || !json?.data) {
+        throw new Error(json?.message || tx('Could not save language settings. Please try again.'));
+      }
+      return normalizeSiteLanguageSettings(json.data);
     },
-    onSuccess: () => {
+    onSuccess: (savedSettings) => {
+      setSettings(savedSettings);
       queryClient.invalidateQueries({ queryKey: ['/api/public/language-settings'] });
     },
   });
 
   const LANGUAGES = [
-    { code: 'en', name: 'English', nativeName: 'انگلیسی', flag: '🇬🇧' },
-    { code: 'ar', name: 'Arabic', nativeName: 'عربی', flag: '🇸🇦' },
-    { code: 'ku', name: 'Kurdish', nativeName: 'کوردی', flag: '🇮🇶' },
-    { code: 'tr', name: 'Turkish', nativeName: 'ترکی', flag: '🇹🇷' },
-    { code: 'fa', name: 'Persian', nativeName: 'فارسی', flag: '🇮🇷' },
-  ];
+    { code: 'en', name: 'English', nativeName: 'English', flag: 'EN' },
+    { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: 'AR' },
+    { code: 'ku', name: 'Kurdish', nativeName: 'کوردی', flag: 'KU' },
+    { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: 'TR' },
+    { code: 'fa', name: 'Persian', nativeName: 'فارسی', flag: 'FA' },
+  ] as const;
 
-  const enabledCount = Object.values(settings).filter(Boolean).length;
+  const enabledRuntimeLanguages = settings
+    ? siteLanguages.filter((code) => settings[code])
+    : [];
 
   const handleToggle = (code: string, checked: boolean) => {
-    if (!checked && enabledCount <= 1) return;
-    setSettings(prev => ({ ...prev, [code]: checked }));
+    if (!settings || mutation.isPending) return;
+    const next = { ...settings, [code]: checked };
+    const remainingRuntimeLanguages = siteLanguages.filter((language) => next[language]);
+    if (remainingRuntimeLanguages.length === 0) return;
+    if (code === settings.defaultLanguage && !checked) {
+      next.defaultLanguage = remainingRuntimeLanguages[0];
+    }
+    setSettings(next);
+    mutation.reset();
   };
 
   const handleSave = () => {
-    mutation.mutate(settings);
+    if (settings && !mutation.isPending) mutation.mutate(settings);
   };
 
-  if (isLoading) {
+  const hasSettingsData=(langData as any)?.success===true&&Boolean((langData as any)?.data);
+  if (isLoading || (!settings && (isFetching || hasSettingsData))) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+      <div dir={direction} className="space-y-4 rounded-lg border p-6" aria-busy="true">
+        <div className="h-6 w-48 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-72 max-w-full animate-pulse rounded bg-muted" />
+        <div className="h-16 animate-pulse rounded-lg bg-muted" />
+        <div className="h-16 animate-pulse rounded-lg bg-muted" />
       </div>
     );
   }
 
+  if (!settings || (langData && (langData as any).success !== true && !isError)) {
+    return (
+      <div dir={direction} className="rounded-lg border border-destructive/30 bg-destructive/5 p-6">
+        <p className="font-medium">{tx('Language settings could not be loaded.')}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {isError ? (error as Error)?.message : tx('The server returned an unexpected response.')}
+        </p>
+        <Button className="mt-4" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+          {isFetching ? tx('Loading...') : tx('Try again')}
+        </Button>
+      </div>
+    );
+  }
+
+  const editingDisabled = mutation.isPending;
+
   return (
-    <Card>
+    <Card dir={direction}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Globe className="w-5 h-5" />
-          مدیریت زبان‌های سایت
+          {tx('Site Language Settings')}
         </CardTitle>
         <CardDescription>
-          زبان‌هایی که می‌خواهید در منوی انتخاب زبان سایت نمایش داده شوند را فعال یا غیرفعال کنید. حداقل یک زبان باید فعال باشد.
+          {tx('Enable or disable languages shown in the site language menu. At least one language must remain enabled.')}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
+        {isError && (
+          <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            {tx('The latest language settings could not be refreshed. Your current edits are still available.')}
+          </p>
+        )}
         {LANGUAGES.map(lang => {
           const isEnabled = settings[lang.code] !== false;
-          const isLast = enabledCount === 1 && isEnabled;
+          const isLastRuntimeLanguage = siteLanguages.includes(lang.code as SiteLanguage)
+            && enabledRuntimeLanguages.length === 1 && isEnabled;
           return (
-            <div key={lang.code} className="flex items-center justify-between p-4 border rounded-lg">
+            <div key={lang.code} className="flex items-center justify-between gap-4 rounded-lg border p-4">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">{lang.flag}</span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-xs font-semibold tracking-wide text-muted-foreground">{lang.flag}</span>
                 <div>
                   <p className="font-medium">{lang.nativeName}</p>
                   <p className="text-sm text-gray-500">{lang.name}</p>
@@ -2058,27 +2112,91 @@ function LanguageSettingsTab() {
               </div>
               <div className="flex items-center gap-3">
                 <span className={`text-sm font-medium ${isEnabled ? 'text-green-600' : 'text-gray-400'}`}>
-                  {isEnabled ? 'فعال' : 'غیرفعال'}
+                  {isEnabled ? tx('Enabled') : tx('Disabled')}
                 </span>
                 <Switch
                   checked={isEnabled}
                   onCheckedChange={(checked) => handleToggle(lang.code, checked)}
-                  disabled={isLast}
+                  disabled={editingDisabled || isLastRuntimeLanguage}
+                  aria-label={`${tx('Enable language')}: ${lang.name}`}
                 />
               </div>
             </div>
           );
         })}
 
+        <section className="space-y-4 rounded-lg border border-border/80 bg-muted/30 p-4 sm:p-5">
+          <div>
+            <h3 className="font-semibold">{tx('First-visit language policy')}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {tx('Choose which language a visitor sees when they first arrive. Their saved manual language choice always takes priority on later visits.')}
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="initial-language-mode">{tx('Initial language method')}</Label>
+              <Select
+                value={settings.initialLanguageMode}
+                onValueChange={(value: 'ip' | 'fixed') => {
+                  setSettings((current) => current ? { ...current, initialLanguageMode: value } : current);
+                  mutation.reset();
+                }}
+                disabled={editingDisabled}
+              >
+                <SelectTrigger id="initial-language-mode">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ip">{tx('Use visitor country (IP)')}</SelectItem>
+                  <SelectItem value="fixed">{tx('Always use selected language')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {settings.initialLanguageMode === 'ip'
+                  ? tx('IP mode uses the visitor’s country for the first visit. If unavailable or that language is disabled, the selected language is used.')
+                  : tx('Fixed mode shows the selected language on a visitor’s first visit.')}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="initial-default-language">
+                {settings.initialLanguageMode === 'ip' ? tx('Fallback language') : tx('Selected initial language')}
+              </Label>
+              <Select
+                value={settings.defaultLanguage}
+                onValueChange={(value: SiteLanguage) => {
+                  setSettings((current) => current ? { ...current, defaultLanguage: value } : current);
+                  mutation.reset();
+                }}
+                disabled={editingDisabled || enabledRuntimeLanguages.length === 0}
+              >
+                <SelectTrigger id="initial-default-language">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGES.filter(({ code }) => siteLanguages.includes(code as SiteLanguage) && settings[code])
+                    .map(({ code, name, nativeName }) => (
+                      <SelectItem key={code} value={code}>{nativeName} · {name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {tx('This language is used when country detection cannot choose an enabled language, and as the fixed first-visit language.')}
+              </p>
+            </div>
+          </div>
+        </section>
+
         {mutation.isError && (
-          <p className="text-sm text-red-600 text-center">{(mutation.error as Error).message}</p>
+          <p role="alert" className="text-sm text-destructive text-center">
+            {(mutation.error as Error).message || tx('Could not save language settings. Please try again.')}
+          </p>
         )}
         {mutation.isSuccess && (
-          <p className="text-sm text-green-600 text-center">تنظیمات با موفقیت ذخیره شد</p>
+          <p role="status" className="text-sm text-green-700 text-center">{tx('Language settings saved successfully')}</p>
         )}
 
-        <Button onClick={handleSave} disabled={mutation.isPending} className="w-full mt-2">
-          {mutation.isPending ? <><RefreshCw className="w-4 h-4 animate-spin ml-2" />در حال ذخیره...</> : <><Save className="w-4 h-4 ml-2" />ذخیره تنظیمات</>}
+        <Button onClick={handleSave} disabled={editingDisabled} className="w-full mt-2">
+          {mutation.isPending ? <><RefreshCw className="w-4 h-4 animate-spin ml-2" />{tx('Saving...')}</> : <><Save className="w-4 h-4 ml-2" />{tx('Save Settings')}</>}
         </Button>
       </CardContent>
     </Card>

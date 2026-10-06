@@ -39,6 +39,9 @@ interface LinkItem {
 
 const Footer = () => {
   const { t, language } = useLanguage();
+  const { data: marketplaceSettings } = useQuery<{ vendorEntryVisible: boolean }>({
+    queryKey: ["/api/marketplace/display-settings"],
+  });
   const localizedFooterCopy = language === 'ar'
     ? {
         companyDescription: 'مزود رائد للحلول الكيميائية المتقدمة',
@@ -112,7 +115,20 @@ const Footer = () => {
   const productLinks = parseLinks(footerSettings?.productLinks);
   const companyLinks = parseLinks(footerSettings?.companyLinks);
   const supportLinks = parseLinks(footerSettings?.supportLinks);
-  const legalLinks = parseLinks(footerSettings?.legalLinks);
+  const configuredLegalLinks = parseLinks(footerSettings?.legalLinks);
+  const defaultLegalNames = language === 'fa'
+    ? { privacy: 'حریم خصوصی', terms: 'شرایط استفاده' }
+    : language === 'ar'
+      ? { privacy: 'سياسة الخصوصية', terms: 'شروط الخدمة' }
+      : language === 'tr'
+        ? { privacy: 'Gizlilik Politikası', terms: 'Hizmet Şartları' }
+        : { privacy: 'Privacy Policy', terms: 'Terms of Service' };
+  const legalLinks = configuredLegalLinks.length > 0
+    ? configuredLegalLinks
+    : [
+        { name: defaultLegalNames.privacy, href: '/privacy' },
+        { name: defaultLegalNames.terms, href: '/terms' },
+      ];
 
   // Social media configuration
   const socialMediaPlatforms = [
@@ -304,7 +320,7 @@ const Footer = () => {
           )}
 
           {/* Vendor Links - Static */}
-          <div>
+          {marketplaceSettings?.vendorEntryVisible !== false && <div>
             <h3 className="text-sm font-semibold mb-3">
               {language === 'fa' ? 'برای فروشندگان' : language === 'ar' ? 'للبائعين' : language === 'ku' ? 'بۆ فرۆشیاران' : language === 'tr' ? 'Satıcılar İçin' : 'For Vendors'}
             </h3>
@@ -324,7 +340,7 @@ const Footer = () => {
                 </Link>
               </li>
             </ul>
-          </div>
+          </div>}
         </div>
 
         {/* Compact Bottom Section */}

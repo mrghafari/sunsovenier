@@ -17,6 +17,7 @@ interface BankReceiptUploadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orderNumber: string;
+  orderFromProfile?: { orderNumber: string; totalAmount: string; receiptPath?: string | null };
   onSuccess?: () => void;
 }
 
@@ -147,6 +148,7 @@ export function BankReceiptUploadModal({
   open, 
   onOpenChange, 
   orderNumber,
+  orderFromProfile,
   onSuccess
 }: BankReceiptUploadModalProps) {
   const { toast } = useToast();
@@ -157,18 +159,19 @@ export function BankReceiptUploadModal({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [notes, setNotes] = useState("");
   const [receiptAmount, setReceiptAmount] = useState("");
-  const [securityStatus, setSecurityStatus] = useState<string>("");
+  const [securityValidated, setSecurityValidated] = useState(false);
 
   // Fetch order details
-  const { data: order, isLoading: isLoadingOrder } = useQuery({
+  const { data: fetchedOrder, isLoading: isLoadingOrder } = useQuery({
     queryKey: [`/api/customers/orders/${orderNumber}`],
     queryFn: async () => {
       const response = await apiRequest('/api/customers/orders', { method: 'GET' });
       const orders = response.orders || [];
       return orders.find((o: any) => o.orderNumber === orderNumber || o.id.toString() === orderNumber) || null;
     },
-    enabled: open && !!orderNumber,
+    enabled: open && !!orderNumber && orderFromProfile?.orderNumber !== orderNumber,
   });
+  const order = orderFromProfile?.orderNumber === orderNumber ? orderFromProfile : fetchedOrder;
 
   // Fetch company banking information
   const { data: companyInfo, isLoading: isLoadingCompanyInfo } = useQuery({
@@ -215,7 +218,7 @@ export function BankReceiptUploadModal({
       setUploadProgress(0);
       setNotes("");
       setReceiptAmount("");
-      setSecurityStatus("");
+      setSecurityValidated(false);
       
       // Refresh orders data
       queryClient.invalidateQueries({ queryKey: ['/api/customers/orders'] });
@@ -224,10 +227,10 @@ export function BankReceiptUploadModal({
       onSuccess?.();
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: () => {
       toast({
-        title: bt.uploadError,
-        description: error.message || bt.uploadErrorDesc,
+        title: bt.submitError,
+        description: bt.submitErrorDesc,
         variant: "destructive",
       });
       setUploadProgress(0);
@@ -238,11 +241,11 @@ export function BankReceiptUploadModal({
   const handleUploadComplete = (fileUrl: string) => {
     setUploadedFileUrl(fileUrl);
     setUploadProgress(100);
-    setSecurityStatus(bt.securityValidated);
+    setSecurityValidated(true);
   };
 
   // Handle secure upload
-  const handleSecureUpload = async () => {
+  const handleSecureUpload = () => {
     if (!uploadedFileUrl) {
       toast({
         title: bt.fileRequired,
@@ -271,20 +274,12 @@ export function BankReceiptUploadModal({
       return;
     }
 
-    try {
-      const secureObjectPath = uploadedFileUrl.split('?')[0];
-      await uploadMutation.mutateAsync({
-        receiptUrl: secureObjectPath,
-        orderId: orderNumber,
-        notes: notes + (receiptAmount ? bt.receiptAmountNote(receiptAmount) : ''),
-      });
-    } catch (error: any) {
-      toast({
-        title: bt.submitError,
-        description: error.message || bt.submitErrorDesc,
-        variant: "destructive",
-      });
-    }
+    const secureObjectPath = uploadedFileUrl.split('?')[0];
+    uploadMutation.mutate({
+      receiptUrl: secureObjectPath,
+      orderId: orderNumber,
+      notes: notes + (receiptAmount ? bt.receiptAmountNote(receiptAmount) : ''),
+    });
   };
 
   const formatCurrency = (amount: number) => {
@@ -469,9 +464,9 @@ export function BankReceiptUploadModal({
               />
 
             {/* Security Status */}
-            {securityStatus && (
+             {securityValidated && (
               <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200">
-                <p className="text-sm text-blue-800 dark:text-blue-200">{securityStatus}</p>
+                 <p className="text-sm text-blue-800 dark:text-blue-200">{bt.securityValidated}</p>
               </div>
             )}
 

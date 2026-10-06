@@ -2,12 +2,16 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { FlaskRound, Phone, ChevronDown } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useQuery } from "@tanstack/react-query";
 
 import company_logo_png from "@assets/company-logo.png.jpg";
 import heroBackground from "@assets/hero_background_1770191229724.png";
 
 const HeroSection = () => {
   const { t, language, direction } = useLanguage();
+  const { data: marketplaceSettings } = useQuery<{ vendorEntryVisible: boolean }>({
+    queryKey: ["/api/marketplace/display-settings"],
+  });
   
   return (
     <section className="relative min-h-screen flex items-center" dir={direction}>
@@ -38,7 +42,7 @@ const HeroSection = () => {
                 {language === 'fa' ? 'فروشگاه' : 'Shop'}
               </Button>
             </Link>
-            <Link href="/vendor">
+            {marketplaceSettings?.vendorEntryVisible !== false && <Link href="/vendor">
               <Button
                 size="lg"
                 className="bg-green-600 hover:bg-green-700 text-white text-lg font-semibold"
@@ -47,7 +51,7 @@ const HeroSection = () => {
                 <FlaskRound className={direction === 'rtl' ? 'ml-3 h-5 w-5' : 'mr-3 h-5 w-5'} />
                 {language === 'fa' ? 'پنل فروشندگان' : 'Vendor'}
               </Button>
-            </Link>
+            </Link>}
             <Link href="/contact">
               <Button
                 variant="outline"

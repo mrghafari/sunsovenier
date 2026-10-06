@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import {requiresBulkContractTransport} from "@shared/bulk-transport";
+import BulkVehicleSelector from "@/components/checkout/bulk-vehicle-selector";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,11 +16,18 @@ import { Separator } from "@/components/ui/separator";
 import { CheckCircle, ShoppingCart, CreditCard, Truck, User, MapPin, Weight, Car, Calculator, Flame, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { getGuestDeliveryFields } from "@/lib/guest-delivery-fields";
 import { useLocation } from "wouter";
-import AddressSelector from "@/components/checkout/address-selector";
 import AuthModal from "@/components/checkout/auth-modal";
+import OrderReviewDialog from "@/components/checkout/order-review-dialog";
+import type { ShopContract } from "@/components/checkout/contract-selector";
+import { loadCustomerAddresses, saveCustomerAddress } from "@/lib/customer-addresses";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translations, type Translation } from "@/lib/i18n";
+import { contractTheme } from "@/lib/contract-theme";
+
+const EMPTY_SHIPPING_OPTIONS: any[] = [];
+const EMPTY_PAYMENT_SETTINGS: any[] = [];
 
 // Dynamic checkout form validation schema - required fields only if not logged in
 const createCheckoutFormSchema = (isLoggedIn: boolean, t: Translation) => z.object({
@@ -66,6 +75,34 @@ const createCheckoutFormSchema = (isLoggedIn: boolean, t: Translation) => z.obje
 
 type CheckoutFormData = z.infer<ReturnType<typeof createCheckoutFormSchema>>;
 
+const getShippingCenterKey = (center?: {countryCode?: string; provinceId?: number; cityId?: number} | null) =>
+  center ? `${center.countryCode || ''}|${center.provinceId || ''}|${center.cityId || ''}` : '';
+const isGenuinePickupMethod = (method: any) => {
+  const value = String(method?.value || method?.deliveryMethod || method?.delivery_method || '').toLowerCase();
+  return method?.isPickup === true || ['pickup', 'personal_pickup', 'self_pickup', 'self-pickup', 'store_pickup'].includes(value);
+};
+
+type ContractShippingMode = 'automatic_vehicle' | 'self_transport';
+
+export function getContractShippingMethodId(
+  mode: ContractShippingMode | null | undefined,
+  methods: readonly any[],
+): string | null {
+  if (mode === 'automatic_vehicle') {
+    const method = methods.find((item) =>
+      String(item?.value || item?.deliveryMethod || item?.delivery_method || '').toLowerCase() === 'smart_vehicle',
+    );
+    return method?.id == null ? null : String(method.id);
+  }
+  if (mode === 'self_transport') {
+    const pickup = methods.find((item) =>
+      String(item?.value || item?.deliveryMethod || item?.delivery_method || '').toLowerCase() === 'self_pickup',
+    );
+    return pickup?.id == null ? null : String(pickup.id);
+  }
+  return null;
+}
+
 interface CheckoutProps {
   cart: {[key: number]: number};
   products: any[];
@@ -83,10 +120,26 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   const [orderNumber, setOrderNumber] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
-  const [useSecondaryAddress, setUseSecondaryAddress] = useState(false);
+  const [deliveryAddressChoice, setDeliveryAddressChoice] = useState('primary');
+  const [newAddressTitle, setNewAddressTitle] = useState('');
+  const [newAddressPhone, setNewAddressPhone] = useState('');
+  const [newAddressCountry, setNewAddressCountry] = useState('');
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewAddressId, setReviewAddressId] = useState('primary');
+  const [secondAddressDraft, setSecondAddressDraft] = useState<{
+    address: string; city: string; province: string; postalCode: string;
+    title: string; phone: string; country: string;
+  } | null>(null);
+  const [pendingReview, setPendingReview] = useState<{ signature: string } | null>(null);
+  const [isConfirmingOrder, setIsConfirmingOrder] = useState(false);
+  const confirmingOrderRef = useRef(false);
+  const orderSubmissionLockRef = useRef(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [walletBalance, setWalletBalance] = useState(0);
+  const [selectedContractId] = useState<number | null>(null);
+  const [selectedContractSnapshot, setSelectedContractSnapshot] = useState<ShopContract | undefined>();
+  const shippingMethodBeforeContractPolicyRef = useRef<string | undefined>(undefined);
   const [walletAmountToUse, setWalletAmountToUse] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
   const [secondaryPaymentMethod, setSecondaryPaymentMethod] = useState('');
@@ -94,7 +147,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   const [showRecipientFields, setShowRecipientFields] = useState(true); // Default to open for testing
   const [showPurchaseOrder, setShowPurchaseOrder] = useState(true);
   const [showCartManagement, setShowCartManagement] = useState(true);
-  const [showSecondAddress, setShowSecondAddress] = useState(true); // Default to open for testing
+  const [showSecondAddress, setShowSecondAddress] = useState(false);
   const [showRecipientMobile, setShowRecipientMobile] = useState(false);
   
   // Draggable card states
@@ -135,8 +188,27 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   // Ref to store selected vehicle for use in onSubmit (avoids stale closure issue)
   const selectedVehicleRef = useRef<any>(null);
   const [calculatedShippingCost, setCalculatedShippingCost] = useState(0);
+  const [shippingCalculationPending, setShippingCalculationPending] = useState(false);
+  const [shippingRouteUnavailable, setShippingRouteUnavailable] = useState(false);
+  const [pricedShippingDestination, setPricedShippingDestination] = useState('');
+  const [shippingQuote, setShippingQuote] = useState<{
+    token: string;
+    destination: string;
+    centerKey: string;
+    cartKey: string;
+    createdAt: number;
+  } | null>(null);
+  const [shippingQuoteRefreshKey, setShippingQuoteRefreshKey] = useState(0);
+  const [standardShippingQuote, setStandardShippingQuote] = useState<{
+    methodId: string;
+    cost: number;
+    key: string;
+    centerKey: string;
+    cartKey: string;
+    createdAt: number;
+  } | null>(null);
+  const shippingRequestSequenceRef = useRef(0);
   const [totalWeight, setTotalWeight] = useState(0);
-  const [destinationCity, setDestinationCity] = useState('');
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -146,22 +218,15 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     queryKey: ["/api/customers/me"],
     retry: false,
   });
+  const { data: savedCustomerAddresses = [], refetch: refetchSavedCustomerAddresses } = useQuery({
+    queryKey: ['structuredCustomerAddresses'],
+    queryFn: loadCustomerAddresses,
+    enabled: !!customerData?.success,
+  });
 
   // Get available delivery methods
-  const { data: deliveryMethods = [] } = useQuery<any[]>({
+  const { data: deliveryMethods = EMPTY_SHIPPING_OPTIONS } = useQuery<any[]>({
     queryKey: ['/api/checkout/delivery-methods']
-  });
-
-  // Get vehicle templates for smart selection
-  const { data: vehicleTemplates = [] } = useQuery<any[]>({
-    queryKey: ['/api/logistics/vehicle-templates'],
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
-
-  // Get Iraqi cities for distance calculation
-  const { data: iraqiCities = [] } = useQuery<any[]>({
-    queryKey: ['/api/iraqi-cities'],
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
   });
 
   // Get payment method settings to determine enabled payment methods
@@ -170,29 +235,78 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
   
-  const paymentSettings = paymentSettingsResponse?.data || [];
+  const paymentSettings = paymentSettingsResponse?.data || EMPTY_PAYMENT_SETTINGS;
+  const isWalletPaymentMethod = (method: unknown) => {
+    const value = String(method || '').toLowerCase();
+    return value === 'wallet' || value.startsWith('wallet_');
+  };
+  const getSupportedNonWalletPaymentMethod = () => {
+    const availableMethod = paymentSettings.find((setting: any) =>
+      setting.enabled && !isWalletPaymentMethod(setting.methodKey)
+    );
+    return availableMethod?.methodKey || (paymentSettings.length === 0 ? 'bank_receipt' : '');
+  };
+  const contractNonWalletPaymentNote = language === 'fa'
+    ? 'برای سفارش قراردادی پرداخت با کیف پول مجاز نیست؛ لطفاً یک روش پرداخت غیرکیف‌پولی انتخاب کنید.'
+    : language === 'ar'
+      ? 'لا يُسمح بالدفع من المحفظة للطلبات التعاقدية؛ يرجى اختيار طريقة دفع أخرى غير المحفظة.'
+      : language === 'tr'
+        ? 'Sözleşmeli siparişlerde cüzdanla ödeme kullanılamaz; lütfen cüzdan dışı bir ödeme yöntemi seçin.'
+        : 'Wallet payment is not available for contract orders. Please choose a non-wallet payment method.';
 
-  // Iraqi provinces and cities queries for secondary address dropdowns
+  // Keep delivery destinations within the globally configured logistics center country.
+  const { data: shippingCenterResponse, refetch: refetchShippingCenter } = useQuery<{success?: boolean, data?: {countryCode?: string; provinceId?: number; cityId?: number}}>({
+    queryKey: ['/api/logistics/shipping-center'],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
+  });
+  const shippingCenterKey = getShippingCenterKey(shippingCenterResponse?.data);
+  const shippingCenterKeyRef = useRef(shippingCenterKey);
+  const [pricedShippingCenterKey, setPricedShippingCenterKey] = useState('');
+  useEffect(() => {
+    shippingCenterKeyRef.current = shippingCenterKey;
+  }, [shippingCenterKey]);
+  const shippingCenterCountry = shippingCenterResponse?.data?.countryCode || '';
+  const { data: geographyCountriesResponse } = useQuery<{success?: boolean, data?: any[]}>({
+    queryKey: ['/api/geography/countries'],
+    staleTime: 15 * 60 * 1000,
+  });
+  const geographyCountries = geographyCountriesResponse?.data || [];
+  const resolveCountryCode = (country: string | undefined) => {
+    if (!country) return '';
+    const normalized = country.trim().toLowerCase();
+    const record = geographyCountries.find((item: any) =>
+      [item.code, item.countryCode, item.name, item.nameEn, item.nameEnglish, item.name_en, item.nameArabic, item.name_arabic, item.namePersian, item.nameFa, item.name_fa, item.nameTurkish, item.nameTr, item.name_tr]
+        .some((name: any) => typeof name === 'string' && name.trim().toLowerCase() === normalized)
+    );
+    return String(record?.code || record?.countryCode || (country.length <= 3 ? country : '')).toUpperCase();
+  };
+  const shippingCenterCountryCode = resolveCountryCode(shippingCenterCountry) || shippingCenterCountry.toUpperCase();
+
   const { data: provincesData, isLoading: provincesLoading } = useQuery<{success: boolean, data: any[]}>({
-    queryKey: ['/api/iraqi-provinces'],
+    queryKey: [`/api/geography/regions?country=${shippingCenterCountry}`],
+    enabled: !!shippingCenterCountry,
     staleTime: 15 * 60 * 1000, // Consider fresh for 15 minutes
   });
 
   const { data: citiesData, isLoading: citiesLoading } = useQuery<{success: boolean, data: any[]}>({
-    queryKey: ['/api/iraqi-cities', selectedSecondaryProvinceId],
-    queryFn: () => {
-      const url = selectedSecondaryProvinceId 
-        ? `/api/iraqi-cities?provinceId=${selectedSecondaryProvinceId}`
-        : '/api/iraqi-cities';
-      return fetch(url).then(res => res.json());
-    },
+    queryKey: [`/api/geography/cities?regionId=${selectedSecondaryProvinceId}`],
     enabled: selectedSecondaryProvinceId !== null,
     staleTime: 10 * 60 * 1000,
   });
 
   // Extract provinces and cities arrays from API responses with proper type safety
-  const provinces = (provincesData?.success && Array.isArray(provincesData.data)) ? provincesData.data : [];
-  const secondaryCities = (citiesData?.success && Array.isArray(citiesData.data)) ? citiesData.data : [];
+  const provinces = (provincesData?.success && Array.isArray(provincesData.data)) ? provincesData.data : EMPTY_SHIPPING_OPTIONS;
+  const secondaryCities = (citiesData?.success && Array.isArray(citiesData.data)) ? citiesData.data : EMPTY_SHIPPING_OPTIONS;
+  const geographyName = (place: any) => {
+    if (!place) return '';
+    if (language === 'fa') return place.namePersian || place.nameFa || place.name_fa || place.name || place.nameEn || place.nameEnglish || '';
+    if (language === 'ar') return place.nameArabic || place.name_arabic || place.name || place.nameEn || place.nameEnglish || '';
+    if (language === 'tr') return place.nameTurkish || place.nameTr || place.name_tr || place.name || place.nameEn || place.nameEnglish || '';
+    return place.nameEn || place.name_en || place.nameEnglish || place.name || place.nameArabic || '';
+  };
+  const canonicalGeographyName = (place: any) => place?.nameEnglish || place?.nameEn || place?.name_en || place?.name || geographyName(place);
 
   // Debug logging for dropdown data
   console.log('🔍 [DROPDOWN DEBUG] Provinces data:', {
@@ -214,6 +328,33 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
 
   // Determine if user is logged in first
   const isUserLoggedIn = (customerData?.success && customerData.customer) || isLoggedIn;
+  const {
+    data: contracts = [],
+    isLoading: contractsLoading,
+    isError: contractsError,
+    refetch: refetchContracts,
+  } = useQuery<ShopContract[]>({
+    queryKey: ['/api/shop/contracts/mine'],
+    queryFn: async () => {
+      const response: any = await apiRequest('/api/shop/contracts/mine', { method: 'GET' });
+      if (response?.success === false) {
+        throw new Error(response.message || 'Could not load customer contracts');
+      }
+      const results = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.contracts)
+            ? response.contracts
+            : response?.data?.contracts;
+      if (!Array.isArray(results)) throw new Error('Invalid contracts response');
+      return results;
+    },
+    enabled: selectedContractId !== null && !!isUserLoggedIn,
+    retry: false,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+  });
   
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(createCheckoutFormSchema(!!isUserLoggedIn, t)),
@@ -228,7 +369,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       billingCity: "",
       billingState: "",
       billingPostalCode: "",
-      billingCountry: "Iran",
+      billingCountry: shippingCenterCountry || "Iraq",
       sameAsShipping: true,
       shippingMethod: "",
       paymentMethod: "",
@@ -241,6 +382,15 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       recipientMobile: "",
     },
   });
+
+  useEffect(() => {
+    if (shippingCenterCountry && !customerData?.customer) {
+      const currentCountry = form.getValues('billingCountry');
+      if (!currentCountry || currentCountry === 'Iraq' || currentCountry === 'Iran') {
+        form.setValue('billingCountry', shippingCenterCountry);
+      }
+    }
+  }, [shippingCenterCountry, customerData?.customer, form]);
 
   // Get selected delivery method details  
   const selectedMethodId = form.watch('shippingMethod');
@@ -314,7 +464,6 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       
       // Set destination city for delivery calculation
       if (customerCity) {
-        setDestinationCity(customerCity);
         console.log('✅ [FORM DEBUG] Destination city set for delivery:', customerCity);
       }
       
@@ -329,10 +478,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         console.log('✅ [FORM DEBUG] Recipient phone set:', customer.phone);
       }
       
-      // Pre-fill secondary address and alternate phone if saved in customer profile
-      if (customer.secondaryAddress) {
-        form.setValue("secondDeliveryAddress", customer.secondaryAddress);
-      }
+      // Legacy CRM secondaryAddress is a combined display string with no
+      // separately stored city. Choose a structured saved address instead.
       if (customer.alternatePhone) {
         form.setValue("recipientMobile", customer.alternatePhone);
       }
@@ -430,22 +577,107 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     return Math.round(val * 100);
   };
 
+  const selectedContractFromQuery = selectedContractId === null
+    ? undefined
+    : contracts.find(contract => Number(contract.id) === Number(selectedContractId));
+  const selectedContract = selectedContractFromQuery || (selectedContractId === null ? undefined : selectedContractSnapshot);
+  const hasBulkContractProducts=requiresBulkContractTransport(selectedContractId,Object.keys(cart)
+    .map(id=>products.find((product:any)=>Number(product.id)===Number(id))).filter(Boolean) as any[]);
+  const [bulkVehicleTemplateId,setBulkVehicleTemplateId]=useState("");
+  useEffect(()=>setBulkVehicleTemplateId(""),[selectedContractId,hasBulkContractProducts]);
+  const selectedContractShippingMode = (selectedContract as (ShopContract & { shippingMode?: ContractShippingMode | null }) | undefined)?.shippingMode ||
+    (hasBulkContractProducts?"automatic_vehicle":null);
+  const requiredContractShippingMethodId = getContractShippingMethodId(selectedContractShippingMode, deliveryMethods);
+  const hasEnforcedContractShippingMode = selectedContractShippingMode === 'automatic_vehicle' || selectedContractShippingMode === 'self_transport';
+  const contractShippingMethodNotice = !hasEnforcedContractShippingMode
+    ? ''
+    : requiredContractShippingMethodId
+      ? selectedContractShippingMode === 'automatic_vehicle'
+        ? language === 'fa' ? 'طبق قرارداد، خودرو به‌صورت خودکار توسط سیستم انتخاب می‌شود.' : language === 'ar' ? 'وفقاً للعقد، يختار النظام المركبة تلقائياً.' : language === 'tr' ? 'Sözleşmeye göre araç sistem tarafından otomatik seçilir.' : 'Per the contract, the system automatically selects the vehicle.'
+        : language === 'fa' ? 'طبق قرارداد، روش تحویل «حمل توسط خودم» است و هزینهٔ حمل خودرو محاسبه نمی‌شود.' : language === 'ar' ? 'وفقاً للعقد، طريقة التسليم هي «النقل الذاتي» ولا تُحسب أجرة مركبة.' : language === 'tr' ? 'Sözleşmeye göre teslimat «Kendi taşımanız»dır; araç ücreti hesaplanmaz.' : 'Per the contract, delivery is “Self transport”; vehicle shipping is not charged.'
+      : language === 'fa' ? 'روش حمل تعیین‌شده در قرارداد در حال حاضر در دسترس نیست. برای ادامه با مدیر فروش تماس بگیرید.' : language === 'ar' ? 'طريقة النقل المحددة في العقد غير متاحة حالياً. يرجى التواصل مع مدير المبيعات.' : language === 'tr' ? 'Sözleşmedeki taşıma yöntemi şu anda kullanılamıyor. Lütfen satış yöneticisiyle iletişime geçin.' : 'The shipping method required by this contract is unavailable. Please contact sales.';
+  useEffect(() => {
+    if (hasEnforcedContractShippingMode) {
+      if (deliveryMethods.length === 0) return;
+      const currentShippingMethod = form.getValues('shippingMethod');
+      if (shippingMethodBeforeContractPolicyRef.current === undefined) {
+        shippingMethodBeforeContractPolicyRef.current = currentShippingMethod;
+      }
+      const nextMethod = requiredContractShippingMethodId || '';
+      if (currentShippingMethod !== nextMethod) {
+        form.setValue('shippingMethod', nextMethod, { shouldDirty: true, shouldValidate: true });
+      }
+      return;
+    }
+    if (shippingMethodBeforeContractPolicyRef.current !== undefined) {
+      form.setValue('shippingMethod', shippingMethodBeforeContractPolicyRef.current, { shouldDirty: true, shouldValidate: true });
+      shippingMethodBeforeContractPolicyRef.current = undefined;
+    }
+  }, [deliveryMethods, form, hasEnforcedContractShippingMode, requiredContractShippingMethodId, selectedContractId]);
+
+  useEffect(() => {
+    if (selectedContractFromQuery) setSelectedContractSnapshot(selectedContractFromQuery);
+    else if (selectedContractId === null) setSelectedContractSnapshot(undefined);
+  }, [selectedContractFromQuery, selectedContractId]);
+  const getContractValidationError = (
+    contractId: number | null,
+    availableContracts: ShopContract[],
+    isLoading: boolean,
+    hasError: boolean,
+  ): string | null => {
+    if (contractId === null) return null;
+    if (isLoading) return 'Verifying the selected contract. Please wait before continuing.';
+    if (hasError) return 'The selected contract could not be verified. Please retry before continuing.';
+    const contract = availableContracts.find(item => Number(item.id) === Number(contractId));
+    if (!contract || !contract.isActive) return 'The selected contract is no longer available or active. Select another purchase type.';
+    for (const [productId, quantity] of Object.entries(cart)) {
+      const item = contract.items?.find(contractItem => Number(contractItem.productId) === Number(productId));
+      if (!item) return `Product ${productId} is not listed in contract #${contract.number}. Remove it or choose a normal purchase.`;
+      if (!products.some(product => Number(product.id) === Number(productId))) {
+        return `Product ${productId} is unavailable. Refresh the cart before using this contract.`;
+      }
+      if (!Number.isFinite(Number(item.remainingQuantity)) || Number(item.remainingQuantity) < 0 ||
+        Number(quantity) > Number(item.remainingQuantity)) {
+        return `${item.productName} exceeds the remaining contract quantity (${item.remainingQuantity}).`;
+      }
+      if (!Number.isFinite(Number(item.unitPrice)) || Number(item.unitPrice) < 0) {
+        return `The contract price for ${item.productName} is invalid. Please contact support.`;
+      }
+    }
+    return null;
+  };
+  const contractValidationError = getContractValidationError(
+    selectedContractId,
+    contracts,
+    contractsLoading,
+    contractsError,
+  );
+
   // Calculate order totals
   const cartItems = Object.entries(cart).map(([productId, quantity]) => {
     const product = products.find(p => p.id === parseInt(productId));
     if (!product) return null;
-    const discountedUnitPrice = getDiscountedPrice(product, quantity);
+    const contractItem = selectedContract?.items?.find(item => Number(item.productId) === Number(product.id));
+    const discountedUnitPrice = contractItem
+      ? Number(contractItem.unitPrice)
+      : getDiscountedPrice(product, quantity);
     const basePrice = parseFloat(product.price || '0');
-    const hasDiscount = discountedUnitPrice < basePrice;
+    const hasDiscount = !contractItem && discountedUnitPrice < basePrice;
     return {
       ...product,
       quantity,
       discountedUnitPrice,
       hasDiscount,
-      originalUnitPrice: basePrice,
+      usesContractPrice: Boolean(contractItem),
+      originalUnitPrice: contractItem ? discountedUnitPrice : basePrice,
       totalPrice: discountedUnitPrice * quantity
     };
   }).filter(Boolean);
+  const shippingQuoteCartKey = JSON.stringify(
+    [selectedContractId,bulkVehicleTemplateId,hasBulkContractProducts,Object.entries(cart)
+      .map(([productId, quantity]) => [Number(productId), Number(quantity)])
+      .sort((a, b) => Number(a[0]) - Number(b[0]))]
+  );
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
 
@@ -470,66 +702,37 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     setTotalWeight(weight);
   }, [cartItems]);
   
-  // Smart vehicle selection based on weight and destination
-  const selectOptimalVehicle = useCallback((weight: number, destination: string) => {
-    if (!vehicleTemplates || vehicleTemplates.length === 0) return null;
-    
-    const vehicles = vehicleTemplates;
-    
-    // Filter vehicles that can handle the weight and flammable materials safety
-    const suitableVehicles = vehicles.filter((vehicle: any) => {
-      const canHandleWeight = vehicle.isActive && parseFloat(vehicle.maxWeightKg) >= weight;
-      
-      // If cart contains flammable materials, only allow vehicles that support flammable transport
-      if (containsFlammableProducts) {
-        const supportsFlammable = vehicle.supportsFlammable === true;
-        console.log('🚚 [VEHICLE FILTER] Flammable materials detected - filtering vehicle:', {
-          vehicleName: vehicle.name,
-          supportsFlammable,
-          canHandleWeight,
-          isSelected: canHandleWeight && supportsFlammable
-        });
-        return canHandleWeight && supportsFlammable;
-      }
-      
-      // For non-flammable materials, any active vehicle that can handle weight is suitable
-      return canHandleWeight;
-    });
-    
-    if (suitableVehicles.length === 0) return null;
-    
-    // Sort by cost efficiency (base cost + per km cost)
-    const sortedVehicles = suitableVehicles.sort((a: any, b: any) => {
-      const costA = parseFloat(a.basePrice) + parseFloat(a.pricePerKm);
-      const costB = parseFloat(b.basePrice) + parseFloat(b.pricePerKm);
-      return costA - costB;
-    });
-    
-    return sortedVehicles[0]; // Return most cost-effective vehicle
-  }, [vehicleTemplates, containsFlammableProducts]);
-
   // Calculate shipping cost with smart vehicle selection using backend API
   // Returns { cost, vehicle } object instead of just cost to avoid stale closure issue
-  const calculateShippingCost = useCallback(async (weight: number, destination: string): Promise<{ cost: number; vehicle: any | null }> => {
+  const calculateShippingCost = useCallback(async (weight: number, destination: string, requestSequence: number): Promise<{ cost: number; vehicle: any | null }> => {
     if (!destination || weight === 0) return { cost: 0, vehicle: null };
+    const isCurrent = () => requestSequence === shippingRequestSequenceRef.current;
     
     try {
+      setPricedShippingCenterKey('');
+      setShippingQuote(null);
+      const refreshedCenter = await refetchShippingCenter();
+      if (!isCurrent()) return { cost: 0, vehicle: null };
+      const quoteCenterKey = getShippingCenterKey(refreshedCenter.data?.data);
+      if (refreshedCenter.isError || !quoteCenterKey) {
+        setShippingRouteUnavailable(true);
+        return { cost: 0, vehicle: null };
+      }
+      shippingCenterKeyRef.current = quoteCenterKey;
+
       // Look up the destination city to get its provinceId
-      const destCity = iraqiCities?.find((city: any) => 
-        city.nameEnglish?.toLowerCase() === destination.toLowerCase() ||
-        city.nameArabic === destination ||
-        city.name?.toLowerCase() === destination.toLowerCase() ||
-        city.nameEnglish?.toLowerCase().includes(destination.toLowerCase()) ||
-        city.nameArabic?.includes(destination) ||
-        city.name?.toLowerCase().includes(destination.toLowerCase())
+      const destCity = secondaryCities?.find((city: any) =>
+        [city.nameEn, city.name_en, city.nameEnglish, city.nameArabic, city.name_arabic, city.namePersian, city.nameFa, city.name_fa, city.nameTurkish, city.nameTr, city.name_tr, city.name]
+          .some((name) => name && name.toLowerCase() === destination.toLowerCase())
       );
       
-      const provinceId = destCity?.provinceId || null;
+      const provinceId = destCity?.regionId || destCity?.provinceId || null;
+      const destProvince = provinces.find((province: any) => Number(province.id) === Number(provinceId));
       
       console.log('🚚 [CHECKOUT] Using FLAMMABLE-AWARE delivery cost API:', { 
         weight, 
         destination,
-        resolvedCity: destCity?.name || destCity?.nameEnglish,
+        resolvedCity: destCity?.nameEnglish || destCity?.name || destination,
         provinceId,
         containsFlammableProducts,
         cartProducts: cartItems.map(item => ({ id: item.id, name: item.name, isFlammable: item.isFlammable }))
@@ -543,30 +746,45 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         },
         body: JSON.stringify({
           weight: weight,
+          contractId:selectedContractId,
+          selectedVehicleTemplateId:hasBulkContractProducts&&bulkVehicleTemplateId?Number(bulkVehicleTemplateId):null,
           destinationCity: destination,
-          destinationProvince: provinceId || destination,
-          originCity: t.checkout_page.erbilCity,
+          destinationProvince: destProvince?.nameEnglish || destProvince?.name || destination,
+          ...(destCity?.id != null ? { destinationCityId: destCity.id } : {}),
           cart: Object.fromEntries(Object.entries(cart).map(([id, qty]) => [id, qty])),
           useSecondaryAddress: false
         })
       });
 
       if (!response.ok) {
-        console.error('🚚 [CHECKOUT] Delivery cost calculation failed:', response.status);
-        return fallbackLocalCalculation(weight, destination);
+        const errorResult = await response.json().catch(() => null);
+        if (!isCurrent()) return { cost: 0, vehicle: null };
+        console.error('🚚 [CHECKOUT] Delivery cost calculation failed:', response.status, errorResult);
+        setShippingRouteUnavailable(true);
+        return { cost: 0, vehicle: null };
       }
 
       const result = await response.json();
+      if (!isCurrent()) return { cost: 0, vehicle: null };
       console.log('🚚 [CHECKOUT] API Response:', result);
       
       if (result.success && result.data) {
         // Handle intercity bus response
         if (result.data.transportMethod === 'intercity_bus' && result.data.selectedOption) {
           const busOption = result.data.selectedOption;
+          const busCost = Number(busOption.totalCost);
+          if (!Number.isFinite(busCost) || busCost < 0) {
+            setShippingRouteUnavailable(true);
+            return { cost: 0, vehicle: null };
+          }
+          if (shippingCenterKeyRef.current !== quoteCenterKey) {
+            setShippingRouteUnavailable(true);
+            return { cost: 0, vehicle: null };
+          }
           const vehicleData = {
             name: busOption.transportName,
             type: 'intercity_bus',
-            cost: busOption.totalCost,
+            cost: busCost,
             restrictions: busOption.restrictions
           };
           setSelectedVehicle(vehicleData);
@@ -577,17 +795,38 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
             cost: busOption.totalCost,
             restrictions: busOption.restrictions
           });
+          setPricedShippingDestination(`${destination}|${weight}`);
+          setPricedShippingCenterKey(quoteCenterKey);
+          setShippingQuote(typeof result.data.shippingQuoteToken === 'string' && result.data.shippingQuoteToken
+            ? {
+                token: result.data.shippingQuoteToken,
+                destination: `${destination}|${weight}`,
+                centerKey: quoteCenterKey,
+                cartKey: shippingQuoteCartKey,
+                createdAt: Date.now()
+              }
+            : null);
+          setShippingRouteUnavailable(!(typeof result.data.shippingQuoteToken === 'string' && result.data.shippingQuoteToken));
           
-          return { cost: busOption.totalCost, vehicle: vehicleData };
+          return { cost: busCost, vehicle: vehicleData };
         }
         
         // Handle optimal vehicle response
         if (result.data.optimalVehicle) {
           const vehicleInfo = result.data.optimalVehicle;
+          const vehicleCost = Number(vehicleInfo.totalCost);
+          if (!Number.isFinite(vehicleCost) || vehicleCost < 0) {
+            setShippingRouteUnavailable(true);
+            return { cost: 0, vehicle: null };
+          }
+          if (shippingCenterKeyRef.current !== quoteCenterKey) {
+            setShippingRouteUnavailable(true);
+            return { cost: 0, vehicle: null };
+          }
           const vehicleData = {
             name: vehicleInfo.vehicleName,
             type: vehicleInfo.vehicleType,
-            cost: vehicleInfo.totalCost,
+            cost: vehicleCost,
             maxWeight: vehicleInfo.maxWeight,
             estimatedTime: vehicleInfo.estimatedTime
           };
@@ -600,271 +839,309 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
             vehicleType: vehicleInfo.vehicleType,
             safetyCompliant: true
           });
+          setPricedShippingDestination(`${destination}|${weight}`);
+          setPricedShippingCenterKey(quoteCenterKey);
+          setShippingQuote(typeof result.data.shippingQuoteToken === 'string' && result.data.shippingQuoteToken
+            ? {
+                token: result.data.shippingQuoteToken,
+                destination: `${destination}|${weight}`,
+                centerKey: quoteCenterKey,
+                cartKey: shippingQuoteCartKey,
+                createdAt: Date.now()
+              }
+            : null);
+          setShippingRouteUnavailable(!(typeof result.data.shippingQuoteToken === 'string' && result.data.shippingQuoteToken));
           
-          return { cost: vehicleInfo.totalCost, vehicle: vehicleData };
+          return { cost: vehicleCost, vehicle: vehicleData };
         }
       }
       
       console.error('🚚 [CHECKOUT] No suitable delivery option found in API response');
-      return fallbackLocalCalculation(weight, destination);
+      setShippingRouteUnavailable(true);
+      setShippingQuote(null);
+      return { cost: 0, vehicle: null };
       
     } catch (error) {
+      if (!isCurrent()) return { cost: 0, vehicle: null };
       console.error('🚚 [CHECKOUT] Delivery cost calculation error:', error);
-      
-      // Fallback to local calculation if API fails
-      return fallbackLocalCalculation(weight, destination);
-    }
-  }, [containsFlammableProducts, cart, cartItems, iraqiCities]);
-
-  // Fallback local calculation method (backup) - SAFETY COMPLIANT
-  const fallbackLocalCalculation = useCallback((weight: number, destination: string) => {
-    console.log('🚚 [CHECKOUT] Using FLAMMABLE-SAFE fallback calculation', {
-      weight,
-      destination,
-      containsFlammableProducts,
-      cartItemsWithFlammable: cartItems.filter(item => item?.isFlammable === true).map(item => item.name)
-    });
-    
-    // Find destination city in Iraqi cities
-    const destCity = iraqiCities?.find((city: any) => 
-      city.nameEnglish?.toLowerCase().includes(destination.toLowerCase()) ||
-      city.nameArabic?.includes(destination) ||
-      city.name?.toLowerCase().includes(destination.toLowerCase())
-    );
-    
-    if (!destCity) {
-      console.log('🚚 [FALLBACK] Destination city not found:', destination);
+      setShippingRouteUnavailable(true);
+      setShippingQuote(null);
       return { cost: 0, vehicle: null };
     }
-    
-    // CRITICAL: If cart contains flammable materials, ONLY allow heavy trucks with flammable authorization
-    if (containsFlammableProducts) {
-      console.log('🔥 [FALLBACK SAFETY] Flammable materials detected - applying safety restrictions');
-      
-      // Find heavy truck vehicles that support flammable materials
-      const flammableAuthorizedVehicles = vehicleTemplates?.filter((vehicle: any) => {
-        const canHandleWeight = vehicle.isActive && parseFloat(vehicle.maxWeightKg) >= weight;
-        const supportsFlammable = vehicle.supportsFlammable === true;
-        const isHeavyTruck = vehicle.name?.includes(t.checkout_page.heavyTruck) || vehicle.vehicleType === 'heavy_truck';
-        
-        console.log('🚛 [FALLBACK FLAMMABLE CHECK] Vehicle:', {
-          name: vehicle.name,
-          canHandleWeight,
-          supportsFlammable,
-          isHeavyTruck,
-          qualified: canHandleWeight && supportsFlammable && isHeavyTruck
-        });
-        
-        return canHandleWeight && supportsFlammable && isHeavyTruck;
-      }) || [];
-      
-      if (flammableAuthorizedVehicles.length === 0) {
-        console.error('🔥 [FALLBACK SAFETY] No flammable-authorized vehicles found for heavy materials');
-        return { cost: 617000, vehicle: null }; // Return heavy truck estimated cost as safety fallback
-      }
-      
-      // Select the most suitable heavy truck for flammable materials
-      const fallbackVehicle = flammableAuthorizedVehicles[0];
-      const vehicleData = {
-        ...fallbackVehicle,
-        name: fallbackVehicle.name + t.checkout_page.flammableSuffix,
-        type: 'heavy_truck_flammable'
-      };
-      setSelectedVehicle(vehicleData);
-      selectedVehicleRef.current = vehicleData;
-      
-      // Calculate cost for heavy truck
-      const baseCost = parseFloat(fallbackVehicle.basePrice || '350000');
-      const distanceCost = parseFloat(destCity.distanceFromErbilKm || '0') * parseFloat(fallbackVehicle.pricePerKm || '800');
-      const weightCost = weight * parseFloat(fallbackVehicle.pricePerKg || '200');
-      
-      const totalCost = baseCost + distanceCost + weightCost;
-      
-      console.log('🔥 [FALLBACK FLAMMABLE] Heavy truck selected for safety:', {
-        vehicle: fallbackVehicle.name,
-        baseCost,
-        distance: destCity.distanceFromErbilKm,
-        distanceCost,
-        weightCost,
-        totalCost,
-        safetyCompliant: true
-      });
-      
-      return { cost: totalCost, vehicle: vehicleData };
-    }
-    
-    // For non-flammable materials, use normal vehicle selection
-    const vehicle = selectOptimalVehicle(weight, destination);
-    if (!vehicle) {
-      console.log('🚚 [FALLBACK] No suitable vehicle found', { 
-        weight, 
-        destination, 
-        containsFlammableProducts,
-        totalVehicles: vehicleTemplates?.length || 0
-      });
-      return { cost: 0, vehicle: null };
-    }
-    
-    setSelectedVehicle(vehicle);
-    selectedVehicleRef.current = vehicle;
-    
-    // Calculate cost: base cost + (distance × cost per km) + (weight × cost per kg)
-    const baseCost = parseFloat(vehicle.basePrice || '0');
-    const distanceCost = parseFloat(destCity.distanceFromErbilKm || '0') * parseFloat(vehicle.pricePerKm || '0');
-    const weightCost = weight * parseFloat(vehicle.pricePerKg || '0');
-    
-    const totalCost = baseCost + distanceCost + weightCost;
-    
-    console.log('🚚 [FALLBACK] Standard calculation:', {
-      weight,
-      destination,
-      selectedVehicle: vehicle.name,
-      baseCost,
-      distance: destCity.distanceFromErbilKm,
-      distanceCost,
-      weightCost,
-      totalCost,
-      containsFlammableProducts
-    });
-    
-    return { cost: totalCost, vehicle: vehicle };
-  }, [iraqiCities, selectOptimalVehicle, containsFlammableProducts, cartItems, vehicleTemplates]);
+  }, [containsFlammableProducts, cart, shippingQuoteCartKey, secondaryCities, provinces, refetchShippingCenter,selectedContractId,hasBulkContractProducts,bulkVehicleTemplateId]);
 
-  // Watch for address changes to update destination
-  useEffect(() => {
-    // Try multiple potential city sources for destination
-    let city = '';
-    
-    // For guests: use form fields
-    if (!isUserLoggedIn) {
-      city = form.watch('billingCity') || form.watch('shippingCity') || '';
-    } else {
-      // For logged in users: use CRM data or second address
-      if (form.watch('secondDeliveryCity')) {
-        city = form.watch('secondDeliveryCity') || '';
-      } else if (customerData?.customer?.city) {
-        city = customerData.customer.city;
-      } else if (customerData?.customer?.cityRegion) {
-        city = customerData.customer.cityRegion;
-      } else {
-        // Fallback to form fields
-        city = form.watch('billingCity') || form.watch('shippingCity') || '';
-      }
-    }
-    
-    if (city !== destinationCity) {
-      setDestinationCity(city);
-      console.log('🎯 Destination City Updated:', city);
-    }
-  }, [
-    form.watch('billingCity'), 
-    form.watch('shippingCity'), 
-    form.watch('secondDeliveryCity'),
-    customerData?.customer?.city,
-    customerData?.customer?.cityRegion,
-    destinationCity, 
-    form,
-    isUserLoggedIn
+  const guestDeliveryFields = getGuestDeliveryFields({
+    sameAsShipping: form.watch('sameAsShipping'),
+    billingCity: form.watch('billingCity'),
+    billingState: form.watch('billingState'),
+    billingCountry: form.watch('billingCountry'),
+    billingPostalCode: form.watch('billingPostalCode'),
+    shippingCity: form.watch('shippingCity'),
+    shippingState: form.watch('shippingState'),
+    shippingCountry: form.watch('shippingCountry'),
+    shippingPostalCode: form.watch('shippingPostalCode'),
+  });
+  const enteredSecondAddress = form.watch('secondDeliveryAddress')?.trim() || '';
+  const usingEnteredDeliveryAddress = !!(isUserLoggedIn &&
+    (deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy'));
+  const activeDeliveryAddress = isUserLoggedIn
+    ? (usingEnteredDeliveryAddress
+      ? enteredSecondAddress
+      : selectedAddress ? selectedAddress.address || '' : customerData?.customer?.address || '')
+    : (form.watch('sameAsShipping') ? form.watch('billingAddress1') : form.watch('shippingAddress1')) || '';
+  const destinationCity = isUserLoggedIn
+    ? (usingEnteredDeliveryAddress
+      ? form.watch('secondDeliveryCity') || ''
+      : selectedAddress
+        ? selectedAddress.city || ''
+        : customerData?.customer?.city || customerData?.customer?.cityRegion || form.watch('billingCity') || '')
+    : guestDeliveryFields.city;
+
+  const selectedShippingMethodId = form.watch('shippingMethod');
+  const currentShippingMethod = (deliveryMethods as any[])?.find((method: any) => method.id.toString() === selectedShippingMethodId);
+  const currentMethodValue = String(currentShippingMethod?.value || currentShippingMethod?.deliveryMethod || currentShippingMethod?.delivery_method || '').toLowerCase();
+  const isSmartVehicleShipping = currentMethodValue === 'smart_vehicle' || currentMethodValue.includes('bus');
+  const destinationProvince = isUserLoggedIn
+    ? (usingEnteredDeliveryAddress
+      ? form.watch('secondDeliveryProvince') || ''
+      : selectedAddress ? selectedAddress.state || '' : customerData?.customer?.province || '')
+    : guestDeliveryFields.province;
+  const destinationCountry = isUserLoggedIn
+    ? (deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy'
+      ? newAddressCountry || ''
+      : selectedAddress ? selectedAddress.country || '' : customerData?.customer?.country || '')
+    : guestDeliveryFields.country;
+  const deliveryAddressReady = !!activeDeliveryAddress.trim() &&
+    !!destinationCity.trim() && !!destinationCountry.trim();
+  const deliveryAddressPrompt = language === 'fa'
+    ? 'ابتدا آدرس و شهر تحویل را مشخص کنید.'
+    : language === 'ar' ? 'حدد عنوان ومدينة التسليم أولاً.'
+    : language === 'tr' ? 'Önce teslimat adresini ve şehrini belirtin.'
+    : 'Choose a delivery address and city first.';
+  const standardQuoteKey = JSON.stringify([
+    selectedShippingMethodId,
+    selectedContractId,
+    activeDeliveryAddress,
+    destinationCity,
+    destinationProvince,
+    destinationCountry,
+    totalWeight,
+    shippingQuoteCartKey,
   ]);
 
-  // Calculate shipping cost when weight or destination changes
+  // Requote the active delivery method whenever its route, cart, center, or method changes.
   useEffect(() => {
-    if (totalWeight > 0 && destinationCity) {
-      // Use async function to handle the promise from calculateShippingCost
-      const updateShippingCost = async () => {
-        try {
-          console.log('🔄 [SHIPPING UPDATE] Starting calculation:', {
-            weight: totalWeight,
-            destination: destinationCity,
-            containsFlammableProducts,
-            cartItemsCount: cartItems.length
-          });
-          
-          // Clear any previous vehicle selection before new calculation
-          setSelectedVehicle(null);
-          setCalculatedShippingCost(0);
-          
-          // calculateShippingCost now returns { cost, vehicle } to avoid stale closure issues
-          const result = await calculateShippingCost(totalWeight, destinationCity);
-          const cost = result.cost;
-          const calculatedVehicle = result.vehicle;
-          
-          setCalculatedShippingCost(cost);
-          
-          // CRITICAL: Update selectedVehicle state AND ref with the calculated vehicle
-          // The ref is used in onSubmit to avoid stale closure issues
-          if (calculatedVehicle) {
-            setSelectedVehicle(calculatedVehicle);
-            selectedVehicleRef.current = calculatedVehicle;
-            console.log('🚗 [VEHICLE STATE + REF] Updated selectedVehicle:', {
-              name: calculatedVehicle.name,
-              type: calculatedVehicle.type,
-              refUpdated: true
-            });
-          }
-          
-          // Auto-select smart vehicle option when available and cost calculated
-          // Use calculatedVehicle from the result instead of stale selectedVehicle state
-          if (calculatedVehicle && cost > 0) {
-            form.setValue('shippingMethod', '7'); // Smart vehicle method ID
-            
-            console.log('✅ [AUTO-SELECT] Smart vehicle option selected:', {
-              vehicleName: calculatedVehicle.name,
-              vehicleType: calculatedVehicle.type,
-              cost: cost,
-              methodId: '7'
-            });
-          }
-          
-          console.log('💰 [SHIPPING FINAL] Cost calculation completed:', {
-            weight: totalWeight,
-            destination: destinationCity,
-            cost: cost,
-            selectedVehicle: calculatedVehicle?.name,
-            vehicleType: calculatedVehicle?.type,
-            autoSelected: true,
-            containsFlammableProducts
-          });
-        } catch (error) {
-          console.error('🚚 [CHECKOUT] Error updating shipping cost:', error);
-          setCalculatedShippingCost(0);
-          setSelectedVehicle(null);
-        }
-      };
-      
-      updateShippingCost();
-    } else {
-      setCalculatedShippingCost(0);
-      setSelectedVehicle(null);
-      // Clear smart vehicle selection if no longer valid
-      if (form.watch('shippingMethod') === '7') {
-        form.setValue('shippingMethod', '');
-      }
-    }
-  }, [totalWeight, destinationCity, calculateShippingCost, form, containsFlammableProducts, cartItems]);
+    const method = (deliveryMethods as any[])?.find((item: any) => item.id?.toString() === selectedShippingMethodId);
+    const methodValue = String(method?.value || method?.deliveryMethod || method?.delivery_method || '').toLowerCase();
+    const isPickup = isGenuinePickupMethod(method);
+    const isSmart = methodValue === 'smart_vehicle' || methodValue.includes('bus');
+    const requestSequence = ++shippingRequestSequenceRef.current;
+    const quoteController = new AbortController();
 
-  // Use calculated shipping cost or fallback to traditional method
-  let shippingCost = calculatedShippingCost;
-  
-  // Fallback to traditional delivery method if smart calculation not available
-  if (shippingCost === 0) {
-    const selectedMethod = (deliveryMethods as any[])?.find((method: any) => method.id.toString() === form.watch('shippingMethod'));
-    
-    if (selectedMethod) {
-      const baseCost = parseFloat(selectedMethod.baseCost || '0');
-      const freeShippingThreshold = parseFloat(selectedMethod.freeShippingThreshold || '0');
-      
-      if (freeShippingThreshold > 0 && subtotal >= freeShippingThreshold) {
-        shippingCost = 0; // Free shipping
-      } else {
-        shippingCost = baseCost;
-        // Add weight-based cost if available
-        if (selectedMethod.costPerKg) {
-          shippingCost += parseFloat(selectedMethod.costPerKg) * totalWeight;
-        }
-      }
+    setStandardShippingQuote(null);
+    setShippingQuote(null);
+    setPricedShippingDestination('');
+    setPricedShippingCenterKey('');
+    setSelectedVehicle(null);
+    selectedVehicleRef.current = null;
+    setCalculatedShippingCost(0);
+    setShippingRouteUnavailable(false);
+
+    if (contractValidationError) {
+      setShippingCalculationPending(false);
+      setShippingRouteUnavailable(true);
+      return () => {
+        if (shippingRequestSequenceRef.current === requestSequence) shippingRequestSequenceRef.current++;
+        quoteController.abort();
+      };
     }
+
+    if (!method || isPickup) {
+      setShippingCalculationPending(false);
+      return () => {
+        if (shippingRequestSequenceRef.current === requestSequence) shippingRequestSequenceRef.current++;
+        quoteController.abort();
+      };
+    }
+    if (!deliveryAddressReady || totalWeight <= 0) {
+      setShippingCalculationPending(false);
+      setShippingRouteUnavailable(false);
+      return () => {
+        if (shippingRequestSequenceRef.current === requestSequence) shippingRequestSequenceRef.current++;
+        quoteController.abort();
+      };
+    }
+
+    setShippingCalculationPending(true);
+    const quoteDestinationCity = destinationCity;
+    const quoteProvince = destinationProvince;
+    const quoteCountryCode = resolveCountryCode(destinationCountry) || (destinationCountry.length <= 3 ? destinationCountry.toUpperCase() : '');
+    const quoteKey = standardQuoteKey;
+
+    const updatePrice = async () => {
+      try {
+        if (isSmart) {
+          const result = await calculateShippingCost(totalWeight, quoteDestinationCity, requestSequence);
+          if (requestSequence !== shippingRequestSequenceRef.current) return;
+          setCalculatedShippingCost(result.cost);
+          if (result.vehicle) {
+            setSelectedVehicle(result.vehicle);
+            selectedVehicleRef.current = result.vehicle;
+          }
+          return;
+        }
+
+        let centerRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
+        let refreshedCenter;
+        try {
+          refreshedCenter = await Promise.race([
+            refetchShippingCenter(),
+            new Promise<never>((_, reject) => {
+              centerRefreshTimeout = setTimeout(() => reject(new Error('Shipping center refresh timed out')), 12000);
+            }),
+          ]);
+        } finally {
+          if (centerRefreshTimeout) clearTimeout(centerRefreshTimeout);
+        }
+        if (requestSequence !== shippingRequestSequenceRef.current) return;
+        const quoteCenterKey = getShippingCenterKey(refreshedCenter.data?.data);
+        if (refreshedCenter.isError || !quoteCenterKey) {
+          throw new Error('Shipping center is unavailable');
+        }
+        shippingCenterKeyRef.current = quoteCenterKey;
+
+        const matchingCity = secondaryCities?.find((city: any) =>
+          [city.nameEn, city.name_en, city.nameEnglish, city.nameArabic, city.name_arabic, city.namePersian, city.nameFa, city.name_fa, city.nameTurkish, city.nameTr, city.name_tr, city.name]
+            .some((name) => name && name.toLowerCase() === quoteDestinationCity.toLowerCase())
+        );
+        const quoteTimeout = setTimeout(() => quoteController.abort(), 12000);
+        let response: Response;
+        let result: any;
+        try {
+          response = await fetch('/api/shipping/quote-standard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            signal: quoteController.signal,
+            body: JSON.stringify({
+              cart: Object.fromEntries(Object.entries(cart).map(([id, quantity]) => [id, quantity])),
+              contractId: selectedContractId,
+              ...(matchingCity?.id != null ? { destinationCityId: matchingCity.id } : {}),
+              destinationCity: quoteDestinationCity,
+              ...(quoteProvince ? { destinationProvince: quoteProvince } : {}),
+              ...(quoteCountryCode ? { destinationCountryCode: quoteCountryCode } : {}),
+              shippingMethod: selectedShippingMethodId,
+              selectorIsDeliveryMethod: true,
+            }),
+          });
+          const contentType = response.headers.get('content-type') || '';
+          result = contentType.includes('application/json')
+            ? await response.json().catch(() => null)
+            : null;
+        } finally {
+          clearTimeout(quoteTimeout);
+        }
+        if (requestSequence !== shippingRequestSequenceRef.current) return;
+        const rawCost = result?.data?.shippingCost;
+        const cost = Number(rawCost);
+        if (!response.ok || !result?.success ||
+          (typeof rawCost !== 'number' && typeof rawCost !== 'string') ||
+          String(rawCost).trim() === '' || !Number.isFinite(cost) || cost < 0) {
+          throw new Error('No standard shipping quote for this route');
+        }
+        if (requestSequence !== shippingRequestSequenceRef.current || shippingCenterKeyRef.current !== quoteCenterKey) return;
+        setCalculatedShippingCost(cost);
+        setPricedShippingDestination(`${quoteDestinationCity}|${totalWeight}`);
+        setPricedShippingCenterKey(quoteCenterKey);
+        setStandardShippingQuote({
+          methodId: selectedShippingMethodId,
+          cost,
+          key: quoteKey,
+          centerKey: quoteCenterKey,
+          cartKey: shippingQuoteCartKey,
+          createdAt: Date.now(),
+        });
+        setShippingRouteUnavailable(false);
+      } catch (error) {
+        if (requestSequence !== shippingRequestSequenceRef.current) return;
+        console.error('[CHECKOUT] Shipping quote failed:', error);
+        setShippingRouteUnavailable(true);
+        setShippingQuote(null);
+        setStandardShippingQuote(null);
+      } finally {
+        if (requestSequence === shippingRequestSequenceRef.current) setShippingCalculationPending(false);
+      }
+    };
+
+    // Do not request shipping while the customer is still changing the cart.
+    const debounceTimer = setTimeout(() => void updatePrice(), 2000);
+    return () => {
+      if (shippingRequestSequenceRef.current === requestSequence) shippingRequestSequenceRef.current++;
+      clearTimeout(debounceTimer);
+      quoteController.abort();
+    };
+  }, [
+    selectedShippingMethodId, deliveryMethods, destinationCity, destinationProvince, destinationCountry,
+    activeDeliveryAddress, deliveryAddressReady,
+    totalWeight, shippingCenterKey, calculateShippingCost, cart, shippingQuoteCartKey,
+    shippingQuoteRefreshKey, refetchShippingCenter, secondaryCities, selectedContractId,
+    contractValidationError,
+  ]);
+
+  // Prices only come from a fresh server quote; never infer a standard method's price locally.
+  let shippingCost = calculatedShippingCost;
+  const isCurrentMethodGenuinePickup = isGenuinePickupMethod(currentShippingMethod);
+  const isCurrentMethodShippingDependent = !!currentShippingMethod && !isCurrentMethodGenuinePickup;
+  const currentVehicleQuoteIsFresh = !!shippingQuote?.token &&
+    shippingQuote.destination === `${destinationCity}|${totalWeight}` &&
+    shippingQuote.centerKey === shippingCenterKey &&
+    shippingQuote.cartKey === shippingQuoteCartKey &&
+    Date.now() - shippingQuote.createdAt < 4 * 60 * 1000;
+  const standardQuoteReady = !!standardShippingQuote &&
+    standardShippingQuote.methodId === selectedShippingMethodId &&
+    standardShippingQuote.key === standardQuoteKey &&
+    standardShippingQuote.centerKey === shippingCenterKey &&
+    standardShippingQuote.cartKey === shippingQuoteCartKey &&
+    Number.isFinite(standardShippingQuote.cost) &&
+    Date.now() - standardShippingQuote.createdAt < 4 * 60 * 1000;
+  const shippingQuoteReady = !shippingCalculationPending &&
+    !shippingRouteUnavailable &&
+    (isCurrentMethodGenuinePickup || deliveryAddressReady) &&
+    (isCurrentMethodGenuinePickup ||
+      (isSmartVehicleShipping
+        ? !!selectedVehicle && currentVehicleQuoteIsFresh &&
+          pricedShippingCenterKey === shippingCenterKey &&
+          pricedShippingDestination === `${destinationCity}|${totalWeight}`
+        : standardQuoteReady));
+  const shippingSelectionUnavailable = !isCurrentMethodGenuinePickup &&
+    (!deliveryAddressReady || shippingCalculationPending || shippingRouteUnavailable || !shippingQuoteReady);
+  const finalPriceReady = !contractValidationError && !!currentShippingMethod &&
+    (isCurrentMethodGenuinePickup || shippingQuoteReady);
+  
+  if (isCurrentMethodGenuinePickup) {
+    shippingCost = 0;
+  } else if (isSmartVehicleShipping) {
+    if (!shippingQuoteReady) shippingCost = 0;
+  } else if (standardQuoteReady) {
+    shippingCost = standardShippingQuote!.cost;
+  } else {
+    shippingCost = 0;
   }
+
+  const shippingRouteUnavailableMessage = language === 'fa'
+    ? 'هزینه ارسال برای این مسیر در دسترس نیست. لطفاً دوباره تلاش کنید یا روش ارسال دیگری انتخاب کنید.'
+    : language === 'ar'
+      ? 'تكلفة الشحن لهذا المسار غير متاحة. يرجى إعادة المحاولة أو اختيار طريقة شحن أخرى.'
+      : language === 'tr'
+        ? 'Bu rota için teslimat ücreti mevcut değil. Lütfen tekrar deneyin veya başka bir teslimat yöntemi seçin.'
+        : 'Shipping is unavailable for this route. Please retry or choose another delivery method.';
+  const shippingQuoteRefreshMessage = language === 'fa'
+    ? 'پیش‌فاکتور ارسال منقضی یا نامعتبر است؛ هزینه ارسال در حال به‌روزرسانی است. لطفاً دوباره ثبت سفارش را بزنید.'
+    : language === 'ar'
+      ? 'انتهت صلاحية عرض الشحن أو أنه غير صالح؛ يتم تحديث تكلفة الشحن. يرجى إعادة إرسال الطلب.'
+      : language === 'tr'
+        ? 'Kargo teklifi geçersiz veya süresi dolmuş; ücret yenileniyor. Lütfen siparişi tekrar gönderin.'
+        : 'The shipping quote is missing or expired. The quote is being refreshed; please submit your order again.';
   
   // Fetch tax settings for dynamic VAT calculation
   const { data: taxSettingsResponse } = useQuery({
@@ -903,11 +1180,27 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     totalTaxAmount
   });
   
-  const beforeWalletTotal = subtotal + shippingCost + totalTaxAmount;
+  // Item subtotal can be shown immediately, but no payable total exists
+  // until the selected delivery address has a valid shipping price.
+  const beforeWalletTotal = finalPriceReady ? subtotal + shippingCost + totalTaxAmount : 0;
   
   // Auto-enable wallet usage when wallet payment method is selected
   useEffect(() => {
     const paymentMethod = form.watch('paymentMethod');
+    if (selectedContractId !== null) {
+      setUseWallet(false);
+      setWalletAmountToUse(0);
+      setSecondaryPaymentMethod('');
+      const paymentMethodSupported = paymentSettings.length === 0
+        ? ['bank_receipt', 'online_payment'].includes(paymentMethod)
+        : paymentSettings.some((setting: any) =>
+          setting.enabled && !isWalletPaymentMethod(setting.methodKey) && setting.methodKey === paymentMethod
+        );
+      if (isWalletPaymentMethod(paymentMethod) || !paymentMethodSupported) {
+        form.setValue('paymentMethod', getSupportedNonWalletPaymentMethod());
+      }
+      return;
+    }
     if (paymentMethod === 'wallet_combined') {
       setUseWallet(true);
       // Always suggest full payment amount if wallet has sufficient balance
@@ -934,11 +1227,13 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       setUseWallet(false);
       setWalletAmountToUse(0);
     }
-  }, [form.watch('paymentMethod'), walletBalance, beforeWalletTotal]);
+  }, [form.watch('paymentMethod'), walletBalance, beforeWalletTotal, selectedContractId, paymentSettings]);
   
   // Calculate wallet usage
   const maxWalletUsage = Math.min(walletBalance, beforeWalletTotal);
-  const actualWalletUsage = useWallet ? Math.min(walletAmountToUse, maxWalletUsage) : 0;
+  const actualWalletUsage = selectedContractId === null && useWallet
+    ? Math.min(walletAmountToUse, maxWalletUsage)
+    : 0;
   const totalAmount = beforeWalletTotal - actualWalletUsage;
   
   // Debug wallet calculation
@@ -1012,21 +1307,222 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         variant: "destructive",
       });
     },
+    onSettled: () => { orderSubmissionLockRef.current = false; },
   });
 
-  const onSubmit = (data: CheckoutFormData) => {
+  const onSubmit = async (data: CheckoutFormData) => {
+    const isFinalConfirmation = confirmingOrderRef.current;
+    confirmingOrderRef.current = false;
+    if (createOrderMutation.isPending || orderSubmissionLockRef.current) return;
+    if (isFinalConfirmation) orderSubmissionLockRef.current = true;
+    let handedToMutation = false;
+    try {
+    if (selectedContractId !== null && (
+      isWalletPaymentMethod(data.paymentMethod) ||
+      isWalletPaymentMethod(form.getValues('paymentMethod')) ||
+      useWallet ||
+      walletAmountToUse > 0 ||
+      actualWalletUsage > 0
+    )) {
+      setUseWallet(false);
+      setWalletAmountToUse(0);
+      setSecondaryPaymentMethod('');
+      form.setValue('paymentMethod', getSupportedNonWalletPaymentMethod());
+      setPendingReview(null);
+      const walletGuardTitle = language === 'fa'
+        ? 'پرداخت کیف پول برای سفارش قراردادی مجاز نیست'
+        : language === 'ar'
+          ? 'الدفع من المحفظة غير مسموح للطلبات التعاقدية'
+          : language === 'tr'
+            ? 'Sözleşmeli siparişlerde cüzdanla ödeme kullanılamaz'
+            : 'Wallet payment is not allowed for contract orders';
+      toast({ title: walletGuardTitle, description: contractNonWalletPaymentNote, variant: 'destructive' });
+      return;
+    }
+    if (selectedContractId !== null) {
+      const refreshedContracts = await refetchContracts();
+      const verifiedContracts = refreshedContracts.data || [];
+      const freshContractError = getContractValidationError(
+        selectedContractId,
+        verifiedContracts,
+        refreshedContracts.isFetching,
+        refreshedContracts.isError,
+      );
+      if (freshContractError) {
+        setPendingReview(null);
+        toast({ title: 'Contract cannot be used', description: freshContractError, variant: 'destructive' });
+        return;
+      }
+      const freshContract = verifiedContracts.find(contract => Number(contract.id) === Number(selectedContractId));
+      const previousContract = selectedContract;
+      const previousShippingMode = (previousContract as (ShopContract & { shippingMode?: ContractShippingMode | null }) | undefined)?.shippingMode || null;
+      const freshShippingMode = (freshContract as (ShopContract & { shippingMode?: ContractShippingMode | null }) | undefined)?.shippingMode || null;
+      if (freshShippingMode !== previousShippingMode) {
+        setPendingReview(null);
+        toast({
+          title: language === 'fa' ? 'روش حمل قرارداد تغییر کرده است' : language === 'ar' ? 'تغيّرت طريقة النقل في العقد' : language === 'tr' ? 'Sözleşmenin taşıma yöntemi değişti' : 'Contract shipping policy changed',
+          description: language === 'fa' ? 'قرارداد را دوباره انتخاب کنید تا روش حمل و قیمت‌گذاری تازه اعمال شود.' : language === 'ar' ? 'أعد اختيار العقد لتطبيق طريقة النقل والتسعير الجديدة.' : language === 'tr' ? 'Yeni taşıma yöntemi ve fiyatlandırmayı uygulamak için sözleşmeyi yeniden seçin.' : 'Select the contract again to apply the updated shipping method and pricing.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const freshRequiredShippingMethodId = getContractShippingMethodId(freshShippingMode, deliveryMethods);
+      if ((freshShippingMode === 'automatic_vehicle' || freshShippingMode === 'self_transport') &&
+        (!freshRequiredShippingMethodId || data.shippingMethod !== freshRequiredShippingMethodId)) {
+        setPendingReview(null);
+        toast({
+          title: language === 'fa' ? 'روش حمل قرارداد در دسترس نیست' : language === 'ar' ? 'طريقة النقل المطلوبة غير متاحة' : language === 'tr' ? 'Sözleşmenin taşıma yöntemi kullanılamıyor' : 'Contract shipping method unavailable',
+          description: contractShippingMethodNotice,
+          variant: 'destructive',
+        });
+        return;
+      }
+      const contractPricesChanged = Object.entries(cart).some(([productId]) => {
+        const oldPrice = previousContract?.items?.find(item => Number(item.productId) === Number(productId))?.unitPrice;
+        const newPrice = freshContract?.items?.find(item => Number(item.productId) === Number(productId))?.unitPrice;
+        return Number(oldPrice) !== Number(newPrice);
+      });
+      if (contractPricesChanged) {
+        setPendingReview(null);
+        toast({
+          title: 'Contract terms changed',
+          description: 'The contract price was updated. Review the new order total before submitting.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    if (data.secondDeliveryAddress?.trim() && !data.secondDeliveryCity?.trim()) {
+      toast({ title: language === 'fa' ? 'شهر آدرس را انتخاب کنید' : 'Select a city for the address', variant: 'destructive' });
+      return;
+    }
+    if ((deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy') &&
+      (!data.secondDeliveryAddress?.trim() || !data.secondDeliveryCity?.trim() ||
+        !data.secondDeliveryProvince?.trim() || !newAddressCountry.trim() ||
+        (deliveryAddressChoice === 'new' && (!newAddressTitle.trim() || !newAddressPhone.trim())))) {
+      toast({
+        title: language === 'fa' ? 'اطلاعات جغرافیایی آدرس را کامل کنید' : 'Complete the address geography',
+        description: language === 'fa'
+          ? 'برای آدرس انتخاب‌شده، استان، شهر و کشور را جداگانه انتخاب کنید.'
+          : 'Select the province, city, and country explicitly for this address.',
+        variant: 'destructive',
+      });
+      return;
+    }
     // CRITICAL VALIDATION: Ensure delivery address is specified before allowing order
     // Helper to check non-empty string
     const isValidField = (val: string | undefined | null): boolean => {
       return val !== undefined && val !== null && val.trim() !== '';
     };
+
+    const submittedShippingMethod = (deliveryMethods as any[])?.find((method: any) => method.id.toString() === data.shippingMethod);
+    const isSubmittedShippingDependent = !!submittedShippingMethod && !isGenuinePickupMethod(submittedShippingMethod);
+    const refreshedCenter = await refetchShippingCenter();
+    const freshCenterData = refreshedCenter.data?.data;
+    const freshCenterKey = getShippingCenterKey(freshCenterData);
+    if (freshCenterKey) shippingCenterKeyRef.current = freshCenterKey;
+
+    if (isSubmittedShippingDependent && (refreshedCenter.isError || !freshCenterKey)) {
+      setShippingRouteUnavailable(true);
+      toast({
+        title: shippingRouteUnavailableMessage,
+        description: shippingRouteUnavailableMessage,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const freshCenterCountryCode = resolveCountryCode(freshCenterData?.countryCode) || freshCenterData?.countryCode?.toUpperCase() || '';
+    const destinationCountry = isUserLoggedIn
+      ? (deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy'
+        ? newAddressCountry
+        : selectedAddress?.country || customerData?.customer?.country)
+      : getGuestDeliveryFields(data).country;
+    const destinationCountryCode = resolveCountryCode(destinationCountry);
+    if (isSubmittedShippingDependent && freshCenterCountryCode && destinationCountryCode && freshCenterCountryCode !== destinationCountryCode) {
+      setShippingRouteUnavailable(true);
+      setCalculatedShippingCost(0);
+      setSelectedVehicle(null);
+      selectedVehicleRef.current = null;
+      setPricedShippingCenterKey('');
+      setPricedShippingDestination('');
+      setShippingQuote(null);
+      setStandardShippingQuote(null);
+      setShippingQuoteRefreshKey((key) => key + 1);
+      toast({
+        title: shippingRouteUnavailableMessage,
+        description: shippingRouteUnavailableMessage,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const submittedMethodValue = String(
+      submittedShippingMethod?.value ||
+      submittedShippingMethod?.deliveryMethod ||
+      submittedShippingMethod?.delivery_method ||
+      ''
+    ).toLowerCase();
+    const requiresShippingQuoteToken = isSubmittedShippingDependent &&
+      (submittedMethodValue === 'smart_vehicle' || submittedMethodValue.includes('bus'));
+    const shippingQuoteIsCurrent = !!shippingQuote?.token &&
+      shippingQuote.destination === `${destinationCity}|${totalWeight}` &&
+      shippingQuote.centerKey === freshCenterKey &&
+      shippingQuote.cartKey === shippingQuoteCartKey &&
+      Date.now() - shippingQuote.createdAt < 4 * 60 * 1000;
+    if (requiresShippingQuoteToken && !shippingQuoteIsCurrent) {
+      setShippingQuote(null);
+      setPricedShippingCenterKey('');
+      setPricedShippingDestination('');
+      setShippingQuoteRefreshKey((key) => key + 1);
+      toast({
+        title: shippingQuoteRefreshMessage,
+        description: shippingQuoteRefreshMessage,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const isSubmittedSmartMethod = submittedMethodValue === 'smart_vehicle' || submittedMethodValue.includes('bus');
+    const submittedStandardQuoteIsCurrent = !!standardShippingQuote &&
+      standardShippingQuote.methodId === data.shippingMethod &&
+      standardShippingQuote.key === standardQuoteKey &&
+      standardShippingQuote.centerKey === freshCenterKey &&
+      standardShippingQuote.cartKey === shippingQuoteCartKey &&
+      Number.isFinite(standardShippingQuote.cost) &&
+      Date.now() - standardShippingQuote.createdAt < 4 * 60 * 1000;
+    if (isSubmittedShippingDependent && (
+      shippingCalculationPending ||
+      shippingRouteUnavailable ||
+      pricedShippingCenterKey !== freshCenterKey ||
+      pricedShippingDestination !== `${destinationCity}|${totalWeight}` ||
+      (isSubmittedSmartMethod
+        ? !selectedVehicleRef.current || !shippingQuoteIsCurrent
+        : !submittedStandardQuoteIsCurrent)
+    )) {
+      setShippingRouteUnavailable(true);
+      setCalculatedShippingCost(0);
+      setSelectedVehicle(null);
+      selectedVehicleRef.current = null;
+      setPricedShippingCenterKey('');
+      setPricedShippingDestination('');
+      setShippingQuote(null);
+      setStandardShippingQuote(null);
+      setShippingQuoteRefreshKey((key) => key + 1);
+      toast({
+        title: shippingRouteUnavailableMessage,
+        description: shippingRouteUnavailableMessage,
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (isUserLoggedIn && customerData?.customer) {
       const customer = customerData.customer;
       
       // Check CRM default address - all required fields must be non-empty
       const hasDefaultAddress = isValidField(customer.address) && 
-                                isValidField(customer.city) && 
+                                isValidField(customer.city || customer.cityRegion) &&
                                 isValidField(customer.country);
       
       // Check second delivery address - requires address AND city
@@ -1043,7 +1539,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       if (!hasDefaultAddress && !hasSecondAddress && !hasSelectedAddress) {
         toast({
           title: "آدرس تحویل الزامی است",
-          description: "لطفاً آدرس تحویل را مشخص کنید. می‌توانید از پروفایل، آدرس دوم، یا آدرس انتخابی استفاده کنید.",
+          description: "لطفاً آدرس تحویل را از آدرس‌های ذخیره‌شده انتخاب کنید یا یک آدرس جدید وارد کنید.",
           variant: "destructive",
         });
         console.log('🚫 [CHECKOUT] Order blocked - no valid delivery address', {
@@ -1110,20 +1606,33 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     if (isUserLoggedIn && customerData?.customer) {
       const customer = customerData.customer;
       
-      // Check if second address is specified (PRIORITY 1: Second Address)
-      if (data.secondDeliveryAddress) {
-        // Use second address information
-        deliveryAddress = data.secondDeliveryAddress;
-        deliveryCity = data.secondDeliveryCity || customer.city || '';
+      const secondDeliveryAddress = data.secondDeliveryAddress?.trim();
+      const explicitRecipientPhone = (deliveryAddressChoice === 'new' ? newAddressPhone.trim() : '') ||
+        data.recipientMobile?.trim() || data.recipientPhone?.trim() || selectedAddress?.phone || '';
+
+      // The recipient snapshot entered at checkout is authoritative for delivery.
+      if (secondDeliveryAddress && (deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy')) {
+        deliveryAddress = secondDeliveryAddress;
+        deliveryCity = data.secondDeliveryCity || '';
         deliveryProvince = data.secondDeliveryProvince || customer.province || customer.state || '';
-        deliveryCountry = customer.country || '';
+        deliveryCountry = deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy'
+          ? newAddressCountry
+          : selectedAddress?.country || customer.country || '';
         deliveryPostalCode = data.secondDeliveryPostalCode || '';
-        activeDeliveryInfo.addressSource = 'second_address';
+        activeDeliveryInfo.addressSource = deliveryAddressChoice === 'legacy' ? 'legacy_crm_address' : 'new_address';
         activeDeliveryInfo.isSecondAddress = true;
+      } else if (selectedAddress) {
+        deliveryAddress = selectedAddress.address || '';
+        deliveryCity = selectedAddress.city || '';
+        deliveryProvince = selectedAddress.state || '';
+        deliveryCountry = selectedAddress.country || '';
+        deliveryPostalCode = selectedAddress.postalCode || '';
+        activeDeliveryInfo.addressSource = 'selected_address';
+        activeDeliveryInfo.isSecondAddress = false;
       } else {
         // Use CRM default address
         deliveryAddress = customer.address || '';
-        deliveryCity = customer.city || '';
+        deliveryCity = customer.city || customer.cityRegion || data.billingCity || '';
         deliveryProvince = customer.province || customer.state || '';
         deliveryCountry = customer.country || '';
         deliveryPostalCode = customer.postalCode || '';
@@ -1131,10 +1640,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         activeDeliveryInfo.isSecondAddress = false;
       }
       
-      // Check if different recipient mobile is specified (PRIORITY 2: Different Mobile)
-      if (data.recipientMobile) {
-        // Use specified recipient mobile
-        recipientPhone = data.recipientMobile;
+      // Prefer the recipient mobile entered for this order over the CRM phone.
+      if (explicitRecipientPhone) {
+        recipientPhone = explicitRecipientPhone;
         activeDeliveryInfo.phoneSource = 'different_mobile';
         activeDeliveryInfo.isDifferentMobile = true;
       } else {
@@ -1145,18 +1653,20 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       }
       
       // Use customer name as default recipient unless different name specified
-      recipientName = data.recipientName || `${customer.firstName} ${customer.lastName}`;
+      recipientName = selectedAddress?.recipientName || data.recipientName ||
+        `${customer.firstName} ${customer.lastName}`;
     } else {
       // For non-logged in users, use form data
+      const guestDeliveryFields = getGuestDeliveryFields(data);
       const shippingAddress = data.sameAsShipping ? 
         `${data.billingAddress1}, ${data.billingAddress2 || ''}, ${data.billingCity}, ${data.billingState}, ${data.billingPostalCode}, ${data.billingCountry}`.trim() :
         `${data.shippingAddress1}, ${data.shippingAddress2 || ''}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`.trim();
       
       deliveryAddress = shippingAddress;
-      deliveryCity = data.billingCity;
-      deliveryProvince = data.billingState;
-      deliveryCountry = data.billingCountry;
-      deliveryPostalCode = data.billingPostalCode;
+      deliveryCity = guestDeliveryFields.city;
+      deliveryProvince = guestDeliveryFields.province;
+      deliveryCountry = guestDeliveryFields.country;
+      deliveryPostalCode = guestDeliveryFields.postalCode;
       recipientPhone = data.recipientPhone || data.phone || '';
       recipientName = data.recipientName || `${data.firstName} ${data.lastName}`;
       activeDeliveryInfo.addressSource = 'guest_form';
@@ -1166,7 +1676,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     // Prepare customer info
     let customerInfo;
     
-    if (isLoggedIn && selectedAddress) {
+      if (isLoggedIn && selectedAddress && !data.secondDeliveryAddress?.trim()) {
       // Use selected address from address selector (legacy functionality)
       customerInfo = {
         email: customerData?.customer?.email || data.email,
@@ -1178,8 +1688,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         city: selectedAddress.city,
         address: `${selectedAddress.address}${selectedAddress.postalCode ? `, ${selectedAddress.postalCode}` : ''}`,
       };
-      // Also use selected address phone as recipient phone if no explicit recipientMobile was set
-      if (!data.recipientMobile && selectedAddress.phone) {
+      // Use the selected saved-address phone only when checkout has no recipient phone.
+      if (!recipientPhone && selectedAddress.phone) {
         recipientPhone = selectedAddress.phone;
         activeDeliveryInfo.phoneSource = 'selected_address';
       }
@@ -1223,6 +1733,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     });
 
     const orderData = {
+      selectedBulkVehicleTemplateId:hasBulkContractProducts&&bulkVehicleTemplateId?Number(bulkVehicleTemplateId):null,
+      contractId: selectedContractId,
       customerInfo,
       recipientInfo: {
         recipientName: recipientName,
@@ -1261,6 +1773,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       notes: data.notes || '',
       shippingMethod: data.shippingMethod,
       paymentMethod: (() => {
+        if (selectedContractId !== null) {
+          return isWalletPaymentMethod(data.paymentMethod)
+            ? getSupportedNonWalletPaymentMethod()
+            : data.paymentMethod;
+        }
         // Let backend handle wallet_combined conversion
         if (data.paymentMethod === 'wallet_combined') {
           console.log('📤 [FRONTEND] Sending wallet_combined to backend for smart conversion');
@@ -1276,8 +1793,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
           return data.paymentMethod;
         }
       })(),
-      secondaryPaymentMethod: secondaryPaymentMethod, // Send user's choice for remaining amount payment method
-      walletAmountUsed: actualWalletUsage,
+      secondaryPaymentMethod: selectedContractId === null ? secondaryPaymentMethod : '',
+      walletAmountUsed: selectedContractId === null ? actualWalletUsage : 0,
       remainingAmount: beforeWalletTotal - actualWalletUsage, // Fix: Send actual remaining amount after wallet deduction
       // Use ref to get current vehicle (avoids stale closure in callbacks)
       // CRITICAL: Send vehicle TYPE (like "van", "motorcycle") NOT vehicle name (like "وانت")
@@ -1286,6 +1803,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                    selectedVehicleRef.current?.vehicleType || selectedVehicle?.vehicleType || null, // Customer's selected vehicle TYPE for logistics
       // CRITICAL: Send total weight calculated from cart items for logistics vehicle matching
       totalWeight: totalWeight > 0 ? totalWeight : null, // Total weight in kg for optimal vehicle selection
+      ...(requiresShippingQuoteToken ? { shippingQuoteToken: shippingQuote!.token } : {}),
     };
 
     // Debug logging for payment data
@@ -1317,7 +1835,84 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       selectedVehicleRefFull: selectedVehicleRef.current
     });
 
-    createOrderMutation.mutate(orderData);
+    const signature = JSON.stringify({
+      items: orderData.items, address: orderData.recipientInfo,
+      shippingMethod: orderData.shippingMethod, shippingCost: orderData.shippingCost,
+      total: orderData.totalAmount, payment: orderData.paymentMethod,
+      walletAmount: orderData.walletAmountUsed, cart: shippingQuoteCartKey,
+      contractId: orderData.contractId,
+      addressTitle: deliveryAddressChoice === 'new' ? newAddressTitle.trim() : '',
+    });
+    if (!isFinalConfirmation || !pendingReview || pendingReview.signature !== signature) {
+      if (isUserLoggedIn) {
+        const refreshed = await refetchSavedCustomerAddresses();
+        if (refreshed.isError) {
+          toast({ title: language === 'fa' ? 'دریافت آدرس‌های ذخیره‌شده ناموفق بود' : 'Could not load saved addresses', variant: 'destructive' });
+          return;
+        }
+      }
+      if (!reviewOpen) {
+        setReviewAddressId(deliveryAddressChoice === 'new'
+          ? 'new'
+          : deliveryAddressChoice === 'legacy'
+            ? 'legacy'
+            : selectedAddress ? `saved:${selectedAddress.id}` : 'primary');
+        setSecondAddressDraft({
+          address: data.secondDeliveryAddress || '', city: data.secondDeliveryCity || '',
+          province: data.secondDeliveryProvince || '', postalCode: data.secondDeliveryPostalCode || '',
+          title: newAddressTitle, phone: deliveryAddressChoice === 'new' ? newAddressPhone : data.recipientMobile || '',
+          country: newAddressCountry,
+        });
+      }
+      setPendingReview({ signature });
+      setReviewOpen(true);
+      return;
+    }
+    setIsConfirmingOrder(true);
+    try {
+      if (isUserLoggedIn && deliveryAddressChoice === 'new' && data.secondDeliveryAddress?.trim()) {
+        const savedAddress = await saveCustomerAddress({
+          title: newAddressTitle.trim(),
+          address: data.secondDeliveryAddress.trim(),
+          city: data.secondDeliveryCity?.trim() || '',
+          state: data.secondDeliveryProvince?.trim(),
+          country: newAddressCountry.trim(),
+          postalCode: data.secondDeliveryPostalCode?.trim(),
+          phone: newAddressPhone.trim(),
+          recipientName: recipientName || customerData?.customer?.firstName || 'Customer',
+        });
+        // Keep the just-confirmed snapshot stable while handing it to the order
+        // mutation. The saved row has exactly the same destination, so switching
+        // the selection does not change the route or recalculate the quote.
+        setSelectedAddress(savedAddress);
+        setDeliveryAddressChoice(`saved:${savedAddress.id}`);
+        setReviewAddressId(`saved:${savedAddress.id}`);
+        form.setValue('recipientMobile', savedAddress.phone || '');
+        form.setValue('recipientName', savedAddress.recipientName || recipientName);
+        setNewAddressTitle('');
+        setNewAddressPhone('');
+        setSecondAddressDraft(null);
+        queryClient.setQueryData(['structuredCustomerAddresses'], (current: any[] | undefined) => [
+          ...(current || []).filter(address => Number(address.id) !== Number(savedAddress.id)),
+          savedAddress,
+        ]);
+        await refetchSavedCustomerAddresses();
+        await queryClient.invalidateQueries({ queryKey: ['/api/customers/addresses'] });
+      }
+      setReviewOpen(false);
+      setPendingReview(null);
+      handedToMutation = true;
+      createOrderMutation.mutate(orderData);
+    } catch (error: any) {
+      orderSubmissionLockRef.current = false;
+      toast({ title: language === 'fa' ? 'ذخیره آدرس ناموفق بود' : 'Could not save the address',
+        description: error?.message, variant: 'destructive' });
+    } finally {
+      setIsConfirmingOrder(false);
+    }
+    } finally {
+      if (!handedToMutation) orderSubmissionLockRef.current = false;
+    }
   };
 
   if (Object.keys(cart).length === 0) {
@@ -1515,64 +2110,153 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   <CardContent>
                     {isUserLoggedIn ? (
                       <div className="space-y-6">
-                        <AddressSelector
-                          selectedAddressId={selectedAddress?.id}
-                          onAddressSelect={(address) => {
-                            setSelectedAddress(address);
-                            // Auto-fill form fields from selected address
-                            form.setValue('billingAddress1', address.address);
-                            form.setValue('billingCity', address.city);
-                            form.setValue('billingState', address.state || '');
-                            form.setValue('billingPostalCode', address.postalCode || '');
-                            form.setValue('billingCountry', address.country);
-                          }}
-                        />
-                        
-                        {/* Secondary Address Option */}
-                        {customerInfo?.secondaryAddress && (
-                          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <div className="flex items-center space-x-2 space-x-reverse">
+                        <div role="radiogroup" aria-label={language === 'fa' ? 'آدرس تحویل' : 'Delivery address'} className="space-y-2">
+                          {[
+                            {
+                              id: 'primary',
+                              title: language === 'fa' ? 'آدرس اصلی' : 'Primary address',
+                              address: customerData?.customer?.address || '',
+                              city: customerData?.customer?.city || customerData?.customer?.cityRegion || '',
+                              state: customerData?.customer?.province || customerData?.customer?.state || '',
+                              country: customerData?.customer?.country || '',
+                              postalCode: customerData?.customer?.postalCode || '',
+                              phone: customerData?.customer?.phone || '',
+                            },
+                            ...savedCustomerAddresses.map((address: any) => ({
+                              id: `saved:${address.id}`, title: address.title || (language === 'fa' ? 'آدرس ذخیره‌شده' : 'Saved address'),
+                              address: address.address, city: address.city, state: address.state || '',
+                              country: address.country, postalCode: address.postalCode || '', phone: address.phone || '',
+                            })),
+                            ...((customerInfo?.secondaryAddress || customerData?.customer?.secondaryAddress) ? [{
+                              id: 'legacy', title: language === 'fa' ? 'آدرس قدیمی CRM' : 'Legacy CRM address',
+                              address: customerInfo?.secondaryAddress || customerData?.customer?.secondaryAddress, city: '', state: '',
+                              country: '', postalCode: '', phone: customerInfo?.alternatePhone || customerData?.customer?.alternatePhone || customerData?.customer?.phone || '',
+                            }] : []),
+                          ].map((address: any) => (
+                            <label key={address.id} className={`flex cursor-pointer gap-3 rounded-md border p-3 ${deliveryAddressChoice === address.id ? 'border-primary bg-primary/5' : 'border-border'}`}>
                               <input
-                                type="checkbox"
-                                id="useSecondaryAddress"
-                                checked={useSecondaryAddress}
-                                onChange={(e) => {
-                                  setUseSecondaryAddress(e.target.checked);
-                                  if (e.target.checked && customerInfo?.secondaryAddress) {
-                                    // Auto-fill with secondary address
-                                    form.setValue('billingAddress1', customerInfo.secondaryAddress);
-                                    form.setValue('billingCity', customerInfo.city || '');
-                                    form.setValue('billingState', customerInfo.state || '');
-                                    form.setValue('billingPostalCode', customerInfo.postalCode || '');
-                                    form.setValue('billingCountry', customerInfo.country || 'Iraq');
-                                  } else if (selectedAddress) {
-                                    // Revert to selected primary address
-                                    form.setValue('billingAddress1', selectedAddress.address);
-                                    form.setValue('billingCity', selectedAddress.city);
-                                    form.setValue('billingState', selectedAddress.state || '');
-                                    form.setValue('billingPostalCode', selectedAddress.postalCode || '');
-                                    form.setValue('billingCountry', selectedAddress.country);
+                                type="radio"
+                                name="checkout-delivery-address"
+                                checked={deliveryAddressChoice === address.id}
+                                onChange={() => {
+                                  setDeliveryAddressChoice(address.id);
+                                  setSelectedAddress(address.id.startsWith('saved:') ? savedCustomerAddresses.find((item: any) => `saved:${item.id}` === address.id) : null);
+                                  if (address.id === 'legacy') {
+                                    setNewAddressTitle(address.title);
+                                    setNewAddressCountry('');
+                                    form.setValue('secondDeliveryAddress', address.address);
+                                    form.setValue('secondDeliveryProvince', '');
+                                    form.setValue('secondDeliveryCity', '');
+                                    form.setValue('secondDeliveryPostalCode', '');
+                                    form.setValue('recipientMobile', address.phone);
+                                  } else if (address.id.startsWith('saved:')) {
+                                    const saved = savedCustomerAddresses.find((item: any) => `saved:${item.id}` === address.id);
+                                    form.setValue('secondDeliveryAddress', saved?.address || '');
+                                    form.setValue('secondDeliveryProvince', saved?.state || '');
+                                    form.setValue('secondDeliveryCity', saved?.city || '');
+                                    form.setValue('secondDeliveryPostalCode', saved?.postalCode || '');
+                                    setNewAddressCountry(saved?.country || '');
+                                    form.setValue('recipientMobile', saved?.phone || '');
+                                    const region = provinces.find((item: any) => canonicalGeographyName(item) === saved?.state || geographyName(item) === saved?.state);
+                                    setSelectedSecondaryProvinceId(region?.id ?? null);
+                                  } else {
+                                    setNewAddressCountry('');
+                                    form.setValue('secondDeliveryAddress', '');
+                                    form.setValue('secondDeliveryProvince', '');
+                                    form.setValue('secondDeliveryCity', '');
+                                    form.setValue('secondDeliveryPostalCode', '');
+                                    form.setValue('recipientMobile', customerData?.customer?.phone || '');
                                   }
                                 }}
-                                className="rounded"
+                                className="mt-1 accent-primary"
                               />
-                              <label htmlFor="useSecondaryAddress" className="text-sm font-medium text-blue-700 dark:text-blue-300 cursor-pointer">
-                                {t.checkout_page.useSecondaryAddress}
-                              </label>
-                            </div>
-                            {useSecondaryAddress && (
-                              <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border text-sm">
-                                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                                  <MapPin className="w-4 h-4" />
-                                  <span className="font-medium">{t.checkout_page.secondaryAddressSelected}</span>
-                                </div>
-                                <p className="mt-1 text-gray-700 dark:text-gray-300">{customerInfo.secondaryAddress}</p>
-                              </div>
+                              <span className="min-w-0">
+                                <span className="block font-medium">{address.title}</span>
+                                <span className="block text-sm text-muted-foreground">
+                                  {[address.address, address.city, address.state, address.postalCode, address.country].filter(Boolean).join(', ')}
+                                </span>
+                                {address.phone && <span className="block text-xs text-muted-foreground">{address.phone}</span>}
+                                {address.id === 'legacy' && <span className="block text-xs text-amber-700">{language === 'fa' ? 'استان، شهر و کشور را جداگانه مشخص کنید.' : 'Select province, city, and country explicitly.'}</span>}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="h-auto p-0"
+                          onClick={() => {
+                            setDeliveryAddressChoice('new');
+                            setSelectedAddress(null);
+                            setNewAddressTitle('');
+                            setNewAddressPhone('');
+                            setNewAddressCountry(shippingCenterCountry || customerData?.customer?.country || '');
+                            setSelectedSecondaryProvinceId(null);
+                            form.setValue('secondDeliveryAddress', '');
+                            form.setValue('secondDeliveryProvince', '');
+                            form.setValue('secondDeliveryCity', '');
+                            form.setValue('secondDeliveryPostalCode', '');
+                            form.setValue('recipientMobile', '');
+                          }}
+                        >
+                          + {language === 'fa' ? 'آدرس جدید' : 'New address'}
+                        </Button>
+                        {(deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy') && (
+                          <div className="space-y-4 rounded-md border bg-muted/20 p-4">
+                            {deliveryAddressChoice === 'new' && (
+                              <>
+                                <FormItem>
+                                  <FormLabel>{language === 'fa' ? 'عنوان آدرس' : 'Address title'} *</FormLabel>
+                                  <Input value={newAddressTitle} onChange={(event) => setNewAddressTitle(event.target.value)} required />
+                                </FormItem>
+                                <FormItem>
+                                  <FormLabel>{language === 'fa' ? 'موبایل گیرنده' : 'New mobile'} *</FormLabel>
+                                  <Input type="tel" value={newAddressPhone} onChange={(event) => setNewAddressPhone(event.target.value)} required />
+                                </FormItem>
+                              </>
                             )}
+                            <FormField control={form.control} name="secondDeliveryAddress" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t.checkout_page.fullAddressLabel} *</FormLabel>
+                                <FormControl><Textarea {...field} /></FormControl>
+                              </FormItem>
+                            )} />
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <FormItem>
+                                <FormLabel>{t.checkout_page.provinceLabel} *</FormLabel>
+                                <Select value={form.watch('secondDeliveryProvince') || ''} onValueChange={(value) => {
+                                  form.setValue('secondDeliveryProvince', value);
+                                  form.setValue('secondDeliveryCity', '');
+                                  const region = provinces.find((item: any) => canonicalGeographyName(item) === value);
+                                  setSelectedSecondaryProvinceId(region?.id ?? null);
+                                }}>
+                                  <SelectTrigger><SelectValue placeholder={t.checkout_page.selectProvincePlaceholder} /></SelectTrigger>
+                                  <SelectContent>{provinces.map((province: any) => <SelectItem key={province.id} value={canonicalGeographyName(province)}>{geographyName(province)}</SelectItem>)}</SelectContent>
+                                </Select>
+                              </FormItem>
+                              <FormItem>
+                                <FormLabel>{t.checkout_page.citySelectLabel} *</FormLabel>
+                                <Select value={form.watch('secondDeliveryCity') || ''} onValueChange={(value) => form.setValue('secondDeliveryCity', value)} disabled={!selectedSecondaryProvinceId}>
+                                  <SelectTrigger><SelectValue placeholder={t.checkout_page.selectCityPlaceholder} /></SelectTrigger>
+                                  <SelectContent>{secondaryCities.map((city: any) => <SelectItem key={city.id} value={canonicalGeographyName(city)}>{geographyName(city)}</SelectItem>)}</SelectContent>
+                                </Select>
+                              </FormItem>
+                              <FormItem>
+                                <FormLabel>{language === 'fa' ? 'کشور' : 'Country'} *</FormLabel>
+                                <Select value={newAddressCountry} onValueChange={setNewAddressCountry}>
+                                  <SelectTrigger><SelectValue placeholder={language === 'fa' ? 'کشور را انتخاب کنید' : 'Select country'} /></SelectTrigger>
+                                  <SelectContent>{geographyCountries.map((country: any) => {
+                                    const code = String(country.code || country.countryCode || country.nameEn || country.name || '');
+                                    return <SelectItem key={code} value={String(country.nameEn || country.nameEnglish || country.name || code)}>{geographyName(country)}</SelectItem>;
+                                  })}</SelectContent>
+                                </Select>
+                              </FormItem>
+                              <FormField control={form.control} name="secondDeliveryPostalCode" render={({ field }) => (
+                                <FormItem><FormLabel>{t.checkout_page.postalCodeLabel}</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                              )} />
+                            </div>
                           </div>
                         )}
-                        
-
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -1681,19 +2365,21 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                             )}
                           />
                           
-                          <FormField
-                            control={form.control}
-                            name="recipientAddress"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{t.checkout_page.recipientAddressLabel}</FormLabel>
-                                <FormControl>
-                                  <Textarea {...field} placeholder={t.checkout_page.recipientAddressPlaceholder} className="min-h-[80px]" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          {!isUserLoggedIn && (
+                            <FormField
+                              control={form.control}
+                              name="recipientAddress"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{t.checkout_page.recipientAddressLabel}</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} placeholder={t.checkout_page.recipientAddressPlaceholder} className="min-h-[80px]" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          )}
                         </div>
                       )}
                     </div>
@@ -1701,7 +2387,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                 </Card>
 
                 {/* Second Address and Alternative Mobile - Only for logged in users */}
-                {isUserLoggedIn && (
+                {false && isUserLoggedIn && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -1768,7 +2454,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                         onValueChange={(value) => {
                                           field.onChange(value);
                                           // Find province ID and set it for city filtering
-                                          const selectedProvince = provinces.find((p: any) => p.nameEnglish === value || p.name === value);
+                                          const selectedProvince = provinces.find((p: any) => canonicalGeographyName(p) === value || geographyName(p) === value);
                                           if (selectedProvince) {
                                             setSelectedSecondaryProvinceId(selectedProvince.id);
                                             // Clear city selection when province changes
@@ -1784,8 +2470,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                         </FormControl>
                                         <SelectContent>
                                           {Array.isArray(provinces) && provinces.map((province: any) => (
-                                            <SelectItem key={province.id} value={province.nameEnglish || province.name}>
-                                              {province.nameEnglish} / {province.name}
+                                            <SelectItem key={province.id} value={canonicalGeographyName(province)}>
+                                              {geographyName(province)} / {canonicalGeographyName(province)}
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
@@ -1813,8 +2499,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                         </FormControl>
                                         <SelectContent>
                                           {Array.isArray(secondaryCities) && secondaryCities.map((city: any) => (
-                                            <SelectItem key={city.id} value={city.nameEnglish || city.name}>
-                                              {city.nameEnglish} / {city.nameArabic || city.name}
+                                            <SelectItem key={city.id} value={canonicalGeographyName(city)}>
+                                              {geographyName(city)} / {canonicalGeographyName(city)}
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
@@ -1904,11 +2590,19 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                         <FormItem>
                           <FormLabel>{t.checkout_page.selectShippingLabel}</FormLabel>
                           <FormControl>
-                            <Select value={field.value} onValueChange={field.onChange}>
+                            <Select
+                              value={field.value}
+                              disabled={hasEnforcedContractShippingMode}
+                              onValueChange={(methodId) => {
+                                if (!hasEnforcedContractShippingMode || methodId === requiredContractShippingMethodId) {
+                                  field.onChange(methodId);
+                                }
+                              }}
+                            >
                               <SelectTrigger>
                                 <SelectValue 
                                   placeholder={
-                                    selectedVehicle && destinationCity && totalWeight > 0
+                                    selectedVehicle && destinationCity && totalWeight > 0 && shippingQuoteReady
                                       ? `🚚 ${selectedVehicle.name} - ${shippingCost.toLocaleString()} IQD (${destinationCity})`
                                       : t.checkout_page.selectShippingPlaceholder
                                   }
@@ -1919,7 +2613,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                 {(deliveryMethods as any[])?.map((method: any) => {
                                   // Handle smart_vehicle specially
                                   if (method.value === 'smart_vehicle') {
-                                    if (selectedVehicle && destinationCity && totalWeight > 0) {
+                                    if (selectedVehicle && destinationCity && totalWeight > 0 && shippingQuoteReady) {
                                       // Show calculated smart vehicle option
                                       return (
                                         <SelectItem key={method.id} value={method.id.toString()} className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
@@ -1934,15 +2628,6 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                             </div>
                                             <div className="text-xs text-emerald-600 dark:text-emerald-400 space-y-1">
                                               <div>📍 {t.checkout_page.destination} {destinationCity} • {t.checkout_page.weight} {totalWeight.toFixed(1)} {t.checkout_page.kg}</div>
-                                              <div>
-                                                💰 {t.checkout_page.basePrice} {parseFloat(selectedVehicle.basePrice || '0').toLocaleString()} • 
-                                                {t.checkout_page.distance} {(parseFloat(iraqiCities?.find((city: any) => 
-                                                  city.nameEnglish?.toLowerCase().includes(destinationCity.toLowerCase()) ||
-                                                  city.nameArabic?.includes(destinationCity) ||
-                                                  city.name?.toLowerCase().includes(destinationCity.toLowerCase())
-                                                )?.distanceFromErbilKm || '0') * parseFloat(selectedVehicle.pricePerKm || '0')).toLocaleString()} • 
-                                                {t.checkout_page.weight} {(totalWeight * parseFloat(selectedVehicle.pricePerKg || '0')).toLocaleString()} IQD
-                                              </div>
                                             </div>
                                           </div>
                                         </SelectItem>
@@ -1957,7 +2642,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                                 🚚 {method.label}
                                               </span>
                                               <span className="text-emerald-600 dark:text-emerald-400 text-xs">
-                                                {t.checkout_page.autoCalculate}
+                                                {shippingRouteUnavailable ? shippingRouteUnavailableMessage : t.checkout_page.autoCalculate}
                                               </span>
                                             </div>
                                             <div className="text-xs text-emerald-600 dark:text-emerald-400">
@@ -1971,8 +2656,27 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                     }
                                   }
                                   
+                                  if (isGenuinePickupMethod(method)) {
+                                    return (
+                                      <SelectItem key={method.id} value={method.id.toString()}>
+                                        <div className="flex items-center justify-between w-full">
+                                          <span>{method.label}</span>
+                                          <span className="ml-2 text-sm">{t.checkout_page.freeShipping}</span>
+                                        </div>
+                                      </SelectItem>
+                                    );
+                                  }
+
                                   // Handle freight_collect specially
                                   if (method.value === 'freight_collect') {
+                                    const isSelectedFreight = method.id?.toString() === selectedShippingMethodId;
+                                    const freightStatus = shippingRouteUnavailable
+                                      ? shippingRouteUnavailableMessage
+                                      : shippingQuoteReady
+                                        ? (shippingCost === 0 ? t.checkout_page.freeShipping : `${shippingCost.toLocaleString()} IQD`)
+                                        : isSelectedFreight && shippingCalculationPending
+                                          ? t.checkout_page.calculatingBestVehicle
+                                          : shippingRouteUnavailableMessage;
                                     return (
                                       <SelectItem key={method.id} value={method.id.toString()} className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
                                         <div className="flex flex-col gap-1 w-full">
@@ -1981,28 +2685,35 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                               🚚 {t.checkout_page.freightCollect}
                                             </span>
                                             <span className="text-orange-600 dark:text-orange-400 font-bold">
-                                              {t.checkout_page.freightCollectNote}
+                                              {freightStatus}
                                             </span>
                                           </div>
                                           <div className="text-xs text-orange-600 dark:text-orange-400">
-                                            {t.checkout_page.freightCollectDescription}
+                                            {!shippingQuoteReady || shippingRouteUnavailable
+                                              ? freightStatus
+                                              : `${t.checkout_page.freightCollectNote} · ${t.checkout_page.freightCollectDescription}`}
                                           </div>
                                         </div>
                                       </SelectItem>
                                     );
                                   }
 
-                                  // Handle standard delivery methods
-                                  const freeShippingThreshold = parseFloat(method.freeShippingThreshold || '0');
-                                  const qualifiesForFreeShipping = freeShippingThreshold > 0 && subtotal >= freeShippingThreshold;
-                                  const baseCost = parseFloat(method.baseCost || '0');
+                                  // Standard methods are priced exclusively by the server quote endpoint.
+                                  const methodHasCurrentQuote = method.id?.toString() === selectedShippingMethodId && standardQuoteReady;
+                                  const methodPriceText = shippingRouteUnavailable
+                                    ? shippingRouteUnavailableMessage
+                                    : methodHasCurrentQuote
+                                      ? (standardShippingQuote!.cost === 0 ? t.checkout_page.freeShipping : `${standardShippingQuote!.cost.toLocaleString()} IQD`)
+                                      : method.id?.toString() === selectedShippingMethodId && shippingCalculationPending
+                                        ? t.checkout_page.calculatingBestVehicle
+                                        : shippingRouteUnavailableMessage;
                                   
                                   return (
                                     <SelectItem key={method.id} value={method.id.toString()}>
                                       <div className="flex items-center justify-between w-full">
                                         <span>{method.label}</span>
                                         <span className="ml-2 text-sm">
-                                          {qualifiesForFreeShipping ? t.checkout_page.freeShipping : `${baseCost.toLocaleString()} IQD`}
+                                          {methodPriceText}
                                           {method.estimatedDays && ` (${method.estimatedDays} ${t.checkout_page.days})`}
                                         </span>
                                       </div>
@@ -2012,6 +2723,26 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                               </SelectContent>
                             </Select>
                           </FormControl>
+                          {hasEnforcedContractShippingMode && (
+                            <p role={requiredContractShippingMethodId ? 'status' : 'alert'} className={`text-sm ${requiredContractShippingMethodId ? 'text-muted-foreground' : 'text-destructive'}`}>
+                              {contractShippingMethodNotice}
+                            </p>
+                          )}
+                          {hasBulkContractProducts&&
+                            <BulkVehicleSelector language={language} value={bulkVehicleTemplateId} onChange={setBulkVehicleTemplateId} selfTransport={selectedContractShippingMode==="self_transport"}/>}
+                          {isCurrentMethodShippingDependent && (shippingRouteUnavailable || shippingCalculationPending || !shippingQuoteReady) && (
+                            <p role="alert" className="text-sm text-destructive">
+                              {!deliveryAddressReady
+                                ? deliveryAddressPrompt
+                                : shippingRouteUnavailable
+                                ? shippingRouteUnavailableMessage
+                                : shippingCalculationPending
+                                  ? t.checkout_page.calculatingBestVehicle
+                                  : isSmartVehicleShipping
+                                    ? t.checkout_page.calculatingBestVehicle
+                                    : shippingRouteUnavailableMessage}
+                            </p>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -2028,20 +2759,36 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                           <div className="flex justify-between items-center">
                             <span>{t.checkout_page.shippingCostLabel}</span>
                             <span className="font-medium">
-                              {selectedMethod.value === 'freight_collect' 
-                                ? t.checkout_page.freightCollectNote
+                              {shippingSelectionUnavailable
+                                ? (!deliveryAddressReady
+                                  ? deliveryAddressPrompt
+                                  : shippingRouteUnavailable
+                                  ? shippingRouteUnavailableMessage
+                                  : shippingCalculationPending
+                                    ? t.checkout_page.calculatingBestVehicle
+                                    : isSmartVehicleShipping
+                                      ? t.checkout_page.calculatingBestVehicle
+                                      : shippingRouteUnavailableMessage)
+                                : currentMethodValue === 'freight_collect'
+                                ? `${shippingCost === 0 ? t.checkout_page.freeShipping : `${shippingCost.toLocaleString()} IQD`} · ${t.checkout_page.freightCollectNote}`
                                 : (shippingCost === 0 ? t.checkout_page.freeShipping : `${shippingCost.toLocaleString()} IQD`)
                               }
                             </span>
                           </div>
-                          {selectedMethod.value === 'freight_collect' ? (
+                          {shippingSelectionUnavailable ? (
+                            <p role="alert" className="text-sm text-destructive">{shippingRouteUnavailable
+                              ? shippingRouteUnavailableMessage
+                              : shippingCalculationPending || isSmartVehicleShipping
+                                ? t.checkout_page.calculatingBestVehicle
+                                : shippingRouteUnavailableMessage}</p>
+                          ) : selectedMethod.value === 'freight_collect' ? (
                             <div className="bg-orange-100 dark:bg-orange-900/30 rounded p-2 border border-orange-300 dark:border-orange-700">
                               <div className="text-xs text-orange-700 dark:text-orange-300 space-y-1">
                                 <div className="font-medium">🚚 {t.checkout_page.freightCollectSelected}</div>
                                 <div>{t.checkout_page.freightCollectDescription}</div>
                               </div>
                             </div>
-                          ) : selectedMethod.value === 'smart_vehicle' && selectedVehicle ? (
+                          ) : isSmartVehicleShipping && selectedVehicle ? (
                             <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded p-2 border border-emerald-200 dark:border-emerald-800">
                               <div className="text-xs text-emerald-700 dark:text-emerald-300 space-y-1">
                                 <div className="font-medium">{t.checkout_page.smartSelectionDetails}</div>
@@ -2053,13 +2800,6 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                 {selectedVehicle.refrigeratedTransport && <div>{t.checkout_page.refrigeratedTransport}</div>}
                                 {selectedVehicle.fragileItems && <div>{t.checkout_page.fragileHandling}</div>}
                               </div>
-                            </div>
-                          ) : selectedMethod.freeShippingThreshold && parseFloat(selectedMethod.freeShippingThreshold) > 0 ? (
-                            <div className="text-xs text-green-600 dark:text-green-400">
-                              {subtotal >= parseFloat(selectedMethod.freeShippingThreshold) 
-                                ? `${t.checkout_page.freeShippingOver} ${parseFloat(selectedMethod.freeShippingThreshold).toLocaleString()} IQD`
-                                : `${(parseFloat(selectedMethod.freeShippingThreshold) - subtotal).toLocaleString()} IQD ${t.checkout_page.moreForFreeShipping}`
-                              }
                             </div>
                           ) : null}
                           {selectedMethod.description && (
@@ -2073,8 +2813,19 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   </CardContent>
                 </Card>
 
-                {/* Payment Method */}
-                <Card>
+                {/* Payment is available only after delivery and its price are known. */}
+                {!finalPriceReady && (
+                  <p role="status" className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+                    {contractValidationError
+                      ? 'Resolve the selected contract issue before requesting shipping or continuing to payment.'
+                      : !currentShippingMethod
+                      ? (language === 'fa' ? 'ابتدا روش ارسال را انتخاب کنید.' : 'Choose a delivery method first.')
+                      : !deliveryAddressReady && !isCurrentMethodGenuinePickup
+                      ? deliveryAddressPrompt
+                      : t.checkout_page.calculatingBestVehicle}
+                  </p>
+                )}
+                {finalPriceReady && <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <CreditCard className="w-5 h-5" />
@@ -2096,100 +2847,10 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                               <SelectContent>
                                 {/* Dynamic payment methods based on admin settings */}
                                 {paymentSettings
-                                  .filter((setting: any) => setting.enabled)
-                                  .sort((a: any, b: any) => (b.priority || 0) - (a.priority || 0))
-                                  .map((setting: any) => {
-                                    // Get localized method name
-                                    const methodName = language === 'en' 
-                                      ? (setting.methodNameEn || setting.methodName)
-                                      : (setting.methodNameAr || setting.methodName);
-                                    
-                                    // Special handling for wallet payment
-                                    if (setting.methodKey === 'wallet') {
-                                      if (!isUserLoggedIn || walletBalance <= 0) return null;
-                                      return (
-                                        <SelectItem key={setting.methodKey} value="wallet_combined">
-                                          {methodName} - {t.checkout_page.walletBalance} {walletBalance.toLocaleString()} IQD
-                                        </SelectItem>
-                                      );
-                                    }
-                                    
-                                    // Regular payment methods
-                                    return (
-                                      <SelectItem key={setting.methodKey} value={setting.methodKey}>
-                                        {methodName}
-                                      </SelectItem>
-                                    );
-                                  })}
-                                
-                                {/* Fallback for when no settings are loaded yet */}
-                                {paymentSettings.length === 0 && (
-                                  <>
-                                    <SelectItem value="bank_receipt">{t.checkout_page.bankReceiptUpload}</SelectItem>
-                                    <SelectItem value="online_payment">{t.checkout_page.onlinePaymentMethod}</SelectItem>
-                                  </>
-                                )}
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    {/* Show delivery details */}
-                    {selectedMethod && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between items-center">
-                            <span>{t.checkout_page.shippingCostLabel}</span>
-                            <span className="font-medium">
-                              {shippingCost === 0 ? t.checkout_page.freeShipping : `${shippingCost.toLocaleString()} IQD`}
-                            </span>
-                          </div>
-                          {selectedMethod.freeShippingThreshold && parseFloat(selectedMethod.freeShippingThreshold) > 0 && (
-                            <div className="text-xs text-green-600 dark:text-green-400">
-                              {subtotal >= parseFloat(selectedMethod.freeShippingThreshold) 
-                                ? `${t.checkout_page.freeShippingOver} ${parseFloat(selectedMethod.freeShippingThreshold).toLocaleString()} IQD`
-                                : `${(parseFloat(selectedMethod.freeShippingThreshold) - subtotal).toLocaleString()} IQD ${t.checkout_page.moreForFreeShipping}`
-                              }
-                            </div>
-                          )}
-                          {selectedMethod.description && (
-                            <div className="text-xs text-muted-foreground">
-                              {selectedMethod.description}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Payment Method */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CreditCard className="w-5 h-5" />
-                      {t.checkout_page.paymentMethodTitle}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="paymentMethod"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t.checkout_page.selectPaymentMethod}</FormLabel>
-                          <FormControl>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger>
-                                <SelectValue placeholder={t.checkout_page.selectPaymentPlaceholder} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {/* Dynamic payment methods based on admin settings */}
-                                {paymentSettings
-                                  .filter((setting: any) => setting.enabled)
+                                  .filter((setting: any) =>
+                                    setting.enabled &&
+                                    !(selectedContractId !== null && isWalletPaymentMethod(setting.methodKey))
+                                  )
                                   .sort((a: any, b: any) => (b.priority || 0) - (a.priority || 0))
                                   .map((setting: any) => {
                                     // Get localized method name
@@ -2231,7 +2892,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                     />
 
                     {/* Wallet Payment Section */}
-                    {isUserLoggedIn && walletBalance > 0 && form.watch('paymentMethod') === 'wallet_combined' && (
+                    {selectedContractId === null && isUserLoggedIn && walletBalance > 0 && form.watch('paymentMethod') === 'wallet_combined' && (
                       <div className="p-4 bg-green-50 rounded-lg space-y-4">
                         <div className="flex items-center justify-between">
                           <div>
@@ -2290,7 +2951,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                     )}
 
                     {/* Secondary Payment Method for Combined Payments */}
-                    {form.watch('paymentMethod') === 'wallet_combined' && (
+                    {selectedContractId === null && form.watch('paymentMethod') === 'wallet_combined' && (
                       <div className="space-y-4">
                         {/* Remaining Amount Card */}
                         {totalAmount > 0 && (
@@ -2360,12 +3021,12 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                       )}
                     />
                   </CardContent>
-                </Card>
+                </Card>}
 
                   <Button 
                     type="submit" 
                     className="w-full"
-                    disabled={createOrderMutation.isPending}
+                    disabled={createOrderMutation.isPending || shippingSelectionUnavailable}
                   >
                     {createOrderMutation.isPending ? t.checkout_page.processingOrder : t.checkout_page.placeOrder}
                   </Button>
@@ -2586,7 +3247,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                     </div>
 
                     {/* Smart Vehicle Selection Display */}
-                    {selectedVehicle && destinationCity && (
+                    {selectedVehicle && destinationCity && shippingQuoteReady && (
                       <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
                         <div className="text-xs font-medium text-green-800 dark:text-green-300 mb-2 flex items-center gap-1">
                           <Car className="w-3 h-3" />
@@ -2606,23 +3267,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                             <span className="font-semibold">{destinationCity}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>{t.checkout_page.baseCostLabel}</span>
-                            <span>{parseFloat(selectedVehicle.basePrice || '0').toLocaleString()} {t.checkout_page.iqd}</span>
+                            <span>{t.checkout_page.shippingCostLabel}</span>
+                            <span>{shippingCost.toLocaleString()} {t.checkout_page.iqd}</span>
                           </div>
-                          {iraqiCities?.find((city: any) => 
-                            city.nameEnglish?.toLowerCase().includes(destinationCity.toLowerCase()) ||
-                            city.nameArabic?.includes(destinationCity) ||
-                            city.name?.toLowerCase().includes(destinationCity.toLowerCase())
-                          ) && (
-                            <div className="flex justify-between">
-                              <span>{t.checkout_page.distanceFromErbil}</span>
-                              <span>{iraqiCities.find((city: any) => 
-                                city.nameEnglish?.toLowerCase().includes(destinationCity.toLowerCase()) ||
-                                city.nameArabic?.includes(destinationCity) ||
-                                city.name?.toLowerCase().includes(destinationCity.toLowerCase())
-                              )?.distanceFromErbilKm} {t.checkout_page.kilometer}</span>
-                            </div>
-                          )}
                         </div>
                         <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-700">
                           <div className="text-xs text-green-600 dark:text-green-400 italic flex items-center gap-1">
@@ -2633,8 +3280,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                       </div>
                     )}
                     
-                    {/* Second Address Option */}
-                    <div className="space-y-2">
+                    {/* Legacy free-form address editor replaced by the titled address selector above. */}
+                    <div className="hidden">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Second Address (Optional)</span>
                         <Button
@@ -2684,7 +3331,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                       onValueChange={(value) => {
                                         field.onChange(value);
                                         // Find province ID and set it for city filtering
-                                        const selectedProvince = provinces.find((p: any) => p.nameEnglish === value || p.name === value);
+                                        const selectedProvince = provinces.find((p: any) => canonicalGeographyName(p) === value || geographyName(p) === value);
                                         if (selectedProvince) {
                                           setSelectedSecondaryProvinceId(selectedProvince.id);
                                           // Clear city selection when province changes
@@ -2700,8 +3347,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                       </FormControl>
                                       <SelectContent>
                                         {Array.isArray(provinces) && provinces.map((province: any) => (
-                                          <SelectItem key={province.id} value={province.nameEnglish || province.name}>
-                                            {province.nameEnglish} / {province.name}
+                                          <SelectItem key={province.id} value={canonicalGeographyName(province)}>
+                                            {geographyName(province)} / {canonicalGeographyName(province)}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -2731,8 +3378,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                       </FormControl>
                                       <SelectContent>
                                         {Array.isArray(secondaryCities) && secondaryCities.map((city: any) => (
-                                          <SelectItem key={city.id} value={city.nameEnglish || city.name}>
-                                            {city.nameEnglish} / {city.nameArabic || city.name}
+                                          <SelectItem key={city.id} value={canonicalGeographyName(city)}>
+                                            {geographyName(city)} / {canonicalGeographyName(city)}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -2809,7 +3456,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                     
                     {/* Second Delivery Address Section in Purchase Order */}
                     {isUserLoggedIn && (
-                      <div className="space-y-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <div className="hidden space-y-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200">{t.checkout_page.secondAddressTitle}</h4>
                         
                         {/* Second Address Option */}
@@ -2856,7 +3503,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                         onValueChange={(value) => {
                                           field.onChange(value);
                                           // Find province ID and set it for city filtering
-                                          const selectedProvince = provinces.find((p: any) => p.nameEnglish === value || p.name === value);
+                                          const selectedProvince = provinces.find((p: any) => canonicalGeographyName(p) === value || geographyName(p) === value);
                                           if (selectedProvince) {
                                             setSelectedSecondaryProvinceId(selectedProvince.id);
                                             // Clear city selection when province changes
@@ -2872,8 +3519,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                         </FormControl>
                                         <SelectContent>
                                           {Array.isArray(provinces) && provinces.map((province: any) => (
-                                            <SelectItem key={province.id} value={province.nameEnglish || province.name}>
-                                              {province.nameEnglish} / {province.name}
+                                            <SelectItem key={province.id} value={canonicalGeographyName(province)}>
+                                              {geographyName(province)} / {canonicalGeographyName(province)}
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
@@ -2899,8 +3546,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                         </FormControl>
                                         <SelectContent>
                                           {Array.isArray(secondaryCities) && secondaryCities.map((city: any) => (
-                                            <SelectItem key={city.id} value={city.nameEnglish || city.name}>
-                                              {city.nameEnglish} / {city.nameArabic || city.name}
+                                            <SelectItem key={city.id} value={canonicalGeographyName(city)}>
+                                              {geographyName(city)} / {canonicalGeographyName(city)}
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
@@ -2997,11 +3644,16 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   {/* Cart Items */}
                   <div className="space-y-3">
                     {cartItems.map((item) => (
-                      <div key={item.id} className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                      <div key={item.id} className={`p-3 rounded-lg ${item.usesContractPrice ? contractTheme.panel : "bg-gray-50 dark:bg-gray-800"}`}>
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <h4 className="font-medium text-sm">{item.name}</h4>
+                              {item.usesContractPrice && (
+                                <span className={contractTheme.badge}>
+                                  {language === 'fa' ? 'قرارداد' : language === 'ar' ? 'عقد' : language === 'tr' ? 'Sözleşme' : 'Contract'} {selectedContract?.number}
+                                </span>
+                              )}
                               {item.isFlammable && (
                                 <div className="flex items-center">
                                   <Flame className="w-4 h-4 text-red-500" />
@@ -3054,7 +3706,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                           </div>
                           <div className="text-right">
                             <div className="text-xs text-gray-500">
-                              {item.quantity} × {item.hasDiscount ? (
+                              {item.quantity} × {item.usesContractPrice ? (
+                                <span className={contractTheme.text}>{Math.round(item.discountedUnitPrice).toLocaleString()}</span>
+                              ) : item.hasDiscount ? (
                                 <span>
                                   <span className="line-through text-gray-400 mr-1">{item.originalUnitPrice.toLocaleString()}</span>
                                   <span className="text-green-600 font-semibold">{Math.round(item.discountedUnitPrice).toLocaleString()}</span>
@@ -3063,7 +3717,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                 <span>{parseFloat(item.price).toLocaleString()}</span>
                               )} IQD
                             </div>
-                            <div className="font-medium">
+                            <div className={`font-medium ${item.usesContractPrice ? contractTheme.text : ""}`}>
                               {Math.round(item.totalPrice).toLocaleString()} IQD
                             </div>
                             {item.hasDiscount && (
@@ -3119,7 +3773,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
 
                   {/* Second Delivery Address Section in Cart Management */}
                   {isUserLoggedIn && (
-                    <div className="space-y-3 pt-3 border-t">
+                    <div className="hidden space-y-3 pt-3 border-t">
                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.checkout_page.secondAddressTitle}</h4>
                       
                       {/* Second Address Option */}
@@ -3166,7 +3820,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                       onValueChange={(value) => {
                                         field.onChange(value);
                                         // Find province ID and set it for city filtering
-                                        const selectedProvince = provinces.find((p: any) => p.nameEnglish === value || p.name === value);
+                                        const selectedProvince = provinces.find((p: any) => canonicalGeographyName(p) === value || geographyName(p) === value);
                                         if (selectedProvince) {
                                           setSelectedSecondaryProvinceId(selectedProvince.id);
                                           // Clear city selection when province changes
@@ -3182,8 +3836,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                       </FormControl>
                                       <SelectContent>
                                         {Array.isArray(provinces) && provinces.map((province: any) => (
-                                          <SelectItem key={province.id} value={province.nameEnglish || province.name}>
-                                            {province.nameEnglish} / {province.name}
+                                          <SelectItem key={province.id} value={canonicalGeographyName(province)}>
+                                            {geographyName(province)} / {canonicalGeographyName(province)}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -3209,8 +3863,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                       </FormControl>
                                       <SelectContent>
                                         {Array.isArray(secondaryCities) && secondaryCities.map((city: any) => (
-                                          <SelectItem key={city.id} value={city.nameEnglish || city.name}>
-                                            {city.nameEnglish} / {city.nameArabic || city.name}
+                                          <SelectItem key={city.id} value={canonicalGeographyName(city)}>
+                                            {geographyName(city)} / {canonicalGeographyName(city)}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -3320,7 +3974,17 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   </div>
                   <div className="flex justify-between">
                     <span>{t.checkout_page.shippingCostSummary}</span>
-                    <span>{shippingCost === 0 ? t.checkout_page.free : `${shippingCost.toLocaleString()} ${t.checkout_page.iqd}`}</span>
+                    <span>
+                      {shippingSelectionUnavailable
+                        ? (!deliveryAddressReady
+                          ? deliveryAddressPrompt
+                          : shippingRouteUnavailable
+                          ? shippingRouteUnavailableMessage
+                          : shippingCalculationPending || isSmartVehicleShipping
+                            ? t.checkout_page.calculatingBestVehicle
+                            : shippingRouteUnavailableMessage)
+                        : (shippingCost === 0 ? t.checkout_page.free : `${shippingCost.toLocaleString()} ${t.checkout_page.iqd}`)}
+                    </span>
                   </div>
                   {vatAmount > 0 && (
                     <div className="flex justify-between">
@@ -3343,11 +4007,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   )}
                   <div className="flex justify-between text-lg font-bold">
                     <span>{t.checkout_page.totalPayable}</span>
-                    <span>{totalAmount.toLocaleString()} IQD</span>
+                    <span>{finalPriceReady ? `${totalAmount.toLocaleString()} IQD` : '—'}</span>
                   </div>
                 </div>
 
-                {shippingCost === 0 && (
+                {finalPriceReady && !shippingSelectionUnavailable && shippingCost === 0 && (
                   <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
                     <p className="text-sm text-green-800 dark:text-green-300">
                       {t.checkout_page.freeShippingEligible}
@@ -3355,7 +4019,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   </div>
                 )}
                 
-                {actualWalletUsage >= beforeWalletTotal && (
+                {finalPriceReady && actualWalletUsage >= beforeWalletTotal && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                     <p className="text-sm text-blue-800 dark:text-blue-300">
                       {t.checkout_page.fullyPaidByWallet}
@@ -3386,6 +4050,57 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
           });
         }}
         initialMode={authMode}
+      />
+      <OrderReviewDialog
+        open={reviewOpen}
+        onOpenChange={(open) => { setReviewOpen(open); if (!open) setPendingReview(null); }}
+        addresses={[
+          { id: 'primary', label: language === 'fa' ? 'آدرس اصلی' : 'Primary address',
+            address: isUserLoggedIn ? (customerData?.customer?.address || '') : (form.getValues('billingAddress1') || ''),
+            city: isUserLoggedIn ? (customerData?.customer?.city || customerData?.customer?.cityRegion || '') : (form.getValues('billingCity') || ''),
+            province: isUserLoggedIn ? (customerData?.customer?.province || '') : (form.getValues('billingState') || ''),
+            country: isUserLoggedIn ? (customerData?.customer?.country || '') : (form.getValues('billingCountry') || ''),
+            postalCode: isUserLoggedIn ? (customerData?.customer?.postalCode || '') : (form.getValues('billingPostalCode') || ''),
+            phone: isUserLoggedIn ? (customerData?.customer?.phone || '') : (form.getValues('phone') || '') },
+          ...(secondAddressDraft?.address.trim() && secondAddressDraft.city.trim() &&
+            (deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy')
+            ? [{ id: deliveryAddressChoice, label: secondAddressDraft.title || (deliveryAddressChoice === 'legacy'
+                  ? (language === 'fa' ? 'آدرس قدیمی CRM' : 'Legacy CRM address')
+                  : (language === 'fa' ? 'آدرس جدید' : 'New address')),
+                address: secondAddressDraft.address, city: secondAddressDraft.city,
+                province: secondAddressDraft.province, postalCode: secondAddressDraft.postalCode,
+                country: secondAddressDraft.country, phone: secondAddressDraft.phone }]
+            : []),
+          ...savedCustomerAddresses.map(address => ({
+            id: `saved:${address.id}`, label: address.title || (language === 'fa' ? 'آدرس ذخیره‌شده' : 'Saved address'),
+            address: address.address, city: address.city, province: address.state || '',
+            country: address.country, postalCode: address.postalCode || '', phone: address.phone || '',
+          })),
+        ]}
+        selectedAddressId={reviewAddressId}
+        onConfirm={() => {
+          confirmingOrderRef.current = true;
+          void form.handleSubmit(onSubmit, () => { confirmingOrderRef.current = false; })();
+        }}
+        onRefresh={() => {
+          confirmingOrderRef.current = false;
+          void form.handleSubmit(onSubmit)();
+        }}
+        confirmDisabled={isConfirmingOrder || createOrderMutation.isPending || !pendingReview || !!contractValidationError}
+        confirming={isConfirmingOrder || createOrderMutation.isPending}
+        needsRefresh={!pendingReview || shippingCalculationPending || shippingSelectionUnavailable}
+        refreshPending={shippingCalculationPending}
+        items={cartItems.map(item => ({
+          id: item.id, name: item.name, quantity: item.quantity,
+          unitPrice: item.discountedUnitPrice ?? Number(item.price || 0),
+        }))}
+        shippingMethod={currentShippingMethod?.name || currentShippingMethod?.title || currentMethodValue}
+        shippingCost={shippingCost}
+        subtotal={subtotal}
+        tax={totalTaxAmount}
+        total={beforeWalletTotal}
+        paymentMethod={form.getValues('paymentMethod') || ''}
+        language={language as 'en' | 'fa' | 'ar' | 'tr'}
       />
     </div>
   );

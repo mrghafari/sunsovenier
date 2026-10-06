@@ -2,6 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/attached_assets/Vazirmatn-Regular_1753244629836.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/attached_assets/Vazirmatn-Medium_1753244629835.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/attached_assets/Vazirmatn-Bold_1753244629836.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700 900;
+  font-display: swap;
+}
+
 @layer utilities {
   .line-clamp-2 {
     overflow: hidden;
@@ -74,6 +98,12 @@
 .lang-fa {
   font-family: "Vazirmatn", "IRANSans", "Tahoma", "Segoe UI", Arial, sans-serif;
   font-weight: 500;
+}
+
+/* Keep every Persian storefront surface on the locally hosted Vazirmatn font. */
+.shop-lang-fa,
+.shop-lang-fa * {
+  font-family: "Vazirmatn", "Tahoma", "Segoe UI", Arial, sans-serif;
 }
 
 .lang-en {

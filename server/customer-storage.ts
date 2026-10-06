@@ -320,21 +320,45 @@ export class CustomerStorage implements ICustomerStorage {
     abandonedCarts: any[],
     hasAbandonedCarts: boolean
   }> {
-    // Get all orders for the customer (excluding deleted orders)
+    // Keep expired grace-period orders as customer-visible cancellation history.
+    // Other deleted orders remain hidden from the profile.
     const allOrders = await customerDb
       .select()
       .from(customerOrders)
       .where(and(
         eq(customerOrders.customerId, customerId),
-        ne(customerOrders.status, 'deleted') // فیلتر کردن سفارشات حذف شده از نمایش پروفایل
+        or(
+          ne(customerOrders.status, 'deleted'),
+          and(
+            eq(customerOrders.status, 'deleted'),
+            or(
+              eq(customerOrders.paymentMethod, 'bank_transfer_grace'),
+              eq(customerOrders.paymentMethod, 'واریز بانکی با مهلت 3 روزه')
+            )
+          )
+        )
       ))
       .orderBy(desc(customerOrders.createdAt));
 
-    // Sort orders with priority for 3-day grace period bank transfer orders
+    const isUnpaidGraceOrder = (order: CustomerOrder) => {
+      const isGracePeriod =
+        order.paymentMethod === 'bank_transfer_grace' ||
+        order.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
+      const isAwaitingPayment =
+        order.status === 'payment_grace_period' ||
+        order.status === 'pending';
+      const paymentStatus = String(order.paymentStatus || '').toLowerCase();
+      const hasPayment =
+        ['paid', 'completed', 'successful', 'success', 'receipt_uploaded'].includes(paymentStatus) ||
+        Boolean(order.receiptPath);
+
+      return isGracePeriod && isAwaitingPayment && !hasPayment;
+    };
+
+    // Keep unpaid grace-period orders above all other profile orders.
     allOrders.sort((a, b) => {
-      // Check if orders have 3-day grace period payment method
-      const aIsGracePeriod = a.paymentMethod === 'bank_transfer_grace' || a.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
-      const bIsGracePeriod = b.paymentMethod === 'bank_transfer_grace' || b.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
+      const aIsGracePeriod = isUnpaidGraceOrder(a);
+      const bIsGracePeriod = isUnpaidGraceOrder(b);
       
       // If one is grace period and other is not, prioritize grace period
       if (aIsGracePeriod && !bIsGracePeriod) return -1;
@@ -370,13 +394,17 @@ export class CustomerStorage implements ICustomerStorage {
       (order.status === 'payment_grace_period' || order.status === 'pending')
     );
     
-    const regularOrders = activeOrders.filter(order => 
-      order.paymentMethod !== 'bank_transfer_grace' && order.paymentMethod !== 'واریز بانکی با مهلت 3 روزه'
-    );
+    const regularOrders = activeOrders.filter(order => {
+      const isGracePeriod = order.paymentMethod === 'bank_transfer_grace' ||
+        order.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
+      const isStillTemporary = isGracePeriod &&
+        (order.status === 'payment_grace_period' || order.status === 'pending');
+      return !isStillTemporary;
+    });
 
     let displayOrders: CustomerOrder[] = [];
 
-    if (totalOrders <= 2) {
+    if (activeOrders.length <= 10) {
       return {
         displayOrders: activeOrders,
         totalOrders,
@@ -388,19 +416,14 @@ export class CustomerStorage implements ICustomerStorage {
       };
     }
 
-    if (temporaryOrders.length > 0) {
-      // If there are temporary orders, show 1 temporary + 1 regular
-      displayOrders.push(temporaryOrders[0]); // Most recent temporary order
-      
-      if (regularOrders.length > 0) {
-        displayOrders.push(regularOrders[0]); // Most recent regular order
-      } else if (temporaryOrders.length > 1) {
-        displayOrders.push(temporaryOrders[1]); // Second temporary order if no regular orders
-      }
-    } else {
-      // If no temporary orders, show 2 most recent regular orders
-      displayOrders = regularOrders.slice(0, 2);
-    }
+    displayOrders = [...temporaryOrders, ...regularOrders]
+      .sort((a, b) => {
+        const priorityDifference =
+          Number(isUnpaidGraceOrder(b)) - Number(isUnpaidGraceOrder(a));
+        if (priorityDifference !== 0) return priorityDifference;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })
+      .slice(0, 10);
 
     const hiddenOrders = activeOrders.length - displayOrders.length;
 
@@ -694,9 +717,15 @@ export class CustomerStorage implements ICustomerStorage {
       // Get order items to release reservations
       const items = await this.getOrderItems(id);
       const releasedProducts: any[] = [];
+      const { orderHasReservations, releaseOrderReservations } =
+        await import("./cart-inventory-reservation");
+      const hasReservationLedger = await orderHasReservations(id);
+      if (hasReservationLedger) {
+        await releaseOrderReservations(id);
+      }
 
       // Release product reservations by adding quantities back to inventory
-      if (items.length > 0) {
+      if (!hasReservationLedger && items.length > 0) {
         const { db } = await import('./db');
         const { shopProducts } = await import('@shared/shop-schema');
         

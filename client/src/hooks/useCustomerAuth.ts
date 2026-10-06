@@ -32,7 +32,10 @@ export function useCustomerAuth() {
         return result;
       } catch (error) {
         console.error("Customer auth check failed:", error);
-        return { success: false, message: "Authentication check failed" };
+        // A transient network/proxy failure is not proof that the customer
+        // logged out. Keep the last successful query data instead of
+        // replacing it with an unauthenticated result.
+        throw error;
       }
     },
   });

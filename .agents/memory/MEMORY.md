@@ -1,6 +1,87 @@
 - [S3 asset fallback](s3-asset-fallback.md) — public assets should have a local fallback because development S3 credentials may be unavailable or invalid.
 - [PWA cache freshness](pwa-cache-freshness.md) — version service-worker caches and avoid cache-first app bundles so translations and fixes reach existing users.
+- [Published bundle freshness](published-bundle-freshness.md) — compare shipped assets with development before editing again when several new UI fields are all missing.
 - [PDFKit RTL text](pdfkit-rtl-text.md) — pass Persian and Arabic in logical Unicode order; manual word or character reversal renders invoices backwards.
 - [Certificate storage](certificate-storage.md) — store new certificate files privately in Amazon S3 and expose only stable app URLs backed by short-lived signed downloads.
 - [Drizzle schema push](drizzle-schema-push.md) — schema introspection can fail on a legacy expression index; keep schema source authoritative and apply additive dev DDL safely.
-- [Blog localization fallback](strict-blog-localization.md) — new posts require four languages; legacy posts temporarily fall back to English instead of returning “not found.”
+- [Optional blog languages](strict-blog-localization.md) — retain any one to four languages per article; missing site languages fall back to available content, not “not found.”
+- [Sales analytics order status](sales-analytics-order-status.md) — geographic and product sales reports must exclude cancelled, failed, and deleted orders consistently.
+- [Type-check baseline fingerprints](typecheck-baseline-fingerprints.md) — Drizzle schema growth can reword existing diagnostics; review new/resolved pairs before refreshing the baseline.
+- [Serial sequence safety](serial-sequence-safety.md) — include externally submitted tables in sequence synchronization when imports or restores can leave sequences behind row IDs.
+- [Order item snapshots](order-item-snapshots.md) — customer and admin views must use the stored order-item snapshot, not current catalog data, and expose one normalized item shape.
+- [Canonical order status](canonical-order-status.md) — derive labels, phases, aliases, colors, and department visibility from one shared resolver while preserving raw workflow history.
+- [Delivery GPS integrity](delivery-gps-integrity.md) — code consumption, terminal status, and GPS insertion must be atomic; analytics expose aggregated coordinates only.
+- [Monitoring data honesty](monitoring-data-honesty.md) — distinguish configured, observed, and unavailable states; never present defaults or failed queries as live health.
+- [SMS recipient language](sms-recipient-language.md) — choose SMS text from stored customer language; raw numbers need an explicit fallback and provider acceptance is not delivery.
+- [Warehouse template content language](warehouse-template-content-language.md) — legacy template language tags may not match their actual text; matching IDs alone does not ensure localized customer messages.
+- [Destructive super-admin actions](destructive-super-admin-actions.md) — require a verified active role and make multi-record deletion atomic with explicit targets.
+- [Legacy super-admin role](legacy-super-admin-role.md) — the active super-admin role may use the historical “Supper Admin” spelling; authorization must canonicalize only this known alias.
+- [Permission identity namespaces](permission-identity-namespaces.md) — compare canonical identity text across mixed role-grant namespaces; never invent numeric IDs for UUID actors.
+- [Warehouse settings authorization](warehouse-settings-authorization.md) — warehouse module permission, not department assignment alone, grants management access including administrators.
+- [Permissioned marketing email](permissioned-marketing-email.md) — campaign recipients require verified consent, global suppression, safe queueing, and explicit worker activation.
+- [Sender address previews](sender-address-previews.md) — show the effective SMTP sender; explicitly chosen invoice senders must not silently fall back.
+- [Manual invoice language](manual-invoice-language.md) — invoice views follow site language; emailed PDFs and email copy follow the staff-selected language.
+- [Multi-date-picker module interop](multi-date-picker-interop.md) — resolve the package’s inner default export before rendering or Persian mode can crash with React error 130.
+- [Legacy warehouse history](legacy-warehouse-history.md) — some older orders lack warehouse timestamps; retain history using workflow transitions as well as current terminal status.
+- [Legacy private receipt fallback](legacy-private-receipt-fallback.md) — retain stable legacy receipt URLs and serve deterministic private-S3 copies when production cannot read old Object Storage.
+- [Batch product images](batch-product-images.md) — batch rows may omit duplicated media; inventory views should inherit the base product image across matching product names.
+- [Cart batch reservations](cart-batch-reservations.md) — cart holds reduce sellable availability; physical FIFO batches change only on verified payment.
+- [Shared batch barcodes](shared-batch-barcodes.md) — batch rows may intentionally share a barcode; unchanged barcodes must not block editing an individual batch.
+- [Vite development error handling](vite-development-error-handling.md) — transient browser/HMR errors must be logged without terminating the development server.
+- [Department middleware typing](department-middleware-typing.md) — department middleware uses a narrower authenticated request type and needs explicit Express handler adaptation when composed.
+- [Wouter prefix migrations](wouter-prefix-migrations.md) — change visible route declarations and direct auth redirects; custom parser remapping does not reliably affect Switch selection.
+- [Legacy duplicate product SKUs](legacy-duplicate-product-skus.md) — preserve edits to legacy duplicate-SKU products; enforce uniqueness only when the SKU itself changes.
+- [Delivery recipient snapshots](delivery-recipient-snapshots.md) — delivery must prefer the order’s checkout recipient address and phone over the customer profile.
+- [Google OAuth callback consistency](google-oauth-callback-consistency.md) — use the same absolute callback URL for both OAuth stages and handle Passport exchange errors explicitly.
+- [Abandoned-cart notification ordering](abandoned-cart-notification-ordering.md) — persist in-app warnings independently of delivery and never delete a cart in the same worker run as its final warning.
+- [Cart activity clock](cart-activity-clock.md) — viewing or restoring an unchanged cart must not postpone abandonment; only meaningful cart mutations reset activity.
+- [Grace-order expiry](grace-order-expiry.md) — expire timed orders from their stored deadline, catch up missed reminder hours, and audit the automated cancellation reason.
+- [Central geography source](central-geography-source.md) — customer and logistics location selectors share the database-backed country, province, and city records.
+- [Abandoned cart analytics honesty](abandoned-cart-analytics-honesty.md) — retained carts and notifications support trends, but deleted history and unlinked purchases cannot prove recovery.
+- [Financial note localization](financial-note-localization.md) — translate generated approval text and wallet adjustments together at display time; preserve staff-authored notes and stored history.
+- [Manual shipping routes](manual-shipping-routes.md) — only measured directional, same-country road distances are valid; changing center must not infer routes from Erbil.
+- [Shipping quote policy](shipping-quote-policy.md) — smart-vehicle quotes bind cart, route, center, method, and checkout flow; standard rates must work without vehicle templates.
+- [Barcode-level shop weights](barcode-shop-weights.md) — the shop has one weight per barcode; editing another Kardex batch must not change the shared checkout weight.
+- [Legacy persistent carts](legacy-persistent-carts.md) — inspect the live cart storage shape before querying; some environments retain JSON cart snapshots despite newer schema declarations.
+- [Live catalog isolation](live-catalog-isolation.md) — development and published catalog APIs may reflect the same data changes before code is republished.
+- [Legacy secondary-address geography](legacy-secondary-address-geography.md) — require explicit city selection for old free-form second addresses; do not infer a delivery route by parsing their text.
+- [Contract capacity recovery](contract-capacity-recovery.md) — reconcile released contract units from order state; do not rely solely on SQL triggers reaching published databases.
+- [Contract wallet safety](contract-wallet-safety.md) — prohibit wallet-funded contract checkout until debit and reversal are safely linked to a created order.
+- [Customer address-book boundary](customer-address-book-boundary.md) — additional titled destinations belong to the address book, not CRM’s single legacy secondary slot.
+- [Commercial module compatibility](commercial-module-compatibility.md) — regroup shop and contract sales while preserving old Procurement links, permission IDs, and APIs.
+- [Destination-local delivery appointments](destination-local-delivery-appointments.md) — dispatcher-selected times follow the delivery destination; actual dispatch events remain separate.
+- [Contract number namespace](contract-number-namespace.md) — contract numbers mirror the order format with C, but must not consume the M order counter.
+- [Retiring used contract lines](retiring-used-contract-lines.md) — removed used lines stop future sales while preserving historical allocation records.
+- [React SSR smoke tests](react-ssr-smoke-tests.md) — standalone TSX rendering must match Vite's automatic JSX transform and normalize hydration comments.
+- [Contract lifecycle distinction](contract-lifecycle-distinction.md) — ending is explicit and irreversible through editing; ordinary inactivity is still editable.
+- [Contract addendum timing](contract-addendum-timing.md) — snapshot terms when a cart claims contract capacity, not when its order attaches; legacy terms may be unknowable.
+- [Shop translation freshness](shop-translation-freshness.md) — generated translations of existing products must match current source text; never show stale claims after an edit.
+- [Multilingual form validation visibility](multilingual-form-validation-visibility.md) — required fields in hidden language tabs can make Save appear inert unless the form opens the invalid tab and explains why.
+- [CRM purchase metrics](crm-purchase-metrics.md) — historical CRM spend counters may be empty despite linked orders; show eligible order totals per currency instead of trusting cached spend.
+- [Module catalog retirement](module-catalog-retirement.md) — hide retired assignable modules without deleting legacy grants needed by live order workflows.
+- [Accounting redesign boundary](accounting-redesign-boundary.md) — redesign accounting fully; ask before necessary changes to other business modules.
+- [Customer business identifiers](customer-business-identifiers.md) — customer codes must have seven digits, start with 9, and use the second digit for customer type.
+- [Settlement book values](settlement-book-values.md) — foreign-currency settlement must clear historical carrying values and explicitly recognize realized FX.
+- [Foreign invoice valuation](foreign-invoice-rounding.md) — freeze native/base evidence, conserve rounded components, and authorize exact historical reversals without today’s FX.
+- [Loading holds and completion](loading-hold-completion.md) — settling one truck’s invoice does not finish its order or justify releasing all remaining held funds.
+- [Persian and rial accounting](accounting-persian-rial.md) — accounting must support Persian and Iranian rials, without treating Persian as Arabic or converting current balances.
+- [Composed financial constraints](composed-financial-constraints.md) — immediate constraint settings persist across calls sharing a transaction; defer evidence checks before the first dependent write.
+- [Preview warmup](preview-warmup.md) — early blank screenshots after restart may precede module loading; verify a longer browser load before treating them as a crash.
+- [Historical receivables](historical-receivables-reporting.md) — reconstruct as-of settlements from posted event dates; current statuses and balances cannot prove earlier debt.
+- [Historical cost classification](historical-cost-classification.md) — disclose current mappings in retrospective fleet analytics; immutable amounts do not prove past settings.
+- [Shipping margin evidence](shipping-margin-evidence.md) — capture is not posting; loading-level booked margins need explicit attribution, not inferred allocation of invoice history.
+- [Loading price basis](loading-price-basis.md) — weighbridge tons require frozen per-ton price/conversion evidence; correct arithmetic alone is not posting readiness.
+- [Independent loading module](loading-module-boundary.md) — standalone management module, loading_-owned data, only menu/permission/route registration edits; analysis approval precedes coding.
+- [Contract bulk transport](contract-bulk-transport.md) — Kardex bulk-sale flags select bulk-category vehicles for contract sales; goods retain their contract price.
+- [Manual fixed freight](manual-fixed-freight.md) — fixed order freight is allocated by manually entered, finance-approved shares, capped by the original total.
+- [Contractual aggregate overweight](contract-weight-policy.md) — Commercial reviews cumulative order overweight; the order's own contractual allowance, not a company default, governs.
+- [Freight return independence](freight-return-independence.md) — a sales return does not itself erase incurred freight or the carrier payable; freight corrections need their own evidence.
+- [Paid return credit](paid-return-credit-policy.md) — paid invoice returns first restore the customer's account credit; bank payouts are separate and require evidence.
+- [Return-credit attribution](return-credit-attribution.md) — linked payouts consume existing return credit without reopening debt; later withdrawals conservatively reduce attribution.
+- [Partial-return evidence](partial-return-evidence.md) — preserve original payment counters; collection caps and dated reports use posted debt reductions and restorations.
+- [SQL valuation checks](sql-valuation-verification.md) — SQL function creation can pass before branch-specific name-resolution failures; execute rollback-only financial valuations.
+- [Drizzle array interpolation](drizzle-array-interpolation.md) — JavaScript arrays may expand as SQL lists, not PostgreSQL array parameters; verify generated membership queries.
+- [Legacy chart readiness](legacy-chart-readiness.md) — seeded fixture success does not prove persisted company settings are complete; check real-company readiness.
+- [Company deletion policy](company-deletion-policy.md) — super-admin-only logical removal with warning; retain evidence and block companies in use.
+- [Cart purchase mode](cart-purchase-mode.md) — choose ordinary or one contract before adding goods; no mode selector or unnecessary contract information in checkout.
+- [Browser component probes](browser-component-probes.md) — isolate synthetic UI checks from app startup; resolve Vite module instances and use real Radix interactions.

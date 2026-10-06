@@ -26,6 +26,15 @@ interface SmsMessage {
   code?: string;
 }
 
+interface LocalizedSystemSmsOptions {
+  templateKey: string;
+  phone: string;
+  variables: Record<string, string>;
+  customerId?: number;
+  language?: unknown;
+  fallbackMessages?: Partial<Record<'en' | 'fa' | 'ar' | 'tr', string>>;
+}
+
 export class SmsService {
   private settings: SmsSettings;
 
@@ -358,13 +367,72 @@ export class SmsService {
   }
 
   async sendVerificationCode(phone: string, code: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    const { pool } = await import('./db');
+    const { resolveSmsLanguage, selectLocalizedSms } = await import('./sms-language');
+    const language = await resolveSmsLanguage(pool, undefined, phone);
+    const localizedMessages = {
+      en: `Your verification code is: ${code}`,
+      fa: `کد تأیید شما: ${code}`,
+      ar: `رمز التحقق الخاص بك: ${code}`,
+      tr: `Doğrulama kodunuz: ${code}`,
+    };
     const message = {
       to: phone,
-      message: `کد تایید شما: ${code}`,
+      message: selectLocalizedSms(localizedMessages, language) || localizedMessages.en,
       code: code
     };
 
     return await this.sendSms(message);
+  }
+
+  async sendLocalizedSystemTemplate(
+    options: LocalizedSystemSmsOptions,
+  ): Promise<{ success: boolean; messageId?: string; error?: string; language: string; templateId?: number }> {
+    const { pool } = await import('./db');
+    const { normalizeSmsLanguage, resolveSmsLanguage } = await import('./sms-language');
+    const { simpleSmsStorage } = await import('./simple-sms-storage');
+    const language = options.language == null
+      ? await resolveSmsLanguage(pool, options.customerId, options.phone)
+      : normalizeSmsLanguage(options.language);
+
+    let template = await simpleSmsStorage.getTemplateByKeyAndLanguage(options.templateKey, language);
+    if (!template && language !== 'en') {
+      template = await simpleSmsStorage.getTemplateByKeyAndLanguage(options.templateKey, 'en');
+    }
+
+    let message = template?.templateContent
+      || options.fallbackMessages?.[language]
+      || options.fallbackMessages?.en;
+    if (!message) {
+      return {
+        success: false,
+        language,
+        error: `No active ${language} or English SMS template for event ${options.templateKey}`,
+      };
+    }
+
+    for (const [key, value] of Object.entries(options.variables)) {
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      message = message
+        .replace(new RegExp(`\\{\\{${escapedKey}\\}\\}`, 'g'), value)
+        .replace(new RegExp(`\\{${escapedKey}\\}`, 'g'), value);
+    }
+
+    const unresolved = message.match(/\{\{?[a-zA-Z0-9_]+\}?\}/g);
+    if (unresolved?.length) {
+      return {
+        success: false,
+        language,
+        templateId: template?.id,
+        error: `Missing SMS variables: ${[...new Set(unresolved)].join(', ')}`,
+      };
+    }
+
+    const result = await this.sendSms({ to: options.phone, message });
+    if (result.success && template) {
+      await simpleSmsStorage.incrementTemplateUsage(template.id);
+    }
+    return { ...result, language, templateId: template?.id };
   }
 
   async sendSmsUsingTemplate(templateId: number, phone: string, variables: Record<string, string>): Promise<{ success: boolean; messageId?: string; error?: string }> {

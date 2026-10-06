@@ -13,6 +13,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Mail, Eye, RefreshCw, Star, Zap, Shield, CreditCard, Package, Bell, Settings, MessageSquare, ShoppingCart, Monitor, Key, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { emailTemplateCenterCopy, getTemplateCategoryCopy } from './email-templates-central-i18n';
 
 interface EmailTemplate {
   id: number;
@@ -244,6 +246,9 @@ const EmailTemplatesCentral: React.FC = () => {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const { language, direction } = useLanguage();
+  const copy = emailTemplateCenterCopy[language];
+  const categoryText = (categoryKey: string) => getTemplateCategoryCopy(categoryKey, language);
 
   // Update template mutation
   const updateTemplateMutation = useMutation({
@@ -259,7 +264,7 @@ const EmailTemplatesCentral: React.FC = () => {
       
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'خطا در بروزرسانی قالب');
+        throw new Error(error.message || copy.updateError);
       }
       
       return response.json();
@@ -267,22 +272,22 @@ const EmailTemplatesCentral: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['email-templates-database'] });
       toast({
-        title: "✅ بروزرسانی موفق",
-        description: "قالب ایمیل با موفقیت بروزرسانی شد",
+        title: `✅ ${copy.updateSuccess}`,
+        description: copy.templateUpdated,
       });
       setEditingTemplate(null);
     },
     onError: (error: any) => {
       toast({
-        title: "❌ خطا در بروزرسانی",
-        description: error.message || "لطفاً دوباره تلاش کنید",
+        title: `❌ ${copy.updateError}`,
+        description: error.message || copy.retry,
         variant: "destructive"
       });
     }
   });
 
   // Fetch templates directly from database without authentication
-  const { data: templates = [], isLoading, error, refetch } = useQuery({
+  const { data: templates = [], isLoading, error, refetch } = useQuery<EmailTemplate[], Error>({
     queryKey: ['email-templates-database'],
     queryFn: async () => {
       try {
@@ -299,8 +304,7 @@ const EmailTemplatesCentral: React.FC = () => {
         
         if (!response.ok) {
           console.error('❌ Database query failed, status:', response.status);
-          // Fallback: return empty array instead of throwing error
-          return [];
+          throw new Error(`${copy.loadError} (${response.status})`);
         }
         
         const data = await response.json();
@@ -311,8 +315,8 @@ const EmailTemplatesCentral: React.FC = () => {
         
         return Array.isArray(data) ? data : [];
       } catch (error) {
-        console.warn('⚠️ [EMAIL TEMPLATES] Database error, returning empty:', error);
-        return []; // Always return empty array instead of failing
+        console.warn('⚠️ [EMAIL TEMPLATES] Database error:', error);
+        throw error instanceof Error ? error : new Error(copy.loadError);
       }
     },
     staleTime: 10000,
@@ -339,9 +343,24 @@ const EmailTemplatesCentral: React.FC = () => {
   };
 
   // Filter templates by actual database category (not registry mapping)
-  const filteredTemplates = selectedCategory === 'all' 
+  const filteredTemplates = (selectedCategory === 'all'
     ? (Array.isArray(templates) ? templates : [])
-    : (Array.isArray(templates) ? templates.filter(template => template.category === selectedCategory) : []);
+    : (Array.isArray(templates) ? templates.filter(template => template.category === selectedCategory) : []))
+    .slice()
+    .sort((a, b) => {
+      const numberA = Number.parseInt(getTemplateNumber(a.name).replace('#', ''), 10);
+      const numberB = Number.parseInt(getTemplateNumber(b.name).replace('#', ''), 10);
+      if (Number.isNaN(numberA) && Number.isNaN(numberB)) return a.name.localeCompare(b.name);
+      if (Number.isNaN(numberA)) return 1;
+      if (Number.isNaN(numberB)) return -1;
+      return numberA - numberB || a.name.localeCompare(b.name);
+    });
+
+  const getTemplateVariables = (template: EmailTemplate) => {
+    const content = `${template.subject || ''}\n${template.html_content || ''}`;
+    const matches = content.match(/\{\{[^{}]+\}\}/g) || [];
+    return [...new Set(matches)];
+  };
 
   // Debug logging
   React.useEffect(() => {
@@ -392,16 +411,16 @@ const EmailTemplatesCentral: React.FC = () => {
     try {
       await refetch();
       toast({
-        title: "✅ بروزرسانی موفق",
-        description: `${Array.isArray(templates) ? templates.length : 0} قالب از دیتابیس بارگذاری شد`,
+        title: `✅ ${copy.updateSuccess}`,
+        description: `${Array.isArray(templates) ? templates.length : 0} ${copy.loaded}`,
       });
     } catch (error) {
       console.error('❌ [EMAIL TEMPLATES] Refresh failed:', error);
       toast({
-        title: "❌ خطا در بروزرسانی",
+        title: `❌ ${copy.updateError}`,
         description: error.message?.includes('Authentication') 
-          ? "لطفاً ابتدا وارد حساب مدیریت شوید" 
-          : "لطفاً دوباره تلاش کنید",
+          ? copy.authMessage
+          : copy.retry,
         variant: "destructive",
       });
     }
@@ -409,11 +428,11 @@ const EmailTemplatesCentral: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6" dir={direction}>
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-12">
             <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-600">در حال بارگذاری قالب‌های ایمیل...</p>
+            <p className="text-gray-600">{copy.loading}</p>
           </div>
         </div>
       </div>
@@ -423,36 +442,36 @@ const EmailTemplatesCentral: React.FC = () => {
   if (error) {
     const isAuthError = error.message?.includes('Authentication required');
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6" dir={direction}>
         <div className="max-w-7xl mx-auto">
           <Card className={isAuthError ? "border-orange-200 bg-orange-50" : "border-red-200 bg-red-50"}>
             <CardContent className="p-6 text-center">
               {isAuthError ? (
                 <>
                   <Shield className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-orange-800 mb-2">نیاز به احراز هویت</h3>
+                   <h3 className="text-lg font-semibold text-orange-800 mb-2">{copy.authRequired}</h3>
                   <p className="text-orange-700 mb-4">
-                    برای مشاهده قالب‌های ایمیل، لطفاً ابتدا وارد حساب مدیریت شوید
+                     {copy.authMessage}
                   </p>
                   <div className="flex gap-3 justify-center">
                     <Button 
                       onClick={() => setLocation('/admin/login')} 
                       className="bg-orange-600 hover:bg-orange-700"
                     >
-                      ورود به حساب مدیریت
+                       {copy.adminLogin}
                     </Button>
                     <Button onClick={handleRefresh} variant="outline" className="text-orange-600 border-orange-300">
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      تلاش مجدد
+                       {copy.retry}
                     </Button>
                   </div>
                 </>
               ) : (
                 <>
-                  <p className="text-red-700 mb-4">خطا در بارگذاری قالب‌های ایمیل: {error.message}</p>
+                   <p className="text-red-700 mb-4">{copy.loadError}: {error.message}</p>
                   <Button onClick={handleRefresh} variant="outline" className="text-red-600 border-red-300">
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    تلاش مجدد
+                     {copy.retry}
                   </Button>
                 </>
               )}
@@ -464,95 +483,28 @@ const EmailTemplatesCentral: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6" dir={direction}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">📧 مرکز قالب‌های ایمیل</h1>
+               <h1 className="text-3xl font-bold text-gray-900 mb-2">📧 {copy.title}</h1>
             </div>
             <div className="flex gap-3">
               <Button onClick={handleRefresh} variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4 mr-2" />
-                بروزرسانی ({Array.isArray(templates) ? templates.length : 0})
+                 {copy.refresh} ({Array.isArray(templates) ? templates.length : 0})
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Template #05 Special Highlight */}
-        {Array.isArray(templates) && templates.find(t => t.name === '#05 - Momtaz Chemical Follow-up Response') && (
-          <div className="mb-6">
-            <Card className="border-green-300 bg-green-50 shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-green-800 flex items-center gap-2">
-                  <Star className="w-5 h-5 text-yellow-500" />
-                  Template #05 - Momtaz Chemical Follow-up Response
-                  <Badge variant="default" className="bg-green-600 text-white">
-                    ⭐ قالب برتر
-                  </Badge>
-                  <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                    استفاده خودکار
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-green-100 border border-green-300 rounded-lg p-3">
-                    <h4 className="text-sm font-bold text-green-800 mb-2">✨ ویژگی‌ها:</h4>
-                    <div className="space-y-1 text-xs text-green-700">
-                      <div>✅ بخش "پاسخ ما" با پس‌زمینه سبز</div>
-                      <div>✅ بخش "درخواست شما" با پس‌زمینه آبی</div>
-                      <div>✅ شماره تلفن: +964 770 999 6771</div>
-                      <div>✅ وب‌سایت: www.momtazchem.com</div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
-                    <h4 className="text-sm font-bold text-blue-800 mb-2">📋 کاربرد:</h4>
-                    <div className="space-y-1 text-xs text-blue-700">
-                      <div>• پیگیری استعلامات مشتریان</div>
-                      <div>• ارتباط مجدد با مشتریان</div>
-                      <div>• استفاده خودکار در سیستم</div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3">
-                    <h4 className="text-sm font-bold text-yellow-800 mb-2">🔧 متغیرها:</h4>
-                    <div className="text-xs text-yellow-700">
-                      {`{{customer_name}}, {{inquiry_number}}, {{response_text}}, {{inquiry_subject}}, {{inquiry_category}}`}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-4 flex gap-2">
-                  <a 
-                    href="/admin/template05-static" 
-                    className="inline-flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-                  >
-                    🎨 مشاهده کامل Template #05
-                  </a>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPreviewTemplate(Array.isArray(templates) ? templates.find(t => t.name === '#05 - Momtaz Chemical Follow-up Response') || null : null)}
-                    className="text-green-700 border-green-300 hover:bg-green-100"
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    پیش‌نمایش
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
         {/* Category Filter Tabs */}
         <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-6">
           <TabsList className="grid grid-cols-4 md:grid-cols-8 gap-1 h-auto p-1">
             <TabsTrigger value="all" className="text-xs">
-              همه ({Array.isArray(templates) ? templates.length : 0})
+               {copy.all} ({Array.isArray(templates) ? templates.length : 0})
             </TabsTrigger>
             {Object.entries(TEMPLATE_CATEGORIES).map(([key, category]) => {
               const stats = getCategoryStats(key);
@@ -560,7 +512,7 @@ const EmailTemplatesCentral: React.FC = () => {
               return (
                 <TabsTrigger key={key} value={key} className="text-xs flex flex-col gap-1 p-2">
                   <IconComponent className="w-4 h-4" />
-                  <span>{category.name}</span>
+                   <span>{categoryText(key)[0]}</span>
                   <span className="text-xs opacity-70">({stats.total})</span>
                 </TabsTrigger>
               );
@@ -574,13 +526,13 @@ const EmailTemplatesCentral: React.FC = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     {React.createElement(TEMPLATE_CATEGORIES[selectedCategory].icon, { className: "w-5 h-5" })}
-                    <h3 className="font-semibold">{TEMPLATE_CATEGORIES[selectedCategory].name}</h3>
+                     <h3 className="font-semibold">{categoryText(selectedCategory)[0]}</h3>
                   </div>
-                  <p className="text-sm text-gray-600">{TEMPLATE_CATEGORIES[selectedCategory].description}</p>
+                   <p className="text-sm text-gray-600">{categoryText(selectedCategory)[1]}</p>
                   <div className="mt-2 flex gap-4 text-xs">
-                    <span>کل: {getCategoryStats(selectedCategory).total}</span>
-                    <span>فعال: {getCategoryStats(selectedCategory).active}</span>
-                    <span>خودکار: {getCategoryStats(selectedCategory).autoUse}</span>
+                     <span>{copy.total}: {getCategoryStats(selectedCategory).total}</span>
+                     <span>{copy.active}: {getCategoryStats(selectedCategory).active}</span>
+                     <span>{copy.automatic}: {getCategoryStats(selectedCategory).autoUse}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -589,40 +541,37 @@ const EmailTemplatesCentral: React.FC = () => {
         </Tabs>
 
         {/* Templates Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-5">
           {filteredTemplates.map((template) => {
             const templateInfo = getTemplateInfo(template.name);
             const category = TEMPLATE_CATEGORIES[templateInfo.category];
             const templateNumber = getTemplateNumber(template.name);
             const isSpecial = ['#05', '#13', '#17'].includes(templateNumber);
+            const variables = getTemplateVariables(template);
             
             return (
               <Card 
                 key={template.id} 
-                className={`hover:shadow-md transition-shadow ${
+                className={`hover:shadow-md transition-shadow border-green-200 bg-green-50/60 ${
                   isSpecial ? 'border-green-300 bg-green-50 shadow-lg' : ''
                 }`}
               >
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className={`text-lg mb-2 ${isSpecial ? 'text-green-800' : ''}`}>
+                      <CardTitle className="text-lg mb-2 text-green-800 flex flex-wrap items-center gap-2">
+                        {isSpecial && <Star className="w-5 h-5 text-yellow-500" />}
                         {template.name}
-                        {isSpecial && (
-                          <span className="block text-sm text-green-600 font-normal mt-1">
-                            ⭐ استفاده خودکار در سیستم
-                          </span>
-                        )}
                       </CardTitle>
                       <div className="flex gap-2 flex-wrap">
                         <Badge variant={template.is_active ? "default" : "secondary"}>
-                          {template.is_active ? "فعال" : "غیرفعال"}
+                           {template.is_active ? copy.active : copy.inactive}
                         </Badge>
                         <Badge 
                           variant="outline" 
                           className={category?.color || 'bg-gray-50 border-gray-200 text-gray-800'}
                         >
-                          {category?.name || 'عمومی'}
+                           {categoryText(templateInfo.category)[0] || copy.general}
                         </Badge>
                         <Badge variant="outline" className="text-xs">
                           {templateInfo.ref}
@@ -630,12 +579,12 @@ const EmailTemplatesCentral: React.FC = () => {
                         {templateInfo.autoUse && (
                           <Badge variant="default" className="bg-orange-600 text-white">
                             <Zap className="w-3 h-3 mr-1" />
-                            خودکار
+                             {copy.automatic}
                           </Badge>
                         )}
                         {templateInfo.priority === 'high' && (
                           <Badge variant="default" className="bg-red-600 text-white">
-                            اولویت بالا
+                             {copy.highPriority}
                           </Badge>
                         )}
                       </div>
@@ -661,24 +610,29 @@ const EmailTemplatesCentral: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">موضوع:</p>
-                      <p className={`text-sm p-2 rounded ${
-                        isSpecial ? 'text-green-700 bg-green-100' : 'text-gray-600 bg-gray-50'
-                      }`}>
-                        {template.subject}
-                      </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-green-100 border border-green-300 rounded-lg p-3">
+                      <h4 className="text-sm font-bold text-green-800 mb-2">✨ {copy.features}:</h4>
+                      <div className="space-y-1 text-xs text-green-700">
+                        <div>✅ {copy.subject}: {template.subject}</div>
+                        <div>✅ {copy.language}: {copy[template.language] || template.language || copy.en}</div>
+                        <div>✅ {template.is_active ? copy.active : copy.inactive}</div>
+                        <div>✅ {copy.useCount}: {template.usage_count || 0} {copy.times}</div>
+                      </div>
                     </div>
-                    
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">کاربرد:</p>
-                      <p className="text-sm text-gray-600">{templateInfo.usage}</p>
+                    <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
+                      <h4 className="text-sm font-bold text-blue-800 mb-2">📋 {copy.usage}:</h4>
+                      <div className="space-y-1 text-xs text-blue-700">
+                        <div>• {categoryText(templateInfo.category)[1]}</div>
+                        <div>• {templateInfo.usage}</div>
+                        <div>• {templateInfo.autoUse ? copy.automaticSystem : copy.general}</div>
+                      </div>
                     </div>
-                    
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>زبان: {template.language || 'فارسی'}</span>
-                      <span>استفاده: {template.usage_count || 0} بار</span>
+                    <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3">
+                      <h4 className="text-sm font-bold text-yellow-800 mb-2">🔧 {copy.variables}:</h4>
+                      <div className="text-xs text-yellow-700 break-words" dir="ltr">
+                        {variables.length ? variables.join(', ') : '—'}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -692,28 +646,15 @@ const EmailTemplatesCentral: React.FC = () => {
           <div className="text-center py-12">
             <Mail className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {error ? 'خطا در بارگذاری قالب‌ها' : 'قالبی در این دسته‌بندی یافت نشد'}
+               {copy.noTemplates}
             </h3>
             <p className="text-gray-600 mb-4">
-              {error 
-                ? (error.message?.includes('Authentication') 
-                   ? 'لطفاً ابتدا وارد حساب مدیریت شوید' 
-                   : `خطا: ${error.message}`)
-                : 'دسته‌بندی دیگری را انتخاب کنید یا روی بروزرسانی کلیک کنید'
-              }
+               {copy.chooseCategory}
             </p>
             <div className="flex gap-3 justify-center">
-              {error?.message?.includes('Authentication') ? (
-                <Button 
-                  onClick={() => setLocation('/admin/login')} 
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  ورود به حساب مدیریت
-                </Button>
-              ) : null}
-              <Button onClick={refetch} variant="outline">
+               <Button onClick={() => void refetch()} variant="outline">
                 <RefreshCw className="w-4 h-4 mr-2" />
-                تلاش مجدد
+                 {copy.retry}
               </Button>
             </div>
           </div>
@@ -725,7 +666,7 @@ const EmailTemplatesCentral: React.FC = () => {
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="text-lg font-bold text-right">
-                  ویرایش قالب ایمیل
+                   {copy.editTemplate}
                 </DialogTitle>
               </DialogHeader>
               
@@ -749,7 +690,7 @@ const EmailTemplatesCentral: React.FC = () => {
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name">نام قالب</Label>
+                     <Label htmlFor="name">{copy.templateName}</Label>
                     <Input
                       id="name"
                       name="name"
@@ -760,7 +701,7 @@ const EmailTemplatesCentral: React.FC = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="category">دسته‌بندی</Label>
+                     <Label htmlFor="category">{copy.category}</Label>
                     <Select name="category" defaultValue={editingTemplate.category}>
                       <SelectTrigger className="mt-1">
                         <SelectValue />
@@ -768,28 +709,24 @@ const EmailTemplatesCentral: React.FC = () => {
                       <SelectContent>
                         {Object.entries(TEMPLATE_CATEGORIES).map(([key, cat]) => (
                           <SelectItem key={key} value={key}>
-                            {cat.name}
+                             {categoryText(key)[0]}
                           </SelectItem>
                         ))}
-                        <SelectItem value="inventory_alerts">هشدار موجودی</SelectItem>
-                        <SelectItem value="payment_notifications">اطلاعیه‌های پرداخت</SelectItem>
-                        <SelectItem value="system_notifications">اطلاعیه‌های سیستم</SelectItem>
-                        <SelectItem value="security_alerts">هشدارهای امنیتی</SelectItem>
-                        <SelectItem value="password-reset">بازنشانی رمز عبور</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   
                   <div>
-                    <Label htmlFor="language">زبان</Label>
-                    <Select name="language" defaultValue={editingTemplate.language || 'fa'}>
+                     <Label htmlFor="language">{copy.language}</Label>
+                     <Select name="language" defaultValue={editingTemplate.language || 'en'}>
                       <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="fa">فارسی</SelectItem>
-                        <SelectItem value="en">انگلیسی</SelectItem>
-                        <SelectItem value="ar">عربی</SelectItem>
+                         <SelectItem value="fa">{copy.fa}</SelectItem>
+                         <SelectItem value="en">{copy.en}</SelectItem>
+                         <SelectItem value="ar">{copy.ar}</SelectItem>
+                         <SelectItem value="tr">{copy.tr}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -801,13 +738,13 @@ const EmailTemplatesCentral: React.FC = () => {
                       defaultChecked={editingTemplate.is_active}
                     />
                     <Label htmlFor="is_active" className="text-sm font-medium">
-                      فعال
+                       {copy.activeLabel}
                     </Label>
                   </div>
                 </div>
                 
                 <div>
-                  <Label htmlFor="subject">موضوع ایمیل</Label>
+                   <Label htmlFor="subject">{copy.emailSubject}</Label>
                   <Input
                     id="subject"
                     name="subject"
@@ -818,7 +755,7 @@ const EmailTemplatesCentral: React.FC = () => {
                 </div>
                 
                 <div>
-                  <Label htmlFor="html_content">محتوای HTML</Label>
+                   <Label htmlFor="html_content">{copy.htmlContent}</Label>
                   <Textarea
                     id="html_content"
                     name="html_content"
@@ -829,7 +766,7 @@ const EmailTemplatesCentral: React.FC = () => {
                 </div>
                 
                 <div>
-                  <Label htmlFor="text_content">محتوای متنی (اختیاری)</Label>
+                   <Label htmlFor="text_content">{copy.textContent}</Label>
                   <Textarea
                     id="text_content"
                     name="text_content"
@@ -845,14 +782,14 @@ const EmailTemplatesCentral: React.FC = () => {
                     onClick={() => setEditingTemplate(null)}
                     disabled={updateTemplateMutation.isPending}
                   >
-                    انصراف
+                     {copy.cancel}
                   </Button>
                   <Button
                     type="submit"
                     disabled={updateTemplateMutation.isPending}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
-                    {updateTemplateMutation.isPending ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
+                     {updateTemplateMutation.isPending ? copy.saving : copy.saveChanges}
                   </Button>
                 </div>
               </form>
@@ -866,7 +803,7 @@ const EmailTemplatesCentral: React.FC = () => {
             <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
                 <h3 className="text-lg font-semibold">
-                  پیش‌نمایش: {previewTemplate.name}
+                   {copy.preview}: {previewTemplate.name}
                 </h3>
                 <Button
                   variant="ghost"
@@ -880,7 +817,7 @@ const EmailTemplatesCentral: React.FC = () => {
                 <div 
                   className="border rounded-lg p-4 bg-gray-50"
                   dangerouslySetInnerHTML={{ 
-                    __html: previewTemplate.html_content || 'محتوای HTML موجود نیست' 
+                     __html: previewTemplate.html_content || copy.noHtml
                   }}
                 />
               </div>

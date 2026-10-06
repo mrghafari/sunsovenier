@@ -1,7 +1,9 @@
-import { pgTable, text, serial, timestamp, decimal, boolean, integer, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, decimal, boolean, integer, json, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { crmCustomers } from "./schema";
+import { crmCustomers, shopContracts } from "./schema";
+import {vehicleTemplates} from "./logistics-schema";
+import type {AnyPgColumn} from "drizzle-orm/pg-core";
 
 // =============================================================================
 // CUSTOMER PORTAL SCHEMA
@@ -124,7 +126,12 @@ export const insertCustomerAddressSchema = createInsertSchema(customerAddresses)
   updatedAt: true,
 }).extend({
   // Ensure recipient name defaults to customer's full name if not provided
-  recipientName: z.string().min(1, "نام تحویل‌گیرنده الزامی است"),
+  recipientName: z.string().trim().min(1, "نام تحویل‌گیرنده الزامی است"),
+  title: z.string().trim().min(1, "عنوان آدرس الزامی است"),
+  phone: z.string().trim().min(1, "شماره تلفن الزامی است"),
+  address: z.string().trim().min(1, "نشانی الزامی است"),
+  city: z.string().trim().min(1, "شهر الزامی است"),
+  country: z.string().trim().min(1, "کشور الزامی است"),
 });
 
 export type InsertCustomerAddress = z.infer<typeof insertCustomerAddressSchema>;
@@ -134,6 +141,7 @@ export type CustomerAddress = typeof customerAddresses.$inferSelect;
 export const customerOrders = pgTable("customer_orders", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").notNull(),
+  contractId: integer("contract_id").references(() => shopContracts.id, { onDelete: "set null" }),
   orderNumber: text("order_number").notNull().unique(),
   status: text("status").notNull().default("pending"), // pending, confirmed, processing, shipped, delivered, cancelled
   priority: text("priority").notNull().default("normal"), // low, normal, high, urgent
@@ -143,6 +151,8 @@ export const customerOrders = pgTable("customer_orders", {
   paymentStatus: text("payment_status").notNull().default("pending"), // pending, paid, failed, refunded
   paymentMethod: text("payment_method"), // bank_transfer, credit_card, check, cash
   shippingAddress: json("shipping_address").notNull(), // Complete shipping address object
+  transportCategory:text("transport_category").notNull().default("standard"),
+  bulkVehicleTemplateId:integer("bulk_vehicle_template_id").references(():AnyPgColumn=>vehicleTemplates.id),
   billingAddress: json("billing_address"), // Complete billing address object
   notes: text("notes"),
   internalNotes: text("internal_notes"), // Notes visible only to admin
@@ -196,6 +206,14 @@ export const customerOrders = pgTable("customer_orders", {
   
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const shopContractOrderSnapshots = pgTable("shop_contract_order_snapshots", {
+  orderId: integer("order_id").notNull().unique("shop_contract_order_snapshots_order_id_key")
+    .references(() => customerOrders.id, { onDelete: "cascade" }),
+  contractId: integer("contract_id").notNull().references(() => shopContracts.id, { onDelete: "restrict" }),
+  contractSnapshot: jsonb("contract_snapshot").notNull().$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const insertCustomerOrderSchema = createInsertSchema(customerOrders).omit({
@@ -411,7 +429,7 @@ export const customerWallets = pgTable("customer_wallets", {
   customerId: integer("customer_id").notNull().unique().references(() => crmCustomers.id),
   balance: decimal("balance", { precision: 15, scale: 2 }).notNull().default("0"),
   reservedBalance: decimal("reserved_balance", { precision: 15, scale: 2 }).notNull().default("0"), // مبلغ رزرو شده برای سفارشات در انتظار
-  currency: text("currency").notNull().default("IQD"), // IQD, USD, EUR
+  currency: text("currency").notNull().default("IQD"), // IQD, USD, EUR, IRR
   status: text("status").notNull().default("active"), // active, frozen, suspended
   creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }).default("0"),
   lastActivityDate: timestamp("last_activity_date"),

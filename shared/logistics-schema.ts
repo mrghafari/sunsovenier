@@ -1,4 +1,5 @@
-import { pgTable, text, serial, timestamp, decimal, boolean, integer, varchar, index, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, decimal, boolean, integer, varchar, index, uniqueIndex, json, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -509,6 +510,7 @@ export type VehicleCategorySelect = typeof vehicleCategories.$inferSelect;
 // Iraqi provinces table
 export const iraqiProvinces = pgTable("iraqi_provinces", {
   id: serial("id").primaryKey(),
+  countryCode: text("country_code").notNull().default("IQ"),
   name: text("name").notNull().unique(), // Province name
   nameArabic: text("name_arabic").notNull(), // Arabic name (محافظة بغداد)
   nameEnglish: text("name_english").notNull(), // English name (Baghdad Governorate)
@@ -530,6 +532,7 @@ export const iraqiProvinces = pgTable("iraqi_provinces", {
 // Iraqi cities table for shipping and freight calculation
 export const iraqiCities = pgTable("iraqi_cities", {
   id: serial("id").primaryKey(),
+  countryCode: text("country_code").notNull().default("IQ"),
   name: text("name").notNull(), // City name
   nameArabic: text("name_arabic"), // Arabic name
   nameEnglish: text("name_english"), // English name
@@ -560,6 +563,38 @@ export const iraqiCities = pgTable("iraqi_cities", {
   index("iraqi_cities_active_idx").on(table.isActive),
   index("iraqi_cities_capital_idx").on(table.isProvinceCapital),
   index("iraqi_cities_vehicle_idx").on(table.vehicleId),
+]);
+
+// One globally shared shipping origin. The default Erbil origin is resolved
+// from active geography rows at runtime rather than relying on a seeded ID.
+export const logisticsShippingCenter = pgTable("logistics_shipping_center", {
+  id: integer("id").primaryKey(),
+  countryCode: text("country_code").notNull(),
+  provinceId: integer("province_id").notNull().references(() => iraqiProvinces.id),
+  cityId: integer("city_id").notNull().references(() => iraqiCities.id),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  check("logistics_shipping_center_singleton_ck", sql`${table.id} = 1`),
+]);
+
+// Manual road distances are independent for each directed origin/destination
+// pair; legacy Erbil distances remain on iraqi_cities as read-only baselines.
+export const logisticsRouteDistances = pgTable("logistics_route_distances", {
+  id: serial("id").primaryKey(),
+  originCityId: integer("origin_city_id").notNull().references(() => iraqiCities.id),
+  destinationCityId: integer("destination_city_id").notNull().references(() => iraqiCities.id),
+  distanceKm: decimal("distance_km", { precision: 10, scale: 2 }).notNull(),
+  source: text("source").notNull().default("manual"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("logistics_route_distances_origin_destination_uidx")
+    .on(table.originCityId, table.destinationCityId),
+  index("logistics_route_distances_destination_idx").on(table.destinationCityId),
+  check("logistics_route_distances_nonnegative_ck", sql`${table.distanceKm} >= 0`),
+  check("logistics_route_distances_same_city_ck", sql`(
+    (${table.originCityId} = ${table.destinationCityId} AND ${table.distanceKm} = 0)
+    OR (${table.originCityId} <> ${table.destinationCityId} AND ${table.distanceKm} > 0)
+  )`),
 ]);
 
 // Shipping rates table for Iraqi cities
@@ -791,6 +826,7 @@ export const vehicleTemplates = pgTable("vehicle_templates", {
   name: text("name").notNull(),
   nameEn: text("name_en"),
   vehicleType: varchar("vehicle_type", { length: 50 }).notNull(), // motorcycle, van, light_truck, heavy_truck
+  transportCategory: varchar("transport_category",{length:20,enum:["standard","bulk"]}).notNull().default("standard"),
   
   // Capacity limits
   maxWeightKg: decimal("max_weight_kg", { precision: 8, scale: 2 }).notNull(),

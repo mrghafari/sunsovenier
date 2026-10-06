@@ -201,7 +201,7 @@ export default function FibSettings() {
               <div className="space-y-2">
                 <p className="font-semibold">💡 تنظیمات پیشرفته FIB Payment Gateway</p>
                 <p className="text-sm">این صفحه برای مدیریت اطلاعات احراز هویت و تنظیمات تخصصی FIB است.</p>
-                <p className="text-sm">برای مدیریت تنظیمات عمومی gateway (فعال/غیرفعال کردن)، به <a href="/admin/payment-settings" className="underline font-semibold">Payment Settings</a> مراجعه کنید.</p>
+                <p className="text-sm">برای مدیریت تنظیمات عمومی gateway (فعال/غیرفعال کردن)، به <a href="/mrg/payment-settings" className="underline font-semibold">Payment Settings</a> مراجعه کنید.</p>
               </div>
             </AlertDescription>
           </Alert>

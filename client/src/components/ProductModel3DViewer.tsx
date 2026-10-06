@@ -83,7 +83,12 @@ export default function ProductModel3DViewer({ model3dKey, productName, classNam
     return null;
   }
 
-  const modelUrl = `/uploads/3d-models/${model3dKey}`;
+  // Upload responses store the full S3 key (for example
+  // "3d-models/file.glb"), while the proxy route already includes that
+  // directory. Keep only the filename to avoid requesting
+  // "/uploads/3d-models/3d-models/file.glb", which falls through to HTML.
+  const modelFileName = model3dKey.split('/').filter(Boolean).pop();
+  const modelUrl = `/uploads/3d-models/${encodeURIComponent(modelFileName || model3dKey)}`;
 
   return (
     <div className={`relative ${className}`} dir={direction}>

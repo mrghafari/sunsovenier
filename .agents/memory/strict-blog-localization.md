@@ -1,10 +1,10 @@
 ---
 name: Blog localization fallback
-description: Defines multilingual blog behavior for new posts and legacy posts missing translations.
+description: Defines optional per-article languages and fallback when the site's language is omitted.
 ---
 
-New blog posts must be authored in English, Arabic, Turkish, and Persian. Legacy posts that do not yet have Persian or Turkish content may temporarily return their English translation instead of failing.
+Each article may contain any selected subset of English, Arabic, Turkish, and Persian, with at least one complete translation. No language, including English, is mandatory. Editors must be able to omit unwanted languages when creating or editing a post; removing an existing populated translation requires confirmation and takes effect only on Save.
 
-**Why:** Existing posts predate four-language authoring. Returning “not found” when users switch those posts to Persian or Turkish is worse than showing the available English content until editors add the missing translations.
+**Why:** The user explicitly changed the former mandatory-four-language requirement: unwanted languages must be removable so the article can be published without producing them. Articles must still open when the selected site language was intentionally omitted.
 
-**How to apply:** Prefer the selected-language translation everywhere. Fall back only to English for legacy gaps; keep all four translations mandatory for create and update so newly saved posts become fully localized.
+**How to apply:** Validate complete title, slug, excerpt, and content only for retained languages, and save their set atomically. Prefer the selected site language, otherwise English, then Arabic, Turkish, or Persian among available translations. Apply the same fallback to list, detail, and related articles. Do not silently invent content or delete existing translations without the editor selecting their removal.

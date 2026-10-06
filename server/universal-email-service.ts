@@ -6,12 +6,13 @@ export interface UniversalEmailOptions {
   to?: string[];
   cc?: string[];
   bcc?: string[];
-  subject: string;
-  html: string;
+  subject?: string;
+  html?: string;
   text?: string;
   attachments?: any[];
   variables?: { [key: string]: string };
   templateNumber?: string; // NEW: Template number reference (e.g., "#05", "#13")
+  language?: string;
 }
 
 export class UniversalEmailService {
@@ -26,8 +27,17 @@ export class UniversalEmailService {
       // If template number specified, load and use template
       if (options.templateNumber) {
         try {
-          console.log(`🔍 [Universal Email] Searching for template: ${options.templateNumber}`);
-          const template = await emailStorage.getTemplateByNumber(options.templateNumber);
+          const { normalizeSmsLanguage, resolveEmailLanguage } = await import('./sms-language');
+          let recipientLanguage = options.language
+            ? normalizeSmsLanguage(options.language)
+            : undefined;
+          if (!recipientLanguage) {
+            const { pool } = await import('./db');
+            recipientLanguage = await resolveEmailLanguage(pool, options.to?.[0]);
+          }
+
+          console.log(`🔍 [Universal Email] Searching for template: ${options.templateNumber} (${recipientLanguage})`);
+          const template = await emailStorage.getTemplateByNumber(options.templateNumber, recipientLanguage);
           if (template) {
             console.log(`📧 Template ${options.templateNumber} found: ${template.templateName || template.name}`);
             console.log(`🔧 Template data:`, {
@@ -163,6 +173,11 @@ export class UniversalEmailService {
       let finalText = options.text || '';
       let finalSubject = options.subject;
 
+      if (!finalSubject || !finalHtml) {
+        console.error(`❌ Email content is incomplete for category: ${options.categoryKey}`);
+        return false;
+      }
+
       if (options.variables && finalHtml && finalSubject) {
         for (const [key, value] of Object.entries(options.variables)) {
           const placeholder = `{{${key}}}`;
@@ -272,7 +287,7 @@ export class UniversalEmailService {
             categoryId: categorySettings.category.id,
             toEmail: `TO: ${finalTo?.join(', ') || options.to?.join(', ') || ''} | CC: ${finalCc?.join(', ') || options.cc?.join(', ') || ''} | BCC: ${finalBcc?.join(', ') || options.bcc?.join(', ') || ''}`,
             fromEmail: categorySettings.smtp?.fromEmail || 'unknown',
-            subject: options.subject,
+            subject: options.subject || `[${options.templateNumber || 'no-template'}] Subject unavailable`,
             status: 'failed',
             errorMessage: error instanceof Error ? error.message : 'Unknown error',
             sentAt: new Date()
@@ -285,8 +300,8 @@ export class UniversalEmailService {
             recipientName: '',
             senderEmail: categorySettings.smtp?.fromEmail || 'system@momtazchem.com',
             senderName: categorySettings.smtp?.fromName || 'System',
-            subject: options.subject,
-            htmlContent: options.html,
+            subject: options.subject || `[${options.templateNumber || 'no-template'}] Subject unavailable`,
+            htmlContent: options.html || '',
             textContent: options.text,
             templateUsed: options.templateNumber,
             categoryKey: options.categoryKey,

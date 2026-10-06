@@ -1,0 +1,47 @@
+/**
+ * Active, assignable Site Management modules.
+ * Update this catalog when a module is added or retired. Both the Site
+ * Management navigation and User Management APIs consume it; historical
+ * permission records and internal order workflows are deliberately separate.
+ */
+export const siteManagementModuleIds = [
+  "kpi_dashboard",
+  "management_dashboard",
+  "syncing_shop",
+  "shop_management",
+  "product_management",
+  "warehouse_management",
+  "logistics_management",
+  "inquiries",
+  "crm",
+  "barcode",
+  "email_settings",
+  "database_backup",
+  "seo",
+  "categories",
+  "sms",
+  "factory",
+  "user_management",
+  "procedures",
+  "payment_management",
+  "accounting_management",
+  "finance",
+  "wallet_management",
+  "geography_analytics",
+  "ai_settings",
+  "refresh_control",
+  "content_management",
+  "ticketing_system",
+  "remote_desktop",
+  "server_config",
+  "company_information",
+  "legal_affairs",
+  "user_guide",
+  "marketing_module",
+  "aws_s3_settings",
+  "whatsapp_crm",
+  "blog",
+  "marketplace_management",
+  "vendor_accounting",
+  "loading_management",
+] as const;

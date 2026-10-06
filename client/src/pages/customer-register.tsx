@@ -12,33 +12,135 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Link, useLocation } from "wouter";
 import { z } from "zod";
 import { OtpVerificationModal } from "@/components/OtpVerificationModal";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-// Enhanced registration schema with mandatory fields
-const customerRegistrationSchema = z.object({
-  email: z.string().email("Please enter a valid email address").min(1, "Email is required"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  confirmPassword: z.string(),
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  company: z.string().optional(),
-  phone: z.string().min(1, "Phone number is required"),
-  country: z.string().min(1, "Country is required"),
-  province: z.string().min(1, "Province is required"),
-  cityRegion: z.string().min(1, "City/Region is required"),
-  address: z.string().min(1, "Address is required"),
-  postalCode: z.string().optional(),
-  communicationPreference: z.string().default("email"),
-  preferredLanguage: z.string().default("en"),
-  marketingConsent: z.boolean().default(false),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const registerPageCopy = {
+  en: {
+    title: "Create Account", subtitle: "Join Momtazchem to access exclusive products and services",
+    personal: "Personal Information", firstName: "First Name", firstNamePh: "Enter your first name",
+    lastName: "Last Name", lastNamePh: "Enter your last name", email: "Email Address", emailPh: "Enter your email",
+    company: "Company", companyPh: "Enter your company name", contact: "Contact Information", phone: "Phone Number",
+    geoTitle: "Iraqi Geographical Address", country: "Country", selectCountry: "Select country",
+    province: "Province", selectProvince: "Select province", city: "City/Region", selectCity: "Select city/region",
+    selectProvinceFirst: "Select a province first", distanceInfo: "Logistics distance information",
+    distanceDesc: "Distances are calculated from Erbil to improve delivery and shipping costs", distanceFromErbil: "Distance from Erbil",
+    kilometer: "km", address: "Address", addressPh: "Enter your full address", postalCode: "Postal Code",
+    postalCodePh: "Enter postal code", security: "Account Security", password: "Password",
+    passwordPh: "Create a password", confirmPassword: "Confirm Password", confirmPasswordPh: "Confirm your password",
+    preferences: "Communication Preferences", preferredCommunication: "Preferred Communication",
+    preferredLanguage: "Preferred Language", emailOption: "Email", phoneOption: "Phone",
+    creating: "Creating Account...", create: "Create Account", hasAccount: "Already have an account?", login: "Login",
+    codeSent: "Verification Code Sent", checkCode: "Check your selected channels for the verification code",
+    codeFailed: "Failed to Send Code", registrationSuccess: "Registration Successful",
+    accountCreated: "Your account has been created. You can now log in.", registrationFailed: "Registration Failed",
+    requestFailed: "The operation failed. Please try again.",
+  },
+  fa: {
+    title: "ایجاد حساب کاربری", subtitle: "برای دسترسی به محصولات و خدمات ممتازکم حساب کاربری ایجاد کنید",
+    personal: "اطلاعات شخصی", firstName: "نام", firstNamePh: "نام خود را وارد کنید",
+    lastName: "نام خانوادگی", lastNamePh: "نام خانوادگی خود را وارد کنید", email: "نشانی ایمیل", emailPh: "ایمیل خود را وارد کنید",
+    company: "شرکت", companyPh: "نام شرکت را وارد کنید", contact: "اطلاعات تماس", phone: "شماره تلفن",
+    geoTitle: "نشانی جغرافیایی", country: "کشور", selectCountry: "کشور را انتخاب کنید",
+    province: "استان", selectProvince: "استان را انتخاب کنید", city: "شهر/منطقه", selectCity: "شهر یا منطقه را انتخاب کنید",
+    selectProvinceFirst: "ابتدا استان را انتخاب کنید", distanceInfo: "اطلاعات فاصله برای خدمات لجستیک",
+    distanceDesc: "فاصله‌ها برای بهبود تحویل و محاسبه هزینه ارسال از اربیل محاسبه شده‌اند", distanceFromErbil: "فاصله از اربیل",
+    kilometer: "کیلومتر", address: "نشانی", addressPh: "نشانی کامل خود را وارد کنید", postalCode: "کد پستی",
+    postalCodePh: "کد پستی را وارد کنید", security: "امنیت حساب کاربری", password: "رمز عبور",
+    passwordPh: "یک رمز عبور ایجاد کنید", confirmPassword: "تکرار رمز عبور", confirmPasswordPh: "رمز عبور را دوباره وارد کنید",
+    preferences: "تنظیمات ارتباطی", preferredCommunication: "روش ارتباط ترجیحی",
+    preferredLanguage: "زبان ترجیحی", emailOption: "ایمیل", phoneOption: "تلفن",
+    creating: "در حال ایجاد حساب...", create: "ایجاد حساب", hasAccount: "قبلاً حساب ساخته‌اید؟", login: "ورود",
+    codeSent: "کد تأیید ارسال شد", checkCode: "کد تأیید را در روش‌های ارتباطی انتخاب‌شده بررسی کنید",
+    codeFailed: "ارسال کد تأیید ناموفق بود", registrationSuccess: "ثبت‌نام موفق",
+    accountCreated: "حساب شما ایجاد شد و اکنون می‌توانید وارد شوید.", registrationFailed: "ثبت‌نام ناموفق بود",
+    requestFailed: "عملیات انجام نشد. لطفاً دوباره تلاش کنید.",
+  },
+  ar: {
+    title: "إنشاء حساب", subtitle: "انضم إلى ممتاز للكيماويات للوصول إلى المنتجات والخدمات",
+    personal: "المعلومات الشخصية", firstName: "الاسم الأول", firstNamePh: "أدخل اسمك الأول",
+    lastName: "اسم العائلة", lastNamePh: "أدخل اسم العائلة", email: "البريد الإلكتروني", emailPh: "أدخل بريدك الإلكتروني",
+    company: "الشركة", companyPh: "أدخل اسم الشركة", contact: "معلومات الاتصال", phone: "رقم الهاتف",
+    geoTitle: "العنوان الجغرافي", country: "البلد", selectCountry: "اختر البلد",
+    province: "المحافظة", selectProvince: "اختر المحافظة", city: "المدينة/المنطقة", selectCity: "اختر المدينة أو المنطقة",
+    selectProvinceFirst: "اختر المحافظة أولاً", distanceInfo: "معلومات المسافة للخدمات اللوجستية",
+    distanceDesc: "تُحسب المسافات من أربيل لتحسين التوصيل وتكاليف الشحن", distanceFromErbil: "المسافة من أربيل",
+    kilometer: "كم", address: "العنوان", addressPh: "أدخل عنوانك الكامل", postalCode: "الرمز البريدي",
+    postalCodePh: "أدخل الرمز البريدي", security: "أمان الحساب", password: "كلمة المرور",
+    passwordPh: "أنشئ كلمة مرور", confirmPassword: "تأكيد كلمة المرور", confirmPasswordPh: "أعد إدخال كلمة المرور",
+    preferences: "تفضيلات الاتصال", preferredCommunication: "وسيلة الاتصال المفضلة",
+    preferredLanguage: "اللغة المفضلة", emailOption: "البريد الإلكتروني", phoneOption: "الهاتف",
+    creating: "جارٍ إنشاء الحساب...", create: "إنشاء حساب", hasAccount: "لديك حساب بالفعل؟", login: "تسجيل الدخول",
+    codeSent: "تم إرسال رمز التحقق", checkCode: "تحقق من وسائل الاتصال المحددة للحصول على رمز التحقق",
+    codeFailed: "تعذر إرسال رمز التحقق", registrationSuccess: "تم التسجيل بنجاح",
+    accountCreated: "تم إنشاء حسابك ويمكنك الآن تسجيل الدخول.", registrationFailed: "فشل التسجيل",
+    requestFailed: "تعذر إكمال العملية. يرجى المحاولة مرة أخرى.",
+  },
+  tr: {
+    title: "Hesap Oluştur", subtitle: "Özel ürün ve hizmetlere erişmek için Momtazchem'e katılın",
+    personal: "Kişisel Bilgiler", firstName: "Ad", firstNamePh: "Adınızı girin",
+    lastName: "Soyad", lastNamePh: "Soyadınızı girin", email: "E-posta Adresi", emailPh: "E-postanızı girin",
+    company: "Şirket", companyPh: "Şirket adını girin", contact: "İletişim Bilgileri", phone: "Telefon Numarası",
+    geoTitle: "Coğrafi Adres", country: "Ülke", selectCountry: "Ülke seçin",
+    province: "İl", selectProvince: "İl seçin", city: "Şehir/Bölge", selectCity: "Şehir veya bölge seçin",
+    selectProvinceFirst: "Önce bir il seçin", distanceInfo: "Lojistik mesafe bilgileri",
+    distanceDesc: "Teslimat ve nakliye maliyetlerini iyileştirmek için mesafeler Erbil'den hesaplanır", distanceFromErbil: "Erbil'den uzaklık",
+    kilometer: "km", address: "Adres", addressPh: "Tam adresinizi girin", postalCode: "Posta Kodu",
+    postalCodePh: "Posta kodunu girin", security: "Hesap Güvenliği", password: "Şifre",
+    passwordPh: "Bir şifre oluşturun", confirmPassword: "Şifreyi Onayla", confirmPasswordPh: "Şifrenizi tekrar girin",
+    preferences: "İletişim Tercihleri", preferredCommunication: "Tercih Edilen İletişim",
+    preferredLanguage: "Tercih Edilen Dil", emailOption: "E-posta", phoneOption: "Telefon",
+    creating: "Hesap oluşturuluyor...", create: "Hesap Oluştur", hasAccount: "Zaten hesabınız var mı?", login: "Giriş Yap",
+    codeSent: "Doğrulama Kodu Gönderildi", checkCode: "Doğrulama kodu için seçtiğiniz iletişim kanallarını kontrol edin",
+    codeFailed: "Doğrulama Kodu Gönderilemedi", registrationSuccess: "Kayıt Başarılı",
+    accountCreated: "Hesabınız oluşturuldu. Şimdi giriş yapabilirsiniz.", registrationFailed: "Kayıt Başarısız",
+    requestFailed: "İşlem tamamlanamadı. Lütfen tekrar deneyin.",
+  },
+};
 
-type CustomerRegistrationData = z.infer<typeof customerRegistrationSchema>;
+const countryNames = {
+  en: { Iraq: "Iraq", Iran: "Iran", Turkey: "Turkey", Syria: "Syria", Jordan: "Jordan", Lebanon: "Lebanon", Kuwait: "Kuwait", "Saudi Arabia": "Saudi Arabia", UAE: "United Arab Emirates", Other: "Other" },
+  fa: { Iraq: "عراق", Iran: "ایران", Turkey: "ترکیه", Syria: "سوریه", Jordan: "اردن", Lebanon: "لبنان", Kuwait: "کویت", "Saudi Arabia": "عربستان سعودی", UAE: "امارات متحده عربی", Other: "سایر کشورها" },
+  ar: { Iraq: "العراق", Iran: "إيران", Turkey: "تركيا", Syria: "سوريا", Jordan: "الأردن", Lebanon: "لبنان", Kuwait: "الكويت", "Saudi Arabia": "السعودية", UAE: "الإمارات العربية المتحدة", Other: "دولة أخرى" },
+  tr: { Iraq: "Irak", Iran: "İran", Turkey: "Türkiye", Syria: "Suriye", Jordan: "Ürdün", Lebanon: "Lübnan", Kuwait: "Kuveyt", "Saudi Arabia": "Suudi Arabistan", UAE: "Birleşik Arap Emirlikleri", Other: "Diğer" },
+};
+
+const validationCopy = {
+  en: { email: "Please enter a valid email address", password: "Password must be at least 8 characters", firstName: "First name is required", lastName: "Last name is required", phone: "Phone number is required", country: "Country is required", province: "Province is required", city: "City/Region is required", address: "Address is required", language: "Preferred language is required", match: "Passwords don't match" },
+  fa: { email: "لطفاً یک ایمیل معتبر وارد کنید", password: "رمز عبور باید حداقل ۸ کاراکتر باشد", firstName: "نام الزامی است", lastName: "نام خانوادگی الزامی است", phone: "شماره تلفن الزامی است", country: "انتخاب کشور الزامی است", province: "انتخاب استان الزامی است", city: "انتخاب شهر یا منطقه الزامی است", address: "نشانی الزامی است", language: "انتخاب زبان ترجیحی الزامی است", match: "رمزهای عبور یکسان نیستند" },
+  ar: { email: "يرجى إدخال بريد إلكتروني صالح", password: "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل", firstName: "الاسم الأول مطلوب", lastName: "اسم العائلة مطلوب", phone: "رقم الهاتف مطلوب", country: "اختيار البلد مطلوب", province: "اختيار المحافظة مطلوب", city: "اختيار المدينة أو المنطقة مطلوب", address: "العنوان مطلوب", language: "اختيار اللغة المفضلة مطلوب", match: "كلمتا المرور غير متطابقتين" },
+  tr: { email: "Lütfen geçerli bir e-posta adresi girin", password: "Şifre en az 8 karakter olmalıdır", firstName: "Ad gereklidir", lastName: "Soyad gereklidir", phone: "Telefon numarası gereklidir", country: "Ülke seçimi gereklidir", province: "İl seçimi gereklidir", city: "Şehir veya bölge seçimi gereklidir", address: "Adres gereklidir", language: "Tercih edilen dil gereklidir", match: "Şifreler eşleşmiyor" },
+};
+
+const createCustomerRegistrationSchema = (language: keyof typeof validationCopy) => {
+  const v = validationCopy[language];
+  return z.object({
+    email: z.string().min(1, v.email).email(v.email),
+    password: z.string().min(8, v.password),
+    confirmPassword: z.string(),
+    firstName: z.string().min(1, v.firstName),
+    lastName: z.string().min(1, v.lastName),
+    company: z.string().optional(),
+    phone: z.string().min(1, v.phone),
+    country: z.string().min(1, v.country),
+    province: z.string().min(1, v.province),
+    cityRegion: z.string().min(1, v.city),
+    address: z.string().min(1, v.address),
+    postalCode: z.string().optional(),
+    communicationPreference: z.string().default("email"),
+    preferredLanguage: z.enum(["en", "fa", "ar", "tr"], { required_error: v.language }),
+    marketingConsent: z.boolean().default(false),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: v.match,
+    path: ["confirmPassword"],
+  });
+};
+
+type CustomerRegistrationData = z.infer<ReturnType<typeof createCustomerRegistrationSchema>>;
 
 const CustomerRegister = () => {
   const { toast } = useToast();
+  const { language, direction } = useLanguage();
+  const copy = registerPageCopy[language];
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedProvince, setSelectedProvince] = useState("");
@@ -82,7 +184,7 @@ const CustomerRegister = () => {
   });
 
   const form = useForm<CustomerRegistrationData>({
-    resolver: zodResolver(customerRegistrationSchema),
+    resolver: zodResolver(createCustomerRegistrationSchema(language)),
     defaultValues: {
       email: "",
       firstName: "",
@@ -97,10 +199,16 @@ const CustomerRegister = () => {
       password: "",
       confirmPassword: "",
       communicationPreference: "email",
-      preferredLanguage: "en",
+      preferredLanguage: language,
       marketingConsent: false,
     },
   });
+
+  useEffect(() => {
+    if (!form.formState.dirtyFields.preferredLanguage) {
+      form.setValue("preferredLanguage", language, { shouldValidate: true });
+    }
+  }, [language, form]);
 
   // Mutation to send OTP
   const sendOtpMutation = useMutation({
@@ -159,14 +267,14 @@ const CustomerRegister = () => {
       if (response.sentVia?.sms) channels.push("SMS");
       
       toast({
-        title: "Verification Code Sent",
-        description: `Check your ${channels.join(", ")} for the verification code`,
+        title: copy.codeSent,
+        description: channels.length ? `${copy.checkCode}: ${channels.join(", ")}` : copy.checkCode,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Failed to Send Code",
-        description: error.message || "Failed to send verification code. Please try again.",
+        title: copy.codeFailed,
+        description: error.message || copy.requestFailed,
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -183,8 +291,8 @@ const CustomerRegister = () => {
     },
     onSuccess: () => {
       toast({
-        title: "Registration Successful",
-        description: "Your account has been created. You can now log in.",
+        title: copy.registrationSuccess,
+        description: copy.accountCreated,
       });
       setShowOtpModal(false);
       setIsSubmitting(false);
@@ -192,8 +300,8 @@ const CustomerRegister = () => {
     },
     onError: (error: any) => {
       toast({
-        title: "Registration Failed",
-        description: error.message || "Failed to create account. Please try again.",
+        title: copy.registrationFailed,
+        description: error.message || copy.requestFailed,
         variant: "destructive",
       });
       setShowOtpModal(false);
@@ -227,13 +335,13 @@ const CustomerRegister = () => {
   };
 
   return (
-    <div className="pt-20 min-h-screen bg-gray-50">
+    <div className="pt-20 min-h-screen bg-gray-50" dir={direction} lang={language}>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-lg shadow-md p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{copy.title}</h1>
             <p className="text-gray-600">
-              Join Momtazchem to access exclusive products and services
+              {copy.subtitle}
             </p>
           </div>
 
@@ -242,7 +350,7 @@ const CustomerRegister = () => {
               {/* Personal Information */}
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                  Personal Information
+                   {copy.personal}
                 </h2>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -251,9 +359,9 @@ const CustomerRegister = () => {
                     name="firstName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>First Name *</FormLabel>
+                        <FormLabel>{copy.firstName} *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your first name" {...field} />
+                          <Input placeholder={copy.firstNamePh} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -265,9 +373,9 @@ const CustomerRegister = () => {
                     name="lastName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Last Name *</FormLabel>
+                        <FormLabel>{copy.lastName} *</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your last name" {...field} />
+                          <Input placeholder={copy.lastNamePh} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -280,9 +388,9 @@ const CustomerRegister = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email Address *</FormLabel>
+                      <FormLabel>{copy.email} *</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="Enter your email" {...field} />
+                        <Input type="email" dir="ltr" placeholder={copy.emailPh} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -294,9 +402,9 @@ const CustomerRegister = () => {
                   name="company"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Company</FormLabel>
+                      <FormLabel>{copy.company}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your company name" {...field} />
+                        <Input placeholder={copy.companyPh} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -307,7 +415,7 @@ const CustomerRegister = () => {
               {/* Contact Information */}
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                  Contact Information
+                   {copy.contact}
                 </h2>
 
                 <FormField
@@ -315,9 +423,9 @@ const CustomerRegister = () => {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number *</FormLabel>
+                      <FormLabel>{copy.phone} *</FormLabel>
                       <FormControl>
-                        <Input placeholder="+964 XXX XXX XXXX" {...field} />
+                        <Input dir="ltr" placeholder="+964 XXX XXX XXXX" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -332,7 +440,7 @@ const CustomerRegister = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    العنوان الجغرافي العراقي (Iraqi Geographical Address)
+                     {copy.geoTitle}
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -342,25 +450,18 @@ const CustomerRegister = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="flex items-center gap-2">
-                            🌍 البلد / Country *
+                             🌍 {copy.country} *
                           </FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="اختر البلد / Select country" />
+                                 <SelectValue placeholder={copy.selectCountry} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="Iraq">🇮🇶 العراق / Iraq</SelectItem>
-                              <SelectItem value="Iran">🇮🇷 إيران / Iran</SelectItem>
-                              <SelectItem value="Turkey">🇹🇷 تركيا / Turkey</SelectItem>
-                              <SelectItem value="Syria">🇸🇾 سوريا / Syria</SelectItem>
-                              <SelectItem value="Jordan">🇯🇴 الأردن / Jordan</SelectItem>
-                              <SelectItem value="Lebanon">🇱🇧 لبنان / Lebanon</SelectItem>
-                              <SelectItem value="Kuwait">🇰🇼 الكويت / Kuwait</SelectItem>
-                              <SelectItem value="Saudi Arabia">🇸🇦 السعودية / Saudi Arabia</SelectItem>
-                              <SelectItem value="UAE">🇦🇪 الإمارات / UAE</SelectItem>
-                              <SelectItem value="Other">🌐 دولة أخرى / Other</SelectItem>
+                              {Object.entries(countryNames[language]).map(([value, label]) => (
+                                <SelectItem key={value} value={value}>{label}</SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -374,7 +475,7 @@ const CustomerRegister = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="flex items-center gap-2">
-                            🏛️ الاستان / Province *
+                             🏛️ {copy.province} *
                           </FormLabel>
                           <Select 
                             onValueChange={(value) => {
@@ -386,7 +487,7 @@ const CustomerRegister = () => {
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="اختر الاستان / Select province" />
+                                 <SelectValue placeholder={copy.selectProvince} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -408,12 +509,12 @@ const CustomerRegister = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="flex items-center gap-2">
-                            🏙️ شهر/منطقه / City/Region *
+                             🏙️ {copy.city} *
                           </FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedProvince}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder={selectedProvince ? "اختر شهر/منطقه" : "اختر الاستان أولاً"} />
+                                 <SelectValue placeholder={selectedProvince ? copy.selectCity : copy.selectProvinceFirst} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -422,7 +523,7 @@ const CustomerRegister = () => {
                                   <div className="flex flex-col">
                                     <span className="font-medium">{city.nameArabic}</span>
                                     <span className="text-xs text-gray-500">
-                                      {city.nameEnglish} • فاصله از اربیل: {city.distanceFromErbilKm || 0} کیلومتر
+                                       {city.nameEnglish} • {copy.distanceFromErbil}: {city.distanceFromErbilKm || 0} {copy.kilometer}
                                     </span>
                                   </div>
                                 </SelectItem>
@@ -442,10 +543,10 @@ const CustomerRegister = () => {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span className="text-sm font-medium">معلومات المسافة للخدمات اللوجستية</span>
+                         <span className="text-sm font-medium">{copy.distanceInfo}</span>
                       </div>
                       <p className="text-xs text-green-700 mt-1">
-                        المسافات محسوبة من أربيل لتحسين التوصيل وحساب تكاليف الشحن
+                         {copy.distanceDesc}
                       </p>
                     </div>
                   )}
@@ -456,9 +557,9 @@ const CustomerRegister = () => {
                   name="address"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Address *</FormLabel>
+                      <FormLabel>{copy.address} *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your full address" {...field} required />
+                        <Input placeholder={copy.addressPh} {...field} required />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -470,9 +571,9 @@ const CustomerRegister = () => {
                   name="postalCode"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Postal Code</FormLabel>
+                      <FormLabel>{copy.postalCode}</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter postal code" {...field} />
+                        <Input placeholder={copy.postalCodePh} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -483,7 +584,7 @@ const CustomerRegister = () => {
               {/* Account Security */}
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                  Account Security
+                   {copy.security}
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -492,9 +593,9 @@ const CustomerRegister = () => {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password *</FormLabel>
+                        <FormLabel>{copy.password} *</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Create a password" {...field} />
+                          <Input type="password" placeholder={copy.passwordPh} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -506,9 +607,9 @@ const CustomerRegister = () => {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirm Password *</FormLabel>
+                        <FormLabel>{copy.confirmPassword} *</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Confirm your password" {...field} />
+                          <Input type="password" placeholder={copy.confirmPasswordPh} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -520,7 +621,7 @@ const CustomerRegister = () => {
               {/* Preferences */}
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                  Communication Preferences
+                   {copy.preferences}
                 </h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -529,7 +630,7 @@ const CustomerRegister = () => {
                     name="communicationPreference"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Preferred Communication</FormLabel>
+                        <FormLabel>{copy.preferredCommunication}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -537,8 +638,8 @@ const CustomerRegister = () => {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="email">Email</SelectItem>
-                            <SelectItem value="phone">Phone</SelectItem>
+                            <SelectItem value="email">{copy.emailOption}</SelectItem>
+                            <SelectItem value="phone">{copy.phoneOption}</SelectItem>
                             <SelectItem value="whatsapp">WhatsApp</SelectItem>
                           </SelectContent>
                         </Select>
@@ -552,8 +653,8 @@ const CustomerRegister = () => {
                     name="preferredLanguage"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Preferred Language</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormLabel>{copy.preferredLanguage} *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />
@@ -561,8 +662,9 @@ const CustomerRegister = () => {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="en">English</SelectItem>
-                            <SelectItem value="fa">Persian</SelectItem>
-                            <SelectItem value="ar">Arabic</SelectItem>
+                            <SelectItem value="fa">فارسی</SelectItem>
+                            <SelectItem value="ar">العربية</SelectItem>
+                            <SelectItem value="tr">Türkçe</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -578,14 +680,14 @@ const CustomerRegister = () => {
                   className="w-full bg-primary-blue hover:bg-primary-blue-dark text-white py-3"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Creating Account..." : "Create Account"}
+                  {isSubmitting ? copy.creating : copy.create}
                 </Button>
 
                 <div className="text-center">
                   <p className="text-sm text-gray-600">
-                    Already have an account?{" "}
-                    <Link href="/customer-login" className="text-primary-blue hover:underline font-medium">
-                      Sign in
+                     {copy.hasAccount}{" "}
+                    <Link href="/customer/login" className="text-primary-blue hover:underline font-medium">
+                       {copy.login}
                     </Link>
                   </p>
                 </div>

@@ -30,6 +30,8 @@ export const orderStatuses = {
   WAREHOUSE_PENDING: 'warehouse_pending',
   WAREHOUSE_NOTIFIED: 'warehouse_notified',
   WAREHOUSE_PROCESSING: 'warehouse_processing',
+  WAREHOUSE_VERIFIED: 'warehouse_verified',
+  WAREHOUSE_FULFILLED: 'warehouse_fulfilled',
   WAREHOUSE_APPROVED: 'warehouse_approved',
   WAREHOUSE_REJECTED: 'warehouse_rejected',
   
@@ -103,6 +105,8 @@ export const orderManagement = pgTable("order_management", {
   logisticsNotes: text("logistics_notes"),
   trackingNumber: varchar("tracking_number", { length: 100 }),
   estimatedDeliveryDate: timestamp("estimated_delivery_date"),
+  estimatedDeliveryAt: timestamp("estimated_delivery_at", { withTimezone: true }),
+  estimatedDeliveryTimeZone: text("estimated_delivery_timezone"),
   actualDeliveryDate: timestamp("actual_delivery_date"),
   deliveryPersonName: text("delivery_person_name"),
   deliveryPersonPhone: text("delivery_person_phone"),

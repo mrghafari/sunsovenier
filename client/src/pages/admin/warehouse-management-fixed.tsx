@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { Package, Search, Filter, ArrowLeft, FileText, Clock, CheckCircle, XCircle, Plus, Edit3, Trash2, Download, Upload, RefreshCw, AlertTriangle, Calendar, Users, TrendingUp, TrendingDown, Eye, BarChart3, Package2, Truck, Weight, Calculator, FileSpreadsheet, ChevronRight, ChevronLeft, Printer, Bell, Mail, MessageSquare, Phone, Save, Edit } from 'lucide-react';
+import { Package, Search, Filter, ArrowLeft, FileText, Clock, CheckCircle, XCircle, Plus, Edit3, Trash2, Download, Upload, RefreshCw, AlertTriangle, Calendar, Users, TrendingUp, TrendingDown, BarChart3, Package2, Truck, Weight, Calculator, FileSpreadsheet, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Printer, Bell, Mail, MessageSquare, Phone, Save, Edit, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import SafeModal from '@/components/SafeModal';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -17,13 +17,181 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import PaymentMethodBadge from '@/components/PaymentMethodBadge';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getOrderStatusLabel, resolveOrderStatus } from '@shared/order-status';
+import WarehouseReadyNotificationSettings from '@/components/WarehouseReadyNotificationSettings';
+import { localizeFinanceNote } from '@/lib/localize-wallet-text';
+import LoadingMeasurementCapture from '@/components/admin/accounting/loading-measurement-capture';
+import { loadingCaptureCopy } from '@/components/admin/accounting/loading-measurement-capture-copy';
+
+type PageLanguage = 'en' | 'fa' | 'ar' | 'tr';
+
+const pageTranslations: Record<string, Record<PageLanguage, string>> = {
+  warehouseManagement: { en: 'Warehouse management', fa: 'مدیریت انبار', ar: 'إدارة المستودع', tr: 'Depo yönetimi' },
+  warehouseDescription: { en: 'Manage orders, inventory, and warehouse operations', fa: 'مدیریت سفارشات، موجودی، و عملیات انبار', ar: 'إدارة الطلبات والمخزون وعمليات المستودع', tr: 'Siparişleri, envanteri ve depo işlemlerini yönetin' },
+  orders: { en: 'Orders', fa: 'سفارشات', ar: 'الطلبات', tr: 'Siparişler' },
+  currentOrders: { en: 'Current orders', fa: 'سفارش‌های جاری', ar: 'الطلبات الحالية', tr: 'Mevcut siparişler' },
+  orderHistory: { en: 'Order history', fa: 'سابقه سفارش‌ها', ar: 'سجل الطلبات', tr: 'Sipariş geçmişi' },
+  warehouseHistoryDescription: { en: 'Orders that have left the warehouse stage', fa: 'سفارش‌هایی که از مرحله انبار عبور کرده‌اند', ar: 'الطلبات التي غادرت مرحلة المستودع', tr: 'Depo aşamasından geçen siparişler' },
+  noHistoryOrders: { en: 'No warehouse order history found', fa: 'هنوز سابقه‌ای برای سفارش‌های انبار وجود ندارد', ar: 'لا يوجد سجل لطلبات المستودع بعد', tr: 'Henüz depo siparişi geçmişi yok' },
+  inventory: { en: 'Warehouse inventory', fa: 'موجودی انبار', ar: 'مخزون المستودع', tr: 'Depo envanteri' },
+  searchOrders: { en: 'Search (at least 3 characters): order number, customer name, phone, email...', fa: 'جستجو (حداقل 3 کاراکتر): شماره سفارش، نام مشتری، تلفن، ایمیل...', ar: 'بحث (3 أحرف على الأقل): رقم الطلب، اسم العميل، الهاتف، البريد الإلكتروني...', tr: 'Ara (en az 3 karakter): sipariş numarası, müşteri adı, telefon, e-posta...' },
+  allStatuses: { en: 'All statuses', fa: 'همه وضعیت‌ها', ar: 'كل الحالات', tr: 'Tüm durumlar' },
+  withNotes: { en: 'With notes', fa: 'دارای یادداشت', ar: 'مع ملاحظات', tr: 'Notlu' },
+  withoutNotes: { en: 'Without notes', fa: 'بدون یادداشت', ar: 'بدون ملاحظات', tr: 'Notsuz' },
+  financialOrders: { en: 'Orders approved by finance', fa: 'سفارشات تایید شده توسط واحد مالی', ar: 'الطلبات المعتمدة من المالية', tr: 'Finans tarafından onaylanan siparişler' },
+  readyForWarehouse: { en: 'Orders ready for warehouse processing and logistics', fa: 'سفارشات آماده برای پردازش انبار و ارسال به بخش لجستیک', ar: 'الطلبات الجاهزة لمعالجة المستودع والإرسال إلى الخدمات اللوجستية', tr: 'Depo işleme ve lojistiğe gönderim için hazır siparişler' },
+  orderCount: { en: 'orders', fa: 'سفارش', ar: 'طلب', tr: 'sipariş' },
+  strongRefresh: { en: 'Force refresh', fa: 'به‌روزرسانی قوی', ar: 'تحديث إجباري', tr: 'Zorla yenile' },
+  loadingOrders: { en: 'Loading orders...', fa: 'در حال بارگیری سفارشات...', ar: 'جارٍ تحميل الطلبات...', tr: 'Siparişler yükleniyor...' },
+  noOrders: { en: 'No orders found', fa: 'هیچ سفارشی یافت نشد', ar: 'لم يتم العثور على طلبات', tr: 'Sipariş bulunamadı' },
+  noOrdersDescription: { en: 'There are currently no approved orders awaiting warehouse processing', fa: 'در حال حاضر هیچ سفارش تایید شده‌ای در انتظار پردازش انبار نیست', ar: 'لا توجد حالياً طلبات معتمدة بانتظار معالجة المستودع', tr: 'Şu anda depo işlemi bekleyen onaylı sipariş yok' },
+  rowNumber: { en: '#', fa: 'ردیف', ar: 'الرقم', tr: 'Sıra' },
+  orderNumber: { en: 'Order number', fa: 'شماره سفارش', ar: 'رقم الطلب', tr: 'Sipariş numarası' },
+  contact: { en: 'Contact', fa: 'اطلاعات تماس', ar: 'جهة الاتصال', tr: 'İletişim' },
+  date: { en: 'Date', fa: 'تاریخ', ar: 'التاريخ', tr: 'Tarih' },
+  paymentMethod: { en: 'Payment method', fa: 'روش پرداخت', ar: 'طريقة الدفع', tr: 'Ödeme yöntemi' },
+  ordersTable: { en: 'Warehouse orders', fa: 'سفارش‌های انبار', ar: 'طلبات المستودع', tr: 'Depo siparişleri' },
+  customerInfo: { en: 'Customer information', fa: 'اطلاعات مشتری', ar: 'معلومات العميل', tr: 'Müşteri bilgileri' },
+  shipmentWeight: { en: 'Shipment weight', fa: 'وزن محموله', ar: 'وزن الشحنة', tr: 'Gönderi ağırlığı' },
+  kilogram: { en: 'kg', fa: 'کیلوگرم', ar: 'كغ', tr: 'kg' },
+  totalAmount: { en: 'Total amount', fa: 'مبلغ کل', ar: 'المبلغ الإجمالي', tr: 'Toplam tutar' },
+  status: { en: 'Status', fa: 'وضعیت', ar: 'الحالة', tr: 'Durum' },
+  notes: { en: 'Notes', fa: 'یادداشت', ar: 'ملاحظات', tr: 'Notlar' },
+  actions: { en: 'Actions', fa: 'عملیات', ar: 'الإجراءات', tr: 'İşlemler' },
+  sortBy: { en: 'Sort by', fa: 'مرتب‌سازی بر اساس', ar: 'ترتيب حسب', tr: 'Şuna göre sırala' },
+  currentLocation: { en: 'Current location', fa: 'بخش فعلی سفارش', ar: 'القسم الحالي للطلب', tr: 'Siparişin mevcut bölümü' },
+  currentStage: { en: 'Current stage', fa: 'مرحله فعلی', ar: 'المرحلة الحالية', tr: 'Mevcut aşama' },
+  financialDepartment: { en: 'Finance', fa: 'واحد مالی', ar: 'القسم المالي', tr: 'Finans' },
+  warehouseDepartment: { en: 'Warehouse', fa: 'انبار', ar: 'المستودع', tr: 'Depo' },
+  logisticsDepartment: { en: 'Logistics', fa: 'لجستیک', ar: 'الخدمات اللوجستية', tr: 'Lojistik' },
+  completedDepartment: { en: 'Completed', fa: 'تکمیل‌شده', ar: 'مكتمل', tr: 'Tamamlandı' },
+  cancelledDepartment: { en: 'Cancelled', fa: 'لغوشده', ar: 'ملغى', tr: 'İptal edildi' },
+  unknown: { en: 'Unknown', fa: 'نامشخص', ar: 'غير معروف', tr: 'Bilinmiyor' },
+  unknownPhone: { en: 'Unknown phone', fa: 'شماره نامشخص', ar: 'هاتف غير معروف', tr: 'Bilinmeyen telefon' },
+  unknownEmail: { en: 'Unknown email', fa: 'ایمیل نامشخص', ar: 'بريد إلكتروني غير معروف', tr: 'Bilinmeyen e-posta' },
+  calculating: { en: 'Calculating...', fa: 'محاسبه...', ar: 'جارٍ الحساب...', tr: 'Hesaplanıyor...' },
+  customerNote: { en: 'Customer note', fa: 'یادداشت مشتری', ar: 'ملاحظة العميل', tr: 'Müşteri notu' },
+  details: { en: 'Details', fa: 'جزئیات', ar: 'التفاصيل', tr: 'Ayrıntılar' },
+  processing: { en: 'Processing...', fa: 'در حال پردازش...', ar: 'جارٍ المعالجة...', tr: 'İşleniyor...' },
+  startProcessing: { en: 'Start processing', fa: 'شروع پردازش', ar: 'بدء المعالجة', tr: 'İşlemeyi başlat' },
+  verifying: { en: 'Verifying...', fa: 'در حال تایید...', ar: 'جارٍ التحقق...', tr: 'Doğrulanıyor...' },
+  firstApproval: { en: 'First-stage approval', fa: 'تایید مرحله اول', ar: 'اعتماد المرحلة الأولى', tr: 'İlk aşama onayı' },
+  finalApproval: { en: 'Final approval', fa: 'تایید نهایی', ar: 'الاعتماد النهائي', tr: 'Son onay' },
+  sending: { en: 'Sending...', fa: 'در حال ارسال...', ar: 'جارٍ الإرسال...', tr: 'Gönderiliyor...' },
+  sendToLogistics: { en: 'Send to logistics', fa: 'ارسال به لجستیک', ar: 'إرسال إلى الخدمات اللوجستية', tr: 'Lojistiğe gönder' },
+  products: { en: 'Warehouse products', fa: 'محصولات انبار', ar: 'منتجات المستودع', tr: 'Depo ürünleri' },
+  searchProduct: { en: 'Search product...', fa: 'جستجو محصول...', ar: 'بحث عن منتج...', tr: 'Ürün ara...' },
+  refresh: { en: 'Refresh', fa: 'بروزرسانی', ar: 'تحديث', tr: 'Yenile' },
+  loading: { en: 'Loading...', fa: 'در حال بارگذاری...', ar: 'جارٍ التحميل...', tr: 'Yükleniyor...' },
+  productName: { en: 'Product name', fa: 'نام محصول', ar: 'اسم المنتج', tr: 'Ürün adı' },
+  productImage: { en: 'Product image', fa: 'تصویر محصول', ar: 'صورة المنتج', tr: 'Ürün görseli' },
+  vendor: { en: 'Vendor', fa: 'فروشنده', ar: 'المورّد', tr: 'Tedarikçi' },
+  productCode: { en: 'Product code', fa: 'کد کالا', ar: 'رمز المنتج', tr: 'Ürün kodu' },
+  stock: { en: 'Stock', fa: 'موجودی', ar: 'المخزون', tr: 'Stok' },
+  batchNumber: { en: 'Batch number', fa: 'شماره بچ', ar: 'رقم الدفعة', tr: 'Parti numarası' },
+  remainingInBatch: { en: 'Remaining in batch', fa: 'باقی‌مانده بچ', ar: 'المتبقي في الدفعة', tr: 'Partide kalan' },
+  noBatchNumber: { en: 'No batch number', fa: 'بدون شماره بچ', ar: 'بدون رقم دفعة', tr: 'Parti numarası yok' },
+  minimum: { en: 'Minimum', fa: 'حداقل', ar: 'الحد الأدنى', tr: 'Minimum' },
+  alertThreshold: { en: 'Alert threshold', fa: 'آستانه هشدار', ar: 'حد التنبيه', tr: 'Uyarı eşiği' },
+  noProducts: { en: 'No products found', fa: 'محصولی یافت نشد', ar: 'لم يتم العثور على منتجات', tr: 'Ürün bulunamadı' },
+  defaultVendor: { en: 'Momtaz Chem', fa: 'ممتاز کم', ar: 'ممتاز كيم', tr: 'Momtaz Chem' },
+  outOfStock: { en: 'Out of stock', fa: 'ناموجود', ar: 'غير متوفر', tr: 'Stokta yok' },
+  critical: { en: 'Critical', fa: 'بحرانی', ar: 'حرج', tr: 'Kritik' },
+  low: { en: 'Low', fa: 'کم', ar: 'منخفض', tr: 'Düşük' },
+  available: { en: 'Available', fa: 'موجود', ar: 'متوفر', tr: 'Mevcut' },
+  lowStockSettings: { en: 'Low-stock notification settings', fa: 'تنظیمات اعلان کمبود موجودی', ar: 'إعدادات إشعارات انخفاض المخزون', tr: 'Düşük stok bildirim ayarları' },
+  settings: { en: 'Email & SMS settings', fa: 'تنظیمات ایمیل و پیامک', ar: 'إعدادات البريد والرسائل', tr: 'E-posta ve SMS ayarları' },
+  notificationInterval: { en: 'Notification interval (hours)', fa: 'فاصله زمانی ارسال اعلان (ساعت)', ar: 'الفاصل الزمني للإشعار (ساعات)', tr: 'Bildirim aralığı (saat)' },
+  notificationIntervalHelp: { en: 'Minimum interval between two notifications for a product (1 to 168 hours)', fa: 'حداقل فاصله بین دو اعلان برای یک محصول (1 تا 168 ساعت)', ar: 'الحد الأدنى للفاصل بين إشعارين لمنتج (من 1 إلى 168 ساعة)', tr: 'Bir ürün için iki bildirim arasındaki minimum süre (1-168 saat)' },
+  maxNotifications: { en: 'Maximum notifications', fa: 'حداکثر تعداد اعلان', ar: 'الحد الأقصى للإشعارات', tr: 'Maksimum bildirim' },
+  maxNotificationsHelp: { en: 'Maximum notifications for each product (until stock is corrected)', fa: 'حداکثر تعداد اعلان برای هر محصول (تا زمان اصلاح موجودی)', ar: 'الحد الأقصى للإشعارات لكل منتج (حتى تصحيح المخزون)', tr: 'Her ürün için maksimum bildirim (stok düzeltilene kadar)' },
+  recipients: { en: 'Notification recipients', fa: 'گیرندگان اعلان', ar: 'مستلمو الإشعارات', tr: 'Bildirim alıcıları' },
+  searchAdmins: { en: 'Search and select from admin users (at least 2 characters)', fa: 'جستجو و انتخاب از کاربران مدیریتی (حداقل 2 حرف)', ar: 'البحث والاختيار من مستخدمي الإدارة (حرفان على الأقل)', tr: 'Yönetici kullanıcıları arasında arayın ve seçin (en az 2 karakter)' },
+  usernameEmail: { en: 'Username or email...', fa: 'نام کاربری یا ایمیل...', ar: 'اسم المستخدم أو البريد الإلكتروني...', tr: 'Kullanıcı adı veya e-posta...' },
+  noUser: { en: 'No user found', fa: 'کاربری یافت نشد', ar: 'لم يتم العثور على مستخدم', tr: 'Kullanıcı bulunamadı' },
+  noRecipients: { en: 'No recipients defined', fa: 'هیچ گیرنده‌ای تعریف نشده است', ar: 'لم يتم تحديد مستلمين', tr: 'Tanımlı alıcı yok' },
+  selectRecipients: { en: 'Select recipients from the search above', fa: 'از بخش جستجوی بالا، گیرندگان را انتخاب کنید', ar: 'اختر المستلمين من البحث أعلاه', tr: 'Yukarıdaki aramadan alıcıları seçin' },
+  name: { en: 'Name', fa: 'نام', ar: 'الاسم', tr: 'Ad' },
+  email: { en: 'Email', fa: 'ایمیل', ar: 'البريد الإلكتروني', tr: 'E-posta' },
+  phone: { en: 'Phone', fa: 'تلفن', ar: 'الهاتف', tr: 'Telefon' },
+  sms: { en: 'SMS', fa: 'پیامک', ar: 'رسالة نصية', tr: 'SMS' },
+  whatsapp: { en: 'WhatsApp', fa: 'واتساپ', ar: 'واتساب', tr: 'WhatsApp' },
+  active: { en: 'Active', fa: 'فعال', ar: 'نشط', tr: 'Aktif' },
+  delete: { en: 'Delete', fa: 'حذف', ar: 'حذف', tr: 'Sil' },
+  saving: { en: 'Saving...', fa: 'در حال ذخیره...', ar: 'جارٍ الحفظ...', tr: 'Kaydediliyor...' },
+  saveSettings: { en: 'Save settings', fa: 'ذخیره تنظیمات', ar: 'حفظ الإعدادات', tr: 'Ayarları kaydet' },
+  orderDetails: { en: 'Order details', fa: 'جزئیات سفارش', ar: 'تفاصيل الطلب', tr: 'Sipariş ayrıntıları' },
+  mobile: { en: 'Mobile number', fa: 'شماره موبایل', ar: 'رقم الهاتف المحمول', tr: 'Cep telefonu' },
+  orderSummary: { en: 'Order summary', fa: 'خلاصه سفارش', ar: 'ملخص الطلب', tr: 'Sipariş özeti' },
+  itemCount: { en: 'Items', fa: 'تعداد آیتم‌ها', ar: 'العناصر', tr: 'Ürün sayısı' },
+  grossWeight: { en: 'Gross weight', fa: 'مجموع وزن ناخالص', ar: 'الوزن الإجمالي', tr: 'Brüt ağırlık' },
+  notCalculated: { en: 'Not calculated', fa: 'محاسبه نشده', ar: 'لم يُحسب', tr: 'Hesaplanmadı' },
+  orderDate: { en: 'Order date', fa: 'تاریخ سفارش', ar: 'تاريخ الطلب', tr: 'Sipariş tarihi' },
+  orderItems: { en: 'Order items', fa: 'آیتم‌های سفارش', ar: 'عناصر الطلب', tr: 'Sipariş ürünleri' },
+  quantity: { en: 'Quantity', fa: 'تعداد', ar: 'الكمية', tr: 'Miktar' },
+  unitPrice: { en: 'Unit price', fa: 'قیمت واحد', ar: 'سعر الوحدة', tr: 'Birim fiyat' },
+  totalPrice: { en: 'Total price', fa: 'قیمت کل', ar: 'السعر الإجمالي', tr: 'Toplam fiyat' },
+  orderStatus: { en: 'Order status', fa: 'وضعیت سفارش', ar: 'حالة الطلب', tr: 'Sipariş durumu' },
+  financialApproval: { en: 'Financial approval', fa: 'تایید مالی', ar: 'الاعتماد المالي', tr: 'Mali onay' },
+  warehouseProcessing: { en: 'Warehouse processing', fa: 'پردازش انبار', ar: 'معالجة المستودع', tr: 'Depo işleme' },
+  logisticsProcessing: { en: 'Logistics processing', fa: 'پردازش لجستیک', ar: 'معالجة الخدمات اللوجستية', tr: 'Lojistik işleme' },
+  approved: { en: 'Approved', fa: 'تایید شده', ar: 'تم الاعتماد', tr: 'Onaylandı' },
+  pending: { en: 'Pending', fa: 'در انتظار', ar: 'قيد الانتظار', tr: 'Beklemede' },
+  notesTitle: { en: 'Notes', fa: 'یادداشت‌ها', ar: 'الملاحظات', tr: 'Notlar' },
+  customer: { en: 'Customer', fa: 'مشتری', ar: 'العميل', tr: 'Müşteri' },
+  checkoutNote: { en: 'Checkout note', fa: 'یادداشت چک‌اوت', ar: 'ملاحظة الدفع', tr: 'Ödeme notu' },
+  finance: { en: 'Finance', fa: 'بخش مالی', ar: 'المالية', tr: 'Finans' },
+  paymentNote: { en: 'Payment approval note', fa: 'یادداشت تایید پرداخت', ar: 'ملاحظة اعتماد الدفع', tr: 'Ödeme onay notu' },
+  warehouseNotes: { en: 'Warehouse notes', fa: 'یادداشت انبار', ar: 'ملاحظات المستودع', tr: 'Depo notları' },
+  addWarehouseNote: { en: 'Add warehouse note', fa: 'ثبت یادداشت انبار', ar: 'إضافة ملاحظة المستودع', tr: 'Depo notu ekle' },
+  editWarehouseNote: { en: 'Edit warehouse note', fa: 'ویرایش یادداشت انبار', ar: 'تعديل ملاحظة المستودع', tr: 'Depo notunu düzenle' },
+  notePlaceholder: { en: 'Note for this order...', fa: 'یادداشت برای این سفارش...', ar: 'ملاحظة لهذا الطلب...', tr: 'Bu sipariş için not...' },
+  saveNote: { en: 'Save note', fa: 'ذخیره یادداشت', ar: 'حفظ الملاحظة', tr: 'Notu kaydet' },
+  cancel: { en: 'Cancel', fa: 'انصراف', ar: 'إلغاء', tr: 'İptal' },
+  printDetails: { en: 'Print details', fa: 'پرینت جزئیات', ar: 'طباعة التفاصيل', tr: 'Ayrıntıları yazdır' },
+  loadOrderDetails: { en: 'Loading order details...', fa: 'در حال بارگیری جزئیات سفارش...', ar: 'جارٍ تحميل تفاصيل الطلب...', tr: 'Sipariş ayrıntıları yükleniyor...' },
+  loadOrderError: { en: 'Error loading order details', fa: 'خطا در بارگیری جزئیات سفارش', ar: 'خطأ في تحميل تفاصيل الطلب', tr: 'Sipariş ayrıntıları yüklenirken hata oluştu' },
+  printDate: { en: 'Print date', fa: 'تاریخ چاپ', ar: 'تاريخ الطباعة', tr: 'Yazdırma tarihi' },
+  printDateTime: { en: 'Print date and time', fa: 'تاریخ و زمان چاپ', ar: 'تاريخ ووقت الطباعة', tr: 'Yazdırma tarihi ve saati' },
+  printFooter: { en: 'This document was generated by the Momtaz Chemi warehouse management system', fa: 'این سند توسط سیستم مدیریت انبار ممتاز شیمی تولید شده است', ar: 'تم إنشاء هذا المستند بواسطة نظام إدارة مستودع ممتاز كيمي', tr: 'Bu belge Momtaz Chemi depo yönetim sistemi tarafından oluşturulmuştur' },
+  companyName: { en: 'Momtaz Chemi Company', fa: 'شرکت ممتاز شیمی', ar: 'شركة ممتاز شيمي', tr: 'Momtaz Chemi Şirketi' },
+  error: { en: 'Error', fa: 'خطا', ar: 'خطأ', tr: 'Hata' },
+  recipientExists: { en: 'This user has already been added to the recipient list', fa: 'این کاربر قبلاً به لیست گیرندگان اضافه شده است', ar: 'تمت إضافة هذا المستخدم إلى قائمة المستلمين مسبقاً', tr: 'Bu kullanıcı zaten alıcı listesine eklendi' },
+  recipientAdded: { en: 'Recipient added', fa: 'گیرنده اضافه شد', ar: 'تمت إضافة المستلم', tr: 'Alıcı eklendi' },
+  recipientAddedDescription: { en: 'was added to the recipient list', fa: 'به لیست گیرندگان اضافه شد', ar: 'أُضيف إلى قائمة المستلمين', tr: 'alıcı listesine eklendi' },
+  settingsSaved: { en: 'Settings saved', fa: 'تنظیمات ذخیره شد', ar: 'تم حفظ الإعدادات', tr: 'Ayarlar kaydedildi' },
+  settingsSavedDescription: { en: 'Inventory notification settings saved successfully', fa: 'تنظیمات اعلان موجودی با موفقیت ذخیره شد', ar: 'تم حفظ إعدادات إشعارات المخزون بنجاح', tr: 'Stok bildirim ayarları başarıyla kaydedildi' },
+  saveError: { en: 'Save error', fa: 'خطا در ذخیره', ar: 'خطأ في الحفظ', tr: 'Kaydetme hatası' },
+  settingsSaveError: { en: 'An error occurred while saving settings', fa: 'خطایی در ذخیره تنظیمات رخ داد', ar: 'حدث خطأ أثناء حفظ الإعدادات', tr: 'Ayarlar kaydedilirken hata oluştu' },
+  warehousePending: { en: 'Warehouse pending', fa: 'در انتظار انبار', ar: 'بانتظار المستودع', tr: 'Depo bekliyor' },
+  warehouseNotified: { en: 'Warehouse notified', fa: 'اطلاع رسانی انبار', ar: 'تم إخطار المستودع', tr: 'Depo bilgilendirildi' },
+  rejected: { en: 'Rejected', fa: 'رد شده', ar: 'مرفوض', tr: 'Reddedildi' },
+  enterNote: { en: 'Please enter a note', fa: 'لطفاً یادداشت را وارد کنید', ar: 'يرجى إدخال ملاحظة', tr: 'Lütfen bir not girin' },
+  loadOrderErrorDescription: { en: 'An error occurred while loading order details.', fa: 'خطایی در بارگیری جزئیات سفارش رخ داد.', ar: 'حدث خطأ أثناء تحميل تفاصيل الطلب.', tr: 'Sipariş ayrıntıları yüklenirken bir hata oluştu.' },
+  refreshed: { en: 'Refreshed', fa: 'به‌روزرسانی شد', ar: 'تم التحديث', tr: 'Yenilendi' },
+  ordersRefreshed: { en: 'Orders were retrieved from the server', fa: 'لیست سفارشات از سرور بازیابی شد', ar: 'تم استرجاع قائمة الطلبات من الخادم', tr: 'Sipariş listesi sunucudan alındı' },
+  orderUpdated: { en: 'Order status updated', fa: 'وضعیت سفارش به‌روزرسانی شد', ar: 'تم تحديث حالة الطلب', tr: 'Sipariş durumu güncellendi' },
+  orderUpdatedDescription: { en: 'The order was successfully set to', fa: 'سفارش با موفقیت تنظیم شد:', ar: 'تم تعيين الطلب بنجاح إلى', tr: 'Sipariş başarıyla şu duruma getirildi:' },
+  updated: { en: 'updated', fa: 'به‌روزرسانی شده', ar: 'محدث', tr: 'güncellendi' },
+  updateError: { en: 'Update error', fa: 'خطا در به‌روزرسانی', ar: 'خطأ في التحديث', tr: 'Güncelleme hatası' },
+  updateErrorDescription: { en: 'An error occurred while updating order status.', fa: 'خطایی در به‌روزرسانی وضعیت سفارش رخ داد.', ar: 'حدث خطأ أثناء تحديث حالة الطلب.', tr: 'Sipariş durumu güncellenirken bir hata oluştu.' },
+  noteSaved: { en: 'Note saved', fa: 'یادداشت ذخیره شد', ar: 'تم حفظ الملاحظة', tr: 'Not kaydedildi' },
+  noteSavedDescription: { en: 'Warehouse note saved successfully', fa: 'یادداشت انبار با موفقیت ذخیره شد', ar: 'تم حفظ ملاحظة المستودع بنجاح', tr: 'Depo notu başarıyla kaydedildi' },
+  noteSaveError: { en: 'An error occurred while saving the note', fa: 'خطایی در ذخیره یادداشت رخ داد', ar: 'حدث خطأ أثناء حفظ الملاحظة', tr: 'Not kaydedilirken bir hata oluştu' },
+};
+
+const translatePage = (language: PageLanguage, key: string) => pageTranslations[key]?.[language] || pageTranslations[key]?.en || key;
 
 interface InventoryProduct {
   id: number;
   name: string;
   sku: string;
   barcode: string;
+  imageUrl?: string | null;
+  batchNumber?: string | null;
   stockQuantity: number;
+  stockUnit?: string | null;
   availableQuantity: number;
   reservedQuantity: number;
   minStockLevel: number;
@@ -99,6 +267,7 @@ interface Order {
   warehouseNotes?: string;
   financialReviewedAt?: string;
   financialNotes?: string;
+  customerNotes?: string;
   quantity: number;
   paymentDate: string;
   expectedDeliveryDate?: string;
@@ -107,15 +276,60 @@ interface Order {
   notes?: string;
 }
 
+type SortDirection = 'asc' | 'desc';
+type OrderSortKey = 'orderNumber' | 'customer' | 'contact' | 'date' | 'paymentMethod' | 'weight' | 'amount' | 'status' | 'notes';
+type InventorySortKey = 'product' | 'vendor' | 'sku' | 'batch' | 'stock' | 'minimum' | 'threshold' | 'status';
+
+const compareSortValues = (left: string | number, right: string | number) => {
+  if (typeof left === 'number' && typeof right === 'number') return left - right;
+  return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' });
+};
+
 const WarehouseManagementFixed: React.FC = () => {
+  const { language: contextLanguage, direction } = useLanguage();
+  const language = (['en', 'fa', 'ar', 'tr'].includes(contextLanguage) ? contextLanguage : 'en') as PageLanguage;
+  const t = (key: string) => translatePage(language, key);
+  const locale = language === 'fa' ? 'fa-IR-u-ca-persian' : language === 'ar' ? 'ar-IQ-u-ca-gregory' : language === 'tr' ? 'tr-TR-u-ca-gregory' : 'en-IQ-u-ca-gregory';
+  const formatNumber = (value: number, maximumFractionDigits = 0) => new Intl.NumberFormat(locale, { maximumFractionDigits }).format(value);
+  const formatDate = (value: string | Date, withTime = false) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return t('unknown');
+    return new Intl.DateTimeFormat(locale, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {})
+    }).format(date);
+  };
+  const formatCurrencyValue = (amount: number) => new Intl.NumberFormat(locale, {
+    style: 'currency', currency: 'IQD', minimumFractionDigits: 0, maximumFractionDigits: 0
+  }).format(amount);
+
   // All state declarations at the top
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
+  const detailRequestId = useRef(0);
   const [warehouseNotes, setWarehouseNotes] = useState('');
+  const [quickNoteOrder, setQuickNoteOrder] = useState<Order | null>(null);
+  const [quickNoteText, setQuickNoteText] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
-  const [activeTab, setActiveTab] = useState("orders");
+  const [expandedCustomerNoteOrderId, setExpandedCustomerNoteOrderId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState(() => window.location.hash === '#notifications' ? 'settings' : 'orders');
+  const changeTab = (tab: string) => {
+    setActiveTab(tab);
+    window.history.replaceState(null, '', tab === 'settings'
+      ? `${window.location.pathname}${window.location.search}#notifications`
+      : `${window.location.pathname}${window.location.search}`);
+  };
+  const [orderView, setOrderView] = useState<'current' | 'history'>('current');
+  const [orderSort, setOrderSort] = useState<{ key: OrderSortKey; direction: SortDirection }>({
+    key: 'orderNumber',
+    direction: 'asc',
+  });
+  const [inventorySort, setInventorySort] = useState<{ key: InventorySortKey; direction: SortDirection }>({
+    key: 'product',
+    direction: 'asc',
+  });
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
 
@@ -135,93 +349,89 @@ const WarehouseManagementFixed: React.FC = () => {
   const handlePrintOrder = () => {
     if (!orderDetails) return;
     
-    const formatCurrencyForPrint = (amount: number) => {
-      return new Intl.NumberFormat('fa-IR', {
-        style: 'currency',
-        currency: 'IQD',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount).replace('IQD', 'دینار عراقی');
-    };
+    const formatCurrencyForPrint = (amount: number) => formatCurrencyValue(amount);
 
     const printContent = `
       <!DOCTYPE html>
-      <html dir="rtl" lang="fa">
+      <html dir="${direction}" lang="${language}">
       <head>
         <meta charset="UTF-8">
-        <title>جزئیات سفارش ${orderDetails.orderNumber || `#${selectedOrder?.customerOrderId}`}</title>
+        <title>${t('orderDetails')} ${orderDetails.orderNumber || `#${selectedOrder?.customerOrderId}`}</title>
         <style>
-          body { font-family: 'Tahoma', sans-serif; margin: 20px; direction: rtl; }
-          .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
-          .company-logo { max-width: 150px; height: auto; margin-bottom: 10px; }
-          .company-name { font-size: 24px; font-weight: bold; color: #1a365d; }
-          .order-title { font-size: 18px; margin-top: 10px; }
-          .section { margin-bottom: 20px; }
-          .section-title { font-size: 16px; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; }
-          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-          .info-item { border: 1px solid #ddd; padding: 10px; border-radius: 4px; }
-          .info-label { font-weight: bold; color: #666; font-size: 12px; }
-          .info-value { margin-top: 5px; font-size: 14px; }
-          .items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+           body { font-family: 'Tahoma', sans-serif; margin: 12px; direction: ${direction}; line-height: 1.25; }
+           .header { display: flex; direction: ltr; align-items: flex-start; gap: 10px; text-align: start; border-bottom: 1px solid #333; padding-bottom: 6px; margin-bottom: 8px; }
+           .company-logo { width: 58px; height: 58px; object-fit: contain; flex: none; }
+           .header-text { flex: 1; min-width: 0; direction: ${direction}; text-align: start; }
+           .company-name { font-size: 17px; font-weight: bold; color: #1a365d; }
+           .order-title { font-size: 14px; margin-top: 2px; }
+           .print-date { font-size: 11px; margin-top: 2px; }
+           .section { margin-bottom: 9px; }
+           .section-title { font-size: 14px; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 4px; }
+           .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 4px; }
+           .info-item { border: 1px solid #ddd; padding: 5px; border-radius: 3px; break-inside: avoid; }
+           .info-label { font-weight: bold; color: #666; font-size: 11px; }
+           .info-value { margin-top: 2px; font-size: 12px; }
+           .items-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+           .items-table th, .items-table td { border: 1px solid #ddd; padding: 4px; text-align: start; }
           .items-table th { background-color: #f5f5f5; font-weight: bold; }
-          .summary-box { background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px; }
-          .status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
-          .status-item { padding: 10px; border-radius: 4px; text-align: center; border: 1px solid #ddd; }
+           .summary-box { background-color: #f8f9fa; padding: 7px; border-radius: 4px; margin-top: 4px; break-inside: avoid; }
+           .status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 4px; }
+           .status-item { padding: 5px; border-radius: 3px; text-align: center; border: 1px solid #ddd; break-inside: avoid; }
           .status-approved { background-color: #d4edda; border-color: #c3e6cb; }
           .status-pending { background-color: #f8f9fa; border-color: #dee2e6; }
-          .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+           .warehouse-notes { background-color: #f8f9fa; padding: 7px; border-radius: 4px; border: 1px solid #dee2e6; }
+           .footer { margin-top: 10px; text-align: center; font-size: 11px; color: #666; }
+           .footer p { margin: 2px 0; }
           @media print { 
             body { 
               margin: 0; 
-              padding: 15mm 10mm 15mm 10mm; 
+               padding: 0;
               box-sizing: border-box;
-              font-size: 12pt;
-              line-height: 1.4;
+               font-size: 10pt;
+               line-height: 1.25;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
             .header { 
-              margin-bottom: 15mm; 
-              page-break-after: avoid;
+               margin-bottom: 3mm;
+               break-after: avoid;
             }
             .section { 
-              margin-bottom: 8mm; 
-              page-break-inside: avoid;
+               margin-bottom: 3mm;
             }
             .info-grid { 
               grid-template-columns: 1fr 1fr; 
-              gap: 5mm;
+               gap: 2mm;
             }
             .info-item { 
-              padding: 3mm; 
-              margin-bottom: 2mm;
+               padding: 2mm;
             }
             .items-table { 
-              page-break-inside: avoid;
-              margin-top: 5mm;
+               margin-top: 2mm;
             }
+             .items-table thead { display: table-header-group; }
+             .items-table tr { break-inside: avoid; }
             .items-table th, .items-table td { 
-              padding: 2mm; 
-              font-size: 10pt;
+               padding: 1.5mm;
+               font-size: 9pt;
             }
             .summary-box { 
-              padding: 5mm; 
-              margin-top: 5mm;
+               padding: 2mm;
+               margin-top: 2mm;
             }
             .status-grid { 
               grid-template-columns: 1fr 1fr 1fr; 
-              gap: 3mm;
+               gap: 2mm;
             }
             .status-item { 
-              padding: 3mm;
+               padding: 2mm;
             }
             .footer { 
-              margin-top: 10mm; 
-              page-break-inside: avoid;
+               margin-top: 3mm;
+               break-inside: avoid;
             }
             @page {
-              margin: 15mm 10mm 15mm 10mm;
+               margin: 8mm 10mm 9mm;
               size: A4;
             }
           }
@@ -229,64 +439,66 @@ const WarehouseManagementFixed: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <img src="/uploads/Logo_1753245273579.jpeg" alt="لوگوی شرکت" class="company-logo" />
-          <div class="company-name">شرکت ممتاز شیمی</div>
-          <div class="order-title">جزئیات سفارش ${orderDetails.orderNumber || `#${selectedOrder?.customerOrderId}`}</div>
-          <div style="font-size: 12px; margin-top: 10px;">تاریخ چاپ: ${new Date().toLocaleDateString('en-GB')}</div>
+          <img src="/attached_assets/company-logo.png" alt="${t('warehouseManagement')}" class="company-logo" />
+           <div class="header-text">
+             <div class="company-name">${t('companyName')}</div>
+             <div class="order-title">${t('orderDetails')} ${orderDetails.orderNumber || `#${selectedOrder?.customerOrderId}`}</div>
+             <div class="print-date">${t('printDate') || 'Print date'}: ${formatDate(new Date())}</div>
+           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">اطلاعات مشتری</div>
+          <div class="section-title">${t('customerInfo')}</div>
           <div class="info-grid">
             <div class="info-item">
-              <div class="info-label">نام مشتری</div>
+              <div class="info-label">${t('name')}</div>
               <div class="info-value">${orderDetails.customer?.firstName || ''} ${orderDetails.customer?.lastName || ''}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">شماره تماس</div>
-              <div class="info-value">${orderDetails.customer?.phone || 'نامشخص'}</div>
+              <div class="info-label">${t('phone')}</div>
+              <div class="info-value">${orderDetails.customer?.phone || t('unknown')}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">ایمیل</div>
-              <div class="info-value">${orderDetails.customer?.email || 'نامشخص'}</div>
+              <div class="info-label">${t('email')}</div>
+              <div class="info-value">${orderDetails.customer?.email || t('unknown')}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">مبلغ کل</div>
+              <div class="info-label">${t('totalAmount')}</div>
               <div class="info-value" style="color: #059669; font-weight: bold;">${formatCurrencyForPrint(parseFloat(orderDetails.totalAmount) || 0)}</div>
             </div>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">خلاصه سفارش</div>
+          <div class="section-title">${t('orderSummary')}</div>
           <div class="summary-box">
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
+             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; text-align: center;">
               <div>
-                <div class="info-label">تعداد آیتم‌ها</div>
-                <div style="font-size: 18px; font-weight: bold; color: #1d4ed8;">${orderDetails.totalItems}</div>
+                <div class="info-label">${t('itemCount')}</div>
+                 <div style="font-size: 14px; font-weight: bold; color: #1d4ed8;">${formatNumber(orderDetails.totalItems || 0)}</div>
               </div>
               <div>
-                <div class="info-label">مجموع وزن ناخالص</div>
-                <div style="font-size: 18px; font-weight: bold; color: #1d4ed8;">${orderDetails.totalWeight ? `${parseFloat(orderDetails.totalWeight).toFixed(1)} kg` : 'محاسبه نشده'}</div>
+                <div class="info-label">${t('grossWeight')}</div>
+                 <div style="font-size: 14px; font-weight: bold; color: #1d4ed8;">${orderDetails.totalWeight ? `${formatNumber(parseFloat(orderDetails.totalWeight), 1)} ${t('kilogram')}` : t('notCalculated')}</div>
               </div>
               <div>
-                <div class="info-label">تاریخ سفارش</div>
-                <div style="font-size: 14px; font-weight: bold;">${new Date(orderDetails.orderDate).toLocaleDateString('en-GB')}</div>
+                <div class="info-label">${t('orderDate')}</div>
+                 <div style="font-size: 12px; font-weight: bold;">${formatDate(orderDetails.orderDate)}</div>
               </div>
             </div>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">آیتم‌های سفارش</div>
+          <div class="section-title">${t('orderItems')}</div>
           <table class="items-table">
             <thead>
               <tr>
-                <th style="width: 35%">نام محصول</th>
-                <th style="width: 20%">کد محصول</th>
-                <th style="width: 15%">تعداد</th>
-                <th style="width: 15%">قیمت واحد</th>
-                <th style="width: 15%">قیمت کل</th>
+                <th style="width: 35%">${t('productName')}</th>
+                <th style="width: 20%">${t('productCode')}</th>
+                <th style="width: 15%">${t('quantity')}</th>
+                <th style="width: 15%">${t('unitPrice')}</th>
+                <th style="width: 15%">${t('totalPrice')}</th>
               </tr>
             </thead>
             <tbody>
@@ -304,41 +516,35 @@ const WarehouseManagementFixed: React.FC = () => {
         </div>
 
         <div class="section">
-          <div class="section-title">وضعیت سفارش</div>
+          <div class="section-title">${t('orderStatus')}</div>
           <div class="status-grid">
             <div class="status-item ${orderDetails.financialApproved ? 'status-approved' : 'status-pending'}">
-              <div style="font-weight: bold;">تایید مالی</div>
-              <div>${orderDetails.financialApproved ? '✅ تایید شده' : '⏳ در انتظار'}</div>
+              <div style="font-weight: bold;">${t('financialApproval')}</div>
+              <div>${orderDetails.financialApproved ? `✅ ${t('approved')}` : `⏳ ${t('pending')}`}</div>
             </div>
             <div class="status-item ${orderDetails.warehouseProcessed ? 'status-approved' : 'status-pending'}">
-              <div style="font-weight: bold;">پردازش انبار</div>
-              <div>${orderDetails.warehouseProcessed ? '✅ تایید شده' : '⏳ در انتظار'}</div>
+              <div style="font-weight: bold;">${t('warehouseProcessing')}</div>
+              <div>${orderDetails.warehouseProcessed ? `✅ ${t('approved')}` : `⏳ ${t('pending')}`}</div>
             </div>
             <div class="status-item ${orderDetails.logisticsProcessed ? 'status-approved' : 'status-pending'}">
-              <div style="font-weight: bold;">پردازش لجستیک</div>
-              <div>${orderDetails.logisticsProcessed ? '✅ تایید شده' : '⏳ در انتظار'}</div>
+              <div style="font-weight: bold;">${t('logisticsProcessing')}</div>
+              <div>${orderDetails.logisticsProcessed ? `✅ ${t('approved')}` : `⏳ ${t('pending')}`}</div>
             </div>
           </div>
         </div>
 
         ${orderDetails.warehouseNotes ? `
           <div class="section">
-            <div class="section-title">یادداشت انبار</div>
-            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+            <div class="section-title">${t('warehouseNotes')}</div>
+             <div class="warehouse-notes">
               ${orderDetails.warehouseNotes}
             </div>
           </div>
         ` : ''}
 
         <div class="footer">
-          <p>این سند توسط سیستم مدیریت انبار ممتاز شیمی تولید شده است</p>
-          <p>تاریخ و زمان چاپ: ${new Date().toLocaleString('en-GB', { 
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}</p>
+          <p>${t('printFooter')}</p>
+          <p>${t('printDateTime')}: ${formatDate(new Date(), true)}</p>
         </div>
       </body>
       </html>
@@ -400,28 +606,90 @@ const WarehouseManagementFixed: React.FC = () => {
   const { user } = useAuth();
 
   // Queries
-  const { data: ordersResponse, isLoading: ordersLoading, refetch: refetchOrders } = useQuery({
-    queryKey: ['/api/order-management/warehouse'],
-    staleTime: 0, // Always consider data stale
-    gcTime: 0, // Don't cache at all - always fresh (v5 syntax)
-    refetchOnWindowFocus: true, // Refetch when user comes back
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+  const { data: ordersResponse, isLoading: ordersLoading, refetch: refetchOrders, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ['/api/order-management/warehouse', orderView, orderView === 'history' ? 50 : 100],
+    queryFn: async ({ pageParam = 0 }) => {
+      const view = orderView === 'history' ? 'history' : 'current';
+      const response = await fetch(`/api/order-management/warehouse?view=${view}&limit=${view === 'history' ? 50 : 100}&offset=${pageParam}`, {
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to load warehouse orders (${response.status})`);
+      }
+      return response.json();
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.offset + lastPage.limit : undefined,
+    staleTime: orderView === 'history' ? 60_000 : 0,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: orderView === 'current',
+    refetchInterval: orderView === 'current' ? 30000 : false,
   });
 
-  // Force refresh function that completely clears cache
+  // Refresh the visible view from its first page, without refetching every loaded history page twice.
   const forceRefreshOrders = async () => {
-    // Clear all cache first
-    await queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'] });
-    await queryClient.removeQueries({ queryKey: ['/api/order-management/warehouse'] });
-    // Then refetch
-    await refetchOrders();
+    await queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'], refetchType: 'none' });
+    await queryClient.resetQueries({ queryKey: ['/api/order-management/warehouse', orderView] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse', 'counts'] });
     console.log({
-      title: "🔄 به‌روزرسانی شد",
-      description: "لیست سفارشات از سرور بازیابی شد",
+      title: `🔄 ${t('refreshed')}`,
+      description: t('ordersRefreshed'),
     });
   };
 
-  const orders = (ordersResponse as any)?.orders || [];
+  const { data: warehouseCounts, isError: warehouseCountsError } = useQuery<{ success: boolean; current: number; history: number }>({
+    queryKey: ['/api/order-management/warehouse', 'counts'],
+    queryFn: async () => {
+      const response = await fetch('/api/order-management/warehouse/counts', { credentials: 'include', cache: 'no-store' });
+      if (!response.ok) throw new Error(`Failed to load warehouse counts (${response.status})`);
+      return response.json();
+    },
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
+  const orders = ordersResponse?.pages.flatMap((page: any) => orderView === 'history' ? (page.historyOrders || []) : (page.orders || [])) || [];
+  const currentOrderCount = orderView === 'current' ? (ordersResponse?.pages[0]?.total ?? warehouseCounts?.current) : warehouseCounts?.current;
+  const historyOrderCount = orderView === 'history' ? (ordersResponse?.pages[0]?.total ?? warehouseCounts?.history) : warehouseCounts?.history;
+  const countPlaceholder = warehouseCountsError ? '—' : '…';
+  const visibleOrdersLoading = ordersLoading;
+  const orderListEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = orderListEndRef.current;
+    if (!element || !hasNextPage) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0]?.isIntersecting && !isFetchingNextPage) fetchNextPage();
+    }, { rootMargin: '300px' });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  const statusCounts = new Map<string, number>();
+  orders.forEach((order: Order) => {
+    const status = String(order.currentStatus || order.status || '').trim().toLowerCase();
+    if (status) {
+      statusCounts.set(status, (statusCounts.get(status) || 0) + 1);
+    }
+  });
+  const statusOptions = Array.from(statusCounts.entries())
+    .map(([value, count]) => ({
+      value,
+      count,
+      label: getOrderStatusLabel(resolveOrderStatus({ workflowStatus: value }), language),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, language));
+
+  const changeOrderView = (value: 'current' | 'history') => {
+    setOrderView(value);
+    setSearchTerm('');
+    setSelectedStatus('all');
+    setOrderIdFilter('');
+    setCustomerNameFilter('');
+    setPhoneFilter('');
+    setEmailFilter('');
+    setStatusFilter('');
+    setAmountFilter('');
+  };
 
   // Inventory Products Query
   const { data: inventoryProductsData, isLoading: inventoryProductsLoading, refetch: refetchInventoryProducts } = useQuery<{ products: InventoryProduct[] }>({
@@ -474,23 +742,40 @@ const WarehouseManagementFixed: React.FC = () => {
     p.sku?.toLowerCase().includes(inventorySearchTerm.toLowerCase()) ||
     p.barcode?.toLowerCase().includes(inventorySearchTerm.toLowerCase())
   );
-
   // Get stock status
   const getStockStatus = (product: InventoryProduct) => {
     const { stockQuantity, lowStockThreshold, minStockLevel } = product;
-    if (stockQuantity <= 0) return { label: "ناموجود", color: "bg-red-500 text-white" };
-    if (stockQuantity <= (lowStockThreshold || 5)) return { label: "بحرانی", color: "bg-red-400 text-white" };
-    if (stockQuantity <= (minStockLevel || 10)) return { label: "کم", color: "bg-yellow-500 text-white" };
-    return { label: "موجود", color: "bg-green-500 text-white" };
+    if (stockQuantity <= 0) return { label: t('outOfStock'), color: "bg-red-500 text-white" };
+    if (stockQuantity <= (lowStockThreshold || 5)) return { label: t('critical'), color: "bg-red-400 text-white" };
+    if (stockQuantity <= (minStockLevel || 10)) return { label: t('low'), color: "bg-yellow-500 text-white" };
+    return { label: t('available'), color: "bg-green-500 text-white" };
   };
+  const sortedInventoryProducts = useMemo(() => {
+    const getValue = (product: InventoryProduct): string | number => {
+      switch (inventorySort.key) {
+        case 'product': return product.name || '';
+        case 'vendor': return product.vendorName || '';
+        case 'sku': return product.sku || '';
+        case 'batch': return product.batchNumber || '';
+        case 'stock': return Number(product.stockQuantity || 0);
+        case 'minimum': return Number(product.minStockLevel || 0);
+        case 'threshold': return Number(product.lowStockThreshold || 0);
+        case 'status': return getStockStatus(product).label;
+      }
+    };
+    const multiplier = inventorySort.direction === 'asc' ? 1 : -1;
+    return [...filteredInventoryProducts].sort(
+      (a, b) => compareSortValues(getValue(a), getValue(b)) * multiplier || a.id - b.id,
+    );
+  }, [filteredInventoryProducts, inventorySort, language]);
 
   // Add recipient from Admin Users
   const addRecipientFromAdmin = (user: AdminUser) => {
     // Check if user already exists in recipients
     if (inventorySettings.recipients.some(r => r.email === user.email)) {
       toast({
-        title: "خطا",
-        description: "این کاربر قبلاً به لیست گیرندگان اضافه شده است",
+        title: t('error'),
+        description: t('recipientExists'),
         variant: "destructive"
       });
       return;
@@ -513,8 +798,8 @@ const WarehouseManagementFixed: React.FC = () => {
     }));
     setAdminSearchTerm("");
     toast({
-      title: "گیرنده اضافه شد",
-      description: `${user.fullName} به لیست گیرندگان اضافه شد`,
+      title: t('recipientAdded'),
+      description: `${user.fullName} ${t('recipientAddedDescription')}`,
     });
   };
 
@@ -538,25 +823,35 @@ const WarehouseManagementFixed: React.FC = () => {
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status, notes }: { orderId: number; status: string; notes?: string }) => {
       setLoadingOrderId(orderId); // Set loading state for specific order
+      if (status === 'warehouse_approved') {
+        return await apiRequest(`/api/warehouse/orders/${orderId}/approve`, {
+          method: 'POST',
+          body: { notes }
+        });
+      }
       return await apiRequest(`/api/order-management/warehouse/${orderId}/process`, {
         method: 'PATCH',
         body: { status, notes }
       });
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'] });
       refetchOrders();
-      console.log({
-        title: "وضعیت سفارش به‌روزرسانی شد",
-        description: `سفارش با موفقیت ${data.data?.status === 'warehouse_processing' ? 'در حال پردازش' : data.data?.status === 'warehouse_approved' ? 'تایید شده - ارسال به لجستیک' : 'به‌روزرسانی شده'} تنظیم شد.`,
+      const failedChannels = data.readyNotifications?.filter((result: { success: boolean }) => !result.success) ?? [];
+      toast({
+        title: failedChannels.length ? t('updateError') : t('orderUpdated'),
+        description: failedChannels.length
+          ? `${t('sendToLogistics')} — ${failedChannels.map((result: { channel: string }) => result.channel).join(', ')}: ${t('updateErrorDescription')}`
+          : `${t('orderUpdatedDescription')} ${variables.status === 'warehouse_processing' ? t('processing') : variables.status === 'warehouse_approved' ? t('sendToLogistics') : t('updated')}.`,
+        variant: failedChannels.length ? 'destructive' : 'default',
       });
       setShowOrderDetails(false);
       setLoadingOrderId(null); // Clear loading state
     },
     onError: (error: any) => {
-      console.log({
-        title: "خطا در به‌روزرسانی",
-        description: error.message || "خطایی در به‌روزرسانی وضعیت سفارش رخ داد.",
+      toast({
+        title: t('updateError'),
+        description: error.message || t('updateErrorDescription'),
         variant: "destructive",
       });
       setLoadingOrderId(null); // Clear loading state on error
@@ -573,15 +868,15 @@ const WarehouseManagementFixed: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'] });
-      console.log({
-        title: "✅ یادداشت ذخیره شد",
-        description: "یادداشت انبار با موفقیت ذخیره شد",
+      toast({
+        title: `✅ ${t('noteSaved')}`,
+        description: t('noteSavedDescription'),
       });
     },
     onError: (error: any) => {
-      console.log({
-        title: "خطا در ذخیره",
-        description: error.message || "خطایی در ذخیره یادداشت رخ داد",
+      toast({
+        title: t('saveError'),
+        description: error.message || t('noteSaveError'),
         variant: "destructive",
       });
     },
@@ -598,14 +893,14 @@ const WarehouseManagementFixed: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/warehouse/inventory-notification-settings'] });
       toast({
-        title: "تنظیمات ذخیره شد",
-        description: "تنظیمات اعلان موجودی با موفقیت ذخیره شد",
+        title: t('settingsSaved'),
+        description: t('settingsSavedDescription'),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "خطا در ذخیره",
-        description: error.message || "خطایی در ذخیره تنظیمات رخ داد",
+        title: t('saveError'),
+        description: error.message || t('settingsSaveError'),
         variant: "destructive",
       });
     },
@@ -616,7 +911,7 @@ const WarehouseManagementFixed: React.FC = () => {
     // Build customer name from API response structure
     const customerName = order.customer?.firstName && order.customer?.lastName 
       ? `${order.customer.firstName} ${order.customer.lastName}` 
-      : order.customerFirstName && order.customerLastName 
+                                     : order.customerFirstName && order.customerLastName
         ? `${order.customerFirstName} ${order.customerLastName}`
         : order.customerName || '';
     
@@ -642,26 +937,11 @@ const WarehouseManagementFixed: React.FC = () => {
     if (selectedStatus === 'all') {
       matchesStatus = true;
     } else if (selectedStatus === 'with_notes') {
-      matchesStatus = !!(order.notes && order.notes.trim().length > 0);
+      matchesStatus = !!order.warehouseNotes?.trim();
     } else if (selectedStatus === 'without_notes') {
-      matchesStatus = !(order.notes && order.notes.trim().length > 0);
-    } else if (selectedStatus === 'warehouse_approved') {
-      // "ارسال شده به لجستیک" should include all statuses that have been sent to logistics
-      const logisticsStatuses = [
-        'warehouse_approved',
-        'logistics_assigned',
-        'logistics_processing', 
-        'logistics_dispatched',
-        'logistics_delivered',
-        'shipped',
-        'in_transit',
-        'delivered',
-        'completed',
-        'confirmed'
-      ];
-      matchesStatus = logisticsStatuses.includes(orderStatus);
+      matchesStatus = !order.warehouseNotes?.trim();
     } else {
-      matchesStatus = orderStatus === selectedStatus;
+      matchesStatus = orderStatus.trim().toLowerCase() === selectedStatus;
     }
     
     // Header filters
@@ -673,75 +953,96 @@ const WarehouseManagementFixed: React.FC = () => {
     const matchesAmount = amountFilter === '' || parseFloat(order.totalAmount || '0').toString().includes(amountFilter);
     
     return matchesSearch && matchesStatus && matchesOrderId && matchesCustomerName && matchesPhone && matchesEmail && matchesStatusFilter && matchesAmount;
-  })?.sort((a: any, b: any) => {
-    // Sort by order number - older orders (lower order numbers) first
-    // Extract numeric part from order numbers like M2511401, M2511501
-    const orderNumberA = a.orderNumber || '';
-    const orderNumberB = b.orderNumber || '';
-    
-    // Extract the numeric part after 'M'
-    const numericA = parseInt(orderNumberA.replace(/[^0-9]/g, '')) || 0;
-    const numericB = parseInt(orderNumberB.replace(/[^0-9]/g, '')) || 0;
-    
-    console.log('🔄 [SORTING DEBUG] Order A:', orderNumberA, '(', numericA, ') Order B:', orderNumberB, '(', numericB, ')');
-    
-    if (numericA !== numericB) {
-      const result = numericA - numericB;
-      console.log('🔄 [SORTING DEBUG] Sort result:', result, '- older order first');
-      return result;
-    }
-    
-    // If order numbers are the same, sort by creation date
-    const dateA = new Date(a.createdAt || a.orderDate || '').getTime();
-    const dateB = new Date(b.createdAt || b.orderDate || '').getTime();
-    return dateA - dateB;
   }) || [];
 
-  // Debug log the final sorted order
-  console.log('🔄 [FINAL ORDER] Orders after sorting:', filteredOrders?.map((o: Order) => ({ 
-    id: o.id, 
-    customerOrderId: o.customerOrderId, 
-    orderNumber: o.orderNumber 
-  })));
+  const displayedOrders = useMemo(() => {
+    const getCustomerName = (order: Order) =>
+      order.customer?.firstName && order.customer?.lastName
+        ? `${order.customer.firstName} ${order.customer.lastName}`
+        : order.customerFirstName && order.customerLastName
+          ? `${order.customerFirstName} ${order.customerLastName}`
+          : order.customerName || '';
+    const getValue = (order: Order): string | number => {
+      switch (orderSort.key) {
+        case 'orderNumber': return Number((order.orderNumber || '').replace(/\D/g, '')) || order.id;
+        case 'customer': return getCustomerName(order);
+        case 'contact': return order.customer?.email || order.customerEmail || order.customer?.phone || order.customerPhone || '';
+        case 'date': return new Date(order.createdAt || 0).getTime();
+        case 'paymentMethod': return order.paymentMethod || '';
+        case 'weight': return Number(order.totalWeight || 0);
+        case 'amount': return Number(order.totalAmount || 0);
+        case 'status': return getOrderStatusLabel(resolveOrderStatus({ workflowStatus: order.currentStatus || order.status }), language);
+        case 'notes': return order.warehouseNotes || '';
+      }
+    };
+    const multiplier = orderSort.direction === 'asc' ? 1 : -1;
+    return [...filteredOrders].sort(
+      (a, b) => compareSortValues(getValue(a), getValue(b)) * multiplier || a.id - b.id,
+    );
+  }, [filteredOrders, orderSort, language]);
+
+  const toggleOrderSort = (key: OrderSortKey) => {
+    setOrderSort(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+
+  const toggleInventorySort = (key: InventorySortKey) => {
+    setInventorySort(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+
+  const sortIcon = (active: boolean, direction: SortDirection) =>
+    !active ? <ArrowUpDown className="h-3.5 w-3.5 opacity-50" /> :
+      direction === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />;
+
+  const sortableLabel = (
+    label: string,
+    active: boolean,
+    direction: SortDirection,
+    onClick: () => void,
+  ) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex w-full items-center gap-1.5 rounded-sm text-inherit hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      aria-label={`${t('sortBy')} ${label}`}
+    >
+      <span>{label}</span>
+      {sortIcon(active, direction)}
+    </button>
+  );
 
 
 
   // Helper functions
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fa-IR', {
-      style: 'currency',
-      currency: 'IQD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+    return formatCurrencyValue(amount);
   };
 
   const getStatusBadge = (status: string) => {
-    const statusColors: Record<string, string> = {
-      'warehouse_pending': 'bg-yellow-100 text-yellow-800',
-      'financial_approved': 'bg-green-100 text-green-800',
-      'warehouse_notified': 'bg-blue-100 text-blue-800',
-      'warehouse_processing': 'bg-orange-100 text-orange-800',
-      'warehouse_verified': 'bg-blue-100 text-blue-800',
-      'warehouse_approved': 'bg-green-100 text-green-800',
-      'warehouse_rejected': 'bg-red-100 text-red-800'
-    };
-    
-    const statusLabels: Record<string, string> = {
-      'warehouse_pending': 'در انتظار انبار',
-      'financial_approved': 'تایید مالی',
-      'warehouse_notified': 'اطلاع رسانی انبار',
-      'warehouse_processing': 'در حال پردازش',
-      'warehouse_verified': 'تایید مرحله اول',
-      'warehouse_approved': 'تایید نهایی',
-      'warehouse_rejected': 'رد شده'
-    };
-    
+    const resolved = resolveOrderStatus({ workflowStatus: status });
     return (
-      <Badge className={`${statusColors[status] || 'bg-gray-100 text-gray-800'}`}>
-        {statusLabels[status] || status}
+      <Badge className={resolved.badgeClass}>
+        {getOrderStatusLabel(resolved, language)}
       </Badge>
     );
+  };
+
+  const getDepartmentLabel = (status: string) => {
+    const department = resolveOrderStatus({ workflowStatus: status }).department;
+    const labels = {
+      financial: t('financialDepartment'),
+      warehouse: t('warehouseDepartment'),
+      logistics: t('logisticsDepartment'),
+      complete: t('completedDepartment'),
+      cancelled: t('cancelledDepartment'),
+      unknown: t('unknown'),
+    };
+    return labels[department];
   };
 
   const handleOrderAction = (orderId: number, status: string) => {
@@ -753,30 +1054,61 @@ const WarehouseManagementFixed: React.FC = () => {
     setWarehouseNotes('');
   };
 
-  const handleSaveNotes = () => {
-    console.log("🔍 [WAREHOUSE NOTES] Save notes clicked");
-    console.log("🔍 [WAREHOUSE NOTES] Selected order:", selectedOrder);
-    console.log("🔍 [WAREHOUSE NOTES] Warehouse notes:", warehouseNotes);
-    
-    if (!selectedOrder || !warehouseNotes.trim()) {
-      console.log("❌ [WAREHOUSE NOTES] Validation failed - missing order or notes");
-      console.log({
-        title: "خطا",
-        description: "لطفاً یادداشت را وارد کنید",
-        variant: "destructive",
+  const handleStartProcessing = async () => {
+    if (!selectedOrder) return;
+
+    const notes = warehouseNotes.trim();
+    try {
+      if (notes) {
+        await saveNotesMutation.mutateAsync({
+          customerOrderId: selectedOrder.customerOrderId,
+          notes,
+        });
+      }
+      updateOrderMutation.mutate({
+        orderId: selectedOrder.id,
+        status: 'warehouse_processing',
+        notes: notes || undefined,
       });
-      return;
+    } catch {
+      // The notes mutation reports its own error. Keep the modal open so the
+      // user can retry without losing the entered note.
     }
+  };
 
-    console.log("✅ [WAREHOUSE NOTES] Starting mutation with data:", {
-      customerOrderId: selectedOrder.customerOrderId,
-      notes: warehouseNotes
-    });
+  const openQuickNoteEditor = (order: Order) => {
+    setQuickNoteOrder(order);
+    setQuickNoteText(order.warehouseNotes || '');
+  };
 
-    saveNotesMutation.mutate({
-      customerOrderId: selectedOrder.customerOrderId,
-      notes: warehouseNotes
-    });
+  const closeQuickNoteEditor = () => {
+    if (saveNotesMutation.isPending) return;
+    setQuickNoteOrder(null);
+    setQuickNoteText('');
+  };
+
+  const handleQuickNoteSave = async () => {
+    if (!quickNoteOrder) return;
+
+    try {
+      await saveNotesMutation.mutateAsync({
+        customerOrderId: quickNoteOrder.customerOrderId,
+        notes: quickNoteText.trim(),
+      });
+      await refetchOrders();
+      toast({
+        title: t('noteSaved'),
+        description: t('noteSavedDescription'),
+      });
+      setQuickNoteOrder(null);
+      setQuickNoteText('');
+    } catch {
+      toast({
+        title: t('saveError'),
+        description: t('noteSaveError'),
+        variant: 'destructive',
+      });
+    }
   };
 
   const clearAllFilters = () => {
@@ -790,61 +1122,113 @@ const WarehouseManagementFixed: React.FC = () => {
 
   // Fetch complete order details with items
   const fetchOrderDetails = async (customerOrderId: number) => {
+    const requestId = ++detailRequestId.current;
     setLoadingOrderDetails(true);
     try {
       const response = await apiRequest(`/api/order-management/warehouse/${customerOrderId}/details`, {
         method: 'GET'
       });
-      setOrderDetails(response.order);
-      console.log('Order details fetched:', response.order);
+      if (requestId === detailRequestId.current) setOrderDetails(response.order);
     } catch (error) {
+      if (requestId !== detailRequestId.current) return;
       console.error('Error fetching order details:', error);
-      console.log({
-        title: "خطا در بارگیری جزئیات سفارش",
-        description: "خطایی در بارگیری جزئیات سفارش رخ داد.",
+      toast({
+        title: t('loadOrderError'),
+        description: t('loadOrderErrorDescription'),
         variant: "destructive",
       });
     } finally {
-      setLoadingOrderDetails(false);
+      if (requestId === detailRequestId.current) setLoadingOrderDetails(false);
     }
   };
 
+  const toggleOrderDetails = (order: Order) => {
+    if (showOrderDetails && selectedOrder?.id === order.id) {
+      detailRequestId.current++;
+      setShowOrderDetails(false);
+      return;
+    }
+    setSelectedOrder(order);
+    setWarehouseNotes(order.warehouseNotes || '');
+    setOrderDetails(null);
+    setShowOrderDetails(true);
+    void fetchOrderDetails(order.customerOrderId);
+  };
+
+  const detailWorkflowStatus =
+    orderDetails?.currentStatus ||
+    orderDetails?.orderManagement?.currentStatus ||
+    selectedOrder?.currentStatus ||
+    '';
+  const detailStatusProjection = resolveOrderStatus({
+    workflowStatus: detailWorkflowStatus,
+    orderStatus: orderDetails?.customerOrder?.status || selectedOrder?.status,
+    paymentStatus: orderDetails?.customerOrder?.paymentStatus,
+  });
+  const logisticsProcessed =
+    Boolean(orderDetails?.logisticsProcessed || orderDetails?.orderManagement?.logisticsProcessedAt) ||
+    detailStatusProjection.department === 'logistics' ||
+    detailStatusProjection.department === 'complete';
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6" dir={direction} lang={language}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <Package className="w-8 h-8 text-blue-600" />
             <h1 className="text-3xl font-bold text-gray-900">
-              مدیریت انبار
+              {t('warehouseManagement')}
             </h1>
           </div>
           <p className="text-gray-600">
-            مدیریت سفارشات، موجودی، و عملیات انبار
+             {t('warehouseDescription')}
           </p>
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="orders" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+        <Tabs value={activeTab} onValueChange={changeTab} className="w-full">
+          <TabsList className="mb-6 grid w-full grid-cols-2 md:grid-cols-4">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
-              سفارشات
+              {t('orders')}
             </TabsTrigger>
             <TabsTrigger value="inventory" className="flex items-center gap-2">
               <Package2 className="w-4 h-4" />
-              موجودی انبار
+              {t('inventory')}
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              {t('settings')}
+            </TabsTrigger>
+            <TabsTrigger value="measured-loading" className="flex items-center gap-2">
+              <Weight className="w-4 h-4" />
+              {loadingCaptureCopy(language, 'tab')}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="orders" className="space-y-6">
+            <Tabs value={orderView} onValueChange={(value) => changeOrderView(value as 'current' | 'history')}>
+              <TabsList className="grid w-full max-w-lg grid-cols-2">
+                <TabsTrigger value="current" className="flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  {t('currentOrders')}
+                  <Badge variant="secondary" className="ms-1">{currentOrderCount == null ? countPlaceholder : formatNumber(currentOrderCount)}</Badge>
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  {t('orderHistory')}
+                  <Badge variant="secondary" className="ms-1">{historyOrderCount == null ? countPlaceholder : formatNumber(historyOrderCount)}</Badge>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
             {/* Search and Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div className="relative">
                 <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="جستجو (حداقل 3 کاراکتر): شماره سفارش، نام مشتری، تلفن، ایمیل..."
+                  placeholder={t('searchOrders')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pr-10"
@@ -855,15 +1239,14 @@ const WarehouseManagementFixed: React.FC = () => {
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="all">همه وضعیت‌ها</option>
-                <option value="warehouse_pending">در انتظار انبار</option>
-                <option value="financial_approved">تایید مالی</option>
-                <option value="warehouse_notified">اطلاع رسانی انبار</option>
-                <option value="warehouse_processing">در حال پردازش</option>
-                <option value="warehouse_approved">ارسال شده به لجستیک</option>
-                <option value="warehouse_rejected">رد شده</option>
-                <option value="with_notes">دارای یادداشت</option>
-                <option value="without_notes">بدون یادداشت</option>
+                <option value="all">{t('allStatuses')}</option>
+                {statusOptions.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label} ({formatNumber(status.count)})
+                  </option>
+                ))}
+                <option value="with_notes">{t('withNotes')}</option>
+                <option value="without_notes">{t('withoutNotes')}</option>
               </select>
             </div>
 
@@ -876,15 +1259,15 @@ const WarehouseManagementFixed: React.FC = () => {
                       <div className="p-2 bg-blue-100 rounded-lg">
                         <Package className="w-6 h-6 text-blue-600" />
                       </div>
-                      سفارشات تایید شده توسط واحد مالی
+                      {orderView === 'current' ? t('financialOrders') : t('orderHistory')}
                     </CardTitle>
                     <p className="text-sm text-gray-600 mt-2 mr-11">
-                      سفارشات آماده برای پردازش انبار و ارسال به بخش لجستیک
+                       {orderView === 'current' ? t('readyForWarehouse') : t('warehouseHistoryDescription')}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-sm">
-                      {filteredOrders.length} سفارش
+                       {formatNumber(displayedOrders.length)} {t('orderCount')}
                     </Badge>
                     <Button 
                       variant="outline" 
@@ -893,161 +1276,232 @@ const WarehouseManagementFixed: React.FC = () => {
                       className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                     >
                       <RefreshCw className="w-4 h-4" />
-                      به‌روزرسانی قوی
+                      {t('strongRefresh')}
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                {ordersLoading ? (
+                 {visibleOrdersLoading ? (
                   <div className="text-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-500">در حال بارگیری سفارشات...</p>
+                    <p className="text-gray-500">{t('loadingOrders')}</p>
                   </div>
-                ) : filteredOrders.length === 0 ? (
+                ) : displayedOrders.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <div className="p-4 bg-gray-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
                       <Package className="w-10 h-10 text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">هیچ سفارشی یافت نشد</h3>
-                    <p>در حال حاضر هیچ سفارش تایید شده‌ای در انتظار پردازش انبار نیست</p>
+                     <h3 className="text-lg font-medium text-gray-900 mb-2">
+                       {orderView === 'current' ? t('noOrders') : t('noHistoryOrders')}
+                     </h3>
+                     {orderView === 'current' && <p>{t('noOrdersDescription')}</p>}
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
-                      <thead>
-                        <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '10%' }}>شماره سفارش</th>
-                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '20%' }}>اطلاعات مشتری</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '10%' }}>وزن محموله</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>مبلغ کل</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>وضعیت</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '14%' }}>یادداشت</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '22%' }}>عملیات</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredOrders.map((order: Order) => (
-                          <tr key={order.id} className="border-b hover:bg-blue-50 transition-colors">
-                            <td className="p-4" style={{ width: '10%' }}>
-                              <div className="font-bold text-blue-600 truncate">{order.orderNumber || `#${order.id}`}</div>
-                            </td>
-                            <td className="p-4" style={{ width: '20%' }}>
-                              <div className="space-y-1">
-                                <div className="font-medium text-gray-900 truncate">{
-                                  order.customer?.firstName && order.customer?.lastName 
-                                    ? `${order.customer.firstName} ${order.customer.lastName}` 
-                                    : order.customerFirstName && order.customerLastName 
-                                      ? `${order.customerFirstName} ${order.customerLastName}`
-                                      : order.customerName || 'نامشخص'
-                                }</div>
-                                <div className="text-sm text-gray-600 truncate">
-                                  📱 {order.customer?.phone || order.customerPhone || 'شماره نامشخص'}
-                                </div>
-                                <div className="text-xs text-gray-500 truncate">
-                                  📧 {order.customer?.email || order.customerEmail || 'ایمیل نامشخص'}
-                                </div>
-                                <PaymentMethodBadge 
-                                  paymentMethod={order.paymentMethod}
-                                  showIcon={true}
-                                  className="text-xs"
-                                />
-                              </div>
-                            </td>
-                            <td className="p-4 text-center" style={{ width: '10%' }}>
-                              <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1">
-                                <Weight className="w-3 h-3" />
-                                {order.totalWeight ? `${parseFloat(order.totalWeight).toFixed(1)} kg` : 'محاسبه...'}
-                              </div>
-                            </td>
-                            <td className="p-4 text-center" style={{ width: '12%' }}>
-                              <div className="font-semibold text-green-600 text-sm">
-                                {formatCurrency(parseFloat(order.totalAmount) || 0)}
-                              </div>
-                            </td>
-                            <td className="p-4 text-center" style={{ width: '12%' }}>{getStatusBadge(order.currentStatus || order.status)}</td>
-                            <td className="p-4 text-center" style={{ width: '14%' }}>
-                              {(order as any).customerNotes && (order as any).customerNotes.trim().length > 0 ? (
-                                <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-medium inline-flex items-center gap-1">
-                                  <Edit3 className="w-3 h-3" />
-                                  دارای یادداشت مشتری
-                                </div>
-                              ) : (
-                                <span className="text-gray-400 text-xs">—</span>
-                              )}
-                            </td>
-                            <td className="p-4 text-center" style={{ width: '22%' }}>
-                              <div className="flex items-center justify-center gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setSelectedOrder(order);
-                                    setWarehouseNotes(order.warehouseNotes || ''); // Load existing notes
-                                    setShowOrderDetails(true);
-                                    // Fetch complete order details
-                                    fetchOrderDetails(order.customerOrderId);
-                                  }}
-                                  className="text-xs"
+                   <div className="overflow-x-auto rounded-lg border border-slate-300 bg-white shadow-sm">
+                     <table className="w-full min-w-[1080px] table-fixed border-collapse text-sm" aria-label={t('ordersTable')}>
+                       <caption className="sr-only">{t('ordersTable')}</caption>
+                       <thead className="sticky top-0 z-10 bg-slate-100 text-slate-700 shadow-sm">
+                         <tr>
+                           <th scope="col" className="border border-slate-300 px-3 py-2 text-center font-semibold">{t('rowNumber')}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'orderNumber' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-start font-semibold">{sortableLabel(t('orderNumber'), orderSort.key === 'orderNumber', orderSort.direction, () => toggleOrderSort('orderNumber'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'customer' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-start font-semibold">{sortableLabel(t('customer'), orderSort.key === 'customer', orderSort.direction, () => toggleOrderSort('customer'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'contact' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-start font-semibold">{sortableLabel(t('contact'), orderSort.key === 'contact', orderSort.direction, () => toggleOrderSort('contact'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'date' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-start font-semibold">{sortableLabel(t('date'), orderSort.key === 'date', orderSort.direction, () => toggleOrderSort('date'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'paymentMethod' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-start font-semibold">{sortableLabel(t('paymentMethod'), orderSort.key === 'paymentMethod', orderSort.direction, () => toggleOrderSort('paymentMethod'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'weight' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-center font-semibold">{sortableLabel(t('shipmentWeight'), orderSort.key === 'weight', orderSort.direction, () => toggleOrderSort('weight'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'amount' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-end font-semibold">{sortableLabel(t('totalAmount'), orderSort.key === 'amount', orderSort.direction, () => toggleOrderSort('amount'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'status' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="w-[130px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{sortableLabel(t('status'), orderSort.key === 'status', orderSort.direction, () => toggleOrderSort('status'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'notes' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="w-[140px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{sortableLabel(t('notes'), orderSort.key === 'notes', orderSort.direction, () => toggleOrderSort('notes'))}</th>
+                           {orderView === 'current' && <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('actions')}</th>}
+                         </tr>
+                       </thead>
+                       <tbody>
+                          {displayedOrders.map((order: Order, index: number) => {
+                            const customerNote = order.customerNotes?.trim() || '';
+                            const hasCustomerNote = Boolean(customerNote);
+                            const isCustomerNoteExpanded = expandedCustomerNoteOrderId === order.id;
+
+                            return (
+                            <React.Fragment key={order.id}>
+                            <tr
+                              className="odd:bg-white even:bg-slate-50 hover:bg-blue-50 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                              tabIndex={0}
+                              aria-expanded={showOrderDetails && selectedOrder?.id === order.id}
+                              aria-label={`${t('orderDetails')} ${order.orderNumber || `#${order.id}`}`}
+                              onClick={(event) => {
+                                if (event.target instanceof Element && event.target.closest('button, a, input, select, textarea, [role="button"]')) return;
+                                toggleOrderDetails(order);
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+                                event.preventDefault();
+                                toggleOrderDetails(order);
+                              }}
+                            >
+                             <th scope="row" className="border border-slate-200 px-3 py-2 text-center font-medium text-slate-600">{index + 1}</th>
+                             <td className="border border-slate-200 px-3 py-2 font-medium whitespace-nowrap">
+                                <button
+                                  type="button"
+                                   aria-expanded={showOrderDetails && selectedOrder?.id === order.id}
+                                   onClick={() => toggleOrderDetails(order)}
+                                   className="inline-flex items-center gap-1.5 rounded px-1 py-0.5 font-bold text-blue-600 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                   title={t('orderDetails')}
                                 >
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  جزئیات
-                                </Button>
-                                {(order.currentStatus === 'financial_approved' || order.currentStatus === 'warehouse_pending') && (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={() => handleOrderAction(order.id, 'warehouse_processing')}
-                                    disabled={loadingOrderId === order.id}
-                                    className="bg-orange-500 hover:bg-orange-600 text-xs"
-                                  >
-                                    <Package className="w-4 h-4 mr-1" />
-                                    {loadingOrderId === order.id ? 'در حال پردازش...' : 'شروع پردازش'}
-                                  </Button>
-                                )}
-                                {order.currentStatus === 'warehouse_processing' && (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={() => handleOrderAction(order.id, 'warehouse_verified')}
-                                    disabled={loadingOrderId === order.id}
-                                    className="bg-blue-500 hover:bg-blue-600 text-xs"
-                                  >
-                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                    {loadingOrderId === order.id ? 'در حال تایید...' : 'تایید مرحله اول'}
-                                  </Button>
-                                )}
-                                {order.currentStatus === 'warehouse_verified' && (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={() => handleOrderAction(order.id, 'warehouse_approved')}
-                                    disabled={loadingOrderId === order.id}
-                                    className="bg-green-500 hover:bg-green-600 text-xs"
-                                  >
-                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                    {loadingOrderId === order.id ? 'در حال تایید...' : 'تایید نهایی'}
-                                  </Button>
-                                )}
-                                {order.currentStatus === 'warehouse_approved' && (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={() => handleOrderAction(order.id, 'logistics_dispatched')}
-                                    disabled={loadingOrderId === order.id}
-                                    className="bg-blue-500 hover:bg-blue-600 text-xs"
-                                  >
-                                    <Truck className="w-4 h-4 mr-1" />
-                                    {loadingOrderId === order.id ? 'در حال ارسال...' : 'ارسال به لجستیک'}
-                                  </Button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                                  <span>{order.orderNumber || `#${order.id}`}</span>
+                                </button>
+                                 {hasCustomerNote && (
+                                   <button
+                                     type="button"
+                                     aria-label={`${t('customerNote')} ${order.orderNumber || order.id}`}
+                                     aria-expanded={isCustomerNoteExpanded}
+                                     onClick={() => setExpandedCustomerNoteOrderId(isCustomerNoteExpanded ? null : order.id)}
+                                     className="ms-1 inline-flex items-center gap-1 rounded px-1 py-0.5 text-emerald-700 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                                     title={t('customerNote')}
+                                   >
+                                     <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" aria-hidden="true" />
+                                     {isCustomerNoteExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                   </button>
+                                 )}
+                             </td>
+                             <td className="border border-slate-200 px-3 py-2">
+                               <span className="font-medium text-slate-800 break-words">{
+                                 order.customer?.firstName && order.customer?.lastName
+                                   ? `${order.customer.firstName} ${order.customer.lastName}`
+                                   : order.customerFirstName && order.customerLastName
+                                     ? `${order.customerFirstName} ${order.customerLastName}`
+                                     : order.customerName || t('unknown')
+                               }</span>
+                             </td>
+                             <td className="border border-slate-200 px-3 py-2">
+                               <div className="max-w-[220px] space-y-0.5 break-words">
+                                 <div>📧 {order.customer?.email || order.customerEmail || t('unknownEmail')}</div>
+                                 <div className="text-xs text-slate-500">📱 {order.customer?.phone || order.customerPhone || t('unknownPhone')}</div>
+                               </div>
+                             </td>
+                             <td className="border border-slate-200 px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt)}</td>
+                             <td className="border border-slate-200 px-3 py-2">
+                               <PaymentMethodBadge
+                                 paymentMethod={order.paymentMethod}
+                                 showIcon={true}
+                                 className="max-w-full whitespace-normal break-words"
+                               />
+                             </td>
+                             <td className="border border-slate-200 px-3 py-2 text-center">
+                               <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 whitespace-nowrap">
+                                 <Weight className="w-3 h-3" />
+                                  {order.totalWeight ? `${formatNumber(parseFloat(order.totalWeight), 1)} ${t('kilogram')}` : t('calculating')}
+                               </div>
+                             </td>
+                             <td className="border border-slate-200 px-3 py-2 text-end font-semibold text-green-600 whitespace-nowrap">
+                               {formatCurrency(parseFloat(order.totalAmount) || 0)}
+                             </td>
+                             <td className="w-[130px] border border-slate-200 px-3 py-2 align-top whitespace-normal break-words">
+                               <div className="[&>div]:h-auto [&>div]:max-w-full [&>div]:whitespace-normal [&>div]:break-words [&>div]:text-start [&>div]:leading-5">
+                                 {getStatusBadge(order.currentStatus || order.status)}
+                               </div>
+                             </td>
+                              <td className="w-[140px] border border-slate-200 p-1 align-top whitespace-normal">
+                                <button
+                                  type="button"
+                                  onClick={() => openQuickNoteEditor(order)}
+                                  aria-label={`${order.warehouseNotes?.trim() ? t('editWarehouseNote') : t('addWarehouseNote')} ${order.orderNumber || order.id}`}
+                                  className="min-h-10 w-full rounded px-2 py-1.5 text-start transition-colors hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
+                                >
+                                  {order.warehouseNotes?.trim() ? (
+                                    <span className="bg-purple-50 text-purple-800 border border-purple-200 px-2 py-1.5 rounded text-xs inline-flex items-start gap-1.5 whitespace-pre-wrap break-words">
+                                      <Edit3 className="w-3 h-3 shrink-0" />
+                                      <span>{order.warehouseNotes}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-xs text-purple-700">
+                                      <Plus className="h-3.5 w-3.5" />
+                                      {t('addWarehouseNote')}
+                                    </span>
+                                  )}
+                                </button>
+                             </td>
+                             {orderView === 'current' && <td className="border border-slate-200 px-3 py-2">
+                               <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
+                                 {(order.currentStatus === 'financial_approved' || order.currentStatus === 'warehouse_pending') && (
+                                   <Button
+                                     size="sm"
+                                     variant="default"
+                                     onClick={() => handleOrderAction(order.id, 'warehouse_processing')}
+                                     disabled={loadingOrderId === order.id}
+                                     className="h-7 px-2 bg-orange-500 hover:bg-orange-600 text-xs"
+                                   >
+                                     <Package className="w-3.5 h-3.5 mr-1" />
+                                      {loadingOrderId === order.id ? t('processing') : t('startProcessing')}
+                                   </Button>
+                                 )}
+                                 {order.currentStatus === 'warehouse_processing' && (
+                                   <Button
+                                     size="sm"
+                                     variant="default"
+                                     onClick={() => handleOrderAction(order.id, 'warehouse_verified')}
+                                     disabled={loadingOrderId === order.id}
+                                     className="h-7 px-2 bg-blue-500 hover:bg-blue-600 text-xs"
+                                   >
+                                     <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                                      {loadingOrderId === order.id ? t('verifying') : t('firstApproval')}
+                                   </Button>
+                                 )}
+                                 {order.currentStatus === 'warehouse_verified' && (
+                                   <Button
+                                     size="sm"
+                                     variant="default"
+                                     onClick={() => handleOrderAction(order.id, 'warehouse_approved')}
+                                     disabled={loadingOrderId === order.id}
+                                     className="h-7 px-2 bg-green-500 hover:bg-green-600 text-xs"
+                                   >
+                                     <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                                      {loadingOrderId === order.id ? t('verifying') : t('finalApproval')}
+                                   </Button>
+                                 )}
+                                 {order.currentStatus === 'warehouse_approved' && (
+                                   <Button
+                                     size="sm"
+                                     variant="default"
+                                     onClick={() => handleOrderAction(order.id, 'logistics_dispatched')}
+                                     disabled={loadingOrderId === order.id}
+                                     className="h-7 px-2 bg-blue-500 hover:bg-blue-600 text-xs"
+                                   >
+                                     <Truck className="w-3.5 h-3.5 mr-1" />
+                                      {loadingOrderId === order.id ? t('sending') : t('sendToLogistics')}
+                                   </Button>
+                                 )}
+                               </div>
+                             </td>}
+                           </tr>
+                             {showOrderDetails && selectedOrder?.id === order.id && (
+                               <tr className="bg-blue-50/60">
+                                 <td colSpan={orderView === 'current' ? 11 : 10} className="border border-blue-200 p-0">
+                                   {renderOrderDetailsInline()}
+                                 </td>
+                               </tr>
+                             )}
+                            {isCustomerNoteExpanded && (
+                              <tr className="bg-emerald-50/70">
+                                <td colSpan={orderView === 'current' ? 11 : 10} className="border border-emerald-200 p-0">
+                                  <div className="border-s-4 border-emerald-500 px-4 py-3">
+                                    <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-emerald-800">
+                                      <FileText className="h-4 w-4" aria-hidden="true" />
+                                      {t('customerNote')}
+                                    </div>
+                                    <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">{customerNote}</p>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                            </React.Fragment>
+                            );
+                          })}
+                       </tbody>
+                     </table>
+                     <div ref={orderListEndRef} className="h-2" aria-hidden="true" />
+                     {isFetchingNextPage && <div className="py-3 text-center text-sm text-slate-500">{t('loadingOrders')}</div>}
+                   </div>
                 )}
               </CardContent>
             </Card>
@@ -1061,13 +1515,13 @@ const WarehouseManagementFixed: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Package2 className="w-5 h-5" />
-                    محصولات انبار
+                     {t('products')}
                   </CardTitle>
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <Input
-                        placeholder="جستجو محصول..."
+                         placeholder={t('searchProduct')}
                         value={inventorySearchTerm}
                         onChange={(e) => setInventorySearchTerm(e.target.value)}
                         className="pr-10 w-64"
@@ -1075,49 +1529,78 @@ const WarehouseManagementFixed: React.FC = () => {
                     </div>
                     <Button variant="outline" onClick={() => refetchInventoryProducts()}>
                       <RefreshCw className="w-4 h-4 ml-2" />
-                      بروزرسانی
+                       {t('refresh')}
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 {inventoryProductsLoading ? (
-                  <div className="text-center py-8">در حال بارگذاری...</div>
+                   <div className="text-center py-8">{t('loading')}</div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right whitespace-nowrap">نام محصول</TableHead>
-                        <TableHead className="text-right whitespace-nowrap">فروشنده</TableHead>
-                        <TableHead className="text-right whitespace-nowrap">کد کالا</TableHead>
-                        <TableHead className="text-center whitespace-nowrap">موجودی</TableHead>
-                        <TableHead className="text-center whitespace-nowrap">حداقل</TableHead>
-                        <TableHead className="text-center whitespace-nowrap">آستانه هشدار</TableHead>
-                        <TableHead className="text-center whitespace-nowrap">وضعیت</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'product' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-right whitespace-nowrap">{sortableLabel(t('productName'), inventorySort.key === 'product', inventorySort.direction, () => toggleInventorySort('product'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'vendor' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-right whitespace-nowrap">{sortableLabel(t('vendor'), inventorySort.key === 'vendor', inventorySort.direction, () => toggleInventorySort('vendor'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'sku' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-right whitespace-nowrap">{sortableLabel(t('productCode'), inventorySort.key === 'sku', inventorySort.direction, () => toggleInventorySort('sku'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'batch' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-center whitespace-nowrap">{sortableLabel(t('batchNumber'), inventorySort.key === 'batch', inventorySort.direction, () => toggleInventorySort('batch'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'stock' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-center whitespace-nowrap">{sortableLabel(t('remainingInBatch'), inventorySort.key === 'stock', inventorySort.direction, () => toggleInventorySort('stock'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'minimum' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-center whitespace-nowrap">{sortableLabel(t('minimum'), inventorySort.key === 'minimum', inventorySort.direction, () => toggleInventorySort('minimum'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'threshold' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-center whitespace-nowrap">{sortableLabel(t('alertThreshold'), inventorySort.key === 'threshold', inventorySort.direction, () => toggleInventorySort('threshold'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'status' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-center whitespace-nowrap">{sortableLabel(t('status'), inventorySort.key === 'status', inventorySort.direction, () => toggleInventorySort('status'))}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredInventoryProducts.length === 0 ? (
+                      {sortedInventoryProducts.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                            محصولی یافت نشد
+                          <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                             {t('noProducts')}
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredInventoryProducts.slice(0, 50).map((product) => {
+                        sortedInventoryProducts.slice(0, 50).map((product) => {
                           const stockStatus = getStockStatus(product);
                           return (
                             <TableRow key={product.id}>
-                              <TableCell className="font-medium text-right">{product.name}</TableCell>
+                               <TableCell className="font-medium text-right">
+                                 <div className="flex items-center gap-3">
+                                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-50">
+                                     {product.imageUrl ? (
+                                       <img
+                                         src={product.imageUrl}
+                                         alt={`${t('productImage')}: ${product.name}`}
+                                         className="h-full w-full object-cover"
+                                         loading="lazy"
+                                       />
+                                     ) : (
+                                       <div className="flex h-full w-full items-center justify-center text-slate-400">
+                                         <Package2 className="h-5 w-5" aria-hidden="true" />
+                                       </div>
+                                     )}
+                                   </div>
+                                   <span>{product.name}</span>
+                                 </div>
+                               </TableCell>
                               <TableCell className="text-right">
                                 <Badge variant={product.vendorId ? "secondary" : "outline"}>
-                                  {product.vendorName || 'ممتاز کم'}
+                                   {product.vendorName || t('defaultVendor')}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">{product.sku || '-'}</TableCell>
-                              <TableCell className="text-center font-bold">{product.stockQuantity || 0}</TableCell>
-                              <TableCell className="text-center">{product.minStockLevel || 0}</TableCell>
-                              <TableCell className="text-center">{product.lowStockThreshold || 0}</TableCell>
+                               <TableCell className="text-center">
+                                 <Badge variant="outline">
+                                   {product.batchNumber?.trim() || t('noBatchNumber')}
+                                 </Badge>
+                               </TableCell>
+                               <TableCell className="text-center">
+                                 <span className="font-bold">{formatNumber(product.stockQuantity || 0)}</span>
+                                 {product.stockUnit && (
+                                   <span className="ms-1 text-xs text-gray-500">{product.stockUnit}</span>
+                                 )}
+                               </TableCell>
+                               <TableCell className="text-center">{formatNumber(product.minStockLevel || 0)}</TableCell>
+                               <TableCell className="text-center">{formatNumber(product.lowStockThreshold || 0)}</TableCell>
                               <TableCell className="text-center">
                                 <Badge className={stockStatus.color}>
                                   {stockStatus.label}
@@ -1138,7 +1621,7 @@ const WarehouseManagementFixed: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Bell className="w-5 h-5" />
-                  تنظیمات اعلان کمبود موجودی
+                   {t('lowStockSettings')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1147,7 +1630,7 @@ const WarehouseManagementFixed: React.FC = () => {
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      فاصله زمانی ارسال اعلان (ساعت)
+                       {t('notificationInterval')}
                     </Label>
                     <Input
                       type="number"
@@ -1157,12 +1640,12 @@ const WarehouseManagementFixed: React.FC = () => {
                       onChange={(e) => setInventorySettings(prev => ({ ...prev, notificationIntervalHours: parseInt(e.target.value) || 24 }))}
                       className="w-full"
                     />
-                    <p className="text-xs text-gray-500">حداقل فاصله بین دو اعلان برای یک محصول (1 تا 168 ساعت)</p>
+                     <p className="text-xs text-gray-500">{t('notificationIntervalHelp')}</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4" />
-                      حداکثر تعداد اعلان
+                       {t('maxNotifications')}
                     </Label>
                     <Input
                       type="number"
@@ -1172,7 +1655,7 @@ const WarehouseManagementFixed: React.FC = () => {
                       onChange={(e) => setInventorySettings(prev => ({ ...prev, maxNotifications: parseInt(e.target.value) || 1 }))}
                       className="w-full"
                     />
-                    <p className="text-xs text-gray-500">حداکثر تعداد اعلان برای هر محصول (تا زمان اصلاح موجودی)</p>
+                     <p className="text-xs text-gray-500">{t('maxNotificationsHelp')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1184,7 +1667,7 @@ const WarehouseManagementFixed: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5" />
-                    گیرندگان اعلان
+                     {t('recipients')}
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -1192,9 +1675,9 @@ const WarehouseManagementFixed: React.FC = () => {
                 {/* Admin Users Search Dropdown */}
                 <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
                   <div className="flex-1">
-                    <Label className="mb-2 block">جستجو و انتخاب از کاربران مدیریتی (حداقل 2 حرف)</Label>
+                     <Label className="mb-2 block">{t('searchAdmins')}</Label>
                     <Input
-                      placeholder="نام کاربری یا ایمیل..."
+                       placeholder={t('usernameEmail')}
                       value={adminSearchTerm}
                       onChange={(e) => setAdminSearchTerm(e.target.value)}
                       className="w-full"
@@ -1219,7 +1702,7 @@ const WarehouseManagementFixed: React.FC = () => {
                       </div>
                     )}
                     {adminSearchTerm.length >= 2 && filteredAdminUsers.length === 0 && (
-                      <div className="mt-2 text-sm text-gray-500">کاربری یافت نشد</div>
+                       <div className="mt-2 text-sm text-gray-500">{t('noUser')}</div>
                     )}
                   </div>
                 </div>
@@ -1228,21 +1711,21 @@ const WarehouseManagementFixed: React.FC = () => {
                 {inventorySettings.recipients.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>هیچ گیرنده‌ای تعریف نشده است</p>
-                    <p className="text-sm">از بخش جستجوی بالا، گیرندگان را انتخاب کنید</p>
+                     <p>{t('noRecipients')}</p>
+                     <p className="text-sm">{t('selectRecipients')}</p>
                   </div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right">نام</TableHead>
-                        <TableHead className="text-right">ایمیل</TableHead>
-                        <TableHead className="text-right">تلفن</TableHead>
-                        <TableHead className="text-center">ایمیل</TableHead>
-                        <TableHead className="text-center">پیامک</TableHead>
-                        <TableHead className="text-center">واتساپ</TableHead>
-                        <TableHead className="text-center">فعال</TableHead>
-                        <TableHead className="text-center">حذف</TableHead>
+                         <TableHead className="text-right">{t('name')}</TableHead>
+                         <TableHead className="text-right">{t('email')}</TableHead>
+                         <TableHead className="text-right">{t('phone')}</TableHead>
+                         <TableHead className="text-center">{t('email')}</TableHead>
+                         <TableHead className="text-center">{t('sms')}</TableHead>
+                         <TableHead className="text-center">{t('whatsapp')}</TableHead>
+                         <TableHead className="text-center">{t('active')}</TableHead>
+                         <TableHead className="text-center">{t('delete')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1298,15 +1781,15 @@ const WarehouseManagementFixed: React.FC = () => {
                     disabled={saveInventorySettingsMutation.isPending}
                     className="bg-green-600 hover:bg-green-700"
                   >
-                    {saveInventorySettingsMutation.isPending ? (
+                         {saveInventorySettingsMutation.isPending ? (
                       <>
                         <RefreshCw className="w-4 h-4 ml-2 animate-spin" />
-                        در حال ذخیره...
+                         {t('saving')}
                       </>
                     ) : (
                       <>
                         <Save className="w-4 h-4 ml-2" />
-                        ذخیره تنظیمات
+                         {t('saveSettings')}
                       </>
                     )}
                   </Button>
@@ -1314,132 +1797,192 @@ const WarehouseManagementFixed: React.FC = () => {
               </CardContent>
             </Card>
           </TabsContent>
+          <TabsContent value="settings" className="space-y-6">
+            <WarehouseReadyNotificationSettings />
+          </TabsContent>
+          <TabsContent value="measured-loading" className="space-y-6">
+            <LoadingMeasurementCapture />
+          </TabsContent>
         </Tabs>
 
-        {/* Order Details Modal - Using SafeModal (No React Portal Issues) */}
         <SafeModal
-          isOpen={showOrderDetails}
-          onClose={() => setShowOrderDetails(false)}
-          title={`جزئیات سفارش ${selectedOrder?.orderNumber || `#${selectedOrder?.customerOrderId}` || ''}`}
-          maxWidth="max-w-4xl"
-          maxHeight="max-h-[80vh]"
+          isOpen={quickNoteOrder !== null}
+          onClose={closeQuickNoteEditor}
+          title={`${quickNoteOrder?.warehouseNotes?.trim() ? t('editWarehouseNote') : t('addWarehouseNote')} — ${quickNoteOrder?.orderNumber || `#${quickNoteOrder?.customerOrderId || ''}`}`}
+          maxWidth="max-w-lg"
+          maxHeight="max-h-[60vh]"
         >
+          <div className="space-y-4 p-6">
+            <div className="space-y-2">
+              <Label htmlFor="quickWarehouseNote">{t('warehouseNotes')}</Label>
+              <Textarea
+                id="quickWarehouseNote"
+                value={quickNoteText}
+                onChange={(event) => setQuickNoteText(event.target.value)}
+                placeholder={t('notePlaceholder')}
+                rows={5}
+                autoFocus
+                disabled={saveNotesMutation.isPending}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeQuickNoteEditor}
+                disabled={saveNotesMutation.isPending}
+              >
+                {t('cancel')}
+              </Button>
+              <Button
+                type="button"
+                onClick={handleQuickNoteSave}
+                disabled={saveNotesMutation.isPending}
+                aria-busy={saveNotesMutation.isPending}
+              >
+                {saveNotesMutation.isPending ? (
+                  <>
+                    <RefreshCw className="me-2 h-4 w-4 animate-spin" />
+                    {t('saving')}
+                  </>
+                ) : (
+                  <>
+                    <Save className="me-2 h-4 w-4" />
+                    {t('saveNote')}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </SafeModal>
+      </div>
+    </div>
+  );
+
+  function renderOrderDetailsInline() {
+    return (
+      <div className="space-y-3 p-3 md:p-4">
+        <div className="flex items-center justify-between gap-4">
+          <h3 className="text-base font-semibold text-slate-900">
+            {t('orderDetails')} {selectedOrder?.orderNumber || `#${selectedOrder?.customerOrderId}`}
+          </h3>
+          <Button type="button" variant="outline" size="sm" onClick={() => setShowOrderDetails(false)}>
+            {t('cancel')}
+          </Button>
+        </div>
             {loadingOrderDetails ? (
               <div className="text-center py-8">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-gray-600">در حال بارگیری جزئیات سفارش...</p>
+                 <p className="mt-4 text-gray-600">{t('loadOrderDetails')}</p>
               </div>
             ) : orderDetails ? (
-              <div className="space-y-6">
-                {/* Customer Information */}
-                <div>
-                  <h3 className="font-semibold mb-3 text-lg">اطلاعات مشتری</h3>
-                  <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">نام مشتری</Label>
-                      <p className="text-sm mt-1 font-medium">{
-                        orderDetails.customer?.firstName && orderDetails.customer?.lastName 
-                          ? `${orderDetails.customer.firstName} ${orderDetails.customer.lastName}` 
-                          : 'نامشخص'
-                      }</p>
+              <div className="space-y-3">
+                {/* Customer, order and workflow details share one compact table. */}
+                {(() => {
+                  const currentStatus = orderDetails.currentStatus || orderDetails.orderManagement?.currentStatus || selectedOrder?.currentStatus || '';
+                  const resolved = resolveOrderStatus({ workflowStatus: currentStatus });
+                  return (
+                    <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+                      <table className="w-full min-w-[580px] border-collapse text-xs sm:text-sm" aria-label={`${t('customerInfo')} / ${t('orderSummary')}`}>
+                        <tbody className="[&_tr:not(:last-child)]:border-b [&_tr]:border-slate-200">
+                          <tr>
+                            <th scope="row" className="w-[14%] bg-slate-50 px-2 py-1.5 text-start font-medium">{t('name')}</th>
+                            <td className="w-[36%] px-2 py-1.5 font-medium">{orderDetails.customer?.firstName && orderDetails.customer?.lastName
+                              ? `${orderDetails.customer.firstName} ${orderDetails.customer.lastName}` : t('unknown')}</td>
+                            <th scope="row" className="w-[14%] bg-slate-50 px-2 py-1.5 text-start font-medium">{t('mobile')}</th>
+                            <td className="w-[36%] px-2 py-1.5" dir="ltr">{orderDetails.customer?.phone || t('unknownPhone')}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('email')}</th>
+                            <td className="break-all px-2 py-1.5" dir="ltr">{orderDetails.customer?.email || t('unknownEmail')}</td>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('totalAmount')}</th>
+                            <td className="px-2 py-1.5 font-semibold text-green-700">{formatCurrency(parseFloat(orderDetails.totalAmount) || 0)}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('itemCount')}</th>
+                            <td className="px-2 py-1.5">{formatNumber(orderDetails.totalItems || 0)}</td>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('grossWeight')}</th>
+                            <td className="px-2 py-1.5">{orderDetails.totalWeight ? `${formatNumber(parseFloat(orderDetails.totalWeight), 1)} ${t('kilogram')}` : t('notCalculated')}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('orderDate')}</th>
+                            <td className="px-2 py-1.5">{formatDate(orderDetails.orderDate)}</td>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('currentLocation')}</th>
+                            <td className="px-2 py-1.5">{getDepartmentLabel(currentStatus)}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('currentStage')}</th>
+                            <td colSpan={3} className="px-2 py-1.5"><Badge className={resolved.badgeClass}>{getOrderStatusLabel(resolved, language)}</Badge></td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">شماره موبایل</Label>
-                      <p className="text-sm mt-1 font-medium">{orderDetails.customer?.phone || 'شماره نامشخص'}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">ایمیل</Label>
-                      <p className="text-sm mt-1 font-medium">{orderDetails.customer?.email || 'ایمیل نامشخص'}</p>
-                    </div>
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">مبلغ کل</Label>
-                      <p className="text-sm mt-1 font-medium text-green-600">{formatCurrency(parseFloat(orderDetails.totalAmount) || 0)}</p>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
 
-                {/* Order Summary */}
-                <div>
-                  <h3 className="font-semibold mb-3 text-lg">خلاصه سفارش</h3>
-                  <div className="grid grid-cols-3 gap-4 bg-blue-50 p-4 rounded-lg">
-                    <div className="text-center">
-                      <Label className="text-sm font-medium text-gray-700">تعداد آیتم‌ها</Label>
-                      <p className="text-2xl font-bold text-blue-600">{orderDetails.totalItems}</p>
+                {/* Hierarchical notes visible to the warehouse */}
+                {((orderDetails.customerNotes || orderDetails.notes) ||
+                  (orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes) ||
+                  (orderDetails.warehouseNotes || orderDetails.orderManagement?.warehouseNotes)) && (
+                  <div>
+                    <h4 className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
+                      <FileText className="h-4 w-4" />
+                      {t('notesTitle')}
+                    </h4>
+                    <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+                      <table className="w-full min-w-[480px] border-collapse text-xs sm:text-sm" aria-label={t('notesTitle')}>
+                        <tbody className="[&_tr:not(:last-child)]:border-b [&_tr]:border-slate-200">
+                          {(orderDetails.customerNotes || orderDetails.notes) && <tr>
+                            <th scope="row" className="w-32 bg-amber-50 px-2 py-1.5 text-start font-medium">{t('customer')} · {t('checkoutNote')}</th>
+                            <td className="whitespace-pre-wrap break-words px-2 py-1.5">{orderDetails.customerNotes || orderDetails.notes}</td>
+                          </tr>}
+                          {(orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes) && <tr>
+                            <th scope="row" className="w-32 bg-blue-50 px-2 py-1.5 text-start font-medium">{t('finance')} · {t('paymentNote')}</th>
+                            <td className="whitespace-pre-wrap break-words px-2 py-1.5">{localizeFinanceNote(
+                              orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes || '', language,
+                            )}</td>
+                          </tr>}
+                          {(orderDetails.warehouseNotes || orderDetails.orderManagement?.warehouseNotes) && <tr>
+                            <th scope="row" className="w-32 bg-purple-50 px-2 py-1.5 text-start font-medium">{t('warehouseDepartment')} · {t('warehouseNotes')}</th>
+                            <td className="whitespace-pre-wrap break-words px-2 py-1.5">{orderDetails.warehouseNotes || orderDetails.orderManagement?.warehouseNotes}</td>
+                          </tr>}
+                        </tbody>
+                      </table>
                     </div>
-                    <div className="text-center">
-                      <Label className="text-sm font-medium text-gray-700">مجموع وزن ناخالص</Label>
-                      <p className="text-2xl font-bold text-blue-600">{orderDetails.totalWeight ? `${parseFloat(orderDetails.totalWeight).toFixed(1)} kg` : 'محاسبه نشده'}</p>
-                    </div>
-                    <div className="text-center">
-                      <Label className="text-sm font-medium text-gray-700">تاریخ سفارش</Label>
-                      <p className="text-sm font-medium text-gray-900">{new Date(orderDetails.orderDate).toLocaleDateString('en-GB')}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* سیستم یادداشت‌های سلسله‌مراتبی - انبار یادداشت مشتری و مالی را می‌بیند */}
-                {((orderDetails.customerNotes || orderDetails.notes) || (orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes)) && (
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
-                      یادداشت‌ها
-                    </h3>
-                    
-                    {/* یادداشت مشتری از چک‌اوت */}
-                    {(orderDetails.customerNotes || orderDetails.notes) && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">مشتری</span>
-                          <span className="text-xs text-amber-600">یادداشت چک‌اوت</span>
-                        </div>
-                        <p className="text-amber-900">{orderDetails.customerNotes || orderDetails.notes}</p>
-                      </div>
-                    )}
-                    
-                    {/* یادداشت بخش مالی */}
-                    {(orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes) && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">بخش مالی</span>
-                          <span className="text-xs text-blue-600">یادداشت تایید پرداخت</span>
-                        </div>
-                        <p className="text-blue-900">{orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes}</p>
-                      </div>
-                    )}
                   </div>
                 )}
 
                 {/* Order Items */}
                 <div>
-                  <h3 className="font-semibold mb-3 text-lg">آیتم‌های سفارش</h3>
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
-                      <thead className="bg-gray-50">
+                   <h4 className="mb-1 text-sm font-semibold">{t('orderItems')}</h4>
+                  <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+                    <table className="w-full min-w-[680px] border-collapse text-xs sm:text-sm" aria-label={t('orderItems')}>
+                      <thead className="bg-slate-50">
                         <tr>
-                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '35%' }}>نام محصول</th>
-                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '20%' }}>کد محصول</th>
-                          <th className="text-center p-3 text-sm font-medium text-gray-700" style={{ width: '15%' }}>تعداد</th>
-                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '15%' }}>قیمت واحد</th>
-                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '15%' }}>قیمت کل</th>
+                          <th scope="col" className="px-2 py-1.5 text-start font-semibold">{t('productName')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-start font-semibold">{t('productCode')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-center font-semibold">{t('quantity')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-end font-semibold">{t('unitPrice')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-end font-semibold">{t('totalPrice')}</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-slate-100">
                         {orderDetails.items?.map((item: any, index: number) => (
-                          <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="p-3 text-sm" style={{ width: '35%' }}>
-                              <div className="flex items-center gap-2">
-                                <span className="truncate" title={item.productName}>{item.productName}</span>
+                          <tr key={item.id ?? index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                            <td className="px-2 py-1.5">
+                              <div className="flex flex-wrap items-center gap-1">
+                                <span className="break-words">{item.productName}</span>
                                 {item.vendorName && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200 whitespace-nowrap">
+                                  <span className="inline-flex items-center rounded bg-purple-100 px-1 text-xs font-medium text-purple-800">
                                     🏪 {item.vendorName}
                                   </span>
                                 )}
                               </div>
                             </td>
-                            <td className="p-3 text-sm font-mono text-gray-600 truncate" style={{ width: '20%' }} title={item.productSku}>{item.productSku}</td>
-                            <td className="p-3 text-sm text-center font-medium" style={{ width: '15%' }}>{item.quantity}</td>
-                            <td className="p-3 text-sm truncate" style={{ width: '15%' }}>{formatCurrency(parseFloat(item.unitPrice) || 0)}</td>
-                            <td className="p-3 text-sm font-medium truncate" style={{ width: '15%' }}>{formatCurrency(parseFloat(item.totalPrice) || 0)}</td>
+                            <td className="px-2 py-1.5 font-mono text-slate-600">{item.productSku}</td>
+                            <td className="px-2 py-1.5 text-center font-medium">{item.quantity}</td>
+                            <td className="whitespace-nowrap px-2 py-1.5 text-end">{formatCurrency(parseFloat(item.unitPrice) || 0)}</td>
+                            <td className="whitespace-nowrap px-2 py-1.5 text-end font-medium">{formatCurrency(parseFloat(item.totalPrice) || 0)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1449,68 +1992,50 @@ const WarehouseManagementFixed: React.FC = () => {
 
                 {/* Order Status */}
                 <div>
-                  <h3 className="font-semibold mb-3 text-lg">وضعیت سفارش</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className={`p-3 rounded-lg border ${orderDetails.financialApproved ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                      <div className="flex items-center gap-2">
-                        {orderDetails.financialApproved ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <Clock className="w-5 h-5 text-gray-400" />
-                        )}
-                        <span className={`text-sm font-medium ${orderDetails.financialApproved ? 'text-green-800' : 'text-gray-600'}`}>
-                          تایید مالی
-                        </span>
-                      </div>
-                    </div>
-                    <div className={`p-3 rounded-lg border ${orderDetails.warehouseProcessed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                      <div className="flex items-center gap-2">
-                        {orderDetails.warehouseProcessed ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <Clock className="w-5 h-5 text-gray-400" />
-                        )}
-                        <span className={`text-sm font-medium ${orderDetails.warehouseProcessed ? 'text-green-800' : 'text-gray-600'}`}>
-                          پردازش انبار
-                        </span>
-                      </div>
-                    </div>
-                    <div className={`p-3 rounded-lg border ${orderDetails.logisticsProcessed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                      <div className="flex items-center gap-2">
-                        {orderDetails.logisticsProcessed ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <Clock className="w-5 h-5 text-gray-400" />
-                        )}
-                        <span className={`text-sm font-medium ${orderDetails.logisticsProcessed ? 'text-green-800' : 'text-gray-600'}`}>
-                          پردازش لجستیک
-                        </span>
-                      </div>
-                    </div>
+                  <h4 className="mb-1 text-sm font-semibold">{t('orderStatus')}</h4>
+                  <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+                    <table className="w-full min-w-[480px] border-collapse text-xs sm:text-sm" aria-label={t('orderStatus')}>
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th scope="col" className="px-2 py-1.5 text-start font-medium">{t('financialApproval')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-start font-medium">{t('warehouseProcessing')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-start font-medium">{t('logisticsProcessing')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          {[orderDetails.financialApproved, orderDetails.warehouseProcessed, logisticsProcessed].map((done, index) =>
+                            <td key={index} className={`border-t border-slate-200 px-2 py-1.5 font-medium ${done ? 'text-green-700' : 'text-slate-500'}`}>
+                              {done ? t('approved') : t('pending')}
+                            </td>
+                          )}
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
-                {/* Order Notes */}
-                <div>
-                  <Label htmlFor="warehouseNotes">یادداشت انبار</Label>
+                {/* Editing is available only for orders still in the warehouse workflow. */}
+                {orderView === 'current' && <div>
+                   <Label htmlFor="warehouseNotes">{t('warehouseNotes')}</Label>
                   <Textarea
                     id="warehouseNotes"
                     value={warehouseNotes}
                     onChange={(e) => setWarehouseNotes(e.target.value)}
-                    placeholder="یادداشت برای این سفارش..."
+                     placeholder={t('notePlaceholder')}
                     className="mt-2"
                   />
                   <div className="flex justify-end mt-2">
                     <Button
                       size="sm"
-                      onClick={handleSaveNotes}
-                      disabled={saveNotesMutation.isPending}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      onClick={handleStartProcessing}
+                      disabled={saveNotesMutation.isPending || updateOrderMutation.isPending}
+                      className="bg-orange-500 hover:bg-orange-600"
                     >
-                      {saveNotesMutation.isPending ? 'در حال ذخیره...' : 'ذخیره یادداشت'}
+                       {saveNotesMutation.isPending || updateOrderMutation.isPending ? t('processing') : t('startProcessing')}
                     </Button>
                   </div>
-                </div>
+                </div>}
 
                 {/* Actions */}
                 <div className="flex justify-end gap-3">
@@ -1518,7 +2043,7 @@ const WarehouseManagementFixed: React.FC = () => {
                     variant="outline"
                     onClick={() => setShowOrderDetails(false)}
                   >
-                    انصراف
+                    {t('cancel')}
                   </Button>
                   <Button
                     variant="outline"
@@ -1526,7 +2051,7 @@ const WarehouseManagementFixed: React.FC = () => {
                     className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
                   >
                     <Printer className="w-4 h-4 mr-1" />
-                    پرینت جزئیات
+                     {t('printDetails')}
                   </Button>
                   {selectedOrder?.currentStatus === 'warehouse_approved' && (
                     <Button
@@ -1534,20 +2059,19 @@ const WarehouseManagementFixed: React.FC = () => {
                       disabled={loadingOrderId === selectedOrder.id}
                     >
                       <Truck className="w-4 h-4 mr-1" />
-                      {loadingOrderId === selectedOrder.id ? 'در حال ارسال...' : 'ارسال به لجستیک'}
+                       {loadingOrderId === selectedOrder.id ? t('sending') : t('sendToLogistics')}
                     </Button>
                   )}
                 </div>
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-600">خطا در بارگیری جزئیات سفارش</p>
+                 <p className="text-gray-600">{t('loadOrderError')}</p>
               </div>
             )}
-        </SafeModal>
       </div>
-    </div>
-  );
+    );
+  }
 };
 
 export default WarehouseManagementFixed;

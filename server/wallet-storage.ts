@@ -1,4 +1,5 @@
 import { customerDb } from "./customer-db";
+export type WalletTransactionDb = Parameters<Parameters<typeof customerDb.transaction>[0]>[0];
 import { 
   customers,
   customerWallets, 
@@ -28,7 +29,7 @@ export interface IWalletStorage {
   
   // Credit/Debit operations
   creditWallet(customerId: number, amount: number, description: string, referenceType?: string, referenceId?: number, processedBy?: number): Promise<WalletTransaction>;
-  debitWallet(customerId: number, amount: number, description: string, referenceType?: string, referenceId?: number, processedBy?: number): Promise<WalletTransaction>;
+  debitWallet(customerId: number, amount: number, description: string, referenceType?: string, referenceId?: number, processedBy?: number, callerTx?: WalletTransactionDb): Promise<WalletTransaction>;
   
   // Recharge requests
   createRechargeRequest(requestData: InsertWalletRechargeRequest): Promise<WalletRechargeRequest>;
@@ -88,13 +89,13 @@ export class WalletStorage implements IWalletStorage {
     return wallet;
   }
 
-  async updateWalletBalance(walletId: number, newBalance: number): Promise<CustomerWallet> {
+  async updateWalletBalance(walletId: number, newBalance: number, tx?: WalletTransactionDb): Promise<CustomerWallet> {
     // 🚫 CRITICAL: هیچگاه اجازه موجودی منفی را نده
     if (newBalance < 0) {
       throw new Error(`Cannot update wallet to negative balance: ${newBalance}`);
     }
     
-    const [wallet] = await customerDb
+    const [wallet] = await (tx ?? customerDb)
       .update(customerWallets)
       .set({ 
         balance: newBalance.toString(),
@@ -125,15 +126,20 @@ export class WalletStorage implements IWalletStorage {
     const totalBalance = parseFloat(wallet.balance);
     const creditLimit = parseFloat(wallet.creditLimit || "0");
     const pendingReservations = await this.getPendingReservations(customerId);
-    const reservedBalance = pendingReservations.reduce((sum, r) => sum + parseFloat(r.amount), 0);
-    const availableBalance = totalBalance + creditLimit - reservedBalance;
+    const {newWalletAccountingState} = await import("./modules/accounting/wallet");
+    const accountingState=await newWalletAccountingState(wallet.id);
+    const legacyReserved=pendingReservations.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+    const reservedBalance = (accountingState.controlled?Math.max(legacyReserved,Number(wallet.reservedBalance)):legacyReserved)
+      + Number(accountingState.held);
+    // Numbers here preserve the legacy display contract; financial authorization uses decimal strings and locked rows.
+    const availableBalance = totalBalance + (accountingState.controlled?0:creditLimit) - reservedBalance;
     
     return { totalBalance, reservedBalance, availableBalance, creditLimit };
   }
 
   // Transaction management
-  async createTransaction(transactionData: InsertWalletTransaction): Promise<WalletTransaction> {
-    const [transaction] = await customerDb
+  async createTransaction(transactionData: InsertWalletTransaction, tx?: WalletTransactionDb): Promise<WalletTransaction> {
+    const [transaction] = await (tx ?? customerDb)
       .insert(walletTransactions)
       .values(transactionData)
       .returning();
@@ -189,6 +195,8 @@ export class WalletStorage implements IWalletStorage {
     const currentBalance = parseFloat(wallet.balance);
     const newBalance = currentBalance + amount;
 
+    // Preserve legacy amounts/timing, but commit the native credit, balance and outbox together.
+    return customerDb.transaction(async tx => {
     // Create transaction record
     const transaction = await this.createTransaction({
       walletId: wallet.id,
@@ -203,12 +211,13 @@ export class WalletStorage implements IWalletStorage {
       referenceId,
       status: "completed",
       processedBy
-    });
+    }, tx);
 
     // Update wallet balance
-    await this.updateWalletBalance(wallet.id, newBalance);
+    await this.updateWalletBalance(wallet.id, newBalance, tx);
 
     return transaction;
+    });
   }
 
   async debitWallet(
@@ -217,9 +226,14 @@ export class WalletStorage implements IWalletStorage {
     description: string, 
     referenceType?: string, 
     referenceId?: number,
-    processedBy?: number
+    processedBy?: number,
+    callerTx?: WalletTransactionDb
   ): Promise<WalletTransaction> {
-    const wallet = await this.getWalletByCustomerId(customerId);
+    const run = async (tx: WalletTransactionDb) => {
+    // Read and lock inside the same transaction as the debit and caller's
+    // paid-order update. Concurrent checkouts cannot overwrite this balance.
+    const [wallet] = await tx.select().from(customerWallets)
+      .where(eq(customerWallets.customerId, customerId)).limit(1).for("update");
     if (!wallet) {
       throw new Error("Customer wallet not found");
     }
@@ -255,12 +269,14 @@ export class WalletStorage implements IWalletStorage {
       referenceId,
       status: "completed",
       processedBy
-    });
+    }, tx);
 
     // Update wallet balance
-    await this.updateWalletBalance(wallet.id, newBalance);
+    await this.updateWalletBalance(wallet.id, newBalance, tx);
 
     return transaction;
+    };
+    return callerTx ? run(callerTx) : customerDb.transaction(run);
   }
 
   // رزرو مبلغ برای سفارش در انتظار
@@ -497,12 +513,16 @@ export class WalletStorage implements IWalletStorage {
 
     // Calculate reserved balance (pending wallet reservations)
     const pendingReservations = await this.getPendingReservations(customerId);
-    const reservedBalance = pendingReservations.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+    const {newWalletAccountingState} = await import("./modules/accounting/wallet");
+    const accountingState=wallet?await newWalletAccountingState(wallet.id):{held:"0",controlled:false};
+    const legacyReserved=pendingReservations.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+    const reservedBalance = (accountingState.controlled?Math.max(legacyReserved,Number(wallet?.reservedBalance||0)):legacyReserved)
+      + Number(accountingState.held);
     
     // Calculate available balance (total balance - reserved + credit limit)
     const currentBalance = wallet ? parseFloat(wallet.balance) : 0;
     const creditLimit = wallet ? parseFloat(wallet.creditLimit || "0") : 0;
-    const availableBalance = currentBalance + creditLimit - reservedBalance;
+    const availableBalance = currentBalance + (accountingState.controlled?0:creditLimit) - reservedBalance;
 
     return {
       wallet,
@@ -598,8 +618,10 @@ export class WalletStorage implements IWalletStorage {
     const amount = parseFloat(reservation.amount);
     const newBalance = currentBalance - amount;
 
+    // Preserve confirmation timing while making status and balance inseparable.
+    await customerDb.transaction(async tx => {
     // Update the reservation transaction to completed
-    await customerDb
+    await tx
       .update(walletTransactions)
       .set({
         status: "completed",
@@ -612,7 +634,8 @@ export class WalletStorage implements IWalletStorage {
       .where(eq(walletTransactions.id, reservationId));
 
     // Actually deduct from wallet balance
-    await this.updateWalletBalance(wallet.id, newBalance);
+    await this.updateWalletBalance(wallet.id, newBalance, tx);
+    });
 
     const updatedTransaction = await this.getTransactionById(reservationId);
     console.log(`✅ [WALLET CONFIRM] Confirmed reservation ${reservationId}: ${amount} IQD deducted from customer ${reservation.customerId}`);

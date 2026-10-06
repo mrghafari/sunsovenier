@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -12,14 +13,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { MapPin, Globe, X, ShoppingCart, Plus, Minus, Trash2, Wallet, CreditCard, Upload, Clock, Flame, Move } from "lucide-react";
+import { MapPin, Globe, X, ShoppingCart, Plus, Minus, Trash2, Wallet, CreditCard, Upload, Clock, Flame, Move, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { loadCustomerAddresses, saveCustomerAddress, type SavedCustomerAddress } from "@/lib/customer-addresses";
+import OrderReviewDialog from "@/components/checkout/order-review-dialog";
+import type { ShopContract } from "@/components/checkout/contract-selector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount, displayCurrencyAmountWithSymbol } from "@/lib/currency-utils";
+import { shippingWeightKg } from "@/lib/shipping-weight";
+import { contractQuantityLimit } from "@/lib/contract-cart";
+import { contractTheme } from "@/lib/contract-theme";
 
 // Language types
-type Language = 'en' | 'ar' | 'fa';
+type Language = 'en' | 'ar' | 'fa' | 'tr';
+
+const getShippingCenterKey = (center?: { countryCode?: string; provinceId?: number; cityId?: number } | null) =>
+  center ? `${center.countryCode || ''}|${center.provinceId || ''}|${center.cityId || ''}` : '';
+
+const EMPTY_CITIES: any[] = [];
 
 // Translation system
 const translations = {
@@ -46,6 +58,9 @@ const translations = {
     
     // Cart management
     cartManagement: "Cart Management",
+    unavailableCartProduct: "This product is no longer in the shop:",
+    unavailableCartWarning: "Remove unavailable products from your cart before calculating shipping or placing an order.",
+    missingCartWeight: "Shipping weight is not set for an item in your cart. Please ask the shop to set its gross weight.",
     each: "each",
     subtotal: "Subtotal:",
     totalAmount: "Total Amount",
@@ -97,12 +112,14 @@ const translations = {
     shippingCost: "Shipping Cost",
     freeShipping: "Free Shipping",
     
-    // Second address and recipient mobile options
-    secondDeliveryAddress: "Second Delivery Address",
-    addSecondAddress: "Add Second Address",
-    removeSecondAddress: "Remove Second Address",
-    secondAddressPlaceholder: "Enter different delivery address...",
-    secondAddressInstruction: "If delivery address differs from above, please enter new address",
+    // Delivery address choices
+    deliveryAddressChoices: "Delivery address",
+    newAddress: "New address",
+    addressTitle: "Address title",
+    addressTitlePlaceholder: "e.g. Home, Office, Factory",
+    newAddressInstruction: "Add a named address with its complete destination details",
+    legacyAddress: "Legacy CRM address",
+    destinationRequired: "Choose a country, province, and city for this address",
     recipientMobileNumber: "Recipient Mobile Number",
     addRecipientMobile: "Add Recipient Mobile",
     removeRecipientMobile: "Remove Recipient Mobile",
@@ -205,6 +222,9 @@ const translations = {
     
     // Cart management
     cartManagement: "إدارة السلة",
+    unavailableCartProduct: "هذا المنتج لم يعد متاحاً في المتجر:",
+    unavailableCartWarning: "احذف المنتجات غير المتاحة من السلة قبل حساب الشحن أو إتمام الطلب.",
+    missingCartWeight: "وزن الشحن غير محدد لأحد عناصر السلة. اطلب من المتجر تحديد وزنه الإجمالي.",
     each: "للوحدة",
     subtotal: "المجموع الفرعي:",
     totalAmount: "المبلغ الإجمالي",
@@ -232,12 +252,14 @@ const translations = {
     shippingCost: "تكلفة الشحن",
     freeShipping: "شحن مجاني",
     
-    // Second address and recipient mobile options
-    secondDeliveryAddress: "عنوان التسليم الثاني",
-    addSecondAddress: "إضافة عنوان ثاني",
-    removeSecondAddress: "إزالة العنوان الثاني", 
-    secondAddressPlaceholder: "عنوان بديل للتسليم (مثل: بغداد، شارع الرشيد)",
-    secondAddressInstruction: "إذا كان عنوان استلام البضائع مختلفًا عن العنوان أعلاه، يرجى إدخال العنوان الجديد",
+    // Delivery address and recipient mobile options
+    deliveryAddressChoices: "عنوان التسليم",
+    newAddress: "عنوان جديد",
+    addressTitle: "اسم العنوان",
+    addressTitlePlaceholder: "مثل: المنزل، المكتب، المصنع",
+    newAddressInstruction: "أضف عنواناً باسم واضح وتفاصيل وجهة كاملة",
+    legacyAddress: "عنوان CRM قديم",
+    destinationRequired: "يرجى تحديد الدولة والمحافظة والمدينة لهذا العنوان",
     recipientMobileNumber: "رقم موبايل المستلم",
     addRecipientMobile: "إضافة رقم المستلم",
     removeRecipientMobile: "إزالة رقم المستلم",
@@ -312,6 +334,9 @@ const translations = {
     cancel: "لغو",
     loading: "در حال بارگذاری...",
     cartManagement: "مدیریت سبد خرید",
+    unavailableCartProduct: "این کالا دیگر در فروشگاه موجود نیست:",
+    unavailableCartWarning: "پیش از محاسبهٔ ارسال یا ثبت سفارش، کالاهای ناموجود را از سبد حذف کنید.",
+    missingCartWeight: "وزن ارسال یکی از کالاهای سبد مشخص نیست. از فروشگاه بخواهید وزن ناخالص آن را ثبت کند.",
     each: "هر عدد",
     subtotal: "جمع جزء:",
     totalAmount: "مبلغ کل",
@@ -350,11 +375,13 @@ const translations = {
     selectDeliveryMethod: "روش تحویل را انتخاب کنید",
     shippingCost: "هزینه ارسال",
     freeShipping: "ارسال رایگان",
-    secondDeliveryAddress: "آدرس دوم تحویل",
-    addSecondAddress: "افزودن آدرس دوم",
-    removeSecondAddress: "حذف آدرس دوم",
-    secondAddressPlaceholder: "آدرس متفاوت تحویل را وارد کنید...",
-    secondAddressInstruction: "اگر آدرس تحویل با آدرس بالا متفاوت است، آدرس جدید را وارد کنید",
+    deliveryAddressChoices: "نشانی تحویل",
+    newAddress: "نشانی جدید",
+    addressTitle: "عنوان نشانی",
+    addressTitlePlaceholder: "مثلاً: خانه، دفتر، کارخانه",
+    newAddressInstruction: "نشانی نام‌گذاری‌شده را همراه با جزئیات کامل مقصد اضافه کنید",
+    legacyAddress: "نشانی قدیمی CRM",
+    destinationRequired: "کشور، استان و شهر این نشانی را انتخاب کنید",
     recipientMobileNumber: "شماره تلفن همراه گیرنده",
     addRecipientMobile: "افزودن تلفن همراه گیرنده",
     removeRecipientMobile: "حذف تلفن همراه گیرنده",
@@ -407,19 +434,42 @@ const translations = {
   }
 };
 
+const taxTranslations = {
+  en: {
+    vat: "Value Added Tax",
+    duties: "Value Added Duty",
+  },
+  ar: {
+    vat: "ضريبة القيمة المضافة",
+    duties: "رسوم القيمة المضافة",
+  },
+  fa: {
+    vat: "مالیات بر ارزش افزوده",
+    duties: "عوارض بر ارزش افزوده",
+  },
+  tr: {
+    vat: "Katma Değer Vergisi",
+    duties: "Katma Değer Vergisi Harcı",
+  },
+} as const;
+
 // Dynamic form schema based on language
-const createPurchaseSchema = (lang: Language) => z.object({
-  customerName: z.string().min(2, translations[lang].nameRequired),
-  phone: z.string().min(10, translations[lang].phoneRequired),
-  address: z.string().min(10, translations[lang].addressRequired),
-  city: z.string().optional(), // Make city optional to prevent validation failures
-  country: z.string().default('Iraq'), // Add country field with default
-  postalCode: z.string().optional(),
-  notes: z.string().optional(),
-  gpsLatitude: z.number().optional(),
-  gpsLongitude: z.number().optional(),
-  deliveryMethod: z.string().optional(), // Add delivery method field
-});
+const createPurchaseSchema = (lang: Language) => {
+  const copy = translations[lang as keyof typeof translations] || translations.en;
+
+  return z.object({
+    customerName: z.string().min(2, copy.nameRequired),
+    phone: z.string().min(10, copy.phoneRequired),
+    address: z.string().min(10, copy.addressRequired),
+    city: z.string().optional(), // Make city optional to prevent validation failures
+    country: z.string().default('Iraq'), // Add country field with default
+    postalCode: z.string().optional(),
+    notes: z.string().optional(),
+    gpsLatitude: z.number().optional(),
+    gpsLongitude: z.number().optional(),
+    deliveryMethod: z.string().optional(), // Add delivery method field
+  });
+};
 
 interface PurchaseFormProps {
   cart: {[key: number]: number};
@@ -427,8 +477,10 @@ interface PurchaseFormProps {
   onOrderComplete: () => void;
   onClose: () => void;
   existingCustomer?: any; // Customer data from parent component
-  onUpdateQuantity?: (productId: number, newQuantity: number) => void;
+  onUpdateQuantity?: (productId: number, newQuantity: number) => void | Promise<void>;
   onRemoveItem?: (productId: number) => void;
+  onAddContractItem: (productId: number, quantity: number) => Promise<void>;
+  initialContractId?: number | null;
 }
 
 // GPS location functionality
@@ -458,12 +510,27 @@ const getCurrentLocation = (): Promise<{latitude: number, longitude: number}> =>
   });
 };
 
-export default function BilingualPurchaseForm({ cart, products, onOrderComplete, onClose, existingCustomer, onUpdateQuantity, onRemoveItem }: PurchaseFormProps) {
+export default function BilingualPurchaseForm({ cart, products, onOrderComplete, onClose, existingCustomer, onUpdateQuantity, onRemoveItem, onAddContractItem, initialContractId = null }: PurchaseFormProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { language, direction } = useLanguage();
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationData, setLocationData] = useState<{latitude: number, longitude: number} | null>(null);
+  const [quantityDrafts, setQuantityDrafts] = useState<Record<number, string>>({});
+  const [contractAddQuantities, setContractAddQuantities] = useState<Record<number, string>>({});
+  const [pendingContractAdditions, setPendingContractAdditions] = useState<number[]>([]);
+  const pendingContractAdditionsRef = useRef(new Set<number>());
+  const [pendingQuantityUpdates, setPendingQuantityUpdates] = useState<number[]>([]);
+  const pendingQuantityUpdatesRef = useRef(new Set<number>());
+  const activatedQuantityInputs = useRef(new Set<number>());
   const [paymentMethod, setPaymentMethod] = useState<'online_payment' | 'fib_online' | 'wallet' | 'wallet_full' | 'wallet_partial' | 'wallet_combined' | 'bank_transfer_grace' | 'bank_receipt'>('fib_online');
+  const [paymentSectionTarget, setPaymentSectionTarget] = useState<HTMLDivElement | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewAddressId, setReviewAddressId] = useState('primary');
+  const [pendingReview, setPendingReview] = useState<{ data: any; signature: string } | null>(null);
+  const [isConfirmingOrder, setIsConfirmingOrder] = useState(false);
+  const confirmingOrderRef = useRef(false);
+  const orderSubmissionLockRef = useRef(false);
 
   // Fetch available payment methods from admin settings (public endpoint)
   const { data: availablePaymentMethods = [] } = useQuery({
@@ -552,23 +619,49 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           credentials: 'include'
         });
         
-        if (response.ok) {
-          const result = await response.json();
-          console.log('Customer API response:', result);
-          if (result.success) {
-            return result;
-          }
+        if (response.status === 401) {
+          return { success: false, message: 'Not authenticated' };
         }
-        
-        console.log('Customer not authenticated or API failed');
-        return null;
+
+        if (!response.ok) {
+          throw new Error(`Customer authentication check failed with HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Customer API response:', result);
+        return result;
       } catch (error) {
         console.log('Error fetching customer data:', error);
-        return null;
+        throw error;
       }
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  const { data: customerContracts = [], isLoading: isLoadingContracts, isFetching: isFetchingContracts, isError: contractsError } = useQuery<ShopContract[]>({
+    queryKey: ['/api/shop/contracts/mine'],
+    queryFn: async () => {
+      const response = await fetch('/api/shop/contracts/mine', { credentials: 'include' });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success || !Array.isArray(result.contracts)) {
+        throw new Error(result?.message || `Unable to load contracts (HTTP ${response.status})`);
+      }
+      return result.contracts;
+    },
+    enabled: customerData?.success === true && initialContractId !== null,
+    retry: false,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+  const selectedContractId = initialContractId;
+  const [showContractProducts, setShowContractProducts] = useState(false);
+  useEffect(() => {
+    setShowContractProducts(false);
+  }, [selectedContractId]);
+  const { data: savedCustomerAddresses = [], refetch: refetchSavedCustomerAddresses } = useQuery({
+    queryKey: ['structuredCustomerAddresses'],
+    queryFn: loadCustomerAddresses,
+    enabled: customerData?.success === true,
   });
 
   // Fetch complete CRM customer data for logged-in customers
@@ -614,39 +707,71 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     refetchOnMount: true, // Always refetch on mount for fresh data
   });
 
-  // State for second address province/city selection (must be declared before API queries)
+  // Explicit destination geography fields (must be declared before API queries)
   const [selectedSecondaryProvinceId, setSelectedSecondaryProvinceId] = useState<number | null>(null);
   const [secondProvince, setSecondProvince] = useState('');
   const [secondCity, setSecondCity] = useState('');
   const [secondPostalCode, setSecondPostalCode] = useState('');
+  const [selectedDeliveryAddressId, setSelectedDeliveryAddressId] = useState('primary');
+  const [newAddressTitle, setNewAddressTitle] = useState('');
+  const [newAddressPhone, setNewAddressPhone] = useState('');
+  const [newAddressCountry, setNewAddressCountry] = useState('');
+  const [legacyAddressCountry, setLegacyAddressCountry] = useState('');
 
-  // Fetch Iraqi provinces for second address dropdowns
-  const { data: provinces, isLoading: isLoadingProvinces } = useQuery({
-    queryKey: ['/api/iraqi-provinces'],
+  // Load delivery regions from the configured logistics-center country.
+  const { data: shippingCenterResponse, refetch: refetchShippingCenter } = useQuery<{ success?: boolean; data?: { countryCode?: string; provinceId?: number; cityId?: number } }>({
+    queryKey: ['/api/logistics/shipping-center'],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
+  });
+  const shippingCenterCountry = shippingCenterResponse?.data?.countryCode || '';
+  const shippingCenterKey = getShippingCenterKey(shippingCenterResponse?.data);
+  const shippingCenterKeyRef = useRef(shippingCenterKey);
+  const [pricedShippingCenterKey, setPricedShippingCenterKey] = useState('');
+  useEffect(() => {
+    shippingCenterKeyRef.current = shippingCenterKey;
+  }, [shippingCenterKey]);
+  const { data: geographyCountriesResponse } = useQuery<{ success?: boolean; data?: any[] }>({
+    queryKey: ['/api/geography/countries'],
+    staleTime: 15 * 60 * 1000,
+  });
+  const geographyCountries = geographyCountriesResponse?.data || [];
+  const resolveCountryCode = (country: string | undefined) => {
+    if (!country) return '';
+    const normalized = country.trim().toLowerCase();
+    const record = geographyCountries.find((item: any) =>
+      [item.code, item.countryCode, item.name, item.nameEn, item.nameEnglish, item.name_en, item.nameArabic, item.name_arabic, item.namePersian, item.nameFa, item.name_fa, item.nameTurkish, item.nameTr, item.name_tr]
+        .some((name: any) => typeof name === 'string' && name.trim().toLowerCase() === normalized)
+    );
+    return String(record?.code || record?.countryCode || (country.length <= 3 ? country : '')).toUpperCase();
+  };
+  const shippingCenterCountryCode = resolveCountryCode(shippingCenterCountry) || shippingCenterCountry.toUpperCase();
+
+  const { data: provinces, isLoading: isLoadingProvinces } = useQuery<{ success?: boolean; data?: any[] }>({
+    queryKey: [`/api/geography/regions?country=${shippingCenterCountry}`],
+    enabled: !!shippingCenterCountry,
     retry: 1,
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch cities for selected province in second address
-  const { data: secondaryCities, isLoading: isLoadingSecondaryCities } = useQuery({
-    queryKey: ['/api/iraqi-cities', selectedSecondaryProvinceId],
-    queryFn: async () => {
-      if (!selectedSecondaryProvinceId) return [];
-      
-      const response = await fetch('/api/iraqi-cities');
-      if (!response.ok) throw new Error('Failed to fetch cities');
-      
-      const result = await response.json();
-      if (result.success && result.data) {
-        // Filter cities by selected province
-        return result.data.filter((city: any) => city.provinceId === selectedSecondaryProvinceId);
-      }
-      return [];
-    },
+  // Fetch DB-backed cities in the selected destination region.
+  const { data: secondaryCitiesResponse, isLoading: isLoadingSecondaryCities } = useQuery<{ success?: boolean; data?: any[] }>({
+    queryKey: [`/api/geography/cities?regionId=${selectedSecondaryProvinceId}`],
     enabled: !!selectedSecondaryProvinceId,
     retry: 1,
     staleTime: 5 * 60 * 1000,
   });
+  const secondaryCities = Array.isArray(secondaryCitiesResponse?.data) ? secondaryCitiesResponse.data : EMPTY_CITIES;
+
+  const geographyName = (place: any) => {
+    if (!place) return '';
+    if (language === 'fa') return place.namePersian || place.nameFa || place.name_fa || place.name || place.nameEnglish || '';
+    if (language === 'ar') return place.nameArabic || place.name_arabic || place.name || place.nameEnglish || '';
+    if (language === 'tr') return place.nameTurkish || place.nameTr || place.name_tr || place.name || place.nameEnglish || '';
+    return place.nameEnglish || place.nameEn || place.name_en || place.name || place.nameArabic || '';
+  };
+  const canonicalGeographyName = (place: any) => place?.nameEnglish || place?.nameEn || place?.name_en || place?.name || geographyName(place);
 
   // Fetch shop settings for proforma deadline (public endpoint - no auth required)
   const { data: publicShopSettings } = useQuery<{ success: boolean; data: Record<string, string> }>({
@@ -870,7 +995,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       phone: "",
       address: "",
       city: "",
-      country: "Iraq", // Add country default
+      country: shippingCenterCountry || "Iraq",
       postalCode: "",
       notes: "",
       gpsLatitude: undefined,
@@ -918,7 +1043,6 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       
       // Enhanced address mapping for CRM customers - check multiple address fields
       const customerAddress = customerToUse.address || 
-                             customerToUse.secondaryAddress || 
                              customerToUse.primaryAddress ||
                              customerToUse.deliveryAddress ||
                              customerToUse.fullAddress ||
@@ -969,8 +1093,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         customerName: fullName || customerToUse.name || "",
         phone: customerToUse.phone || "",
         address: customerAddress,
-        city: customerCity || "Iraq",
-        country: customerToUse.country || "Iraq", 
+        city: customerCity || "",
+        country: customerToUse.country || shippingCenterCountry || "Iraq",
         postalCode: customerToUse.postalCode || "",
         notes: "",
         gpsLatitude: undefined,
@@ -986,22 +1110,31 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       console.log('No customer data available');
     }
     console.log('=== End BilingualPurchaseForm Debug ===');
-  }, [existingCustomer, customerData, crmCustomerData, form, isLoadingCustomer]);
+  }, [existingCustomer, customerData, crmCustomerData, form, isLoadingCustomer, shippingCenterCountry]);
+
+  useEffect(() => {
+    if (shippingCenterCountry && !existingCustomer && !crmCustomerData && !customerData?.customer) {
+      const currentCountry = form.getValues('country');
+      if (!currentCountry || currentCountry === 'Iraq') {
+        form.setValue('country', shippingCenterCountry);
+      }
+    }
+  }, [shippingCenterCountry, existingCustomer, crmCustomerData, customerData?.customer, form]);
 
   // State for additional recipient fields - CRM conditional logic (must be declared before use)
-  const [showSecondAddress, setShowSecondAddress] = useState(false);
   const [showRecipientMobile, setShowRecipientMobile] = useState(false);  
   const [secondAddress, setSecondAddress] = useState('');
   const [recipientMobile, setRecipientMobile] = useState('');
 
   // Get current translations based on site language
   const t = translations[language as keyof typeof translations] || translations.en;
+  const taxT = taxTranslations[language as keyof typeof taxTranslations] || taxTranslations.en;
   const isRTL = direction === 'rtl';
   
   // Conditional graying out logic for CRM fields
-  const isPrimaryAddressDisabled = showSecondAddress && secondAddress.trim().length > 0;
+  const isPrimaryAddressDisabled = selectedDeliveryAddressId !== 'primary';
   const isPrimaryMobileDisabled = showRecipientMobile && recipientMobile.trim().length > 0;
-  const isPrimaryPostalCodeDisabled = secondPostalCode.trim().length > 0; // Separate logic for postal code
+  const isPrimaryPostalCodeDisabled = selectedDeliveryAddressId !== 'primary';
   const hasCrmData = !!(crmCustomerData || (customerData?.success && customerData.customer));
 
 
@@ -1054,13 +1187,104 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   };
 
 
+  const selectedContract = selectedContractId === null
+    ? null
+    : customerContracts.find(contract => contract.id === selectedContractId && contract.isActive) || null;
+  const contractItemForProduct = (productId: number) =>
+    selectedContract?.items.find(item => Number(item.productId) === Number(productId));
+  const contractQuantityError = (productId: number, quantity: number) => {
+    if (selectedContractId === null) return null;
+    const item = contractItemForProduct(productId);
+    const limit = contractQuantityLimit(item);
+    if (limit === null) return language === 'fa' ? 'این کالا در قرارداد مجاز نیست یا مقدار آن در دسترس نیست.' : language === 'ar' ? 'هذا المنتج غير مشمول بالعقد أو كميته غير متاحة.' : language === 'tr' ? 'Bu ürün sözleşmede yok veya miktarı kullanılamıyor.' : 'This product is not in the contract or its quantity is unavailable.';
+    if (quantity > limit) return language === 'fa' ? `حداکثر مقدار مجاز این کالا در قرارداد ${limit} است.` : language === 'ar' ? `الحد الأقصى المسموح به لهذا المنتج في العقد هو ${limit}.` : language === 'tr' ? `Bu ürün için sözleşme sınırı ${limit}.` : `The contract limit for this product is ${limit}.`;
+    return null;
+  };
+  const updateCheckoutQuantity = async (productId: number, quantity: number) => {
+    if (!onUpdateQuantity) return;
+    if (quantity > (cart[productId] || 0)) {
+      const error = contractQuantityError(productId, quantity);
+      if (error) {
+        toast({ title: error, variant: 'destructive' });
+        return;
+      }
+    }
+    try {
+      await onUpdateQuantity(productId, quantity);
+    } catch (error) {
+      toast({ title: language === 'fa' ? 'تغییر تعداد کالا انجام نشد.' : language === 'ar' ? 'تعذر تغيير كمية المنتج.' : language === 'tr' ? 'Ürün miktarı değiştirilemedi.' : 'Could not change the product quantity.', description: error instanceof Error ? error.message : undefined, variant: 'destructive' });
+    }
+  };
+  const addContractItem = async (productId: number) => {
+    if (selectedContractId === null || !selectedContract || isLoadingContracts || isFetchingContracts || contractsError || pendingContractAdditionsRef.current.has(productId)) return;
+    const rawQuantity = contractAddQuantities[productId] ?? '1';
+    const quantity = Number(rawQuantity);
+    const product = products.find(candidate => Number(candidate.id) === productId);
+    const error = !Number.isSafeInteger(quantity) || quantity < 1
+      ? (language === 'fa' ? 'تعداد معتبر وارد کنید.' : language === 'ar' ? 'أدخل كمية صالحة.' : language === 'tr' ? 'Geçerli bir miktar girin.' : 'Enter a valid quantity.')
+      : contractQuantityError(productId, (cart[productId] || 0) + quantity);
+    if (error || !product || !product.inStock || Number(product.stockQuantity) < quantity) {
+      toast({ title: error || (language === 'fa' ? 'موجودی کالا کافی نیست.' : language === 'ar' ? 'المخزون غير كافٍ.' : language === 'tr' ? 'Yeterli stok yok.' : 'Not enough stock available.'), variant: 'destructive' });
+      return;
+    }
+    pendingContractAdditionsRef.current.add(productId);
+    setPendingContractAdditions([...pendingContractAdditionsRef.current]);
+    try {
+      await onAddContractItem(productId, quantity);
+      setContractAddQuantities(current => ({ ...current, [productId]: '1' }));
+    } catch (error) {
+      toast({ title: language === 'fa' ? 'افزودن کالا انجام نشد.' : language === 'ar' ? 'تعذرت إضافة المنتج.' : language === 'tr' ? 'Ürün eklenemedi.' : 'Could not add the product.', description: error instanceof Error ? error.message : undefined, variant: 'destructive' });
+    } finally {
+      pendingContractAdditionsRef.current.delete(productId);
+      setPendingContractAdditions([...pendingContractAdditionsRef.current]);
+    }
+  };
+  const getCartUnitPrice = (product: any, quantity: number) => {
+    if (selectedContractId !== null) {
+      const item = selectedContract?.items.find(contractItem => Number(contractItem.productId) === Number(product.id));
+      return item && item.unitPrice != null && String(item.unitPrice).trim() !== '' && Number.isFinite(Number(item.unitPrice))
+        ? Number(item.unitPrice)
+        : 0;
+    }
+    return getDiscountedPrice(product, quantity);
+  };
+  const contractCartErrors = useMemo(() => {
+    if (selectedContractId === null) {
+      const restrictedProductInCart = Object.keys(cart).some(productId =>
+        products.some(product => Number(product.id) === Number(productId) && product.contractOnly));
+      return restrictedProductInCart
+        ? [language === 'fa' ? 'برای کالاهای فقط قراردادی، قرارداد مربوط به خود را انتخاب کنید.' : language === 'ar' ? 'اختر عقدك لشراء المنتجات المخصصة للعقود فقط.' : language === 'tr' ? 'Yalnızca sözleşmeyle satılan ürünler için kendi sözleşmenizi seçin.' : 'Select your contract to purchase contract-only products.']
+        : [];
+    }
+    if (isLoadingContracts || isFetchingContracts) return [language === 'fa' ? 'در حال بررسی وضعیت قرارداد...' : language === 'ar' ? 'جارٍ التحقق من حالة العقد...' : 'Checking contract status...'];
+    if (contractsError) return [language === 'fa' ? 'بارگذاری قرارداد ناموفق بود. دوباره تلاش کنید.' : language === 'ar' ? 'تعذر تحميل العقود. يرجى المحاولة مجدداً.' : 'Could not verify the contract. Please retry.'];
+    if (!selectedContract) return [language === 'fa' ? 'این قرارداد دیگر فعال یا در دسترس نیست. قرارداد دیگری انتخاب کنید.' : language === 'ar' ? 'هذا العقد لم يعد نشطاً أو متاحاً. اختر عقداً آخر.' : 'This contract is no longer active or available. Choose another contract.'];
+    return Object.entries(cart).flatMap(([productId, quantity]) => {
+      const item = selectedContract.items.find(contractItem => Number(contractItem.productId) === Number(productId));
+      const product = products.find(candidate => Number(candidate.id) === Number(productId));
+      if (!item) return [`${product?.name || `Product #${productId}`} is not included in contract #${selectedContract.number}.`];
+      const errors: string[] = [];
+      const limit = contractQuantityLimit(item);
+      if (limit === null) {
+        errors.push(`${product?.name || item.productName}: contract availability is unavailable.`);
+      } else if (Number(quantity) > limit) {
+        errors.push(`${product?.name || item.productName}: quantity ${quantity} exceeds contract limit ${limit}.`);
+      }
+      if (item.unitPrice == null || String(item.unitPrice).trim() === '' || !Number.isFinite(Number(item.unitPrice)) || Number(item.unitPrice) < 0) {
+        errors.push(`${product?.name || item.productName}: contract price is unavailable.`);
+      }
+      return errors;
+    });
+  }, [selectedContractId, selectedContract, cart, products, isLoadingContracts, isFetchingContracts, contractsError, language]);
+  const hasContractCartError = contractCartErrors.length > 0;
+
 
   // Calculate subtotal with discounts - IQD whole numbers only
   const subtotalAmount = Math.round(Object.entries(cart).reduce((sum, [productId, quantity]) => {
     const product = products.find(p => p.id === parseInt(productId));
-    if (product && product.price) {
-      const discountedPrice = getDiscountedPrice(product, quantity);
-      return sum + (discountedPrice * quantity);
+    if (product) {
+      const unitPrice = getCartUnitPrice(product, quantity);
+      return sum + (unitPrice * quantity);
     }
     return sum;
   }, 0));
@@ -1080,55 +1304,10 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     }
   }, [shippingRatesData, selectedShippingMethod]);
 
-  // Calculate shipping cost based on selected method - Real-time update
+  // Never infer shipping from configured base prices or threshold fields; quotes price delivery.
   useEffect(() => {
-    console.log('🚚 Shipping cost calculation:', { 
-      selectedShippingMethod, 
-      hasShippingData: !!shippingRatesData, 
-      subtotalAmount: subtotalAmount
-    });
-    
-    if (selectedShippingMethod && shippingRatesData && shippingRatesData.length > 0) {
-      const selectedRate = shippingRatesData.find((rate: any) => rate.id === selectedShippingMethod);
-      console.log('📦 Selected shipping rate:', selectedRate);
-      
-      if (selectedRate) {
-        // Handle special delivery methods with zero cost
-        if (selectedRate.deliveryMethod === 'smart_vehicle' || selectedRate.delivery_method === 'smart_vehicle' ||
-            selectedRate.deliveryMethod === 'self_pickup' || selectedRate.delivery_method === 'self_pickup' ||
-            selectedRate.deliveryMethod === 'freight_collect' || selectedRate.delivery_method === 'freight_collect') {
-          console.log('✅ SPECIAL DELIVERY METHOD: Zero cost for', selectedRate.deliveryMethod || selectedRate.delivery_method);
-          setShippingCost(0);
-          return;
-        }
-        
-        // Parse threshold carefully for regular shipping methods - IQD whole numbers
-        const freeShippingThreshold = Math.round(parseFloat(selectedRate.freeShippingThreshold || '0'));
-        const basePrice = Math.round(parseFloat(selectedRate.basePrice || '0'));
-        
-        console.log('💰 Free shipping check:', {
-          threshold: freeShippingThreshold,
-          orderAmount: subtotalAmount,
-          qualifies: subtotalAmount >= freeShippingThreshold && freeShippingThreshold > 0
-        });
-        
-        // Real-time free shipping check
-        if (freeShippingThreshold > 0 && subtotalAmount >= freeShippingThreshold) {
-          console.log('✅ FREE SHIPPING APPLIED! Threshold:', freeShippingThreshold, 'Order:', subtotalAmount);
-          setShippingCost(0);
-        } else {
-          console.log('💳 Regular shipping cost applied:', basePrice);
-          setShippingCost(basePrice);
-        }
-      } else {
-        console.log('⚠️ Selected rate not found, resetting shipping cost');
-        setShippingCost(0);
-      }
-    } else {
-      console.log('🔄 No shipping method selected or no data, resetting cost');
-      setShippingCost(0);
-    }
-  }, [selectedShippingMethod, shippingRatesData, subtotalAmount]);
+    setShippingCost(0);
+  }, [selectedShippingMethod, shippingRatesData]);
 
   // Debug shipping rates loading
   useEffect(() => {
@@ -1155,6 +1334,27 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const [smartDeliveryError, setSmartDeliveryError] = useState<string>('');
   const [optimalVehicle, setOptimalVehicle] = useState<any>(null);
   const [alternativeVehicles, setAlternativeVehicles] = useState<any[]>([]);
+  const [smartDeliveryPricedKey, setSmartDeliveryPricedKey] = useState('');
+  const [standardShippingQuote, setStandardShippingQuote] = useState<{
+    methodId: number;
+    cost: number;
+    key: string;
+    centerKey: string;
+    cartKey: string;
+    createdAt: number;
+  } | null>(null);
+  const [standardShippingLoading, setStandardShippingLoading] = useState(false);
+  const [standardShippingError, setStandardShippingError] = useState('');
+  const standardShippingRequestRef = useRef(0);
+  const smartShippingRequestRef = useRef(0);
+  const [shippingQuote, setShippingQuote] = useState<{
+    token: string;
+    destination: string;
+    centerKey: string;
+    cartKey: string;
+    createdAt: number;
+  } | null>(null);
+  const [shippingQuoteRefreshKey, setShippingQuoteRefreshKey] = useState(0);
 
   // Auto-select smart vehicle when shipping methods load
   useEffect(() => {
@@ -1180,27 +1380,138 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     totalTaxAmount
   });
   
+  const unavailableCartProductIds = Object.keys(cart).filter(productId =>
+    !products.some(product => product.id === Number(productId))
+  );
+  const missingWeightProductIds = Object.keys(cart).filter(productId => {
+    const product = products.find(p => p.id === Number(productId));
+    return product && shippingWeightKg(product) === null;
+  });
+
   // Calculate total weight of all products in cart
   const totalWeight = Object.entries(cart).reduce((sum, [productId, quantity]) => {
     const product = products.find(p => p.id === parseInt(productId));
     if (product) {
-      // Get weight from product data (use different weight fields as fallback)
-      // grossWeight is the primary weight field from shop products
-      const productWeight = parseFloat(product.grossWeight || product.weight || product.weightKg || product.weight_kg || '0');
-      // Use minimum 1kg per item if no weight specified (for smart vehicle calculation)
-      const effectiveWeight = productWeight > 0 ? productWeight : 1;
-      return sum + (effectiveWeight * quantity);
+      const productWeight = shippingWeightKg(product);
+      return sum + (productWeight ?? 0) * quantity;
     }
     return sum;
   }, 0);
+  const shippingQuoteCart = Object.fromEntries(
+    Object.entries(cart).map(([productId, quantity]) => [String(Number(productId)), Number(quantity)])
+  );
+  const shippingQuoteCartKey = JSON.stringify(
+    Object.entries(shippingQuoteCart)
+      .map(([productId, quantity]) => [Number(productId), Number(quantity)])
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+  );
 
   // Calculate shipping cost - prioritize smart delivery over regular shipping
-  const finalShippingCost = selectedShippingMethod && (shippingRatesData?.find((rate: any) => rate.id === selectedShippingMethod)?.deliveryMethod === 'smart_vehicle' || shippingRatesData?.find((rate: any) => rate.id === selectedShippingMethod)?.delivery_method === 'smart_vehicle')
-    ? (optimalVehicle ? optimalVehicle.totalCost : smartDeliveryCost)
-    : shippingCost;
+  const legacySecondaryAddress = String(crmCustomerData?.secondaryAddress || customerData?.customer?.secondaryAddress || '').trim();
+  const selectedSavedAddress = selectedDeliveryAddressId.startsWith('saved:')
+    ? savedCustomerAddresses.find(address => String(address.id) === selectedDeliveryAddressId.slice(6))
+    : undefined;
+  const isNewAddressSelected = selectedDeliveryAddressId === 'new';
+  const isLegacyAddressSelected = selectedDeliveryAddressId === 'legacy';
+  const isAlternateAddressSelected = isNewAddressSelected || isLegacyAddressSelected || !!selectedSavedAddress;
+  const primaryPricingAddress = (crmCustomerData?.address || customerData?.customer?.address || form.watch('address') || '').trim();
+  const primaryPricingCity = (crmCustomerData?.cityRegion || crmCustomerData?.city || customerData?.customer?.cityRegion || customerData?.customer?.city || form.watch('city') || '').trim();
+  const primaryPricingProvince = crmCustomerData?.province || customerData?.customer?.province || '';
+  const activePricingAddress = selectedSavedAddress
+    ? selectedSavedAddress.address
+    : isLegacyAddressSelected
+      ? legacySecondaryAddress
+      : isNewAddressSelected
+        ? secondAddress.trim()
+        : primaryPricingAddress;
+  const activePricingCity = selectedSavedAddress
+    ? selectedSavedAddress.city || ''
+    : isAlternateAddressSelected ? secondCity.trim() : primaryPricingCity;
+  const activePricingProvince = selectedSavedAddress
+    ? selectedSavedAddress.state || ''
+    : isAlternateAddressSelected ? secondProvince.trim() : primaryPricingProvince;
+  const activePricingCountry = selectedSavedAddress
+    ? selectedSavedAddress.country || ''
+    : isNewAddressSelected
+      ? newAddressCountry.trim()
+      : isLegacyAddressSelected
+        ? legacyAddressCountry.trim()
+        : (form.watch('country') || crmCustomerData?.country || customerData?.customer?.country || '');
+  const activePricingPostalCode = selectedSavedAddress
+    ? selectedSavedAddress.postalCode || ''
+    : isAlternateAddressSelected ? secondPostalCode.trim() : (form.watch('postalCode') || '');
+  const activePricingPhone = selectedSavedAddress
+    ? selectedSavedAddress.phone || ''
+    : isNewAddressSelected
+      ? newAddressPhone.trim()
+      : (showRecipientMobile && recipientMobile.trim() ? recipientMobile.trim() : form.watch('phone') || '');
+  const activeRecipientName = selectedSavedAddress
+    ? selectedSavedAddress.recipientName || ''
+    : form.watch('customerName') || '';
+  const selectDeliveryAddress = (addressId: string) => {
+    if (addressId === 'legacy') {
+      setSecondCity('');
+      setSecondProvince('');
+      setSecondPostalCode('');
+      setSelectedSecondaryProvinceId(null);
+      setLegacyAddressCountry('');
+    }
+    setSelectedDeliveryAddressId(addressId);
+    setPendingReview(null);
+  };
+  const hasCompleteDeliveryAddress = !!activePricingAddress && !!activePricingCity &&
+    !!activePricingCountry.trim() && (!isAlternateAddressSelected || !!activePricingProvince);
+  const currentSmartDeliveryPricedKey = `${activePricingAddress}|${activePricingCity}|${activePricingProvince}|${activePricingCountry}|${totalWeight}|${shippingQuoteCartKey}`;
+  const selectedShippingRate = shippingRatesData?.find((rate: any) => rate.id === selectedShippingMethod);
+  const activeDeliveryMethodValue = String(selectedShippingRate?.deliveryMethod || selectedShippingRate?.delivery_method || '').toLowerCase();
+  const isSmartShippingMethod = activeDeliveryMethodValue === 'smart_vehicle' || activeDeliveryMethodValue.includes('bus');
+  const isPickupShippingMethod = ['pickup', 'self_pickup', 'self-pickup'].includes(activeDeliveryMethodValue);
+  const standardShippingQuoteKey = JSON.stringify([
+    selectedShippingMethod,
+    selectedContractId,
+    selectedContract,
+    subtotalAmount,
+    activePricingAddress,
+    activePricingCity,
+    activePricingProvince,
+    activePricingCountry,
+    totalWeight,
+    shippingQuoteCartKey,
+  ]);
+  const standardShippingQuoteReady = !!standardShippingQuote &&
+    standardShippingQuote.methodId === selectedShippingMethod &&
+    standardShippingQuote.key === standardShippingQuoteKey &&
+    standardShippingQuote.centerKey === shippingCenterKey &&
+    standardShippingQuote.cartKey === shippingQuoteCartKey &&
+    Number.isFinite(standardShippingQuote.cost) &&
+    Date.now() - standardShippingQuote.createdAt < 4 * 60 * 1000;
+  const currentSmartShippingQuoteReady = !!shippingQuote?.token &&
+    shippingQuote.destination === `${activePricingCity}|${activePricingProvince}|${totalWeight}` &&
+    shippingQuote.centerKey === shippingCenterKey &&
+    shippingQuote.cartKey === shippingQuoteCartKey &&
+    Date.now() - shippingQuote.createdAt < 4 * 60 * 1000 &&
+    smartDeliveryPricedKey === currentSmartDeliveryPricedKey;
+  const finalShippingCost = isPickupShippingMethod
+    ? 0
+    : isSmartShippingMethod
+      ? (optimalVehicle && currentSmartShippingQuoteReady
+        ? Number(optimalVehicle.totalCost)
+        : 0)
+      : (standardShippingQuoteReady ? standardShippingQuote!.cost : 0);
+  const hasCurrentShippingPrice = isPickupShippingMethod ||
+    (hasCompleteDeliveryAddress && (isSmartShippingMethod ? currentSmartShippingQuoteReady : standardShippingQuoteReady));
+  const deliveryAddressRequiredMessage = language === 'fa'
+    ? 'برای محاسبه هزینه ارسال، آدرس، شهر و کشور تحویل را مشخص کنید.'
+    : language === 'ar'
+      ? 'يرجى تحديد عنوان التسليم والمدينة والبلد لحساب تكلفة الشحن.'
+      : language === 'tr'
+        ? 'Kargo ücretini hesaplamak için teslimat adresini, şehri ve ülkeyi seçin.'
+        : 'Choose a delivery address, city, and country to calculate shipping.';
   
   // Calculate total amount (subtotal + VAT + duties + final shipping cost - no double counting) - IQD whole numbers
-  const totalAmount = Math.round(subtotalAmount + totalTaxAmount + finalShippingCost);
+  const totalAmount = hasCurrentShippingPrice
+    ? Math.round(subtotalAmount + totalTaxAmount + finalShippingCost)
+    : 0;
   
   // Debug total calculation
   console.log('💰 [TOTAL CALCULATION] Breakdown:', {
@@ -1221,6 +1532,14 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   // Check if wallet is enabled in admin settings
   const isWalletEnabledInSettings = availablePaymentMethods.some((method: any) => method.methodKey === 'wallet');
   const canUseWallet = walletBalance > 0 && (existingCustomer || (customerData as any)?.success) && isWalletEnabledInSettings;
+  const isWalletPaymentMethod = ['wallet', 'wallet_full', 'wallet_partial', 'wallet_combined'].includes(paymentMethod);
+  const supportedNonWalletPaymentMethod = (() => {
+    const supported = availablePaymentMethods
+      .map((method: any) => method.methodKey)
+      .filter((methodKey: string) => ['fib_online', 'online_payment', 'bank_transfer_grace', 'bank_receipt'].includes(methodKey));
+    if (supported.includes(paymentMethod)) return paymentMethod;
+    return ['fib_online', 'online_payment', 'bank_transfer_grace', 'bank_receipt'].find(methodKey => supported.includes(methodKey)) || null;
+  })();
   const maxWalletAmount = Math.min(walletBalance, totalAmount);
   const remainingAfterWallet = totalAmount - (paymentMethod === 'wallet' ? totalAmount : 0);
   
@@ -1240,6 +1559,12 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       setWalletAmount(0);
     }
   }, [paymentMethod, walletBalance, totalAmount]);
+
+  useEffect(() => {
+    if (selectedContractId === null || (!isWalletPaymentMethod && walletAmount <= 0)) return;
+    setWalletAmount(0);
+    setPaymentMethod((supportedNonWalletPaymentMethod || 'fib_online') as typeof paymentMethod);
+  }, [selectedContractId, isWalletPaymentMethod, walletAmount, supportedNonWalletPaymentMethod]);
 
   console.log('💳 [WALLET DEBUG] Complete wallet analysis:', { 
     walletData, 
@@ -1297,46 +1622,29 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     }
   };
 
-  // Calculate distance between cities (basic estimation)
-  const calculateDistanceBetweenCities = (fromCity: string, toCity: string): number => {
-    // Basic distance estimation between major Iraqi cities (km)
-    const cityDistances: { [key: string]: { [key: string]: number } } = {
-      'اربیل': {
-        'بغداد': 350,
-        'البصرة': 650,
-        'الموصل': 85,
-        'كربلا': 467,
-        'النجف': 480,
-        'السليمانية': 65,
-        'دهوك': 75,
-        'كركوك': 90,
-        'الرمادي': 420,
-        'الناصرية': 570
-      },
-      'بغداد': {
-        'اربیل': 350,
-        'البصرة': 420,
-        'الموصل': 400,
-        'كربلا': 100,
-        'النجف': 180,
-        'السليمانية': 300,
-        'دهوك': 450,
-        'كركوك': 230,
-        'الرمادي': 110,
-        'الناصرية': 320
-      }
-    };
-
-    // Default distance if not found
-    const defaultDistance = 200;
-    
-    return cityDistances[fromCity]?.[toCity] || 
-           cityDistances[toCity]?.[fromCity] || 
-           defaultDistance;
-  };
-
   // Calculate smart delivery cost
-  const calculateSmartDeliveryCost = async (destinationCity: string, destinationProvince: string) => {
+  const calculateSmartDeliveryCost = async (destinationCity: string, destinationProvince: string, destinationCityId: number | undefined, requestId: number) => {
+    if (hasContractCartError) {
+      setSmartDeliveryLoading(false);
+      setSmartDeliveryError(contractCartErrors[0]);
+      setOptimalVehicle(null);
+      setShippingQuote(null);
+      return;
+    }
+    if (unavailableCartProductIds.length > 0) {
+      setSmartDeliveryLoading(false);
+      setSmartDeliveryError(t.unavailableCartWarning);
+      setOptimalVehicle(null);
+      setShippingQuote(null);
+      return;
+    }
+    if (missingWeightProductIds.length > 0) {
+      setSmartDeliveryLoading(false);
+      setSmartDeliveryError(t.missingCartWeight);
+      setOptimalVehicle(null);
+      setShippingQuote(null);
+      return;
+    }
     if (!destinationCity || totalWeight <= 0) {
       console.log('🚚 [SMART DELIVERY] Skipping calculation - missing city or zero weight');
       return;
@@ -1344,16 +1652,23 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
 
     setSmartDeliveryLoading(true);
     setSmartDeliveryError('');
+    setSmartDeliveryPricedKey('');
+    setPricedShippingCenterKey('');
+    setShippingQuote(null);
     
     try {
-      // Calculate estimated distance
-      const estimatedDistance = calculateDistanceBetweenCities('اربیل', destinationCity);
-      
+      const refreshedCenter = await refetchShippingCenter();
+      if (requestId !== smartShippingRequestRef.current) return;
+      const quoteCenterKey = getShippingCenterKey(refreshedCenter.data?.data);
+      if (refreshedCenter.isError || !quoteCenterKey) {
+        throw new Error(smartDeliveryUnavailableMessage);
+      }
+      shippingCenterKeyRef.current = quoteCenterKey;
+
       console.log('🚚 [SMART DELIVERY] Calculating cost for:', {
         weight: totalWeight,
         city: destinationCity,
         province: destinationProvince,
-        estimatedDistance,
         cartItems: Object.keys(cart).length
       });
 
@@ -1366,25 +1681,33 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         credentials: 'include',
         body: JSON.stringify({
           orderNumber: `CART-${Date.now()}`,
-          weightKg: totalWeight,
-          routeType: estimatedDistance > 100 ? 'highway' : 'urban', // Choose route type based on distance
-          distanceKm: estimatedDistance,
-          isHazardous: false, // TODO: Determine based on cart contents if needed
+          cart: shippingQuoteCart,
           destinationCity: destinationCity,
-          destinationProvince: destinationProvince
+          ...(destinationProvince ? { destinationProvince } : {}),
+          ...(destinationCityId != null ? { destinationCityId } : {})
         })
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
+      if (requestId !== smartShippingRequestRef.current) return;
       
       console.log('🚚 [SMART DELIVERY] API response:', data);
       
-      if (data.success) {
+      if (response.ok && data.success) {
+        if (typeof data.shippingQuoteToken !== 'string' || !data.shippingQuoteToken) {
+          throw new Error(smartDeliveryUnavailableMessage);
+        }
         // Handle new smart vehicle API response format
         if (data.multiVehicleRequired) {
           // Multi-vehicle scenario
           const multiVehicleData = data.solution;
-          const totalCost = multiVehicleData.totalCost;
+          const totalCost = Number(multiVehicleData?.totalCost);
+          if (!Number.isFinite(totalCost) || totalCost < 0) {
+            throw new Error(smartDeliveryUnavailableMessage);
+          }
+          if (shippingCenterKeyRef.current !== quoteCenterKey) {
+            throw new Error(smartDeliveryUnavailableMessage);
+          }
           const vehicleInfo = {
             vehicleName: `${multiVehicleData.totalVehicles} خودرو`,
             totalCost: totalCost,
@@ -1407,6 +1730,17 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           setOptimalVehicle(vehicleInfo);
           setAlternativeVehicles([]);
           setSmartDeliveryCost(totalCost);
+        setSmartDeliveryPricedKey(`${activePricingAddress}|${destinationCity}|${destinationProvince}|${activePricingCountry}|${totalWeight}|${shippingQuoteCartKey}`);
+          setPricedShippingCenterKey(quoteCenterKey);
+          setShippingQuote(typeof data.shippingQuoteToken === 'string' && data.shippingQuoteToken
+            ? {
+                token: data.shippingQuoteToken,
+                destination: `${destinationCity}|${destinationProvince}|${totalWeight}`,
+                centerKey: quoteCenterKey,
+                cartKey: shippingQuoteCartKey,
+                createdAt: Date.now()
+              }
+            : null);
           
           console.log('✅ [SMART DELIVERY] Multi-vehicle cost calculated:', {
             vehicles: multiVehicleData.totalVehicles,
@@ -1416,22 +1750,40 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         } else if (data.selectedVehicle) {
           // Single vehicle scenario
           const vehicle = data.selectedVehicle;
+          const vehicleCost = Number(vehicle.totalCost);
+          if (!Number.isFinite(vehicleCost) || vehicleCost < 0) {
+            throw new Error(smartDeliveryUnavailableMessage);
+          }
+          if (shippingCenterKeyRef.current !== quoteCenterKey) {
+            throw new Error(smartDeliveryUnavailableMessage);
+          }
           // API returns 'name' not 'vehicleName' - handle both for compatibility
           const vehicleName = vehicle.name || vehicle.vehicleName;
           const vehicleInfo = {
             vehicleName: vehicleName,
-            totalCost: vehicle.totalCost,
+            totalCost: vehicleCost,
             basePrice: vehicle.basePrice,
             distanceCost: vehicle.distanceCost
           };
           
           setOptimalVehicle(vehicleInfo);
           setAlternativeVehicles(data.alternatives || []);
-          setSmartDeliveryCost(vehicle.totalCost);
+          setSmartDeliveryCost(vehicleCost);
+          setSmartDeliveryPricedKey(`${activePricingAddress}|${destinationCity}|${destinationProvince}|${activePricingCountry}|${totalWeight}|${shippingQuoteCartKey}`);
+          setPricedShippingCenterKey(quoteCenterKey);
+          setShippingQuote(typeof data.shippingQuoteToken === 'string' && data.shippingQuoteToken
+            ? {
+                token: data.shippingQuoteToken,
+                destination: `${destinationCity}|${destinationProvince}|${totalWeight}`,
+                centerKey: quoteCenterKey,
+                cartKey: shippingQuoteCartKey,
+                createdAt: Date.now()
+              }
+            : null);
           
           console.log('✅ [SMART DELIVERY] Single vehicle cost calculated:', {
             vehicle: vehicleName,
-            cost: vehicle.totalCost,
+            cost: vehicleCost,
             basePrice: vehicle.basePrice,
             distanceCost: vehicle.distanceCost
           });
@@ -1440,32 +1792,199 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           throw new Error('فرمت پاسخ سیستم انتخاب خودرو نامعتبر است');
         }
       } else {
-        throw new Error(data.message || 'محاسبه هزینه ارسال ناموفق بود');
+        throw new Error(data.message || smartDeliveryUnavailableMessage);
       }
     } catch (error) {
+      if (requestId !== smartShippingRequestRef.current) return;
       console.error('❌ [SMART DELIVERY] Calculation error:', error);
-      setSmartDeliveryError((error as any)?.message || 'خطا در محاسبه هزینه ارسال');
+      setSmartDeliveryError((error as any)?.message || smartDeliveryUnavailableMessage);
       setSmartDeliveryCost(0);
       setOptimalVehicle(null);
       setAlternativeVehicles([]);
+      setShippingQuote(null);
     } finally {
-      setSmartDeliveryLoading(false);
+      if (requestId === smartShippingRequestRef.current) setSmartDeliveryLoading(false);
     }
   };
 
+  const smartDeliveryUnavailableMessage = language === 'fa'
+    ? 'هزینه ارسال برای این مسیر در دسترس نیست. لطفاً روش ارسال دیگری انتخاب کنید.'
+    : language === 'ar'
+      ? 'تكلفة الشحن لهذا المسار غير متاحة. يرجى اختيار طريقة شحن أخرى.'
+      : language === 'tr'
+        ? 'Bu rota için teslimat ücreti mevcut değil. Lütfen başka bir teslimat yöntemi seçin.'
+        : 'Shipping is unavailable for this route. Please choose another delivery method.';
+  const shippingQuoteRefreshMessage = language === 'fa'
+    ? 'پیش‌فاکتور ارسال موجود نیست یا منقضی شده است؛ در حال به‌روزرسانی است. لطفاً پس از به‌روزرسانی دوباره سفارش را ثبت کنید.'
+    : language === 'ar'
+      ? 'عرض الشحن غير متوفر أو منتهي الصلاحية؛ جارٍ تحديثه. يرجى إعادة إرسال الطلب بعد التحديث.'
+      : language === 'tr'
+        ? 'Kargo teklifi eksik veya süresi dolmuş; yenileniyor. Lütfen yenilendikten sonra siparişi tekrar gönderin.'
+        : 'The shipping quote is missing or expired and is being refreshed. Please submit again after it updates.';
+  const standardShippingUnavailableMessage = language === 'fa'
+    ? 'هزینه ارسال در دسترس نیست. لطفاً دوباره تلاش کنید یا روش ارسال دیگری انتخاب کنید.'
+    : language === 'ar'
+      ? 'تكلفة الشحن غير متاحة. يرجى إعادة المحاولة أو اختيار طريقة شحن أخرى.'
+      : language === 'tr'
+        ? 'Kargo ücreti şu anda mevcut değil. Lütfen tekrar deneyin veya başka bir teslimat yöntemi seçin.'
+        : 'Shipping cost is unavailable. Please retry or choose another delivery method.';
+
+  useEffect(() => {
+    const requestId = ++standardShippingRequestRef.current;
+    const quoteController = new AbortController();
+    setStandardShippingQuote(null);
+    setStandardShippingError('');
+    setShippingCost(0);
+    if (!selectedShippingMethod || !selectedShippingRate || isPickupShippingMethod || isSmartShippingMethod) {
+      setStandardShippingLoading(false);
+      return () => {
+        if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+        quoteController.abort();
+      };
+    }
+    if (hasContractCartError) {
+      setStandardShippingLoading(false);
+      setStandardShippingError(contractCartErrors[0]);
+      return () => {
+        if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+        quoteController.abort();
+      };
+    }
+    if (unavailableCartProductIds.length > 0) {
+      setStandardShippingLoading(false);
+      setStandardShippingError(t.unavailableCartWarning);
+      return () => {
+        if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+        quoteController.abort();
+      };
+    }
+    if (missingWeightProductIds.length > 0) {
+      setStandardShippingLoading(false);
+      setStandardShippingError(t.missingCartWeight);
+      return () => {
+        if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+        quoteController.abort();
+      };
+    }
+    if (!hasCompleteDeliveryAddress || !activePricingCity || totalWeight <= 0) {
+      setStandardShippingLoading(false);
+      setStandardShippingError('');
+      return () => {
+        if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+        quoteController.abort();
+      };
+    }
+
+    setStandardShippingLoading(true);
+    const quoteKey = standardShippingQuoteKey;
+    const quoteCity = activePricingCity;
+    const quoteProvince = activePricingProvince;
+    const countryCode = resolveCountryCode(activePricingCountry) || (activePricingCountry.length <= 3 ? activePricingCountry.toUpperCase() : '');
+    const quoteMethodId = selectedShippingMethod;
+    const requestQuote = async () => {
+      try {
+        let centerRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
+        let refreshedCenter;
+        try {
+          refreshedCenter = await Promise.race([
+            refetchShippingCenter(),
+            new Promise<never>((_, reject) => {
+              centerRefreshTimeout = setTimeout(() => reject(new Error('Shipping center refresh timed out')), 12000);
+            }),
+          ]);
+        } finally {
+          if (centerRefreshTimeout) clearTimeout(centerRefreshTimeout);
+        }
+        if (requestId !== standardShippingRequestRef.current) return;
+        const quoteCenterKey = getShippingCenterKey(refreshedCenter.data?.data);
+        if (refreshedCenter.isError || !quoteCenterKey) throw new Error(standardShippingUnavailableMessage);
+        shippingCenterKeyRef.current = quoteCenterKey;
+        const matchingCity = Array.isArray(secondaryCities)
+          ? secondaryCities.find((city: any) => [
+              city.nameEn, city.name_en, city.nameEnglish, city.nameArabic, city.name_arabic,
+              city.namePersian, city.nameFa, city.name_fa, city.nameTurkish, city.nameTr, city.name_tr, city.name
+            ].some((name: any) => name && name.toLowerCase() === quoteCity.toLowerCase()))
+          : null;
+        const quoteTimeout = setTimeout(() => quoteController.abort(), 12000);
+        let response: Response;
+        let result: any;
+        try {
+          response = await fetch('/api/shipping/quote-standard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            signal: quoteController.signal,
+            body: JSON.stringify({
+              cart: shippingQuoteCart,
+              contractId: selectedContractId,
+              subtotalAmount,
+              ...(matchingCity?.id != null ? { destinationCityId: matchingCity.id } : {}),
+              destinationCity: quoteCity,
+              ...(quoteProvince ? { destinationProvince: quoteProvince } : {}),
+              ...(countryCode ? { destinationCountryCode: countryCode } : {}),
+              shippingMethod: quoteMethodId,
+              selectorIsDeliveryMethod: false,
+            }),
+          });
+          const contentType = response.headers.get('content-type') || '';
+          result = contentType.includes('application/json')
+            ? await response.json().catch(() => null)
+            : null;
+        } finally {
+          clearTimeout(quoteTimeout);
+        }
+        if (requestId !== standardShippingRequestRef.current) return;
+        const rawCost = result?.data?.shippingCost;
+        const cost = Number(rawCost);
+        if (!response.ok || !result?.success ||
+          (typeof rawCost !== 'number' && typeof rawCost !== 'string') ||
+          String(rawCost).trim() === '' || !Number.isFinite(cost) || cost < 0) {
+          throw new Error(standardShippingUnavailableMessage);
+        }
+        if (requestId !== standardShippingRequestRef.current || shippingCenterKeyRef.current !== quoteCenterKey) return;
+        setShippingCost(cost);
+        setStandardShippingQuote({
+          methodId: quoteMethodId,
+          cost,
+          key: quoteKey,
+          centerKey: quoteCenterKey,
+          cartKey: shippingQuoteCartKey,
+          createdAt: Date.now(),
+        });
+      } catch (error) {
+        if (requestId !== standardShippingRequestRef.current) return;
+        setStandardShippingError(standardShippingUnavailableMessage);
+        setStandardShippingQuote(null);
+        setShippingCost(0);
+      } finally {
+        if (requestId === standardShippingRequestRef.current) setStandardShippingLoading(false);
+      }
+    };
+    // Wait until the customer has stopped changing the cart before quoting.
+    const debounceTimer = setTimeout(() => void requestQuote(), 2000);
+    return () => {
+      if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+      clearTimeout(debounceTimer);
+      quoteController.abort();
+    };
+  }, [
+    selectedShippingMethod, selectedShippingRate, isPickupShippingMethod, isSmartShippingMethod,
+    activePricingAddress, activePricingCity, activePricingProvince, activePricingCountry, hasCompleteDeliveryAddress, totalWeight, standardShippingQuoteKey,
+    shippingQuoteCartKey, shippingQuoteRefreshKey, secondaryCities, shippingCenterKey, refetchShippingCenter,
+    standardShippingUnavailableMessage, unavailableCartProductIds.length,
+    hasContractCartError, contractCartErrors, selectedContractId, subtotalAmount,
+  ]);
+
   // Watch for changes in destination to recalculate delivery cost
   useEffect(() => {
+    const requestId = ++smartShippingRequestRef.current;
     // Determine final destination city and province
-    const finalDestinationCity = showSecondAddress && secondCity.trim() ? 
-      secondCity : 
-      (crmCustomerData?.cityRegion || crmCustomerData?.city || customerData?.customer?.cityRegion || customerData?.customer?.city || form.watch('city'));
+    const finalDestinationCity = activePricingCity;
     
-    const finalDestinationProvince = showSecondAddress && secondProvince.trim() ? 
-      secondProvince : 
-      (crmCustomerData?.province || customerData?.customer?.province);
+    const finalDestinationProvince = activePricingProvince;
 
     console.log('🚚 [DELIVERY CALCULATION] Final destination determined:', {
-      showSecondAddress,
+      selectedDeliveryAddressId,
       secondCity,
       secondProvince,
       crmCityRegion: crmCustomerData?.cityRegion,
@@ -1480,19 +1999,77 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       totalWeight
     });
 
-    // RELAXED CONDITIONS: Only require city and weight > 0
-    // Province can default to city name if not available
-    const effectiveProvince = finalDestinationProvince || finalDestinationCity || 'Iraq';
+    const effectiveProvince = finalDestinationProvince || '';
+
+    if (!isSmartShippingMethod) {
+      setSmartDeliveryLoading(false);
+      setSmartDeliveryCost(0);
+      setOptimalVehicle(null);
+      setAlternativeVehicles([]);
+      setSmartDeliveryError('');
+      setSmartDeliveryPricedKey('');
+      setPricedShippingCenterKey('');
+      setShippingQuote(null);
+      return;
+    }
+
+    if (unavailableCartProductIds.length > 0) {
+      setSmartDeliveryLoading(false);
+      setSmartDeliveryCost(0);
+      setOptimalVehicle(null);
+      setShippingQuote(null);
+      setSmartDeliveryPricedKey('');
+      setSmartDeliveryError(t.unavailableCartWarning);
+      return;
+    }
+
+    if (hasContractCartError) {
+      setSmartDeliveryLoading(false);
+      setSmartDeliveryCost(0);
+      setOptimalVehicle(null);
+      setShippingQuote(null);
+      setSmartDeliveryPricedKey('');
+      setSmartDeliveryError(contractCartErrors[0]);
+      return;
+    }
     
-    if (finalDestinationCity && totalWeight > 0) {
+    if (hasCompleteDeliveryAddress && finalDestinationCity && totalWeight > 0) {
+      setSmartDeliveryLoading(true);
+      setSmartDeliveryCost(0);
+      setOptimalVehicle(null);
+      setAlternativeVehicles([]);
+      setSmartDeliveryError('');
+      setSmartDeliveryPricedKey('');
+      setPricedShippingCenterKey('');
+      setShippingQuote(null);
       const debounceTimer = setTimeout(() => {
-        calculateSmartDeliveryCost(finalDestinationCity, effectiveProvince);
-      }, 1000); // 1 second debounce
+        const matchingCity = Array.isArray(secondaryCities)
+          ? secondaryCities.find((city: any) => [
+              city.nameEn, city.name_en, city.nameEnglish, city.nameArabic, city.name_arabic,
+              city.namePersian, city.nameFa, city.name_fa, city.nameTurkish, city.nameTr, city.name_tr, city.name
+            ].some((name) => name && name.toLowerCase() === finalDestinationCity.toLowerCase()))
+          : null;
+        void calculateSmartDeliveryCost(finalDestinationCity, effectiveProvince, matchingCity?.id, requestId);
+      }, 2000); // Recalculate only after two seconds without another cart/address change.
       
-      return () => clearTimeout(debounceTimer);
+      return () => {
+        smartShippingRequestRef.current++;
+        clearTimeout(debounceTimer);
+      };
     } else {
+      setSmartDeliveryLoading(false);
+      setSmartDeliveryCost(0);
+      setOptimalVehicle(null);
+      setAlternativeVehicles([]);
+      setSmartDeliveryError('');
+      setSmartDeliveryPricedKey('');
+      setPricedShippingCenterKey('');
+      setShippingQuote(null);
+      setSmartDeliveryLoading(false);
       console.log('🚚 [DELIVERY CALCULATION] Missing required data for calculation:', {
+        hasAddress: !!activePricingAddress,
         hasCity: !!finalDestinationCity,
+        hasCountry: !!activePricingCountry,
         hasProvince: !!finalDestinationProvince,
         effectiveProvince,
         hasWeight: totalWeight > 0,
@@ -1501,7 +2078,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         totalWeight
       });
     }
-  }, [showSecondAddress, secondCity, secondProvince, form.watch('city'), totalWeight, cart, crmCustomerData?.cityRegion, crmCustomerData?.province, customerData?.customer?.cityRegion, customerData?.customer?.province]);
+  }, [selectedShippingMethod, isSmartShippingMethod, hasCompleteDeliveryAddress, activePricingAddress, activePricingCity, activePricingProvince, activePricingCountry, totalWeight, cart, shippingQuoteRefreshKey, secondaryCities, shippingCenterKey, hasContractCartError, contractCartErrors]);
 
 
 
@@ -1515,7 +2092,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         // First create the order
         const orderResponse = await apiRequest("/api/customers/orders", {
           method: "POST",
-          body: orderData
+          body: { ...orderData, language }
         });
         
         // Then upload the receipt file
@@ -1551,7 +2128,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         
         const response = await apiRequest(endpoint, {
           method: "POST",
-          body: orderData
+      body: { ...orderData, language }
         });
         return response;
       }
@@ -1728,8 +2305,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         
         // Redirect to bank payment gateway
         setTimeout(() => {
-          const totalAmount = response.totalAmount || response.remainingAmount || (products.reduce((sum, p) => sum + (parseFloat(p.price || '0') * (cart[p.id] || 0)), 0) + shippingCost);
-          window.location.href = `/payment?orderId=${response.orderId || response.order?.id}&amount=${totalAmount}&method=bank`;
+          const redirectAmount = response.totalAmount || response.remainingAmount || totalAmount;
+          window.location.href = `/payment?orderId=${response.orderId || response.order?.id}&amount=${redirectAmount}&method=bank`;
         }, 1500);
         return;
       }
@@ -1752,10 +2329,66 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         description: errorMessage,
         variant: "destructive"
       });
-    }
+    },
+    onSettled: () => { orderSubmissionLockRef.current = false; },
   });
 
-  const onSubmit = (data: any) => {
+  const onSubmit = async (data: any) => {
+    const isFinalConfirmation = confirmingOrderRef.current;
+    confirmingOrderRef.current = false;
+    if (submitOrderMutation.isPending || orderSubmissionLockRef.current) return;
+    if (isFinalConfirmation) orderSubmissionLockRef.current = true;
+    let handedToMutation = false;
+    try {
+    if (isAlternateAddressSelected && (
+      !activePricingCity.trim() ||
+      !activePricingProvince.trim() ||
+      !activePricingCountry.trim()
+    )) {
+      toast({ title: t.destinationRequired, variant: "destructive" });
+      return;
+    }
+    if (isNewAddressSelected && (
+      !newAddressTitle.trim() ||
+      !activePricingAddress.trim() ||
+      activePricingAddress.trim().length < 10 ||
+      !activePricingCountry.trim() ||
+      !activePricingPhone.trim() ||
+      activePricingPhone.trim().length < 10
+    )) {
+      toast({ title: t.addressRequired, description: t.phoneRequired, variant: "destructive" });
+      return;
+    }
+    if (unavailableCartProductIds.length > 0) {
+      toast({ title: t.unavailableCartWarning, variant: "destructive" });
+      return;
+    }
+    if (missingWeightProductIds.length > 0) {
+      toast({ title: t.missingCartWeight, variant: "destructive" });
+      return;
+    }
+    if (hasContractCartError) {
+      toast({ title: contractCartErrors[0], variant: "destructive" });
+      return;
+    }
+    if (selectedContractId !== null && (isWalletPaymentMethod || walletAmount > 0)) {
+      setWalletAmount(0);
+      setPaymentMethod((supportedNonWalletPaymentMethod || 'fib_online') as typeof paymentMethod);
+      toast({
+        title: language === 'fa' ? 'پرداخت از کیف پول برای قرارداد مجاز نیست' : language === 'ar' ? 'الدفع من المحفظة غير متاح للعقود' : language === 'tr' ? 'Sözleşmeli alışverişte cüzdanla ödeme kullanılamaz' : 'Wallet payment is not available for contract orders',
+        description: language === 'fa' ? 'برای سفارش قراردادی، یک روش پرداخت غیر از کیف پول انتخاب کنید.' : language === 'ar' ? 'يرجى اختيار طريقة دفع غير المحفظة لطلب العقد.' : language === 'tr' ? 'Lütfen sözleşme siparişi için cüzdan dışında bir ödeme yöntemi seçin.' : 'Choose a non-wallet payment method for this contract order.',
+        variant: "destructive",
+      });
+      return;
+    }
+    if (selectedContractId !== null && !supportedNonWalletPaymentMethod) {
+      toast({
+        title: language === 'fa' ? 'روش پرداخت غیرکیف پول در دسترس نیست' : language === 'ar' ? 'لا توجد طريقة دفع غير المحفظة متاحة' : language === 'tr' ? 'Cüzdan dışı ödeme yöntemi kullanılamıyor' : 'No non-wallet payment method is available',
+        description: language === 'fa' ? 'برای ثبت سفارش قراردادی، فروشگاه باید یک روش پرداخت غیرکیف پول فعال کند.' : language === 'ar' ? 'يجب تفعيل طريقة دفع غير المحفظة من المتجر لإتمام طلب العقد.' : language === 'tr' ? 'Sözleşme siparişini tamamlamak için mağazanın cüzdan dışı bir ödeme yöntemi etkinleştirmesi gerekir.' : 'The shop must enable a non-wallet payment method to place a contract order.',
+        variant: "destructive",
+      });
+      return;
+    }
     console.log('🚀 [SUBMIT DEBUG] onSubmit function called');
     console.log('🚀 [SUBMIT DEBUG] Form data received:', data);
     console.log('🚀 [SUBMIT DEBUG] Selected shipping method:', selectedShippingMethod);
@@ -1774,31 +2407,126 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       });
       return;
     }
+    if (!isPickupShippingMethod && !hasCompleteDeliveryAddress) {
+      toast({
+        title: language === 'fa' ? 'آدرس تحویل کامل نیست' : language === 'ar' ? 'عنوان التسليم غير مكتمل' : 'Delivery address is incomplete',
+        description: deliveryAddressRequiredMessage,
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    // Determine active delivery info based on conditional logic
+    const selectedRateForValidation = shippingRatesData?.find((rate: any) => rate.id === selectedShippingMethod);
+    if (!selectedRateForValidation) {
+      toast({
+        title: language === 'fa' ? "روش ارسال در دسترس نیست" : language === 'ar' ? "طريقة الشحن غير متاحة" : "Shipping method is unavailable",
+        description: smartDeliveryUnavailableMessage,
+        variant: "destructive"
+      });
+      return;
+    }
+    const selectedMethodForValidation = selectedRateForValidation?.deliveryMethod || selectedRateForValidation?.delivery_method;
+    const normalizedDeliveryMethod = String(selectedMethodForValidation || '').toLowerCase();
+    const isPickupForValidation = ['pickup', 'self_pickup', 'self-pickup'].includes(normalizedDeliveryMethod);
+    const isSmartShippingForValidation = normalizedDeliveryMethod === 'smart_vehicle' || normalizedDeliveryMethod.includes('bus');
+    const isShippingDependentForValidation = !!selectedRateForValidation && !isPickupForValidation;
+    const requiresShippingQuoteToken = isShippingDependentForValidation && isSmartShippingForValidation;
+    const refreshedCenter = await refetchShippingCenter();
+    const freshCenterData = refreshedCenter.data?.data;
+    const freshCenterKey = getShippingCenterKey(freshCenterData);
+    if (freshCenterKey) shippingCenterKeyRef.current = freshCenterKey;
+    if (isShippingDependentForValidation && (refreshedCenter.isError || !freshCenterKey)) {
+      setSmartDeliveryError(smartDeliveryUnavailableMessage);
+      setShippingQuote(null);
+      toast({
+        title: smartDeliveryUnavailableMessage,
+        description: smartDeliveryUnavailableMessage,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const freshCenterCountryCode = resolveCountryCode(freshCenterData?.countryCode) || freshCenterData?.countryCode?.toUpperCase() || '';
+    const destinationCountryCode = resolveCountryCode(activePricingCountry);
+    if (isShippingDependentForValidation && freshCenterCountryCode && destinationCountryCode && freshCenterCountryCode !== destinationCountryCode) {
+      setShippingQuote(null);
+      toast({
+        title: smartDeliveryUnavailableMessage,
+        description: smartDeliveryUnavailableMessage,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const shippingQuoteIsCurrent = !!shippingQuote?.token &&
+      shippingQuote.destination === `${activePricingCity}|${activePricingProvince}|${totalWeight}` &&
+      shippingQuote.centerKey === freshCenterKey &&
+      shippingQuote.cartKey === shippingQuoteCartKey &&
+      Date.now() - shippingQuote.createdAt < 4 * 60 * 1000;
+    if (requiresShippingQuoteToken && !shippingQuoteIsCurrent) {
+      setShippingQuote(null);
+      setSmartDeliveryPricedKey('');
+      setPricedShippingCenterKey('');
+      setShippingQuoteRefreshKey((key) => key + 1);
+      toast({
+        title: shippingQuoteRefreshMessage,
+        description: shippingQuoteRefreshMessage,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (
+      isSmartShippingForValidation &&
+      (
+        smartDeliveryLoading ||
+        !!smartDeliveryError ||
+        !optimalVehicle ||
+        smartDeliveryPricedKey !== currentSmartDeliveryPricedKey ||
+        pricedShippingCenterKey !== freshCenterKey
+      )
+    ) {
+      setSmartDeliveryError(smartDeliveryUnavailableMessage);
+      toast({
+        title: smartDeliveryUnavailableMessage,
+        description: smartDeliveryError || smartDeliveryUnavailableMessage,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const submittedStandardQuoteIsCurrent = !!standardShippingQuote &&
+      standardShippingQuote.methodId === selectedShippingMethod &&
+      standardShippingQuote.key === standardShippingQuoteKey &&
+      standardShippingQuote.centerKey === freshCenterKey &&
+      standardShippingQuote.cartKey === shippingQuoteCartKey &&
+      Number.isFinite(standardShippingQuote.cost) &&
+      Date.now() - standardShippingQuote.createdAt < 4 * 60 * 1000;
+    if (isShippingDependentForValidation && !isSmartShippingForValidation &&
+      (standardShippingLoading || !!standardShippingError || !submittedStandardQuoteIsCurrent)) {
+      setStandardShippingError(standardShippingUnavailableMessage);
+      setStandardShippingQuote(null);
+      setShippingQuoteRefreshKey((key) => key + 1);
+      toast({
+        title: standardShippingUnavailableMessage,
+        description: standardShippingUnavailableMessage,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Snapshot the selected destination (including the saved recipient) into this order.
     const activeDeliveryInfo = {
-      // Address determination - use second address if provided, otherwise primary
-      activeAddress: (showSecondAddress && secondAddress.trim()) 
-        ? secondAddress.trim() 
-        : data.address,
-      activeCity: (showSecondAddress && secondCity.trim()) 
-        ? secondCity.trim() 
-        : data.city,
-      activeProvince: (showSecondAddress && secondProvince.trim()) 
-        ? secondProvince.trim() 
-        : (crmCustomerData?.province || ''),
-      activePostalCode: secondPostalCode.trim() 
-        ? secondPostalCode.trim() 
-        : data.postalCode,
-      
-      // Phone determination - use recipient mobile if provided, otherwise primary
-      activePhone: (showRecipientMobile && recipientMobile.trim()) 
-        ? recipientMobile.trim() 
-        : data.phone,
-      
-      // Source tracking for logistics
-      isUsingSecondAddress: !!(showSecondAddress && secondAddress.trim()),
-      isUsingRecipientMobile: !!(showRecipientMobile && recipientMobile.trim()),
+      activeAddress: activePricingAddress,
+      activeCity: activePricingCity,
+      activeProvince: activePricingProvince,
+      activeCountry: activePricingCountry,
+      activePostalCode: activePricingPostalCode,
+      activePhone: activePricingPhone,
+      activeRecipientName,
+      isUsingSecondAddress: isAlternateAddressSelected,
+      isUsingRecipientMobile: isNewAddressSelected || (!!selectedSavedAddress && !!activePricingPhone) ||
+        (showRecipientMobile && recipientMobile.trim().length > 0),
     };
 
     // Get the selected shipping rate to extract deliveryMethod
@@ -1807,7 +2535,16 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     
     let orderData = {
       ...data,
-      cart,
+      // The API validates these canonical fields from the selected destination.
+      address: activeDeliveryInfo.activeAddress,
+      city: activeDeliveryInfo.activeCity,
+      province: activeDeliveryInfo.activeProvince,
+      postalCode: activeDeliveryInfo.activePostalCode,
+      phone: activeDeliveryInfo.activePhone,
+      recipientName: activeDeliveryInfo.activeRecipientName,
+      country: activeDeliveryInfo.activeCountry,
+      cart: shippingQuoteCart,
+      contractId: selectedContractId,
       totalAmount,
       subtotalAmount,
       shippingCost: finalShippingCost,
@@ -1818,27 +2555,28 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       deliveryMethod: selectedDeliveryMethod,
       currency: 'IQD',
       paymentMethod,
-      walletAmountUsed: Math.round(walletAmount), // Use actual wallet amount in integer format
-      remainingAmount: Math.round(Math.max(0, totalAmount - walletAmount)), // Calculate remaining in integer format
+      walletAmountUsed: selectedContractId !== null ? 0 : Math.round(walletAmount), // Use actual wallet amount in integer format
+      remainingAmount: Math.round(Math.max(0, totalAmount - (selectedContractId !== null ? 0 : walletAmount))), // Calculate remaining in integer format
       
       // Customer's selected vehicle from smart delivery calculation - CRITICAL for logistics
       vehicleType: optimalVehicle?.vehicleName || optimalVehicle?.name || optimalVehicle?.vehicleType || null,
       
       // CRITICAL FIX: Include calculated weight for order_management storage
       totalWeight: totalWeight,
+      ...(requiresShippingQuoteToken ? { shippingQuoteToken: shippingQuote!.token } : {}),
       
       // Enhanced delivery information
-      secondDeliveryAddress: showSecondAddress ? secondAddress : null,
-      secondDeliveryCity: showSecondAddress ? secondCity : null, 
-      secondDeliveryProvince: showSecondAddress ? secondProvince : null,
-      secondDeliveryPostalCode: showSecondAddress ? secondPostalCode : null,
-      recipientMobile: showRecipientMobile ? recipientMobile : null,
+      secondDeliveryAddress: isAlternateAddressSelected ? activeDeliveryInfo.activeAddress : null,
+      secondDeliveryCity: isAlternateAddressSelected ? activeDeliveryInfo.activeCity : null,
+      secondDeliveryProvince: isAlternateAddressSelected ? activeDeliveryInfo.activeProvince : null,
+      secondDeliveryPostalCode: isAlternateAddressSelected ? activeDeliveryInfo.activePostalCode : null,
+      recipientMobile: activeDeliveryInfo.isUsingRecipientMobile ? activeDeliveryInfo.activePhone : null,
       
       // Active delivery logistics data
       activeDeliveryInfo,
       
       // Add warehouse notes for logistics clarity
-      warehouseNotes: `تحویل فعال: ${activeDeliveryInfo.isUsingSecondAddress ? 'آدرس دوم' : 'آدرس اول'} | تماس فعال: ${activeDeliveryInfo.isUsingRecipientMobile ? 'موبایل گیرنده' : 'موبایل اصلی'}`
+      warehouseNotes: `تحویل فعال: ${activeDeliveryInfo.isUsingSecondAddress ? 'نشانی انتخاب‌شده' : 'نشانی اصلی'} | تماس فعال: ${activeDeliveryInfo.isUsingRecipientMobile ? 'موبایل گیرنده' : 'موبایل اصلی'}`
     };
 
     console.log('🚚 [DELIVERY LOGIC] Active delivery information:', activeDeliveryInfo);
@@ -1926,13 +2664,155 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       orderData
     });
 
-    submitOrderMutation.mutate(orderData);
+    const signature = JSON.stringify({
+      cart: orderData.cart, address: orderData.address, city: orderData.city,
+      province: orderData.province, country: orderData.country,
+      phone: orderData.phone, recipientName: orderData.recipientName, addressChoice: selectedDeliveryAddressId,
+      shipping: orderData.selectedShippingMethod,
+      shippingCost: orderData.shippingCost, total: orderData.totalAmount,
+      payment: orderData.paymentMethod, walletAmount: orderData.walletAmountUsed,
+      contractId: orderData.contractId,
+      contractItems: selectedContract?.items,
+    });
+    if (!isFinalConfirmation || !pendingReview || pendingReview.signature !== signature) {
+      if (customerData?.success) {
+        const refreshed = await refetchSavedCustomerAddresses();
+        if (refreshed.isError) {
+          toast({ title: language === 'fa' ? 'دریافت آدرس‌های ذخیره‌شده ناموفق بود' : 'Could not load saved addresses', variant: 'destructive' });
+          return;
+        }
+      }
+      if (!reviewOpen) {
+        setReviewAddressId(selectedDeliveryAddressId);
+      }
+      setPendingReview({ data: orderData, signature });
+      setReviewOpen(true);
+      return;
+    }
+
+    if (selectedContractId !== null) {
+      const contractAsPresented = selectedContract;
+      try {
+        const response = await fetch('/api/shop/contracts/mine', {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result?.success || !Array.isArray(result.contracts)) {
+          throw new Error(result?.message || `Contract verification failed (HTTP ${response.status})`);
+        }
+
+        const freshContracts = result.contracts as ShopContract[];
+        const freshContract = freshContracts.find(contract => contract.id === selectedContractId);
+        const normalizeItems = (items: ShopContract['items']) => [...items]
+          .sort((a, b) => Number(a.productId) - Number(b.productId))
+          .map(item => ({
+            productId: Number(item.productId),
+            productName: item.productName,
+            maxQuantity: Number(item.maxQuantity),
+            usedQuantity: Number(item.usedQuantity),
+            remainingQuantity: Number(item.remainingQuantity),
+            unitPrice: Number(item.unitPrice),
+          }));
+        const contractChanged = !contractAsPresented ||
+          !freshContract ||
+          !freshContract.isActive ||
+          freshContract.customerId !== contractAsPresented.customerId ||
+          freshContract.number !== contractAsPresented.number ||
+          freshContract.terms !== contractAsPresented.terms ||
+          freshContract.customerName !== contractAsPresented.customerName ||
+          JSON.stringify(normalizeItems(freshContract.items)) !== JSON.stringify(normalizeItems(contractAsPresented.items)) ||
+          Object.entries(cart).some(([productId, quantity]) => {
+            const item = freshContract.items.find(candidate => Number(candidate.productId) === Number(productId));
+            return !item ||
+              !Number.isFinite(Number(item.remainingQuantity)) ||
+              Number(item.remainingQuantity) < Number(quantity) ||
+              !Number.isFinite(Number(item.unitPrice)) ||
+              Number(item.unitPrice) < 0;
+          });
+
+        if (contractChanged) {
+          queryClient.setQueryData<ShopContract[]>(['/api/shop/contracts/mine'], freshContracts);
+          setReviewOpen(false);
+          setPendingReview(null);
+          toast({
+            title: language === 'fa' ? 'اطلاعات قرارداد به‌روزرسانی شد' : language === 'ar' ? 'تم تحديث بيانات العقد' : language === 'tr' ? 'Sözleşme bilgileri güncellendi' : 'Contract details were updated',
+            description: language === 'fa'
+              ? 'قیمت یا محدودیت قرارداد تغییر کرده است. مبلغ‌های به‌روزشده را بررسی کنید و دوباره سفارش را تأیید کنید.'
+              : language === 'ar'
+                ? 'تغير سعر العقد أو حدوده. يرجى مراجعة الإجماليات المحدّثة وتأكيد الطلب مجدداً.'
+                : language === 'tr'
+                  ? 'Sözleşme fiyatı veya limitleri değişti. Lütfen güncellenen toplamları inceleyip siparişi yeniden onaylayın.'
+                  : 'Contract pricing, ownership, or limits changed. Review the refreshed totals and confirm the order again.',
+            variant: 'destructive',
+          });
+          orderSubmissionLockRef.current = false;
+          return;
+        }
+      } catch (error) {
+        toast({
+          title: language === 'fa' ? 'بررسی قرارداد ناموفق بود' : language === 'ar' ? 'تعذر التحقق من العقد' : language === 'tr' ? 'Sözleşme doğrulanamadı' : 'Could not verify the contract',
+          description: language === 'fa'
+            ? 'سفارش ثبت نشد زیرا قیمت و موجودی قرارداد قابل بررسی نبود. لطفاً دوباره تلاش کنید.'
+            : language === 'ar'
+              ? 'لم يتم إرسال الطلب لتعذر التحقق من سعر العقد وتوفره. يرجى المحاولة مجدداً.'
+              : language === 'tr'
+                ? 'Sözleşme fiyatı ve kullanılabilirliği doğrulanamadığı için sipariş gönderilmedi. Lütfen tekrar deneyin.'
+                : 'The order was not submitted because current contract pricing and availability could not be verified. Please retry.',
+          variant: 'destructive',
+        });
+        orderSubmissionLockRef.current = false;
+        return;
+      }
+    }
+
+    setIsConfirmingOrder(true);
+    try {
+      if (customerData?.success && isNewAddressSelected) {
+        const savedAddress = await saveCustomerAddress({
+          title: newAddressTitle.trim(),
+          address: orderData.address,
+          city: orderData.city,
+          state: orderData.province,
+          country: orderData.country,
+          postalCode: orderData.postalCode,
+          phone: orderData.phone,
+          recipientName: orderData.recipientName || data.customerName || customerData.customer?.firstName || 'Customer',
+        });
+        queryClient.setQueryData<SavedCustomerAddress[]>(['structuredCustomerAddresses'], current => {
+          const addresses = current || [];
+          const existingIndex = addresses.findIndex(address => Number(address.id) === Number(savedAddress.id));
+          if (existingIndex < 0) return [...addresses, savedAddress];
+          return addresses.map((address, index) => index === existingIndex ? savedAddress : address);
+        });
+        const savedAddressId = `saved:${savedAddress.id}`;
+        setSelectedDeliveryAddressId(savedAddressId);
+        setReviewAddressId(savedAddressId);
+        await refetchSavedCustomerAddresses();
+        await queryClient.invalidateQueries({ queryKey: ['/api/customers/addresses'] });
+      }
+      setReviewOpen(false);
+      setPendingReview(null);
+      handedToMutation = true;
+      submitOrderMutation.mutate(orderData);
+    } catch (error: any) {
+      orderSubmissionLockRef.current = false;
+      toast({ title: language === 'fa' ? 'ذخیره نشانی ناموفق بود' : 'Could not save the address',
+        description: error?.message, variant: 'destructive' });
+    } finally {
+      setIsConfirmingOrder(false);
+    }
+    } finally {
+      if (!handedToMutation) orderSubmissionLockRef.current = false;
+    }
   };
 
 
 
   return (
-    <div className="fixed inset-0 bg-black/20 z-40 pointer-events-none">
+    <div className="fixed inset-0 bg-black/20 z-40">
         <Card
          dir={direction}
         ref={formRef}
@@ -1971,14 +2851,28 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
             <div className="space-y-3">
               {Object.entries(cart).map(([productId, quantity]) => {
                 const product = products.find(p => p.id === parseInt(productId));
-                if (!product) return null;
+                if (!product) {
+                  return (
+                    <div key={productId} role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                      <span>{t.unavailableCartProduct} #{productId} ({quantity})</span>
+                      {onRemoveItem && (
+                        <Button type="button" size="sm" variant="outline" onClick={() => onRemoveItem(Number(productId))}>
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          {t.removeItem}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                }
                 
                 const basePrice = Math.round(parseFloat(product.price || '0'));
-                const discountedPrice = getDiscountedPrice(product, quantity);
+                const discountedPrice = getCartUnitPrice(product, quantity);
+                const usesContractPrice = selectedContractId !== null;
+                const contractLimit = usesContractPrice ? contractQuantityLimit(contractItemForProduct(product.id)) : null;
                 const itemTotal = Math.round(discountedPrice * quantity);
                 
                 return (
-                  <div key={productId} className="bg-white dark:bg-gray-800 p-3 rounded-lg border">
+                  <div key={productId} className={`p-3 rounded-lg border ${usesContractPrice ? contractTheme.panel : "bg-white dark:bg-gray-800"}`}>
                     <div className="flex items-start justify-between gap-3">
                       {/* Product Info */}
                       <div className="flex-1 min-w-0">
@@ -2002,18 +2896,24 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                           </div>
                           <h4 className="font-medium text-sm truncate flex items-center gap-1">
                             {product.name}
+                            {usesContractPrice && (
+                              <span className={contractTheme.badge}>
+                                {language === 'fa' ? 'قرارداد' : language === 'ar' ? 'عقد' : language === 'tr' ? 'Sözleşme' : 'Contract'} {selectedContract?.number}
+                              </span>
+                            )}
                             {product.isFlammable && (
                               <Flame className="w-3 h-3 text-orange-500 flex-shrink-0" aria-label="محصول آتش‌زا" />
                             )}
                           </h4>
                         </div>
                         <p className="text-xs text-muted-foreground">{product.category}</p>
-                        <p className="text-sm font-medium mt-1">
-                          {discountedPrice < basePrice && (
+                        {usesContractPrice && <p className={`mt-2 ${contractTheme.badge}`}>{language === 'fa' ? 'سقف باقیماندهٔ قرارداد' : language === 'ar' ? 'الحد المتبقي للعقد' : language === 'tr' ? 'Kalan sözleşme sınırı' : 'Remaining contract limit'}: {contractLimit ?? '—'}</p>}
+                        <p className={`text-sm font-medium mt-1 ${usesContractPrice ? contractTheme.text : ""}`}>
+                          {!usesContractPrice && discountedPrice < basePrice && (
                             <span className="line-through text-gray-400 mr-2">{formatCurrency(basePrice)}</span>
                           )}
                           {formatCurrency(discountedPrice)} {t.each}
-                          {discountedPrice < basePrice && basePrice > 0 && (
+                          {!usesContractPrice && discountedPrice < basePrice && basePrice > 0 && (
                             <span className="text-[10px] text-green-600 font-semibold ml-1">
                               {(product.bulk_purchase_enabled || product.bulkPurchaseEnabled) ? '📦' : '🏷️'} {getActualDiscountPercent(product, quantity)}%
                             </span>
@@ -2026,7 +2926,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => onUpdateQuantity && onUpdateQuantity(product.id, quantity - 1)}
+                          onClick={() => { void updateCheckoutQuantity(product.id, quantity - 1); }}
                           className="h-7 w-7 p-0"
                           title={t.decreaseQuantity}
                           disabled={quantity <= 1}
@@ -2038,17 +2938,37 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         <Input
                           type="number"
                           min="1"
-                          max={product.stockQuantity || 999999}
-                          value={quantity}
+                           max={usesContractPrice ? Math.min(contractLimit ?? 0, quantity + Math.max(0, Number(product.stockQuantity) || 0)) : (product.stockQuantity || 999999)}
+                           value={quantityDrafts[product.id] ?? quantity}
+                           onFocus={() => {
+                             if (!activatedQuantityInputs.current.has(product.id)) {
+                               activatedQuantityInputs.current.add(product.id);
+                               if (quantity === 1) {
+                                 setQuantityDrafts(current => ({ ...current, [product.id]: '' }));
+                               }
+                             }
+                           }}
                           onChange={(e) => {
-                            const newQuantity = parseInt(e.target.value) || 1;
-                            const maxQuantity = product.stockQuantity || 999999;
+                             const rawQuantity = e.target.value;
+                             setQuantityDrafts(current => ({ ...current, [product.id]: rawQuantity }));
+                             if (rawQuantity === '') return;
+                             const newQuantity = parseInt(rawQuantity, 10);
+                             if (!Number.isFinite(newQuantity)) return;
+                             const maxQuantity = usesContractPrice ? Math.min(quantity + Math.max(0, Number(product.stockQuantity) || 0), contractLimit ?? 0) : (product.stockQuantity || 999999);
+                             if (maxQuantity < 1) return;
                             const validQuantity = Math.max(1, Math.min(newQuantity, maxQuantity));
-                            if (onUpdateQuantity) {
-                              onUpdateQuantity(product.id, validQuantity);
-                            }
+                             setQuantityDrafts(current => ({ ...current, [product.id]: validQuantity.toString() }));
+                             void updateCheckoutQuantity(product.id, validQuantity);
                           }}
+                           onBlur={() => {
+                             setQuantityDrafts(current => {
+                               const next = { ...current };
+                               delete next[product.id];
+                               return next;
+                             });
+                           }}
                           className="h-7 w-16 text-center text-sm font-medium px-1 py-0"
+                           disabled={usesContractPrice && contractLimit === null}
                           title={language === 'en' ? 'Change quantity directly' : language === 'fa' ? 'تغییر مستقیم تعداد' : 'تغيير الكمية مباشرة'}
                         />
                         
@@ -2059,11 +2979,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                             // Check stock availability before allowing increase
                             if (!product.inStock || (product.stockQuantity || 0) <= 0) return;
                             if (quantity >= (product.stockQuantity || 0)) return;
-                            onUpdateQuantity && onUpdateQuantity(product.id, quantity + 1);
+                             void updateCheckoutQuantity(product.id, quantity + 1);
                           }}
                           className="h-7 w-7 p-0"
                           title={t.increaseQuantity}
-                          disabled={!product.inStock || (product.stockQuantity || 0) <= 0 || quantity >= (product.stockQuantity || 0)}
+                           disabled={!product.inStock || (product.stockQuantity || 0) <= 0 || quantity >= (product.stockQuantity || 0) || (usesContractPrice && (contractLimit === null || quantity >= contractLimit))}
                         >
                           <Plus className="w-3 h-3" />
                         </Button>
@@ -2085,7 +3005,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         <span className="text-sm text-muted-foreground">{language === 'en' ? 'Item Total' : language === 'fa' ? 'مجموع کالا' : 'إجمالي العنصر'}</span>
                         <span className="font-medium">{formatCurrency(itemTotal)}</span>
                       </div>
-                      {discountedPrice < basePrice && (
+                      {!usesContractPrice && discountedPrice < basePrice && (
                         <div className="flex justify-between items-center text-xs text-green-600">
                           <span>{t.discountApplied}</span>
                           <span>-{formatCurrency((basePrice - discountedPrice) * quantity)}</span>
@@ -2102,7 +3022,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               {/* VAT */}
               {vatData?.vatEnabled && vatAmount > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span>مالیات بر ارزش افزوده ({(vatRate * 100).toFixed(0)}%)</span>
+                  <span>{taxT.vat} ({(vatRate * 100).toFixed(0)}%)</span>
                   <span>{formatCurrency(vatAmount)}</span>
                 </div>
               )}
@@ -2110,7 +3030,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               {/* Duties */}
               {vatData?.dutiesEnabled && dutiesAmount > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span>عوارض بر ارزش افزوده ({(dutiesRate * 100).toFixed(0)}%)</span>
+                  <span>{taxT.duties} ({(dutiesRate * 100).toFixed(0)}%)</span>
                   <span>{formatCurrency(dutiesAmount)}</span>
                 </div>
               )}
@@ -2129,6 +3049,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                     ⚖️ {t.shipmentWeight} <span className="font-semibold text-gray-700 dark:text-gray-300">{totalWeight.toFixed(2)} {t.kilogram}</span>
                   </div>
                 </div>
+                {missingWeightProductIds.length > 0 && (
+                  <p className="text-sm text-red-700" role="alert">{t.missingCartWeight}</p>
+                )}
                 {isLoadingShippingRates ? (
                   <div className="text-sm text-muted-foreground flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -2168,20 +3091,33 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         
                         // Handle freight_collect option specially
                         if (rate.deliveryMethod === 'freight_collect' || rate.delivery_method === 'freight_collect') {
+                          const freightPrice = rate.id === selectedShippingMethod && !hasCompleteDeliveryAddress
+                            ? deliveryAddressRequiredMessage
+                            : rate.id === selectedShippingMethod && standardShippingQuoteReady
+                            ? (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))
+                            : rate.id === selectedShippingMethod && standardShippingLoading
+                              ? t.calculating
+                              : standardShippingUnavailableMessage;
                           return (
                             <option key={rate.id} value={rate.id} style={{backgroundColor: '#fed7aa', color: '#c2410c'}}>
-                              🚚 {language === 'en' ? 'Freight Collect' : language === 'fa' ? 'کرایه در مقصد' : 'الشحن عند التسليم'} - {language === 'en' ? 'Pay upon delivery' : language === 'fa' ? 'پرداخت هنگام تحویل' : 'الدفع عند الاستلام'}
+                              🚚 {language === 'en' ? 'Freight Collect' : language === 'fa' ? 'کرایه در مقصد' : 'الشحن عند التسليم'} - {freightPrice}
                             </option>
                           );
                         }
                         
-                        // Handle standard shipping rates
-                        const freeShippingThreshold = parseFloat(rate.freeShippingThreshold || '0');
-                        const qualifiesForFreeShipping = freeShippingThreshold > 0 && subtotalAmount >= freeShippingThreshold;
+                        // Method prices are shown only after the active method has a server quote.
+                        const isActiveRate = rate.id === selectedShippingMethod;
+                        const ratePrice = isActiveRate && !hasCompleteDeliveryAddress
+                          ? deliveryAddressRequiredMessage
+                          : isActiveRate && standardShippingQuoteReady
+                          ? (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))
+                          : isActiveRate && standardShippingLoading
+                            ? t.calculating
+                            : standardShippingUnavailableMessage;
                         
                         return (
                           <option key={rate.id} value={rate.id}>
-                            {rate.deliveryMethod || rate.delivery_method || rate.name} - {qualifiesForFreeShipping ? t.freeShipping : formatCurrency(parseFloat(rate.basePrice || rate.base_price || '0'))}
+                            {rate.deliveryMethod || rate.delivery_method || rate.name} - {ratePrice}
                             {rate.estimatedDays && ` (${rate.estimatedDays} ${language === 'en' ? 'days' : language === 'fa' ? 'روز' : 'أيام'})`}
                           </option>
                         );
@@ -2201,7 +3137,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                                 <div className="flex justify-between items-center text-sm">
                                   <span className="text-emerald-700 font-medium">🚚 {t.smartVehicleLabel}</span>
                                   <div className="text-right">
-                                    {optimalVehicle ? (
+                                    {optimalVehicle && currentSmartShippingQuoteReady ? (
                                       <div>
                                         <div className="font-bold text-emerald-800">
                                           {optimalVehicle.vehicleType === 'multiple' 
@@ -2212,6 +3148,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                                       </div>
                                     ) : smartDeliveryLoading ? (
                                       <span className="font-bold text-emerald-800">{t.calculating}</span>
+                                    ) : smartDeliveryError ? (
+                                      <span className="font-bold text-red-600">{smartDeliveryUnavailableMessage}</span>
                                     ) : (
                                       <span className="font-bold text-orange-600">{t.waitingForAddress}</span>
                                     )}
@@ -2219,7 +3157,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                                 </div>
                                 <div className="text-xs text-emerald-600 bg-emerald-50 p-2 rounded border border-emerald-200">
                                   ✓ {t.smartVehicleDescription}
-                                  {optimalVehicle && (
+                                  {optimalVehicle && currentSmartShippingQuoteReady && (
                                     <div className="mt-1 font-medium">
                                       {optimalVehicle.summary?.vehicles?.length > 1 ? (
                                         <div>
@@ -2293,6 +3231,17 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                                 <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
                                   ✓ {language === 'en' ? 'Shipping cost will be paid upon delivery by the customer' : language === 'fa' ? 'هزینه ارسال هنگام تحویل توسط مشتری پرداخت می‌شود' : 'سيتم دفع تكلفة الشحن عند التسليم من قبل العميل'}
                                 </div>
+                                <div className="text-sm font-medium">
+                                  {standardShippingError
+                                    ? standardShippingUnavailableMessage
+                                    : standardShippingLoading
+                                      ? t.calculating
+                                      : !hasCompleteDeliveryAddress
+                                        ? deliveryAddressRequiredMessage
+                                      : standardShippingQuoteReady
+                                        ? (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))
+                                        : standardShippingUnavailableMessage}
+                                </div>
                               </div>
                             );
                           }
@@ -2303,20 +3252,20 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                               <div className="flex justify-between items-center text-sm">
                                 <span>{t.shippingCost}:</span>
                                 <span className="font-medium">
-                                  {shippingCost === 0 ? t.freeShipping : formatCurrency(shippingCost)}
+                                  {standardShippingError
+                                    ? standardShippingUnavailableMessage
+                                    : standardShippingLoading
+                                      ? t.calculating
+                                      : !hasCompleteDeliveryAddress
+                                        ? deliveryAddressRequiredMessage
+                                      : standardShippingQuoteReady
+                                        ? (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))
+                                        : standardShippingUnavailableMessage}
                                 </span>
                               </div>
-                              {(() => {
-                                const freeShippingThreshold = parseFloat(selectedRate?.freeShippingThreshold || '0');
-                                if (freeShippingThreshold > 0 && subtotalAmount >= freeShippingThreshold) {
-                                  return (
-                                    <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                      ✓ {language === 'en' ? 'Free shipping for orders over' : language === 'fa' ? 'ارسال رایگان برای سفارش‌های بیش از' : 'شحن مجاني للطلبات فوق'} {formatCurrency(freeShippingThreshold)}
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })()}
+                              {standardShippingError && (
+                                <p role="alert" className="text-xs text-red-600 mt-1">{standardShippingUnavailableMessage}</p>
+                              )}
                             </div>
                           );
                         })()}
@@ -2361,6 +3310,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                       
                       // Handle smart vehicle cost
                       if (selectedRate && (selectedRate.deliveryMethod === 'smart_vehicle' || selectedRate.delivery_method === 'smart_vehicle')) {
+                        if (!hasCompleteDeliveryAddress) {
+                          return <span className="text-gray-500">{deliveryAddressRequiredMessage}</span>;
+                        }
                         if (smartDeliveryLoading) {
                           return <span className="text-emerald-600">{t.calculating}</span>;
                         }
@@ -2375,7 +3327,12 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         return <span className="text-blue-600 font-bold">{t.free}</span>;
                       }
                       
-                      return shippingCost === 0 ? t.freeShipping : formatCurrency(shippingCost);
+                      if (isPickupShippingMethod) return t.freeShipping;
+                       if (!hasCompleteDeliveryAddress) return <span className="text-gray-500">{deliveryAddressRequiredMessage}</span>;
+                       if (standardShippingError) return <span className="text-red-600">{standardShippingUnavailableMessage}</span>;
+                       if (!isSmartShippingMethod && standardShippingLoading) return <span>{t.calculating}</span>;
+                       if (!isSmartShippingMethod && !standardShippingQuoteReady) return <span className="text-red-600">{standardShippingUnavailableMessage}</span>;
+                      return finalShippingCost === 0 ? t.freeShipping : formatCurrency(finalShippingCost);
                     })()}
                   </span>
                 </div>
@@ -2384,26 +3341,47 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               {/* Final Amount */}
               <div className="flex justify-between font-bold text-lg border-t pt-2 bg-yellow-300 px-2 py-2 rounded-lg">
                 <span>{language === 'en' ? 'Final Amount' : language === 'fa' ? 'مبلغ نهایی' : 'المبلغ النهائي'}</span>
-                <span className="text-gray-900">{formatCurrency(totalAmount)}</span>
+                <span className={`text-gray-900 ${!hasCurrentShippingPrice ? 'text-sm' : ''}`}>
+                  {hasCurrentShippingPrice
+                    ? formatCurrency(totalAmount)
+                    : !hasCompleteDeliveryAddress
+                      ? deliveryAddressRequiredMessage
+                      : smartDeliveryLoading || standardShippingLoading
+                        ? t.calculating
+                        : isSmartShippingMethod ? smartDeliveryUnavailableMessage : standardShippingUnavailableMessage}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Payment Method Selection - moved up below total */}
-          {customerData?.success && (
+          {/* Portal keeps the payment UI in DOM order after the address form. */}
+          {customerData?.success && paymentSectionTarget && createPortal(
+            hasCurrentShippingPrice ? (
             <div className="space-y-3 border rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
               <div className="flex items-center gap-2">
                 <Wallet className="w-5 h-5 text-blue-600" />
                 <h3 className="font-medium text-blue-900 dark:text-blue-100">{t.paymentMethod}</h3>
               </div>
               
+              {selectedContractId !== null && (
+                <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="note">
+                  {language === 'fa'
+                    ? 'برای سفارش قراردادی، پرداخت از کیف پول در دسترس نیست. لطفاً یک روش پرداخت غیر از کیف پول انتخاب کنید.'
+                    : language === 'ar'
+                      ? 'الدفع من المحفظة غير متاح لطلبات العقود. يرجى اختيار طريقة دفع أخرى غير المحفظة.'
+                      : language === 'tr'
+                        ? 'Sözleşmeli siparişlerde cüzdanla ödeme kullanılamaz. Lütfen cüzdan dışında bir ödeme yöntemi seçin.'
+                        : 'Wallet payment is unavailable for contract orders. Please choose a non-wallet payment method.'}
+                </p>
+              )}
+
               {/* Wallet Balance Display */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border">
+              {selectedContractId === null && <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{t.walletBalance}:</span>
                   <span className="font-semibold text-green-600">{formatCurrency(walletBalance)}</span>
                 </div>
-              </div>
+              </div>}
 
               {/* Payment Options */}
               <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as any)} className="space-y-3">
@@ -2435,7 +3413,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                 })}
                 
                 {/* دوم: پرداخت از کیف پول (تمام یا بخش از آن) */}
-                {canUseWallet && isWalletEnabledInSettings && (
+                {selectedContractId === null && canUseWallet && isWalletEnabledInSettings && (
                   <div className="flex items-center space-x-2 space-x-reverse">
                     <RadioGroupItem value="wallet_combined" id="wallet_combined" />
                     <Label htmlFor="wallet_combined" className="flex items-center gap-2 cursor-pointer">
@@ -2481,7 +3459,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               </RadioGroup>
 
               {/* Partial Payment Amount Input */}
-              {paymentMethod === 'wallet_combined' && (
+              {selectedContractId === null && paymentMethod === 'wallet_combined' && (
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="walletAmount">{t.amountFromWallet} {formatIQDAmount(Math.min(walletBalance, totalAmount))} IQD)</Label>
@@ -2536,7 +3514,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               )}
 
               {/* Payment Summary */}
-              {(paymentMethod === 'wallet' || paymentMethod === 'wallet_full' || paymentMethod === 'wallet_partial' || paymentMethod === 'wallet_combined') && (
+              {selectedContractId === null && (paymentMethod === 'wallet' || paymentMethod === 'wallet_full' || paymentMethod === 'wallet_partial' || paymentMethod === 'wallet_combined') && (
                 <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
@@ -2555,6 +3533,20 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                 </div>
               )}
             </div>
+            ) : (
+              <div role="status" className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+                {!hasCompleteDeliveryAddress
+                  ? deliveryAddressRequiredMessage
+                  : language === 'fa'
+                    ? 'پس از دریافت نرخ معتبر ارسال، روش پرداخت نمایش داده می‌شود.'
+                    : language === 'ar'
+                      ? 'ستظهر خيارات الدفع بعد استلام سعر شحن صالح.'
+                      : language === 'tr'
+                        ? 'Geçerli kargo ücreti alındıktan sonra ödeme seçenekleri gösterilir.'
+                        : 'Payment options will appear once a valid shipping quote is ready.'}
+              </div>
+            ),
+            paymentSectionTarget,
           )}
 
 
@@ -2567,6 +3559,50 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
             
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {customerData?.success === true && (
+                  <div className="space-y-2">
+                    {hasContractCartError && (
+                      <div className="space-y-1 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700" role="alert">
+                        {contractCartErrors.map((message, index) => <p key={`${index}-${message}`}>{message}</p>)}
+                      </div>
+                    )}
+                    {selectedContract && selectedContract.items.some(item => !(cart[item.productId] > 0)) && (
+                      <div className={`space-y-3 p-3 ${contractTheme.panel}`}>
+                        <Button type="button" variant="outline" className={contractTheme.outline} size="sm" aria-expanded={showContractProducts} onClick={() => setShowContractProducts(open => !open)}>
+                          {language === 'fa' ? 'افزودن کالاهای قرارداد' : language === 'ar' ? 'إضافة منتجات العقد' : language === 'tr' ? 'Sözleşme ürünleri ekle' : 'Add contract products'}
+                        </Button>
+                        {showContractProducts && selectedContract.items.filter(item => !(cart[item.productId] > 0)).map(item => {
+                          const product = products.find(candidate => Number(candidate.id) === Number(item.productId));
+                          const limit = contractQuantityLimit(item);
+                          const stock = Number(product?.stockQuantity) || 0;
+                          const available = Math.min(limit ?? 0, stock);
+                          return (
+                            <div key={item.productId} className={`flex flex-wrap items-center gap-2 border-t border-teal-900/10 pt-2 text-sm dark:border-teal-100/10 ${contractTheme.text}`}>
+                              <span className="flex-1 min-w-32">{item.productName}</span>
+                              <span className="text-muted-foreground">{language === 'fa' ? 'باقیمانده' : language === 'ar' ? 'المتبقي' : language === 'tr' ? 'Kalan' : 'Remaining'}: {limit ?? '—'}</span>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={available}
+                                step={1}
+                                value={contractAddQuantities[item.productId] ?? '1'}
+                                onChange={event => setContractAddQuantities(current => ({ ...current, [item.productId]: event.target.value }))}
+                                disabled={available < 1 || pendingContractAdditions.includes(item.productId)}
+                                className="w-20"
+                                aria-label={`${item.productName} ${language === 'fa' ? 'تعداد' : 'quantity'}`}
+                              />
+                              <Button type="button" size="sm" variant="outline" className={contractTheme.outline} onClick={() => { void addContractItem(item.productId); }}
+                                disabled={available < 1 || isLoadingContracts || isFetchingContracts || !!contractsError || pendingContractAdditions.includes(item.productId)}>
+                                <Plus className="w-4 h-4 mr-1" />
+                                {language === 'fa' ? 'افزودن' : language === 'ar' ? 'إضافة' : language === 'tr' ? 'Ekle' : 'Add'}
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Customer Name */}
                 <FormField
                   control={form.control}
@@ -2692,161 +3728,149 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                   />
                 )}
 
-                {/* Second Address Option - Only show for CRM customers */}
-                {hasCrmData && (
-                  <div className="space-y-3 p-4 bg-blue-50 rounded-lg border">
-
-                    
-                    <div className="flex items-center justify-between">
-                      <label className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>
-                        {t.secondDeliveryAddress}
-                      </label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowSecondAddress(!showSecondAddress)}
-                        className="text-blue-600 border-blue-200 hover:bg-blue-100"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        {showSecondAddress ? t.removeSecondAddress : t.addSecondAddress}
-                      </Button>
-                    </div>
-                    {showSecondAddress && (
-                      <div className="space-y-3">
-                        <FormItem>
-                          <FormControl>
-                            <Textarea 
-                              value={secondAddress}
-                              onChange={(e) => setSecondAddress(e.target.value)}
-                              rows={2}
-                              placeholder={t.secondAddressPlaceholder}
-                              className={`${isRTL ? 'text-right' : 'text-left'} bg-white`}
-                            />
-                          </FormControl>
-                        </FormItem>
-                        
-                        {/* Province and City Dropdowns for Second Address */}
-                        <div className="grid grid-cols-3 gap-3">
-                          {/* Province Dropdown */}
-                          <div>
-                            <label className={`block text-sm font-medium mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {t.province}
-                            </label>
-                            <Select 
-                              onValueChange={(value) => {
-                                // Find the selected province object to get Arabic name
-                                const selectedProvince = (provinces as any)?.data?.find((p: any) => 
-                                  p.nameEnglish === value || p.name === value
-                                );
-                                
-                                if (selectedProvince) {
-                                  // Use Arabic name for delivery calculations
-                                  const arabicProvinceName = selectedProvince.nameArabic || selectedProvince.name || value;
-                                  setSecondProvince(arabicProvinceName); // Store Arabic name for API calls
-                                  setSelectedSecondaryProvinceId(selectedProvince.id);
-                                  // Clear city selection when province changes
-                                  setSecondCity("");
-                                  
-                                  console.log('🏛️ [BILINGUAL] Province selected:', {
-                                    displayValue: value,
-                                    arabicName: arabicProvinceName,
-                                    provinceId: selectedProvince.id
-                                  });
-                                }
-                              }} 
-                              value={
-                                // Find the province with matching Arabic name to show English value
-                                (provinces as any)?.data?.find((province: any) => 
-                                  (province.nameArabic || province.name) === secondProvince
-                                )?.nameEnglish || secondProvince
-                              }
-                              disabled={isLoadingProvinces}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder={
-                                  isLoadingProvinces 
-                                    ? t.loading
-                                    : t.selectProvince
-                                } />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {(provinces as any)?.data && Array.isArray((provinces as any).data) && (provinces as any).data.map((province: any) => (
-                                  <SelectItem key={province.id} value={province.nameEnglish || province.name}>
-                                    {province.nameEnglish} / {province.nameArabic || province.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {/* City Dropdown */}
-                          <div>
-                            <label className={`block text-sm font-medium mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {t.city}
-                            </label>
-                            <Select 
-                              onValueChange={(value) => {
-                                // Find the selected city object to get Arabic name
-                                const selectedCity = secondaryCities?.find((city: any) => 
-                                  (city.nameEnglish || city.name) === value
-                                );
-                                
-                                // Use Arabic name for delivery calculations, but display value for UI
-                                const arabicCityName = selectedCity?.nameArabic || selectedCity?.name || value;
-                                setSecondCity(arabicCityName); // Store Arabic name for API calls
-                                
-                                console.log('🏙️ [BILINGUAL] City selected:', {
-                                  displayValue: value,
-                                  arabicName: arabicCityName,
-                                  selectedCity: selectedCity
-                                });
-                              }} 
-                              value={
-                                // Find the city with matching Arabic name to show English value
-                                secondaryCities?.find((city: any) => 
-                                  (city.nameArabic || city.name) === secondCity
-                                )?.nameEnglish || secondCity
-                              }
-                              disabled={!selectedSecondaryProvinceId || isLoadingSecondaryCities}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder={
-                                  !selectedSecondaryProvinceId 
-                                    ? t.selectProvinceFirst
-                                    : isLoadingSecondaryCities
-                                    ? t.loading
-                                    : t.selectCity
-                                } />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {secondaryCities && Array.isArray(secondaryCities) && secondaryCities.map((city: any) => (
-                                  <SelectItem key={city.id} value={city.nameEnglish || city.name}>
-                                    {city.nameEnglish} / {city.nameArabic || city.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {/* Postal Code */}
-                          <div>
-                            <label className={`block text-sm font-medium mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {t.postalCode}
-                            </label>
-                            <Input 
-                              value={secondPostalCode}
-                              onChange={(e) => setSecondPostalCode(e.target.value)}
-                              placeholder="12345"
-                              className={`${isRTL ? 'text-right' : 'text-left'} bg-white`}
-                            />
-                          </div>
-                        </div>
-
-                      </div>
+                <section className="space-y-3 rounded-lg border bg-muted/20 p-4" aria-label={t.deliveryAddressChoices}>
+                  <h3 className="text-sm font-semibold">{t.deliveryAddressChoices}</h3>
+                  <div className="grid gap-2">
+                    <button type="button" onClick={() => selectDeliveryAddress('primary')}
+                      aria-pressed={selectedDeliveryAddressId === 'primary'}
+                      className={`rounded-md border bg-background p-3 text-left transition-colors ${selectedDeliveryAddressId === 'primary' ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/60'}`}>
+                      <span className="block font-medium">{language === 'fa' ? 'آدرس اصلی' : 'Primary address'}</span>
+                      <span className="mt-1 block text-sm text-muted-foreground">
+                        {[primaryPricingAddress, primaryPricingCity, primaryPricingProvince, form.getValues('country')].filter(Boolean).join(', ')}
+                      </span>
+                      <span className="mt-1 block text-xs text-muted-foreground">{form.getValues('phone')}</span>
+                    </button>
+                    {legacySecondaryAddress && (
+                      <button type="button" onClick={() => selectDeliveryAddress('legacy')}
+                        aria-pressed={selectedDeliveryAddressId === 'legacy'}
+                        className={`rounded-md border bg-background p-3 text-left transition-colors ${selectedDeliveryAddressId === 'legacy' ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/60'}`}>
+                        <span className="block font-medium">{t.legacyAddress}</span>
+                        <span className="mt-1 block text-sm text-muted-foreground">{legacySecondaryAddress}</span>
+                        <span className="mt-1 block text-xs text-muted-foreground">{crmCustomerData?.phone || customerData?.customer?.phone || ''}</span>
+                      </button>
                     )}
+                    {savedCustomerAddresses.map(address => {
+                      const key = `saved:${address.id}`;
+                      return (
+                        <button key={key} type="button" onClick={() => selectDeliveryAddress(key)}
+                          aria-pressed={selectedDeliveryAddressId === key}
+                          className={`rounded-md border bg-background p-3 text-left transition-colors ${selectedDeliveryAddressId === key ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/60'}`}>
+                          <span className="block font-medium">{address.title}</span>
+                          <span className="mt-1 block text-sm text-muted-foreground">
+                            {[address.address, address.city, address.state, address.postalCode, address.country].filter(Boolean).join(', ')}
+                          </span>
+                          <span className="mt-1 block text-xs text-muted-foreground">{address.phone}</span>
+                        </button>
+                      );
+                    })}
+                    <button type="button" onClick={() => selectDeliveryAddress('new')}
+                      aria-pressed={isNewAddressSelected}
+                      className={`flex w-full items-center gap-2 rounded-md border border-dashed bg-background p-3 text-left font-medium text-primary transition-colors hover:border-primary ${isNewAddressSelected ? 'border-primary ring-1 ring-primary' : ''}`}>
+                      <Plus className="h-4 w-4" aria-hidden="true" /> {t.newAddress}
+                    </button>
                   </div>
-                )}
+
+                  {(isNewAddressSelected || isLegacyAddressSelected) && (
+                    <div className="space-y-3 border-t pt-3">
+                      {isNewAddressSelected && (
+                        <>
+                          <p className="text-sm text-muted-foreground">{t.newAddressInstruction}</p>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <Label htmlFor="new-address-title">{t.addressTitle}</Label>
+                              <Input id="new-address-title" value={newAddressTitle} onChange={event => setNewAddressTitle(event.target.value)}
+                                placeholder={t.addressTitlePlaceholder} />
+                            </div>
+                            <div>
+                              <Label htmlFor="new-address-phone">{t.deliveryPhone}</Label>
+                              <Input id="new-address-phone" value={newAddressPhone} onChange={event => setNewAddressPhone(event.target.value)}
+                                placeholder={t.phonePlaceholder} />
+                            </div>
+                          </div>
+                          <Textarea value={secondAddress} onChange={event => setSecondAddress(event.target.value)}
+                            rows={2} placeholder={t.addressPlaceholder} className={isRTL ? 'text-right' : 'text-left'} />
+                          <div>
+                            <Label htmlFor="new-address-country">Country</Label>
+                            <Input id="new-address-country" value={newAddressCountry} onChange={event => setNewAddressCountry(event.target.value)}
+                              placeholder={form.getValues('country') || 'Country'} />
+                          </div>
+                        </>
+                      )}
+                      {isLegacyAddressSelected && (
+                        <>
+                          <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+                            {t.destinationRequired}: {legacySecondaryAddress}
+                          </div>
+                          <div>
+                            <Label htmlFor="legacy-address-country">Country</Label>
+                            <Select value={legacyAddressCountry} onValueChange={setLegacyAddressCountry}>
+                              <SelectTrigger id="legacy-address-country">
+                                <SelectValue placeholder="Select country" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {geographyCountries.map((country: any) => {
+                                  const countryName = canonicalGeographyName(country);
+                                  const countryValue = countryName || country.code || country.countryCode;
+                                  return countryValue ? (
+                                    <SelectItem key={country.id || country.code || countryValue} value={countryValue}>
+                                      {geographyName(country) || countryValue}
+                                    </SelectItem>
+                                  ) : null;
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div>
+                          <Label>{t.province}</Label>
+                          <Select onValueChange={value => {
+                            const selectedProvince = (provinces as any)?.data?.find((province: any) =>
+                              canonicalGeographyName(province) === value || geographyName(province) === value
+                            );
+                            const provinceName = selectedProvince ? canonicalGeographyName(selectedProvince) : value;
+                            setSecondProvince(provinceName);
+                            setSelectedSecondaryProvinceId(selectedProvince?.id || null);
+                            setSecondCity('');
+                          }} value={secondProvince} disabled={isLoadingProvinces}>
+                            <SelectTrigger><SelectValue placeholder={isLoadingProvinces ? t.loading : t.selectProvince} /></SelectTrigger>
+                            <SelectContent>
+                              {(provinces as any)?.data?.map((province: any) => (
+                                <SelectItem key={province.id} value={canonicalGeographyName(province)}>
+                                  {geographyName(province)} / {canonicalGeographyName(province)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>{t.city}</Label>
+                          <Select onValueChange={value => {
+                            const selectedCity = secondaryCities.find((city: any) =>
+                              canonicalGeographyName(city) === value || geographyName(city) === value
+                            );
+                            setSecondCity(selectedCity ? canonicalGeographyName(selectedCity) : value);
+                          }} value={secondCity} disabled={!selectedSecondaryProvinceId || isLoadingSecondaryCities}>
+                            <SelectTrigger><SelectValue placeholder={!selectedSecondaryProvinceId ? t.selectProvinceFirst : isLoadingSecondaryCities ? t.loading : t.selectCity} /></SelectTrigger>
+                            <SelectContent>
+                              {secondaryCities.map((city: any) => (
+                                <SelectItem key={city.id} value={canonicalGeographyName(city)}>
+                                  {geographyName(city)} / {canonicalGeographyName(city)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="delivery-postal-code">{t.postalCode}</Label>
+                          <Input id="delivery-postal-code" value={secondPostalCode} onChange={event => setSecondPostalCode(event.target.value)}
+                            placeholder={t.postalCodePlaceholder} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
 
                 {/* Recipient Mobile Number - Only show for CRM customers */}
                 {hasCrmData && (
@@ -2939,6 +3963,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                   )}
                 />
 
+                {customerData?.success && <div ref={setPaymentSectionTarget} />}
+
                 {/* Submit Buttons */}
                 <div className="flex gap-2 pt-4 no-drag">
                   <Button
@@ -2951,22 +3977,25 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                   </Button>
                   <Button
                     type="submit"
-                    disabled={submitOrderMutation.isPending || !paymentMethod}
+                    disabled={
+                      Object.keys(cart).length === 0 ||
+                      unavailableCartProductIds.length > 0 ||
+                      hasContractCartError ||
+                      (selectedContractId !== null && !supportedNonWalletPaymentMethod) ||
+                      submitOrderMutation.isPending ||
+                      !paymentMethod ||
+                      (() => {
+                        const selectedRate = shippingRatesData?.find((rate: any) => rate.id === selectedShippingMethod);
+                        const method = selectedRate?.deliveryMethod || selectedRate?.delivery_method;
+                        return method === 'smart_vehicle' && (
+                          smartDeliveryLoading ||
+                          !!smartDeliveryError ||
+                          !optimalVehicle ||
+                          smartDeliveryPricedKey !== currentSmartDeliveryPricedKey
+                        );
+                      })()
+                    }
                     className="flex-1 no-drag"
-                    onClick={(e) => {
-                      console.log('🔘 [BUTTON DEBUG] Submit button clicked - drag protection active');
-                      console.log('🔘 [BUTTON DEBUG] Mutation pending:', submitOrderMutation.isPending);
-                      console.log('🔘 [BUTTON DEBUG] Form valid:', form.formState.isValid);
-                      console.log('🔘 [BUTTON DEBUG] Form errors:', form.formState.errors);
-                      console.log('🔘 [BUTTON DEBUG] Selected shipping method:', selectedShippingMethod);
-                      console.log('🔘 [BUTTON DEBUG] Payment method:', paymentMethod);
-                      
-                      // Force form submission if all conditions met
-                      if (!submitOrderMutation.isPending && selectedShippingMethod && paymentMethod) {
-                        console.log('🔘 [BUTTON DEBUG] Forcing form submission via handleSubmit');
-                        form.handleSubmit(onSubmit)();
-                      }
-                    }}
                   >
                     {submitOrderMutation.isPending ? t.loading : t.submitOrder}
                   </Button>
@@ -2976,6 +4005,56 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           </div>
         </CardContent>
       </Card>
+      <OrderReviewDialog
+        open={reviewOpen}
+        onOpenChange={(open) => { setReviewOpen(open); if (!open) setPendingReview(null); }}
+        addresses={[
+          { id: 'primary', label: language === 'fa' ? 'آدرس اصلی' : 'Primary address',
+            address: primaryPricingAddress, city: primaryPricingCity, province: primaryPricingProvince,
+            country: form.getValues('country') || crmCustomerData?.country || customerData?.customer?.country,
+            postalCode: form.getValues('postalCode') || '', phone: form.getValues('phone') || '' },
+          ...(legacySecondaryAddress
+            ? [{ id: 'legacy', label: t.legacyAddress, address: legacySecondaryAddress, city: secondCity,
+                province: secondProvince, postalCode: secondPostalCode,
+                country: legacyAddressCountry,
+                phone: crmCustomerData?.phone || customerData?.customer?.phone || '' }]
+            : []),
+          ...(isNewAddressSelected && secondAddress.trim()
+            ? [{ id: 'new', label: newAddressTitle.trim() || t.newAddress, address: secondAddress.trim(),
+                city: secondCity, province: secondProvince, postalCode: secondPostalCode,
+                country: newAddressCountry, phone: newAddressPhone }]
+            : []),
+          ...savedCustomerAddresses.map(address => ({
+            id: `saved:${address.id}`, label: address.title,
+            address: address.address, city: address.city, province: address.state || '',
+            country: address.country, postalCode: address.postalCode || '', phone: address.phone,
+          })),
+        ]}
+        selectedAddressId={reviewAddressId}
+        onConfirm={() => {
+          confirmingOrderRef.current = true;
+          void form.handleSubmit(onSubmit, () => { confirmingOrderRef.current = false; })();
+        }}
+        onRefresh={() => {
+          confirmingOrderRef.current = false;
+          void form.handleSubmit(onSubmit)();
+        }}
+        confirmDisabled={isConfirmingOrder || submitOrderMutation.isPending || !pendingReview}
+        confirming={isConfirmingOrder || submitOrderMutation.isPending}
+        needsRefresh={!pendingReview || smartDeliveryLoading || standardShippingLoading}
+        refreshPending={smartDeliveryLoading || standardShippingLoading}
+        items={Object.entries(cart).map(([id, quantity]) => {
+          const product = products.find(item => item.id === Number(id));
+          return { id, name: product?.name || id, quantity, unitPrice: product ? getCartUnitPrice(product, quantity) : 0 };
+        })}
+        shippingMethod={selectedShippingRate?.name || selectedShippingRate?.description || selectedShippingRate?.deliveryMethod || ''}
+        shippingCost={finalShippingCost}
+        subtotal={subtotalAmount}
+        tax={totalTaxAmount}
+        total={totalAmount}
+        paymentMethod={paymentMethod}
+        language={language as 'en' | 'fa' | 'ar' | 'tr'}
+      />
     </div>
   );
 }

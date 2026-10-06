@@ -27,8 +27,11 @@ export const abandonedCartSettings = pgTable("abandoned_cart_settings", {
   id: serial("id").primaryKey(),
   timeoutMinutes: integer("timeout_minutes").default(30), // Time before cart is considered abandoned
   isEnabled: boolean("is_enabled").default(true),
+  autoDeleteEnabled: boolean("auto_delete_enabled").default(false),
+  autoDeleteAfterHours: integer("auto_delete_after_hours").default(168),
   notificationTitle: text("notification_title").default("سبد خرید شما منتظر است!"),
   notificationMessage: text("notification_message").default("محصولات انتخابی شما در سبد خرید منتظر تکمیل خرید هستند. برای ادامه خرید کلیک کنید."),
+  senderEmailCategory: text("sender_email_category"),
   buttonText: text("button_text").default("ادامه خرید"),
   showDiscountOffer: boolean("show_discount_offer").default(false),
   discountPercentage: integer("discount_percentage").default(0),

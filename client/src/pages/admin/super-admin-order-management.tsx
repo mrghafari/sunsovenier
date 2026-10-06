@@ -1,44 +1,20 @@
-import React, { useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, Database, Mail, Package, RefreshCw, Search, Shield, Trash2, User, X } from "lucide-react";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import PaymentMethodBadge from '@/components/PaymentMethodBadge';
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { 
-  Trash2, 
-  AlertTriangle, 
-  Eye, 
-  Search, 
-  Shield, 
-  RefreshCw,
-  Calendar,
-  User,
-  Mail,
-  DollarSign,
-  Package,
-  Database,
-  XCircle
-} from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Order {
   id: number;
-  orderNumber: string;
+  orderNumber: string | null;
   customerName: string;
   customerEmail: string;
   customerPhone?: string;
@@ -47,845 +23,198 @@ interface Order {
   totalAmount: string;
   currency: string;
   status: string;
+  paymentStatus?: string;
   paymentMethod: string;
   createdAt: string;
   updatedAt: string;
   deliveryCode?: string;
 }
 
-
+type Lang = "en" | "fa" | "ar" | "tr";
+const copy: Record<Lang, Record<string, string>> = {
+  en: { title: "Super admin order control", subtitle: "Permanent deletion console. Verify every selection before committing.", orders: "Deletable orders", customer: "Customer orders", search: "Search orders", searchHint: "Order number, email, phone, delivery code", refresh: "Refresh", strongRefresh: "Force refresh", production: "Production reset", total: "Total", visible: "Visible", selected: "selected", clear: "Clear selection", bulk: "Delete selected", empty: "No orders found", emptyHint: "Try a different filter or refresh the list.", email: "Customer email", lookup: "Search customer", enterEmail: "Enter an email to load orders", noCustomer: "No orders found for this customer", loading: "Loading orders…", loadingCustomer: "Searching…", order: "Order", customerName: "Customer", amount: "Amount", status: "Status", payment: "Payment", date: "Created", action: "Action", delete: "Delete", deleteTitle: "Permanently delete this order?", bulkTitle: "Permanently delete selected orders?", permanent: "This cannot be undone. All related records will be removed.", confirm: "Delete permanently", cancel: "Cancel", deleting: "Deleting…", deleted: "Order deleted", bulkDeleted: "orders deleted", error: "Operation failed", auth: "Authentication required", authHint: "Sign in with an administrator account to continue.", signIn: "Go to admin sign in", forbidden: "Super admin access required", forbiddenHint: "You are signed in, but this account does not have an active super admin role.", back: "Back to admin panel", resetTitle: "Reset production data", resetText: "This permanently clears test orders, transactions and related records.", preserve: "Preserve customer records", reset: "Reset production", resetting: "Resetting…", resetDone: "Production reset complete", statusCompleted: "Completed", statusPending: "Pending", statusCancelled: "Cancelled", statusProcessing: "Processing", unknown: "Unknown", noNumber: "No order number", selectedCount: "selected orders" },
+  fa: { title: "کنترل سفارش‌های سوپر ادمین", subtitle: "کنسول حذف دائمی. پیش از ثبت، هر انتخاب را بررسی کنید.", orders: "سفارش‌های قابل حذف", customer: "سفارش‌های مشتری", search: "جستجوی سفارش", searchHint: "شماره سفارش، ایمیل، تلفن، کد تحویل", refresh: "به‌روزرسانی", strongRefresh: "به‌روزرسانی کامل", production: "پاک‌سازی تولید", total: "کل", visible: "قابل مشاهده", selected: "انتخاب‌شده", clear: "لغو انتخاب", bulk: "حذف انتخاب‌شده‌ها", empty: "سفارشی یافت نشد", emptyHint: "فیلتر دیگری امتحان کنید یا فهرست را به‌روزرسانی کنید.", email: "ایمیل مشتری", lookup: "جستجوی مشتری", enterEmail: "برای دریافت سفارش‌ها ایمیل وارد کنید", noCustomer: "برای این مشتری سفارشی یافت نشد", loading: "در حال بارگذاری سفارش‌ها…", loadingCustomer: "در حال جستجو…", order: "سفارش", customerName: "مشتری", amount: "مبلغ", status: "وضعیت", payment: "پرداخت", date: "ایجاد شده", action: "عملیات", delete: "حذف", deleteTitle: "این سفارش برای همیشه حذف شود؟", bulkTitle: "سفارش‌های انتخاب‌شده برای همیشه حذف شوند؟", permanent: "این عملیات برگشت‌پذیر نیست و همه رکوردهای مرتبط حذف می‌شوند.", confirm: "حذف دائمی", cancel: "انصراف", deleting: "در حال حذف…", deleted: "سفارش حذف شد", bulkDeleted: "سفارش حذف شد", error: "عملیات ناموفق بود", auth: "احراز هویت لازم است", authHint: "برای ادامه با حساب مدیر وارد شوید.", signIn: "ورود به پنل مدیریت", forbidden: "دسترسی سوپر ادمین لازم است", forbiddenHint: "شما وارد شده‌اید، اما این حساب نقش فعال سوپر ادمین ندارد.", back: "بازگشت به پنل مدیریت", resetTitle: "پاک‌سازی داده‌های تولید", resetText: "این عملیات سفارش‌های آزمایشی، تراکنش‌ها و رکوردهای مرتبط را حذف می‌کند.", preserve: "حفظ رکوردهای مشتریان", reset: "پاک‌سازی تولید", resetting: "در حال پاک‌سازی…", resetDone: "پاک‌سازی تولید انجام شد", statusCompleted: "تکمیل‌شده", statusPending: "در انتظار", statusCancelled: "لغو شده", statusProcessing: "در حال پردازش", unknown: "نامشخص", noNumber: "بدون شماره سفارش", selectedCount: "سفارش انتخاب‌شده" },
+  ar: { title: "التحكم بطلبات المشرف الأعلى", subtitle: "وحدة حذف نهائي. تحقق من كل اختيار قبل التنفيذ.", orders: "الطلبات القابلة للحذف", customer: "طلبات العميل", search: "بحث في الطلبات", searchHint: "رقم الطلب، البريد، الهاتف، رمز التسليم", refresh: "تحديث", strongRefresh: "تحديث كامل", production: "إعادة ضبط الإنتاج", total: "الإجمالي", visible: "الظاهر", selected: "محدد", clear: "إلغاء التحديد", bulk: "حذف المحدد", empty: "لم يتم العثور على طلبات", emptyHint: "جرّب مرشحاً آخر أو حدّث القائمة.", email: "بريد العميل", lookup: "بحث عن العميل", enterEmail: "أدخل بريداً لتحميل الطلبات", noCustomer: "لا توجد طلبات لهذا العميل", loading: "جار تحميل الطلبات…", loadingCustomer: "جار البحث…", order: "الطلب", customerName: "العميل", amount: "المبلغ", status: "الحالة", payment: "الدفع", date: "تاريخ الإنشاء", action: "الإجراء", delete: "حذف", deleteTitle: "حذف هذا الطلب نهائياً؟", bulkTitle: "حذف الطلبات المحددة نهائياً؟", permanent: "لا يمكن التراجع. ستُحذف كل السجلات المرتبطة.", confirm: "حذف نهائي", cancel: "إلغاء", deleting: "جار الحذف…", deleted: "تم حذف الطلب", bulkDeleted: "طلبات تم حذفها", error: "فشلت العملية", auth: "المصادقة مطلوبة", authHint: "سجّل الدخول بحساب مسؤول للمتابعة.", signIn: "الذهاب لتسجيل دخول الإدارة", forbidden: "صلاحية المشرف الأعلى مطلوبة", forbiddenHint: "أنت مسجل الدخول، لكن هذا الحساب لا يملك دور مشرف أعلى نشطاً.", back: "العودة إلى لوحة الإدارة", resetTitle: "إعادة ضبط بيانات الإنتاج", resetText: "يمسح هذا طلبات الاختبار والمعاملات والسجلات المرتبطة نهائياً.", preserve: "الحفاظ على سجلات العملاء", reset: "إعادة ضبط الإنتاج", resetting: "جار إعادة الضبط…", resetDone: "اكتملت إعادة ضبط الإنتاج", statusCompleted: "مكتمل", statusPending: "قيد الانتظار", statusCancelled: "ملغى", statusProcessing: "قيد المعالجة", unknown: "غير معروف", noNumber: "بدون رقم طلب", selectedCount: "طلبات محددة" },
+  tr: { title: "Süper yönetici sipariş kontrolü", subtitle: "Kalıcı silme konsolu. İşlemi onaylamadan önce her seçimi doğrulayın.", orders: "Silinebilir siparişler", customer: "Müşteri siparişleri", search: "Sipariş ara", searchHint: "Sipariş no, e-posta, telefon, teslim kodu", refresh: "Yenile", strongRefresh: "Zorla yenile", production: "Üretim sıfırlama", total: "Toplam", visible: "Görünen", selected: "seçili", clear: "Seçimi temizle", bulk: "Seçilenleri sil", empty: "Sipariş bulunamadı", emptyHint: "Başka bir filtre deneyin veya listeyi yenileyin.", email: "Müşteri e-postası", lookup: "Müşteri ara", enterEmail: "Siparişleri yüklemek için e-posta girin", noCustomer: "Bu müşteri için sipariş bulunamadı", loading: "Siparişler yükleniyor…", loadingCustomer: "Aranıyor…", order: "Sipariş", customerName: "Müşteri", amount: "Tutar", status: "Durum", payment: "Ödeme", date: "Oluşturuldu", action: "İşlem", delete: "Sil", deleteTitle: "Bu sipariş kalıcı olarak silinsin mi?", bulkTitle: "Seçilen siparişler kalıcı olarak silinsin mi?", permanent: "Bu işlem geri alınamaz. Tüm ilişkili kayıtlar silinir.", confirm: "Kalıcı sil", cancel: "İptal", deleting: "Siliniyor…", deleted: "Sipariş silindi", bulkDeleted: "sipariş silindi", error: "İşlem başarısız", auth: "Kimlik doğrulama gerekli", authHint: "Devam etmek için yönetici hesabıyla giriş yapın.", signIn: "Yönetici girişine git", forbidden: "Süper yönetici erişimi gerekli", forbiddenHint: "Oturumunuz açık, ancak bu hesapta etkin bir süper yönetici rolü yok.", back: "Yönetim paneline dön", resetTitle: "Üretim verilerini sıfırla", resetText: "Test siparişleri, işlemleri ve ilişkili kayıtları kalıcı olarak temizler.", preserve: "Müşteri kayıtlarını koru", reset: "Üretimi sıfırla", resetting: "Sıfırlanıyor…", resetDone: "Üretim sıfırlama tamamlandı", statusCompleted: "Tamamlandı", statusPending: "Bekliyor", statusCancelled: "İptal", statusProcessing: "İşleniyor", unknown: "Bilinmiyor", noNumber: "Sipariş numarası yok", selectedCount: "seçili sipariş" },
+};
+const paymentLabels: Record<Lang, Record<string, string>> = {
+  en: { wallet_full: "Wallet (full)", wallet_partial: "Wallet (partial)", online_payment: "Online payment", bank_transfer: "Bank transfer", bank_transfer_grace: "Bank transfer (grace)", hybrid: "Hybrid", cash: "Cash", credit: "Credit" },
+  fa: { wallet_full: "کیف پول (کامل)", wallet_partial: "کیف پول (جزئی)", online_payment: "پرداخت آنلاین", bank_transfer: "انتقال بانکی", bank_transfer_grace: "انتقال بانکی (مهلت)", hybrid: "ترکیبی", cash: "نقدی", credit: "اعتباری" },
+  ar: { wallet_full: "محفظة (كامل)", wallet_partial: "محفظة (جزئي)", online_payment: "دفع إلكتروني", bank_transfer: "تحويل بنكي", bank_transfer_grace: "تحويل بنكي (مهلة)", hybrid: "مختلط", cash: "نقدي", credit: "ائتماني" },
+  tr: { wallet_full: "Cüzdan (tam)", wallet_partial: "Cüzdan (kısmi)", online_payment: "Çevrim içi ödeme", bank_transfer: "Banka havalesi", bank_transfer_grace: "Banka havalesi (ek süre)", hybrid: "Karma", cash: "Nakit", credit: "Kredi" },
+};
+const statusFilterOptions = ["pending", "delivered", "cancelled", "deleted"];
+const paymentFilterOptions = [
+  { group: "status", values: ["pending", "partial", "paid", "grace_period", "receipt_uploaded"] },
+  { group: "method", values: ["online_payment", "bank_transfer_grace", "wallet_full", "wallet_partial"] },
+];
 
 export default function SuperAdminOrderManagement() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showProductionResetDialog, setShowProductionResetDialog] = useState(false);
-  const [preserveCustomers, setPreserveCustomers] = useState(false);
-  const [activeTab, setActiveTab] = useState('orders');
-  const [customerEmailSearch, setCustomerEmailSearch] = useState('');
-  const [emailSuggestions, setEmailSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const { language, direction } = useLanguage();
+  const c = { ...(copy[language as Lang] || copy.en) };
+  const locale = language === "fa" ? "fa-IR" : language === "ar" ? "ar" : language === "tr" ? "tr-TR" : "en-US";
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  // Email suggestions query for autocomplete
-  const { data: emailSuggestionsData } = useQuery({
-    queryKey: ['/api/super-admin/email-suggestions', customerEmailSearch],
-    queryFn: async () => {
-      if (!customerEmailSearch.trim() || customerEmailSearch.trim().length < 3) {
-        return { success: true, data: [] };
-      }
-      const response = await fetch(`/api/super-admin/email-suggestions?q=${encodeURIComponent(customerEmailSearch.trim())}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    },
-    enabled: customerEmailSearch.trim().length >= 3,
-    staleTime: 5000, // Cache suggestions for 5 seconds
+  const qc = useQueryClient();
+  const [tab, setTab] = useState("orders");
+  const [filter, setFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState({
+    orderNumber: "",
+    customer: "",
+    amount: "",
+    status: "",
+    payment: "",
+    date: "",
   });
-
-  // Update suggestions when data changes
-  React.useEffect(() => {
-    if (emailSuggestionsData?.data) {
-      setEmailSuggestions(emailSuggestionsData.data);
-      setShowSuggestions(emailSuggestionsData.data.length > 0 && customerEmailSearch.trim().length >= 3);
-    } else {
-      setEmailSuggestions([]);
-      setShowSuggestions(false);
-    }
-  }, [emailSuggestionsData, customerEmailSearch]);
-
-  // Handle suggestion selection
-  const handleSuggestionSelect = (email: string) => {
-    setCustomerEmailSearch(email);
-    setShowSuggestions(false);
-  };
-
-  // Handle input change
-  const handleEmailInputChange = (value: string) => {
-    setCustomerEmailSearch(value);
-    if (value.trim().length < 3) {
-      setShowSuggestions(false);
-    }
-  };
-
-  // Fetch deletable orders
-  const { data: response, isLoading, refetch } = useQuery({
-    queryKey: ['/api/super-admin/deletable-orders'],
-    retry: (failureCount, error) => {
-      if (error.message.includes('401') || error.message.includes('403')) return false;
-      return failureCount < 2;
-    },
-    staleTime: 0, // Always consider data stale
-    gcTime: 0, // Don't cache at all - always fresh (v5 syntax)
-    refetchOnWindowFocus: true, // Refetch when user comes back
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
-  });
-
-  // Force refresh function that completely clears super-admin cache
-  const forceRefreshSuperAdminOrders = async () => {
-    // Clear all super-admin cache first
-    await queryClient.invalidateQueries({ queryKey: ['/api/super-admin/deletable-orders'] });
-    await queryClient.removeQueries({ queryKey: ['/api/super-admin/deletable-orders'] });
-    // Then refetch
-    await refetch();
-    toast({
-      title: "🔄 به‌روزرسانی شد",
-      description: "لیست سفارشات قابل حذف از سرور بازیابی شد",
-    });
-  };
-
-  // Fetch customer orders by email
-  const { data: customerOrdersResponse, isLoading: customerOrdersLoading } = useQuery({
-    queryKey: ['/api/super-admin/customer-orders-by-email', customerEmailSearch],
-    queryFn: async () => {
-      if (!customerEmailSearch.trim()) return null;
-      const encodedEmail = encodeURIComponent(customerEmailSearch.trim());
-      const response = await fetch(`/api/super-admin/customer-orders-by-email/${encodedEmail}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    },
-    enabled: activeTab === 'customer-orders' && customerEmailSearch.trim() !== '',
-    retry: (failureCount, error) => {
-      if (error.message.includes('401') || error.message.includes('403')) return false;
-      return failureCount < 2;
-    }
-  });
-
-
-
-  // Extract orders from response with proper error handling
-  const orders: Order[] = Array.isArray((response as any)?.data) ? (response as any).data : [];
-  const customerOrders: Order[] = Array.isArray((customerOrdersResponse as any)?.data) ? (customerOrdersResponse as any).data : [];
-  
-  // Debug logging
-  console.log('API Response:', response);
-  console.log('Orders array:', orders);
-
-  // Delete order mutation
-  const deleteOrderMutation = useMutation({
-    mutationFn: async (order: { orderNumber: string | null; id: number }) => {
-      let endpoint: string;
-      
-      // Use different endpoints based on whether order has a number
-      if (order.orderNumber && order.orderNumber !== 'null') {
-        endpoint = `/api/super-admin/orders/${order.orderNumber}`;
-      } else {
-        endpoint = `/api/super-admin/orders-by-id/${order.id}`;
-      }
-      
-      console.log(`🗑️ [FRONTEND] Deleting order via: ${endpoint}`);
-      
-      const response = await fetch(endpoint, {
-        method: 'DELETE',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'خطا در حذف سفارش');
-      }
-      
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "سفارش حذف شد",
-        description: data.message,
-      });
-      setShowDeleteDialog(false);
-      setSelectedOrder(null);
-      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/deletable-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/customer-orders-by-email'] });
-      refetch();
-    },
-    onError: (error: any) => {
-      toast({
-        title: "خطا در حذف سفارش",
-        description: error.message,
-        variant: "destructive"
-      });
-      setShowDeleteDialog(false);
-    }
-  });
-
-  // Production reset mutation
-  const productionResetMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/super-admin/reset-for-production', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          preserveCustomers
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'خطا در پاک‌سازی تولیدی');
-      }
-      
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "پاک‌سازی موفق",
-        description: `${data.message} - ${data.tablesCleared} جدول پاک شد، ${data.recordsDeleted} رکورد حذف شد. کنتور سفارشات از ابتدا شروع خواهد شد.`,
-        variant: "default",
-      });
-      setShowProductionResetDialog(false);
-      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/deletable-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/super-admin/customer-orders-by-email'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "خطا در پاک‌سازی",
-        description: error.message || "مشکلی در پاک‌سازی رخ داده است",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Filter orders based on search with null safety (minimum 3 characters required)
-  const searchActive = searchTerm.length >= 3;
-  const searchLower = searchTerm.toLowerCase();
-  
-  const filteredOrders = (orders || []).filter((order: Order) => {
-    if (!searchActive) return true; // Show all orders if search term is less than 3 characters
-    
-    return order?.orderNumber?.toLowerCase().includes(searchLower) ||
-      order?.customerName?.toLowerCase().includes(searchLower) ||
-      order?.customerEmail?.toLowerCase().includes(searchLower) ||
-      order?.customerPhone?.toLowerCase().includes(searchLower) ||
-      order?.deliveryCode?.toLowerCase().includes(searchLower);
-  });
-
-  // Check for authentication errors  
-  const hasAuthError = (response as any)?.error?.message?.includes('401');
-  
-  if (hasAuthError) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-6 flex items-center justify-center" dir="rtl">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <CardTitle className="text-center text-red-600 flex items-center justify-center gap-2">
-              <AlertTriangle className="h-6 w-6" />
-              خطای احراز هویت
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-gray-600 mb-4">برای دسترسی به این بخش باید وارد حساب مدیریت شوید.</p>
-            <Button 
-              onClick={() => window.location.href = '/admin/login'}
-              className="w-full"
-            >
-              ورود به پنل مدیریت
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  const [email, setEmail] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selected, setSelected] = useState<Record<string, Set<number>>>({ orders: new Set(), customer: new Set() });
+  const [dialog, setDialog] = useState<"single" | "bulk" | "reset" | null>(null);
+  const [target, setTarget] = useState<Order | null>(null);
+  const [bulkSnapshot, setBulkSnapshot] = useState<{ ids: number[]; labels: string[] } | null>(null);
+  const [preserve, setPreserve] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const deferredFilter = useDeferredValue(filter);
+  const deferredColumnFilters = useDeferredValue(columnFilters);
+  if (dialog === "single" && target) {
+    c.deleteTitle = `${c.deleteTitle} ${target.orderNumber || c.noNumber} (ID ${target.id})`;
+  }
+  if (dialog === "bulk" && bulkSnapshot) {
+    c.selectedCount = `${bulkSnapshot.labels.slice(0, 8).join(", ")}${bulkSnapshot.labels.length > 8 ? ` … +${bulkSnapshot.labels.length - 8}` : ""}`;
   }
 
-  const handleDeleteClick = (order: Order) => {
-    setSelectedOrder(order);
-    setShowDeleteDialog(true);
-  };
-
-  const handleConfirmDelete = () => {
-    if (selectedOrder) {
-      deleteOrderMutation.mutate({
-        orderNumber: selectedOrder.orderNumber,
-        id: selectedOrder.id
+  const ordersQuery = useInfiniteQuery({
+    queryKey: ["/api/super-admin/deletable-orders", deferredFilter, deferredColumnFilters],
+    retry: false,
+    refetchInterval: 30000,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams({
+        offset: String(pageParam),
+        limit: "100",
       });
-    }
-  };
+      if (deferredFilter.trim()) params.set("q", deferredFilter.trim());
+      Object.entries(deferredColumnFilters).forEach(([key, value]) => {
+        if (value.trim()) params.set(key, value.trim());
+      });
+      const response = await fetch(`/api/super-admin/deletable-orders?${params}`, { credentials: "include" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${payload?.message || c.error}`);
+      }
+      return payload;
+    },
+    getNextPageParam: (lastPage) => lastPage?.pagination?.hasMore
+      ? lastPage.pagination.nextOffset
+      : undefined,
+  });
+  const customerQuery = useInfiniteQuery({ queryKey: ["/api/super-admin/customer-orders-by-email", email], enabled: tab === "customer" && !!email.trim(), retry: false, initialPageParam: 0, queryFn: async ({ pageParam }) => {
+    const params = new URLSearchParams({ limit: "100", offset: String(pageParam) });
+    const r = await fetch(`/api/super-admin/customer-orders-by-email/${encodeURIComponent(email.trim())}?${params}`, { credentials: "include" });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }, getNextPageParam: (lastPage) => lastPage?.pagination?.hasMore ? lastPage.pagination.nextOffset : undefined });
+  const suggestionQuery = useQuery({ queryKey: ["/api/super-admin/email-suggestions", email], enabled: email.trim().length >= 3, queryFn: async () => {
+    const r = await fetch(`/api/super-admin/email-suggestions?q=${encodeURIComponent(email.trim())}`, { credentials: "include" });
+    if (!r.ok) throw new Error("suggestions");
+    return r.json();
+  }, staleTime: 5000 });
+  useEffect(() => { const list = suggestionQuery.data?.data || []; setSuggestions(list); setShowSuggestions(list.length > 0); }, [suggestionQuery.data]);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-800">مکمل</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">در انتظار</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-100 text-red-800">لغو شده</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const formatAmount = (amount: string, currency: string) => {
-    const numericAmount = parseFloat(amount);
-    return `${numericAmount.toLocaleString()} ${currency}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
-        <span className="mr-2 text-lg">در حال بارگذاری...</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 p-6" dir="rtl">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-red-900 dark:text-red-100 flex items-center gap-3">
-                <Shield className="h-8 w-8 text-red-600" />
-                مدیریت سایت - سوپر ادمین
-              </h1>
-              <p className="text-red-700 dark:text-red-300 mt-2 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                مدیریت کامل سیستم شامل سفارشات و تنظیمات مدیریتی
-              </p>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {/* Production Reset Button */}
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                onClick={() => setShowProductionResetDialog(true)}
-                className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white"
-              >
-                <Database className="w-4 h-4" />
-                پاک‌سازی تولیدی
-              </Button>
-              
-              {/* Refresh Button */}
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={forceRefreshSuperAdminOrders}
-                className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-              >
-                <RefreshCw className="w-4 h-4" />
-                به‌روزرسانی قوی
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="orders" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              مدیریت سفارشات
-            </TabsTrigger>
-            <TabsTrigger value="customer-orders" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              سفارشات مشتری
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="orders" className="space-y-6">
-            {/* Search and Stats */}
-        <Card className="mb-6 border-red-200 bg-red-50/30">
-          <CardHeader>
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Search className="h-6 w-6 text-red-600" />
-              جستجو و آمار
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-4 items-center">
-              <div className="flex-1">
-                <Label htmlFor="search">جستجو (حداقل ۳ حرف): شماره سفارش، ایمیل، کد تحویل، تلفن</Label>
-                <Input
-                  id="search"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="حداقل ۳ حرف وارد کنید..."
-                  className="mt-1"
-                  data-testid="input-order-search"
-                />
-              </div>
-              <Button
-                onClick={() => refetch()}
-                variant="outline"
-                className="mt-6"
-              >
-                <RefreshCw className="h-4 w-4 ml-2" />
-                بروزرسانی
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-3 bg-white rounded-lg border border-red-200">
-                <Package className="h-6 w-6 text-red-600 mx-auto mb-1" />
-                <div className="text-2xl font-bold text-red-900">{(orders || []).length}</div>
-                <div className="text-sm text-red-600">کل سفارشات</div>
-              </div>
-              <div className="text-center p-3 bg-white rounded-lg border border-red-200">
-                <Search className="h-6 w-6 text-blue-600 mx-auto mb-1" />
-                <div className="text-2xl font-bold text-blue-900">{(filteredOrders || []).length}</div>
-                <div className="text-sm text-blue-600">نتایج فیلتر</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Orders List */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Package className="h-6 w-6 text-red-600" />
-              لیست سفارشات قابل حذف ({(filteredOrders || []).length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(filteredOrders || []).length === 0 ? (
-              <div className="text-center py-12">
-                <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">سفارشی یافت نشد</h3>
-                <p className="text-gray-500">
-                  {searchTerm ? 'نتیجه‌ای برای جستجوی شما یافت نشد' : 'هیچ سفارشی برای حذف وجود ندارد'}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {(filteredOrders || []).map((order: Order) => (
-                  <div
-                    key={order.id}
-                    className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <Package className="h-4 w-4 text-blue-500" />
-                            <span className="font-bold text-blue-900">{order.orderNumber}</span>
-                          </div>
-                          {getStatusBadge(order.status)}
-                        </div>
-                        
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <User className="h-4 w-4 text-green-500" />
-                            <span className="font-medium">{order.customerName}</span>
-                            {order.customerPhone && (
-                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full ml-2">
-                                📱 {order.customerPhone}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Mail className="h-3 w-3" />
-                            {order.customerEmail}
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <DollarSign className="h-4 w-4 text-yellow-500" />
-                            <span className="font-medium">{formatAmount(order.totalAmount, order.currency)}</span>
-                          </div>
-                          <PaymentMethodBadge 
-                            paymentMethod={order.paymentMethod}
-                          />
-                        </div>
-                        
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <Calendar className="h-4 w-4 text-purple-500" />
-                            <span className="text-sm">{formatDate(order.createdAt)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteClick(order)}
-                          disabled={deleteOrderMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4 ml-2" />
-                          حذف کامل
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-          </TabsContent>
-
-          <TabsContent value="customer-orders" className="space-y-6">
-            {/* Customer Search */}
-            <Card className="mb-6 border-blue-200 bg-blue-50/30">
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <User className="h-6 w-6 text-blue-600" />
-                  جستجوی سفارشات مشتری
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex gap-4 items-end">
-                  <div className="flex-1 relative">
-                    <Label htmlFor="customer-search">آدرس ایمیل مشتری</Label>
-                    <Input
-                      id="customer-search"
-                      value={customerEmailSearch}
-                      onChange={(e) => handleEmailInputChange(e.target.value)}
-                      placeholder="مثال: customer@example.com"
-                      className="mt-1"
-                      type="email"
-                      onFocus={() => {
-                        if (customerEmailSearch.trim().length >= 3 && emailSuggestions.length > 0) {
-                          setShowSuggestions(true);
-                        }
-                      }}
-                      onBlur={() => {
-                        // Delay hiding suggestions to allow clicks
-                        setTimeout(() => setShowSuggestions(false), 200);
-                      }}
-                    />
-                    {showSuggestions && emailSuggestions.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-auto">
-                        {emailSuggestions.map((email, index) => (
-                          <div
-                            key={index}
-                            onClick={() => handleSuggestionSelect(email)}
-                            className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm border-b border-gray-100 dark:border-gray-600 last:border-b-0 transition-colors"
-                          >
-                            <div className="flex items-center gap-2">
-                              <Mail className="h-4 w-4 text-gray-400" />
-                              <span className="text-gray-900 dark:text-gray-100">{email}</span>
-                            </div>
-                          </div>
-                        ))}
-                        {customerEmailSearch.trim().length >= 3 && emailSuggestions.length === 0 && (
-                          <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                            هیچ ایمیل مشابهی یافت نشد
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <Button
-                    onClick={() => {
-                      if (customerEmailSearch.trim()) {
-                        // The query will automatically fetch when customerEmailSearch changes
-                      }
-                    }}
-                    variant="default"
-                    disabled={!customerEmailSearch.trim()}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Search className="h-4 w-4 ml-2" />
-                    جستجو
-                  </Button>
-                </div>
-                {customerEmailSearch.trim() && (
-                  <div className="text-sm text-blue-600">
-                    جستجو برای سفارشات مشتری با ایمیل: {customerEmailSearch}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Customer Orders Results */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <Package className="h-6 w-6 text-green-600" />
-                  سفارشات مشتری
-                  {customerOrders.length > 0 && (
-                    <Badge className="bg-green-100 text-green-800 ml-2">
-                      {customerOrders.length} سفارش
-                    </Badge>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {customerOrdersLoading && customerEmailSearch.trim() ? (
-                  <div className="flex items-center justify-center py-12">
-                    <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
-                    <span className="mr-2 text-lg">در حال جستجو...</span>
-                  </div>
-                ) : !customerEmailSearch.trim() ? (
-                  <div className="text-center py-12">
-                    <Mail className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">آدرس ایمیل مشتری را وارد کنید</h3>
-                    <p className="text-gray-500">برای جستجوی سفارشات، آدرس ایمیل مشتری مورد نظر را در بالا وارد کنید</p>
-                  </div>
-                ) : customerOrders.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">سفارشی یافت نشد</h3>
-                    <p className="text-gray-500">هیچ سفارشی برای مشتری با ایمیل {customerEmailSearch} پیدا نشد</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {customerOrders.map((order: Order) => (
-                      <div key={order.id} className="p-4 border rounded-lg bg-white hover:bg-gray-50">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div>
-                              <div className="flex items-center gap-2 mb-2">
-                                <Package className="h-5 w-5 text-blue-500" />
-                                <span className="font-semibold text-lg text-blue-700">
-                                  {order.orderNumber || 'بدون شماره سفارش'}
-                                </span>
-                                {getStatusBadge(order.status)}
-                              </div>
-                              
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div className="flex items-center gap-2">
-                                  <User className="h-4 w-4 text-green-500" />
-                                  <span>{order.customerName || order.fullCustomerName || 'نامشخص'}</span>
-                                </div>
-                                
-                                <div className="flex items-center gap-2">
-                                  <Mail className="h-4 w-4 text-blue-500" />
-                                  <span>{order.customerEmail || order.fullCustomerEmail || 'ایمیل نامشخص'}</span>
-                                </div>
-                                
-                                <div className="flex items-center gap-2">
-                                  <DollarSign className="h-4 w-4 text-yellow-500" />
-                                  <span>{formatAmount(order.totalAmount, order.currency)}</span>
-                                </div>
-                                
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="h-4 w-4 text-purple-500" />
-                                  <span>{formatDate(order.createdAt)}</span>
-                                </div>
-                              </div>
-                              
-                              <div className="mt-2">
-                                <PaymentMethodBadge 
-                                  paymentMethod={order.paymentMethod}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex gap-2">
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteClick(order)}
-                              disabled={deleteOrderMutation.isPending}
-                            >
-                              <Trash2 className="h-4 w-4 ml-2" />
-                              حذف سفارش
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-
-        </Tabs>
-
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-          <AlertDialogContent className="max-w-md">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2 text-red-600">
-                <AlertTriangle className="h-6 w-6" />
-                تأیید حذف کامل سفارش
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-right space-y-3">
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="font-medium text-red-800 mb-2">⚠️ هشدار مهم:</p>
-                  <p className="text-red-700">
-                    این عملیات سفارش <strong>
-                      {selectedOrder?.orderNumber || `شناسه: ${selectedOrder?.id}`}
-                    </strong> را به طور کامل از تمام بخش‌های سیستم حذف می‌کند:
-                  </p>
-                </div>
-                
-                <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
-                  <li>سفارش اصلی و آیتم‌های آن</li>
-                  <li>رکوردهای مدیریت سفارش</li>
-                  <li>رسیدهای پرداخت</li>
-                  <li>تراکنش‌های کیف پول</li>
-                  <li>تأییدیه‌های تحویل GPS</li>
-                  <li>تاریخچه انتخاب وسیله نقلیه</li>
-                  <li>کدهای تأیید تحویل</li>
-                  <li>لاگ‌های ایمیل و SMS</li>
-                  <li>سایر رکوردهای مرتبط</li>
-                </ul>
-                
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-yellow-800 font-medium">
-                    🚨 این عملیات غیرقابل بازگشت است و امکان بازیابی اطلاعات وجود ندارد.
-                  </p>
-                </div>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-row-reverse">
-              <AlertDialogAction
-                onClick={handleConfirmDelete}
-                disabled={deleteOrderMutation.isPending}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                {deleteOrderMutation.isPending ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
-                    در حال حذف...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 ml-2" />
-                    بله، حذف کامل شود
-                  </>
-                )}
-              </AlertDialogAction>
-              <AlertDialogCancel disabled={deleteOrderMutation.isPending}>
-                انصراف
-              </AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {/* Production Reset Confirmation Dialog */}
-        <AlertDialog open={showProductionResetDialog} onOpenChange={setShowProductionResetDialog}>
-          <AlertDialogContent className="max-w-lg">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2 text-red-600">
-                <XCircle className="h-6 w-6" />
-                پاک‌سازی کامل برای محیط تولیدی
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-right space-y-4">
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="font-bold text-red-800 mb-3">⚠️ هشدار خطرناک:</p>
-                  <p className="text-red-700 mb-2">
-                    این عملیات تمامی داده‌های تست را از سیستم پاک می‌کند و آن را برای محیط تولیدی آماده می‌کند:
-                  </p>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="space-y-2">
-                    <h4 className="font-bold text-gray-800">جداول پاک شونده:</h4>
-                    <ul className="list-disc list-inside text-gray-600 space-y-1">
-                      <li>تمام سفارشات تست</li>
-                      <li className={preserveCustomers ? "text-gray-400 line-through" : ""}>
-                        مشتریان آزمایشی {preserveCustomers && "(حفظ می‌شود)"}
-                      </li>
-                      <li>تراکنش‌های کیف پول</li>
-                      <li>رسیدهای پرداخت</li>
-                      <li>کدهای تحویل GPS</li>
-                    </ul>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-bold text-gray-800">کنتورهای بازنشانی:</h4>
-                    <ul className="list-disc list-inside text-gray-600 space-y-1">
-                      <li>شماره سفارشات → M2500001</li>
-                      <li className={preserveCustomers ? "text-gray-400 line-through" : ""}>
-                        شماره مشتریان → {preserveCustomers ? "تغییر نمی‌کند" : "1"}
-                      </li>
-                      <li>سایر کنتورها → صفر</li>
-                    </ul>
-                  </div>
-                </div>
-                
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-yellow-800 font-bold mb-2">🚨 توجه مهم:</p>
-                  <ul className="text-yellow-700 text-sm space-y-1">
-                    <li>• این عملیات غیرقابل بازگشت است</li>
-                    <li>• فقط قبل از راه‌اندازی رسمی استفاده کنید</li>
-                    <li>• سیستم آماده دریافت سفارشات واقعی می‌شود</li>
-                    <li>• پشتیبان‌گیری قبل از اجرا توصیه می‌شود</li>
-                  </ul>
-                </div>
-                
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-green-800 font-medium">
-                    ✅ پس از پاک‌سازی، سیستم کاملاً تمیز و آماده برای محیط تولیدی خواهد بود.
-                  </p>
-                </div>
-
-                {/* Customer Preservation Option */}
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center space-x-3 space-x-reverse">
-                    <Checkbox
-                      id="preserve-customers"
-                      checked={preserveCustomers}
-                      onCheckedChange={(checked) => setPreserveCustomers(checked === true)}
-                      className="h-5 w-5"
-                    />
-                    <div className="flex-1">
-                      <Label htmlFor="preserve-customers" className="text-blue-800 font-medium cursor-pointer">
-                        حفظ اطلاعات مشتریان موجود
-                      </Label>
-                      <p className="text-blue-600 text-sm mt-1">
-                        در صورت فعال بودن، اطلاعات مشتریان و آدرس‌های آن‌ها پاک نمی‌شوند. فقط سفارشات و تراکنش‌ها حذف می‌شوند.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-row-reverse">
-              <AlertDialogAction
-                onClick={() => productionResetMutation.mutate()}
-                disabled={productionResetMutation.isPending}
-                className="bg-red-600 hover:bg-red-700 text-white"
-              >
-                {productionResetMutation.isPending ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 ml-2 animate-spin" />
-                    در حال پاک‌سازی...
-                  </>
-                ) : (
-                  <>
-                    <Database className="h-4 w-4 ml-2" />
-                    تائید - پاک‌سازی کامل
-                  </>
-                )}
-              </AlertDialogAction>
-              <AlertDialogCancel disabled={productionResetMutation.isPending}>
-                انصراف
-              </AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    </div>
+  const orders = useMemo<Order[]>(
+    () => ordersQuery.data?.pages.flatMap(page => Array.isArray(page?.data) ? page.data : []) || [],
+    [ordersQuery.data?.pages],
   );
+  const customerOrders = useMemo<Order[]>(
+    () => customerQuery.data?.pages.flatMap(page => Array.isArray(page?.data) ? page.data : []) || [],
+    [customerQuery.data?.pages],
+  );
+  const visibleOrders = orders;
+  const current = tab === "orders" ? visibleOrders : customerOrders;
+  const currentKey = tab === "orders" ? "orders" : "customer";
+  // Once bulk confirmation opens, freeze the destructive target. This prevents
+  // a refetch, filter change, or tab switch from changing what the confirm
+  // action sends to the server.
+  const currentSelected = dialog === "bulk" && bulkSnapshot
+    ? new Set(bulkSnapshot.ids)
+    : selected[currentKey] || new Set<number>();
+  const allVisibleSelected = current.length > 0 && current.every(o => currentSelected.has(o.id));
+  const setCurrentSelection = (next: Set<number>) => setSelected(prev => ({ ...prev, [currentKey]: next }));
+  useEffect(() => { setSelected(prev => ({ ...prev, orders: new Set([...prev.orders].filter(id => visibleOrders.some(o => o.id === id))), customer: new Set([...prev.customer].filter(id => customerOrders.some(o => o.id === id))) })); }, [visibleOrders, customerOrders]);
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target) return;
+    const observer = new IntersectionObserver(entries => {
+      const query = tab === "orders" ? ordersQuery : customerQuery;
+      if (entries[0]?.isIntersecting && query.hasNextPage && !query.isFetchingNextPage) {
+        query.fetchNextPage();
+      }
+    }, { rootMargin: "300px" });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [tab, ordersQuery.hasNextPage, ordersQuery.isFetchingNextPage, ordersQuery.fetchNextPage, customerQuery.hasNextPage, customerQuery.isFetchingNextPage, customerQuery.fetchNextPage]);
+
+  const mutation = useMutation({ mutationFn: async (payload: { kind: "single" | "bulk"; order?: Order; ids?: number[] }) => {
+    const endpoint = payload.kind === "bulk" ? "/api/super-admin/orders/bulk-delete" : payload.order?.orderNumber && payload.order.orderNumber !== "null" ? `/api/super-admin/orders/${encodeURIComponent(payload.order.orderNumber)}` : `/api/super-admin/orders-by-id/${payload.order?.id}`;
+    const r = await fetch(endpoint, { method: payload.kind === "bulk" ? "POST" : "DELETE", credentials: "include", headers: { "Content-Type": "application/json" }, body: payload.kind === "bulk" ? JSON.stringify({ orderIds: payload.ids }) : undefined });
+    if (!r.ok) throw new Error((await r.json().catch(() => null))?.message || c.error);
+    return r.json();
+  }, onSuccess: (_, vars) => {
+    const count = vars.kind === "bulk" ? vars.ids?.length || 0 : 1;
+    toast({ title: vars.kind === "bulk" ? `${count} ${c.bulkDeleted}` : c.deleted });
+    const deletedIds = new Set(vars.kind === "bulk" ? vars.ids || [] : vars.order ? [vars.order.id] : []);
+    setDialog(null);
+    setTarget(null);
+    setSelected(prev => ({
+      orders: new Set([...prev.orders].filter(id => !deletedIds.has(id))),
+      customer: new Set([...prev.customer].filter(id => !deletedIds.has(id))),
+    }));
+    qc.invalidateQueries({ queryKey: ["/api/super-admin/deletable-orders"] });
+    qc.invalidateQueries({ queryKey: ["/api/super-admin/customer-orders-by-email"] });
+  }, onError: (e: Error) => toast({ title: c.error, description: e.message, variant: "destructive" }) });
+  const resetMutation = useMutation({ mutationFn: async () => { const r = await fetch("/api/super-admin/reset-for-production", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ preserveCustomers: preserve }) }); if (!r.ok) throw new Error((await r.json().catch(() => null))?.message || c.error); return r.json(); }, onSuccess: () => { toast({ title: c.resetDone }); setDialog(null); qc.invalidateQueries({ queryKey: ["/api/super-admin/deletable-orders"] }); }, onError: (e: Error) => toast({ title: c.error, description: e.message, variant: "destructive" }) });
+
+  const errors = [ordersQuery.error, customerQuery.error].map(error => String(error || ""));
+  const isUnauthenticated = errors.some(error => error.includes("401"));
+  const isForbidden = errors.some(error => error.includes("403"));
+  const formatDate = (v: string) => new Date(v).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
+  const formatMoney = (v: string, currency: string) => `${Number(v || 0).toLocaleString(locale, { maximumFractionDigits: 2 })} ${currency}`;
+  const status = (s: string) => <Badge variant="outline" className="whitespace-nowrap">{c[`status${s.charAt(0).toUpperCase()}${s.slice(1)}`] || s || c.unknown}</Badge>;
+  const payment = (method: string | null | undefined) => {
+    const raw = method || c.unknown;
+    const label = paymentLabels[language as Lang]?.[raw.toLowerCase()] || raw;
+    return <Badge variant="outline" className="whitespace-nowrap">{label}</Badge>;
+  };
+
+  if (isUnauthenticated || isForbidden) return <div dir={direction} className="min-h-[100dvh] bg-slate-950 p-6 flex items-center justify-center"><Card className="max-w-md w-full border-red-900 bg-slate-900 text-slate-100"><CardHeader><CardTitle className="flex items-center gap-2 text-red-300"><Shield />{isForbidden ? c.forbidden : c.auth}</CardTitle></CardHeader><CardContent><p className="text-slate-300 mb-5">{isForbidden ? c.forbiddenHint : c.authHint}</p><Button onClick={() => window.location.href = isForbidden ? "/mrg" : "/mrg/login"}>{isForbidden ? c.back : c.signIn}</Button></CardContent></Card></div>;
+
+  const updateColumnFilter = (key: keyof typeof columnFilters, value: string) => setColumnFilters(previous => ({ ...previous, [key]: value }));
+  const filterInput = (key: keyof typeof columnFilters, placeholder: string, type = "text") => {
+    if (key === "status") {
+      return selectFilter("status", statusFilterOptions.map(value => (
+        <option key={value} value={value}>{optionLabel(value)}</option>
+      )));
+    }
+    if (key === "payment") {
+      return selectFilter("payment", paymentFilterOptions.map(group => (
+        <optgroup key={group.group} label={group.group === "status" ? `${c.payment} status` : `${c.payment} method`}>
+          {group.values.map(value => <option key={value} value={value}>{optionLabel(value)}</option>)}
+        </optgroup>
+      )));
+    }
+    return <Input type={type} value={columnFilters[key]} onChange={event => updateColumnFilter(key, event.target.value)} placeholder={placeholder} className="mt-2 h-8 min-w-[110px] bg-white text-xs font-normal text-slate-900" />;
+  };
+  const optionLabel = (value: string) => {
+    const translatedStatus = c[`status${value.charAt(0).toUpperCase()}${value.slice(1)}`];
+    return paymentLabels[language as Lang]?.[value] || translatedStatus || value.replaceAll("_", " ");
+  };
+  const selectFilter = (key: "status" | "payment", options: React.ReactNode) => (
+    <select value={columnFilters[key]} onChange={event => updateColumnFilter(key, event.target.value)} className="mt-2 h-8 min-w-[135px] rounded-md border border-input bg-white px-2 text-xs font-normal text-slate-900" aria-label={key === "status" ? c.status : c.payment}>
+      <option value="">{language === "fa" ? "همه" : language === "ar" ? "الكل" : language === "tr" ? "Tümü" : "All"}</option>
+      {options}
+    </select>
+  );
+  const table = (rows: Order[], loading: boolean, emptyText = c.empty) => <Card className="border-slate-200 shadow-sm"><CardHeader className="border-b bg-slate-50/80 py-4"><div className="flex flex-wrap items-center justify-between gap-3"><CardTitle className="text-base flex items-center gap-2"><Package className="h-4 w-4 text-red-700" />{tab === "orders" ? c.orders : c.customer} <span className="text-slate-500 font-normal">({rows.length})</span></CardTitle><div className="flex items-center gap-2">{currentSelected.size > 0 && <><span className="text-sm font-medium text-red-800">{currentSelected.size} {c.selected}</span><Button variant="ghost" size="sm" onClick={() => setCurrentSelection(new Set())}><X className="h-4 w-4" />{c.clear}</Button><Button variant="destructive" size="sm" disabled={mutation.isPending} onClick={() => { const selectedRows = rows.filter(o => currentSelected.has(o.id)); setBulkSnapshot({ ids: selectedRows.map(o => o.id), labels: selectedRows.map(o => o.orderNumber ? `${o.orderNumber} (ID ${o.id})` : `ID ${o.id}`) }); setDialog("bulk"); }}><Trash2 className="h-4 w-4" />{c.bulk}</Button></>}</div></div></CardHeader><CardContent className="p-0">{loading ? <div className="p-8 space-y-3"><div className="h-4 bg-slate-100 animate-pulse rounded" /><div className="h-4 bg-slate-100 animate-pulse rounded" /><div className="h-4 bg-slate-100 animate-pulse rounded" /></div> : rows.length === 0 ? <div className="py-16 text-center text-slate-500"><Package className="mx-auto mb-3 h-9 w-9 text-slate-300" /><p className="font-medium">{emptyText}</p><p className="text-sm mt-1">{c.emptyHint}</p></div> : <div className="overflow-x-auto"><table className="w-full min-w-[1120px] text-sm"><thead className="bg-slate-50 text-slate-500"><tr className="align-top"><th className="w-12 px-4 py-3"><Checkbox checked={allVisibleSelected} onCheckedChange={(v) => setCurrentSelection(v === true ? new Set(rows.map(o => o.id)) : new Set())} aria-label={c.selected} /></th><th className="px-3 py-3 text-start">{c.order}{tab === "orders" && filterInput("orderNumber", c.order)}</th><th className="px-3 py-3 text-start">{c.customerName}{tab === "orders" && filterInput("customer", c.customerName)}</th><th className="px-3 py-3 text-start">{c.amount}{tab === "orders" && filterInput("amount", c.amount)}</th><th className="px-3 py-3 text-start">{c.status}{tab === "orders" && filterInput("status", c.status)}</th><th className="px-3 py-3 text-start">{c.payment}{tab === "orders" && filterInput("payment", c.payment)}</th><th className="px-3 py-3 text-start">{c.date}{tab === "orders" && filterInput("date", c.date, "date")}</th><th className="px-4 py-3 text-end">{c.action}</th></tr></thead><tbody>{rows.map(o => <tr key={o.id} className="border-t hover:bg-slate-50/70"><td className="px-4 py-3"><Checkbox checked={currentSelected.has(o.id)} onCheckedChange={(v) => { const next = new Set(currentSelected); v ? next.add(o.id) : next.delete(o.id); setCurrentSelection(next); }} /></td><td className="px-3 py-3 font-semibold text-slate-900">{o.orderNumber || <span className="text-slate-400">{c.noNumber}</span>}<div className="text-xs text-slate-400">ID {o.id}</div></td><td className="px-3 py-3"><div className="font-medium">{o.customerName || o.fullCustomerName || c.unknown}</div><div className="text-xs text-slate-500">{o.customerEmail || o.fullCustomerEmail || "—"}</div>{o.customerPhone && <div className="text-xs text-slate-400">{o.customerPhone}</div>}</td><td className="px-3 py-3 font-medium whitespace-nowrap">{formatMoney(o.totalAmount, o.currency)}</td><td className="px-3 py-3">{status(o.status)}</td><td className="px-3 py-3">{payment(o.paymentMethod)}</td><td className="px-3 py-3 whitespace-nowrap text-slate-600">{formatDate(o.createdAt)}</td><td className="px-4 py-3 text-end"><Button variant="outline" size="sm" className="text-red-700 border-red-200 hover:bg-red-50" disabled={mutation.isPending} onClick={() => { setTarget(o); setDialog("single"); }}><Trash2 className="h-4 w-4" />{c.delete}</Button></td></tr>)}</tbody></table></div>}</CardContent></Card>;
+
+  return <div dir={direction} className="min-h-[100dvh] bg-[#f4f6f8] text-slate-900"><div className="mx-auto max-w-[1500px] p-4 sm:p-6 lg:p-8"><header className="mb-7 flex flex-col gap-5 border-b border-slate-200 pb-6 lg:flex-row lg:items-start lg:justify-between"><div><div className="flex items-center gap-3"><div className="rounded-md bg-red-100 p-2 text-red-700"><Shield className="h-6 w-6" /></div><div><h1 className="text-2xl font-bold tracking-tight">{c.title}</h1><p className="mt-1 text-sm text-slate-500">{c.subtitle}</p></div></div></div><div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => { qc.invalidateQueries({ queryKey: ["/api/super-admin/deletable-orders"] }); ordersQuery.refetch(); }} disabled={ordersQuery.isFetching}><RefreshCw className={`h-4 w-4 ${ordersQuery.isFetching ? "animate-spin" : ""}`} />{c.strongRefresh}</Button><Button variant="destructive" onClick={() => setDialog("reset")}><Database className="h-4 w-4" />{c.production}</Button></div></header><Tabs value={tab} onValueChange={setTab}><TabsList className="mb-5 bg-slate-200/70"><TabsTrigger value="orders"><Package className="h-4 w-4" />{c.orders}</TabsTrigger><TabsTrigger value="customer"><User className="h-4 w-4" />{c.customer}</TabsTrigger></TabsList><TabsContent value="orders"><Card className="mb-5 border-slate-200"><CardContent className="p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-end"><div className="flex-1"><Label htmlFor="order-filter">{c.search}</Label><div className="relative mt-1"><Search className="absolute start-3 top-2.5 h-4 w-4 text-slate-400" /><Input id="order-filter" className="ps-9" value={filter} onChange={e => setFilter(e.target.value)} placeholder={c.searchHint} /></div></div><Button variant="outline" onClick={() => ordersQuery.refetch()}><RefreshCw className="h-4 w-4" />{c.refresh}</Button></div><div className="mt-4 flex gap-6 text-sm text-slate-500"><span>{c.total}: <strong className="text-slate-900">{ordersQuery.data?.pages[0]?.pagination?.total ?? orders.length}</strong></span><span>{c.visible}: <strong className="text-slate-900">{visibleOrders.length}</strong></span></div></CardContent></Card>{table(visibleOrders, ordersQuery.isLoading)}<div ref={loadMoreRef} className="flex min-h-20 items-center justify-center py-5 text-sm text-slate-500">{ordersQuery.isFetchingNextPage ? <><RefreshCw className="me-2 h-4 w-4 animate-spin" />{c.loading}</> : ordersQuery.hasNextPage ? c.loading : null}</div></TabsContent><TabsContent value="customer"><Card className="mb-5 border-slate-200"><CardContent className="p-4"><Label htmlFor="customer-email">{c.email}</Label><div className="relative mt-1 flex gap-2"><div className="relative flex-1"><Mail className="absolute start-3 top-2.5 h-4 w-4 text-slate-400" /><Input id="customer-email" className="ps-9" value={email} onChange={e => { setEmail(e.target.value); setShowSuggestions(true); }} onFocus={() => suggestions.length && setShowSuggestions(true)} placeholder="customer@example.com" type="email" />{showSuggestions && suggestions.length > 0 && <div className="absolute z-20 mt-1 w-full rounded-md border bg-white shadow-lg">{suggestions.map(s => <button type="button" key={s} className="block w-full px-3 py-2 text-start text-sm hover:bg-slate-50" onMouseDown={() => { setEmail(s); setShowSuggestions(false); }}><Mail className="me-2 inline h-4 w-4 text-slate-400" />{s}</button>)}</div>}</div><Button disabled={!email.trim()} onClick={() => customerQuery.refetch()}><Search className="h-4 w-4" />{c.lookup}</Button></div></CardContent></Card>{!email.trim() ? <div className="rounded-lg border border-dashed border-slate-300 bg-white py-16 text-center text-slate-500"><Mail className="mx-auto mb-3 h-9 w-9 text-slate-300" /><p>{c.enterEmail}</p></div> : table(customerOrders, customerQuery.isLoading, c.noCustomer)}{email.trim() && <div ref={loadMoreRef} className="flex min-h-20 items-center justify-center py-5 text-sm text-slate-500">{customerQuery.isFetchingNextPage ? <><RefreshCw className="me-2 h-4 w-4 animate-spin" />{c.loadingCustomer}</> : customerQuery.hasNextPage ? c.loadingCustomer : null}</div>}</TabsContent></Tabs></div><AlertDialog open={!!dialog} onOpenChange={v => !v && setDialog(null)}><AlertDialogContent dir={direction}><AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2 text-red-700"><AlertTriangle className="h-5 w-5" />{dialog === "reset" ? c.resetTitle : dialog === "bulk" ? `${currentSelected.size} ${c.selectedCount}` : c.deleteTitle}</AlertDialogTitle><AlertDialogDescription>{dialog === "reset" ? c.resetText : c.permanent}</AlertDialogDescription></AlertDialogHeader>{dialog === "reset" && <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm"><Checkbox id="preserve" checked={preserve} onCheckedChange={v => setPreserve(v === true)} /><Label htmlFor="preserve">{c.preserve}</Label></div>}<AlertDialogFooter><AlertDialogCancel disabled={mutation.isPending || resetMutation.isPending}>{c.cancel}</AlertDialogCancel><AlertDialogAction className="bg-red-700 hover:bg-red-800" disabled={mutation.isPending || resetMutation.isPending} onClick={() => dialog === "reset" ? resetMutation.mutate() : mutation.mutate(dialog === "bulk" ? { kind: "bulk", ids: [...currentSelected] } : { kind: "single", order: target || undefined })}>{mutation.isPending || resetMutation.isPending ? <><RefreshCw className="h-4 w-4 animate-spin" />{dialog === "reset" ? c.resetting : c.deleting}</> : <><Trash2 className="h-4 w-4" />{dialog === "reset" ? c.reset : c.confirm}</>}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div>;
 }

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useQuery } from '@tanstack/react-query';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { 
   Activity, 
   Database, 
@@ -46,6 +47,13 @@ interface SystemHealth {
 }
 
 const SystemMonitoring: React.FC = () => {
+  const { language, direction } = useLanguage();
+  const labels = {
+    en: { healthy:'Healthy', degraded:'Needs attention', down:'Down', loading:'Loading system status...', error:'Unable to retrieve system status', unavailable:'Unable to connect to monitoring service', retry:'Retry', systemHealthy:'System is healthy', systemDegraded:'System needs attention', systemDown:'System has an issue', lastChecked:'Last checked', refresh:'Refresh', auto:'Auto-refresh', autoOff:'Auto-refresh disabled', uptime:'Process uptime', uptimeDesc:'Node.js process uptime (resets after restart)', memory:'Node.js heap usage', used:'Used', total:'Total', overall:'Overall status', servicesHealthy:'services healthy', database:'PostgreSQL database', storage:'AWS S3 storage', gateway:'FIB payment gateway', server:'Node.js server', serverIp:'Server IP address', response:'Response time', active:'Active connections', version:'Version', region:'Region', configured:'Configuration status', configuredYes:'✓ Configured', api:'API address', test:'Test environment', production:'Production', uptimeLabel:'Process uptime', node:'Node.js version', platform:'Platform', configuredIp:'Configured IP', networkIps:'Network IPs', mode:'Mode', allInterfaces:'All interfaces (0.0.0.0)', specified:'Specified', unavailableValue:'Not configured' },
+    fa: { healthy:'سالم', degraded:'نیازمند توجه', down:'قطع شده', loading:'در حال بارگذاری وضعیت سیستم...', error:'خطا در دریافت وضعیت سیستم', unavailable:'امکان اتصال به سرویس مانیتورینگ وجود ندارد', retry:'تلاش مجدد', systemHealthy:'سیستم سالم است', systemDegraded:'سیستم نیازمند توجه است', systemDown:'سیستم با مشکل مواجه است', lastChecked:'آخرین بررسی', refresh:'به‌روزرسانی', auto:'به‌روزرسانی خودکار', autoOff:'خودکار غیرفعال', uptime:'مدت فعالیت پردازش', uptimeDesc:'مدت فعالیت پردازش Node.js (پس از راه‌اندازی مجدد صفر می‌شود)', memory:'مصرف Heap در Node.js', used:'استفاده شده', total:'کل', overall:'وضعیت کلی', servicesHealthy:'سرویس سالم', database:'دیتابیس PostgreSQL', storage:'فضای ذخیره‌سازی AWS S3', gateway:'درگاه پرداخت FIB', server:'سرور Node.js', serverIp:'آدرس IP سرور', response:'زمان پاسخ', active:'اتصالات فعال', version:'نسخه', region:'منطقه', configured:'وضعیت تنظیمات', configuredYes:'✓ پیکربندی شده', api:'آدرس API', test:'محیط آزمایشی', production:'محیط تولید', uptimeLabel:'مدت فعالیت پردازش', node:'نسخه Node.js', platform:'پلتفرم', configuredIp:'IP تنظیم شده', networkIps:'IP های شبکه', mode:'حالت', allInterfaces:'همه رابط‌ها (0.0.0.0)', specified:'مشخص شده', unavailableValue:'تنظیم نشده' },
+    ar: { healthy:'سليم', degraded:'يحتاج إلى انتباه', down:'متوقف', loading:'جارٍ تحميل حالة النظام...', error:'تعذر الحصول على حالة النظام', unavailable:'تعذر الاتصال بخدمة المراقبة', retry:'إعادة المحاولة', systemHealthy:'النظام سليم', systemDegraded:'النظام يحتاج إلى انتباه', systemDown:'يوجد خلل في النظام', lastChecked:'آخر فحص', refresh:'تحديث', auto:'تحديث تلقائي', autoOff:'التحديث التلقائي معطل', uptime:'مدة تشغيل العملية', uptimeDesc:'مدة تشغيل عملية Node.js (تُصفّر بعد إعادة التشغيل)', memory:'ذاكرة Node.js', used:'المستخدم', total:'الإجمالي', overall:'الحالة العامة', servicesHealthy:'خدمات سليمة', database:'قاعدة PostgreSQL', storage:'تخزين AWS S3', gateway:'بوابة دفع FIB', server:'خادم Node.js', serverIp:'عنوان IP للخادم', response:'زمن الاستجابة', active:'الاتصالات النشطة', version:'الإصدار', region:'المنطقة', configured:'حالة الإعداد', configuredYes:'✓ مُعد', api:'عنوان API', test:'بيئة الاختبار', production:'بيئة الإنتاج', uptimeLabel:'مدة تشغيل العملية', node:'إصدار Node.js', platform:'المنصة', configuredIp:'IP المُعد', networkIps:'عناوين الشبكة', mode:'الوضع', allInterfaces:'كل الواجهات (0.0.0.0)', specified:'محدد', unavailableValue:'غير مُعد' },
+    tr: { healthy:'Sağlıklı', degraded:'Dikkat gerekli', down:'Kapalı', loading:'Sistem durumu yükleniyor...', error:'Sistem durumu alınamadı', unavailable:'İzleme hizmetine bağlanılamıyor', retry:'Tekrar dene', systemHealthy:'Sistem sağlıklı', systemDegraded:'Sistem dikkat gerektiriyor', systemDown:'Sistemde sorun var', lastChecked:'Son kontrol', refresh:'Yenile', auto:'Otomatik yenileme', autoOff:'Otomatik yenileme kapalı', uptime:'İşlem çalışma süresi', uptimeDesc:'Node.js işleminin çalışma süresi (yeniden başlatmada sıfırlanır)', memory:'Node.js heap kullanımı', used:'Kullanılan', total:'Toplam', overall:'Genel durum', servicesHealthy:'sağlıklı hizmet', database:'PostgreSQL veritabanı', storage:'AWS S3 depolama', gateway:'FIB ödeme ağ geçidi', server:'Node.js sunucusu', serverIp:'Sunucu IP adresi', response:'Yanıt süresi', active:'Etkin bağlantılar', version:'Sürüm', region:'Bölge', configured:'Yapılandırma durumu', configuredYes:'✓ Yapılandırıldı', api:'API adresi', test:'Test ortamı', production:'Üretim', uptimeLabel:'İşlem çalışma süresi', node:'Node.js sürümü', platform:'Platform', configuredIp:'Yapılandırılmış IP', networkIps:'Ağ IP\'leri', mode:'Mod', allInterfaces:'Tüm arayüzler (0.0.0.0)', specified:'Belirtilmiş', unavailableValue:'Yapılandırılmadı' }
+  }[language];
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   // Fetch system health
@@ -60,7 +68,7 @@ const SystemMonitoring: React.FC = () => {
   });
 
   const health = healthData?.data;
-  const serverIp = serverConfigData?.config?.serverIp || '0.0.0.0';
+  const serverIp = serverConfigData?.config?.serverIp || labels.unavailableValue;
 
   const getStatusIcon = (status: 'healthy' | 'degraded' | 'down') => {
     switch (status) {
@@ -79,12 +87,7 @@ const SystemMonitoring: React.FC = () => {
       degraded: 'secondary',
       down: 'destructive'
     };
-    const labels = {
-      healthy: 'سالم',
-      degraded: 'نیازمند توجه',
-      down: 'قطع شده'
-    };
-    return <Badge variant={variants[status] as any}>{labels[status]}</Badge>;
+    return <Badge variant={variants[status] as any}>{status === 'healthy' ? labels.healthy : status === 'degraded' ? labels.degraded : labels.down}</Badge>;
   };
 
   const formatUptime = (seconds: number) => {
@@ -93,11 +96,11 @@ const SystemMonitoring: React.FC = () => {
     const minutes = Math.floor((seconds % 3600) / 60);
     
     if (days > 0) {
-      return `${days} روز و ${hours} ساعت`;
+      return language === 'en' ? `${days}d ${hours}h` : language === 'tr' ? `${days} gün ${hours} saat` : language === 'ar' ? `${days} يوم و${hours} ساعة` : `${days} روز و ${hours} ساعت`;
     } else if (hours > 0) {
-      return `${hours} ساعت و ${minutes} دقیقه`;
+      return language === 'en' ? `${hours}h ${minutes}m` : language === 'tr' ? `${hours} saat ${minutes} dk` : language === 'ar' ? `${hours} ساعة و${minutes} دقيقة` : `${hours} ساعت و ${minutes} دقیقه`;
     } else {
-      return `${minutes} دقیقه`;
+      return language === 'en' ? `${minutes}m` : language === 'tr' ? `${minutes} dk` : language === 'ar' ? `${minutes} دقيقة` : `${minutes} دقیقه`;
     }
   };
 
@@ -108,27 +111,27 @@ const SystemMonitoring: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-12">
+      <div dir={direction} lang={language} className="flex items-center justify-center p-12">
         <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
-        <span className="mr-3 text-lg">در حال بارگذاری وضعیت سیستم...</span>
+        <span className="ms-3 text-lg">{labels.loading}</span>
       </div>
     );
   }
 
   if (isError || !health) {
     return (
-      <Card className="border-red-200 bg-red-50">
+      <Card dir={direction} lang={language} className="border-red-200 bg-red-50">
         <CardContent className="p-6">
           <div className="flex items-center gap-3 text-red-600">
             <XCircle className="w-6 h-6" />
             <div>
-              <h3 className="font-semibold">خطا در دریافت وضعیت سیستم</h3>
-              <p className="text-sm">امکان اتصال به سرویس مانیتورینگ وجود ندارد</p>
+              <h3 className="font-semibold">{labels.error}</h3>
+              <p className="text-sm">{labels.unavailable}</p>
             </div>
           </div>
           <Button onClick={() => refetch()} className="mt-4" variant="outline">
-            <RefreshCw className="w-4 h-4 ml-2" />
-            تلاش مجدد
+            <RefreshCw className="w-4 h-4 me-2" />
+            {labels.retry}
           </Button>
         </CardContent>
       </Card>
@@ -136,7 +139,7 @@ const SystemMonitoring: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6" data-testid="system-monitoring-dashboard">
+    <div dir={direction} lang={language} className="space-y-6" data-testid="system-monitoring-dashboard">
       {/* Overall Status Card */}
       <Card className={
         health.overall === 'healthy' ? 'border-green-200 bg-green-50' :
@@ -149,12 +152,10 @@ const SystemMonitoring: React.FC = () => {
               {getStatusIcon(health.overall)}
               <div>
                 <h2 className="text-2xl font-bold">
-                  {health.overall === 'healthy' ? 'سیستم سالم است' : 
-                   health.overall === 'degraded' ? 'سیستم نیازمند توجه است' : 
-                   'سیستم با مشکل مواجه است'}
+                  {health.overall === 'healthy' ? labels.systemHealthy : health.overall === 'degraded' ? labels.systemDegraded : labels.systemDown}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  آخرین بررسی: {new Date(health.timestamp).toLocaleString('fa-IR')}
+                  {labels.lastChecked}: {new Date(health.timestamp).toLocaleString(language)}
                 </p>
               </div>
             </div>
@@ -165,8 +166,8 @@ const SystemMonitoring: React.FC = () => {
                 size="sm"
                 data-testid="button-refresh-monitoring"
               >
-                <RefreshCw className="w-4 h-4 ml-2" />
-                به‌روزرسانی
+                <RefreshCw className="w-4 h-4 me-2" />
+                {labels.refresh}
               </Button>
               <Button 
                 onClick={() => setAutoRefresh(!autoRefresh)}
@@ -174,8 +175,8 @@ const SystemMonitoring: React.FC = () => {
                 size="sm"
                 data-testid="button-toggle-autorefresh"
               >
-                <Activity className="w-4 h-4 ml-2" />
-                {autoRefresh ? 'به‌روزرسانی خودکار' : 'خودکار غیرفعال'}
+                <Activity className="w-4 h-4 me-2" />
+                {autoRefresh ? labels.auto : labels.autoOff}
               </Button>
             </div>
           </div>
@@ -188,14 +189,14 @@ const SystemMonitoring: React.FC = () => {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Clock className="w-5 h-5 text-blue-500" />
-              مدت زمان فعالیت
+              {labels.uptime}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold" data-testid="text-uptime">
               {formatUptime(health.metrics.uptime)}
             </p>
-            <p className="text-sm text-gray-500 mt-1">سرور بدون وقفه در حال اجراست</p>
+            <p className="text-sm text-gray-500 mt-1">{labels.uptimeDesc}</p>
           </CardContent>
         </Card>
 
@@ -203,18 +204,18 @@ const SystemMonitoring: React.FC = () => {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Server className="w-5 h-5 text-purple-500" />
-              مصرف حافظه
+              {labels.memory}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>استفاده شده: {formatBytes(health.metrics.memoryUsage.used)}</span>
+                <span>{labels.used}: {formatBytes(health.metrics.memoryUsage.used)}</span>
                 <span>{health.metrics.memoryUsage.percentage.toFixed(1)}%</span>
               </div>
               <Progress value={health.metrics.memoryUsage.percentage} data-testid="progress-memory" />
               <p className="text-xs text-gray-500">
-                کل: {formatBytes(health.metrics.memoryUsage.total)}
+                {labels.total}: {formatBytes(health.metrics.memoryUsage.total)}
               </p>
             </div>
           </CardContent>
@@ -224,14 +225,14 @@ const SystemMonitoring: React.FC = () => {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Activity className="w-5 h-5 text-green-500" />
-              وضعیت کلی
+              {labels.overall}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-center">
               {getStatusBadge(health.overall)}
               <p className="text-sm text-gray-500 mt-2">
-                {Object.values(health.services).filter(s => s.status === 'healthy').length}/5 سرویس سالم
+                 {Object.values(health.services).filter(s => s.status === 'healthy').length}/{Object.keys(health.services).length} {labels.servicesHealthy}
               </p>
             </div>
           </CardContent>
@@ -246,7 +247,7 @@ const SystemMonitoring: React.FC = () => {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Database className="w-5 h-5 text-blue-600" />
-                دیتابیس PostgreSQL
+                {labels.database}
               </div>
               {getStatusIcon(health.services.database.status)}
             </CardTitle>
@@ -254,17 +255,17 @@ const SystemMonitoring: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>زمان پاسخ:</span>
+               <span>{labels.response}:</span>
               <Badge variant="outline">{health.services.database.responseTime}ms</Badge>
             </div>
             {health.services.database.details && (
               <>
                 <div className="flex justify-between text-sm">
-                  <span>اتصالات فعال:</span>
+                   <span>{labels.active}:</span>
                   <span className="font-mono">{health.services.database.details.pool?.totalConnections || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>نسخه:</span>
+                   <span>{labels.version}:</span>
                   <span className="text-xs font-mono">{health.services.database.details.version?.split(' ')[1] || 'N/A'}</span>
                 </div>
               </>
@@ -278,7 +279,7 @@ const SystemMonitoring: React.FC = () => {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Cloud className="w-5 h-5 text-orange-600" />
-                فضای ذخیره‌سازی AWS S3
+                 {labels.storage}
               </div>
               {getStatusIcon(health.services.s3Storage.status)}
             </CardTitle>
@@ -286,13 +287,13 @@ const SystemMonitoring: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>زمان پاسخ:</span>
+               <span>{labels.response}:</span>
               <Badge variant="outline">{health.services.s3Storage.responseTime}ms</Badge>
             </div>
             {health.services.s3Storage.details && (
               <>
                 <div className="flex justify-between text-sm">
-                  <span>منطقه:</span>
+                   <span>{labels.region}:</span>
                   <span className="font-mono">{health.services.s3Storage.details.region}</span>
                 </div>
                 {health.services.s3Storage.details.bucketName && (
@@ -312,7 +313,7 @@ const SystemMonitoring: React.FC = () => {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-green-600" />
-                درگاه پرداخت FIB
+                 {labels.gateway}
               </div>
               {getStatusIcon(health.services.fibPaymentGateway.status)}
             </CardTitle>
@@ -320,19 +321,19 @@ const SystemMonitoring: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>زمان پاسخ:</span>
+               <span>{labels.response}:</span>
               <Badge variant="outline">{health.services.fibPaymentGateway.responseTime}ms</Badge>
             </div>
             {health.services.fibPaymentGateway.details?.configured && (
               <>
                 <div className="flex justify-between text-sm">
-                  <span>وضعیت تنظیمات:</span>
-                  <Badge variant="outline">✓ پیکربندی شده</Badge>
+                   <span>{labels.configured}:</span>
+                   <Badge variant="outline">{labels.configuredYes}</Badge>
                 </div>
                 {health.services.fibPaymentGateway.details.baseURL && (
                   <div className="flex justify-between text-sm">
-                    <span>آدرس API:</span>
-                    <span className="text-xs">{health.services.fibPaymentGateway.details.baseURL.includes('stage') ? 'Test Environment' : 'Production'}</span>
+                     <span>{labels.api}:</span>
+                     <span className="text-xs">{health.services.fibPaymentGateway.details.baseURL.includes('stage') ? labels.test : labels.production}</span>
                   </div>
                 )}
               </>
@@ -346,7 +347,7 @@ const SystemMonitoring: React.FC = () => {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Server className="w-5 h-5 text-purple-600" />
-                سرور Node.js
+                 {labels.server}
               </div>
               {getStatusIcon(health.services.server.status)}
             </CardTitle>
@@ -356,19 +357,19 @@ const SystemMonitoring: React.FC = () => {
             {health.services.server.details && (
               <>
                 <div className="flex justify-between text-sm">
-                  <span>آدرس IP سرور:</span>
+                   <span>{labels.serverIp}:</span>
                   <Badge variant="outline" className="font-mono">{serverIp}</Badge>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>مدت زمان فعالیت:</span>
+                   <span>{labels.uptimeLabel}:</span>
                   <span>{health.services.server.details.uptime}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>نسخه Node.js:</span>
+                   <span>{labels.node}:</span>
                   <Badge variant="outline">{health.services.server.details.nodeVersion}</Badge>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>پلتفرم:</span>
+                   <span>{labels.platform}:</span>
                   <span className="font-mono">{health.services.server.details.platform}</span>
                 </div>
               </>
@@ -382,7 +383,7 @@ const SystemMonitoring: React.FC = () => {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Server className="w-5 h-5 text-pink-600" />
-                آدرس IP سرور
+                 {labels.serverIp}
               </div>
               {getStatusIcon(health.services.serverIp.status)}
             </CardTitle>
@@ -390,20 +391,20 @@ const SystemMonitoring: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>IP تنظیم شده:</span>
+                 <span>{labels.configuredIp}:</span>
               <Badge variant="outline" className="font-mono">{serverIp}</Badge>
             </div>
             {health.services.serverIp.details && (
               <>
                 {health.services.serverIp.details.activeNetworkIps && health.services.serverIp.details.activeNetworkIps.length > 0 && (
                   <div className="flex justify-between text-sm">
-                    <span>IP های شبکه:</span>
+                     <span>{labels.networkIps}:</span>
                     <span className="text-xs font-mono">{health.services.serverIp.details.activeNetworkIps.join(', ')}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
-                  <span>حالت:</span>
-                  <Badge variant="outline">{health.services.serverIp.details.isWildcard ? 'همه رابط‌ها (0.0.0.0)' : 'مشخص شده'}</Badge>
+                   <span>{labels.mode}:</span>
+                   <Badge variant="outline">{health.services.serverIp.details.isWildcard ? labels.allInterfaces : labels.specified}</Badge>
                 </div>
               </>
             )}

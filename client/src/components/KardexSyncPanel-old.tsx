@@ -236,7 +236,7 @@ export function KardexSyncPanel() {
             <Button 
               className="mt-3" 
               size="sm" 
-              onClick={() => window.location.href = '/admin/login'}
+              onClick={() => window.location.href = '/mrg/login'}
             >
               ورود به پنل ادمین
             </Button>

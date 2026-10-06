@@ -1,14 +1,14 @@
 import { Link, useLocation } from 'wouter';
 import { Home, ShoppingBag, Search, User, ShoppingCart } from 'lucide-react';
 import { usePersistentCart } from '@/hooks/usePersistentCart';
-import { useCustomerAuth } from '@/hooks/useCustomerAuth';
+import { useCustomer } from '@/hooks/useCustomer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
 export function MobileBottomNav() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { getTotalItems } = usePersistentCart();
-  const { isAuthenticated } = useCustomerAuth();
+  const { isAuthenticated } = useCustomer();
   const { direction, t } = useLanguage();
 
   const totalItems = getTotalItems();
@@ -82,7 +82,16 @@ export function MobileBottomNav() {
           const active = getActive(tab, idx);
 
           return (
-            <Link key={idx} href={tab.href} className="relative flex min-w-0 items-stretch overflow-hidden">
+            <Link
+              key={idx}
+              href={tab.href}
+              onClick={(event) => {
+                if (idx !== 4) return;
+                event.preventDefault();
+                setLocation(isAuthenticated ? '/customer/profile' : '/customer/login');
+              }}
+              className="relative flex min-w-0 items-stretch overflow-hidden"
+            >
               <div
                 className={cn(
                   'flex w-full min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-2 transition-colors duration-150',

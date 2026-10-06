@@ -1,0 +1,75 @@
+## TASK OVERVIEW
+Add a new, fully INDEPENDENT module named "Loading Management" (مدیریت بارگیری) to the EXISTING project, registered in the Management (مدیریت) section of the main menu. This is NOT a new app and NOT a tab of another module.
+
+The module manages the complete truck loading workflow of a petrochemical plant: from the moment a customer selects and registers their own carrier, through the main gate, warehouse gate, weighbridge, loading and documents, to the warehouse exit and plant exit. It is an MVP. Hardware (weighbridge, plate reader, RFID, flowmeter) must be SIMULATED, but the code must be structured so real devices can be integrated later.
+
+## STEP 0: ANALYZE FIRST
+Before writing any code, analyze the existing project: tech stack, folder structure, database, authentication and role system, main layout/navigation, UI components, styling, language/RTL and calendar settings. Use the SAME stack, conventions, theme and components. Do not introduce a new framework, auth system or separate frontend. STOP and show me the analysis report and integration plan before coding.
+
+## INDEPENDENCE RULES
+- Self-contained module: its own folder on the backend and frontend (for example /modules/loading/), its own routes (/management/loading/* on the frontend, /api/loading/* on the backend), its own services, its own state machine and its own database migrations.
+- All tables belong to the module and are prefixed "loading_" (orders, carriers, drivers, vehicles, loadings, gate_events, weighings, loading_records, exceptions, blacklist, documents, audit_logs, settings, products/batches/stock if no adapter source exists). Do NOT modify existing tables.
+- Own internal navigation (sidebar or secondary tabs): Dashboard/Plant overview, Orders & carriers, Main gate, Waiting yard queue, Warehouse gate, Weighbridge, Loading, Documents, Reports, Settings/Blacklist/Audit, Simulator.
+- Add a feature flag LOADING_MODULE_ENABLED so the whole module can be switched off without affecting the rest of the system.
+- Existing code may be touched ONLY in three places: (1) registering the menu item in the Management section, (2) registering the new permissions/roles, (3) mounting the module's routes. Nothing else. Do not break any existing feature, and run existing flows after the change to verify.
+
+## INTEGRATION POINTS (thin adapters, no direct coupling)
+- Auth: reuse the existing login, users and session/JWT. Add new roles/permissions to the existing role system: Customer, Sales/Order Admin, Main Gate Officer, Warehouse Gate Officer, Weighbridge Operator, Loading Operator, Warehouse Manager, HSE Officer, Loading Manager (module admin). Each user sees only the sub-screens allowed for their role.
+- Products/customers: read from existing master data through read-only adapters (ProductAdapter, CustomerAdapter). If something does not exist, keep a minimal copy inside the module.
+- Inventory: create an InventoryAdapter interface with two methods: checkAvailability(product, batch, qty) and deductStock(loadingId, product, batch, qty). The default implementation calls the existing Warehouse inventory service if one exists, otherwise uses a module-owned stock table. Deduction happens only at the DOCUMENTS_ISSUED step and must be idempotent (never deduct twice for one Loading ID).
+- Hardware: one service interface per device (PlateReaderService, RfidService, WeighbridgeService, FlowmeterService), implemented as simulators now, replaceable by real integrations later without changing business logic.
+
+## UI REQUIREMENTS
+- Follow the existing project's language and layout. If the project is Persian, use full RTL, the existing font and the Jalali (Shamsi) calendar for all dates.
+- Responsive. Real-time updates of the queue and gate screens (WebSocket or polling, whichever fits the existing stack).
+
+## CORE WORKFLOW (strict state machine; each step unlocks only after the previous one is confirmed)
+1. ORDER_CREATED: Customer/sales creates an order (product, grade, quantity, packaging type: bag/pallet or bulk, delivery destination). Check inventory and credit.
+2. CARRIER_ASSIGNED: Customer selects and registers their own carrier company, then enters driver info (name, national ID, license number and expiry, phone) and vehicle info (plate, type, capacity, tare weight, insurance and technical inspection expiry, e-waybill number). The system auto-validates: documents not expired, driver HSE training valid, vehicle compatible with product, driver/vehicle/carrier not blacklisted. Reject with a clear reason if validation fails.
+3. ENTRY_PERMIT_ISSUED: System assigns an appointment time slot and issues a ONE-TIME entry permit with a QR code (and a simulated SMS-style notification).
+4. MAIN_GATE_IN: Gate officer scans QR / enters plate; system verifies driver, vehicle and permit match. Safety checklist (spark arrestor, tires, extinguisher, phone/lighter handed in). Record time, photo upload, issue a pass card. Status: inside plant, waiting.
+5. WAITING_YARD: Truck appears in a queue ordered by priority, arrival time and product readiness. Warehouse manager calls trucks (CALLED status). A truck that has not been called cannot proceed.
+6. WAREHOUSE_GATE_IN: Warehouse gate officer verifies the call and the safety permit, records entry.
+7. TARE_WEIGH (Weighbridge 1): Operator records empty weight (input or "simulate reading" button). Compare to registered tare weight; if deviation exceeds a configurable threshold (e.g. 3%), raise a warning requiring supervisor approval with a reason.
+8. LOADING: System assigns a loading bay/silo/dock. Loading operator confirms start. For bag/pallet: count by barcode scans or counter input and verify batch number. For bulk: record flowmeter/loadcell quantity with auto-stop at the ordered amount. Verify product and batch match the order. At the end, record the seal number.
+9. GROSS_WEIGH (Weighbridge 2): Record full weight. Net weight = gross − tare. Compare with ordered quantity and counted/flowmeter quantity within a configurable tolerance. If outside tolerance, send the truck back to loading with a mandatory reason. Generate a weighbridge ticket.
+10. DOCUMENTS_ISSUED: Auto-generate printable documents (PDF): waybill, invoice/delivery order, Certificate of Analysis (CoA), MSDS, weighbridge ticket. Deduct inventory via InventoryAdapter.
+11. WAREHOUSE_GATE_OUT: Verify documents, seal, plate and weight match.
+12. MAIN_GATE_OUT: Final inspection, collect and invalidate the pass card, record exit time. Status CLOSED. The permit can never be reused. Notify the customer.
+
+## BUSINESS RULES
+- No loading without a tare weight; no exit without a gross weight and approval.
+- Each loading has a unique Loading ID; every step records user, timestamp, and optional photo.
+- Exceptions: re-weigh, return to loading, cancel loading, overload, incompatible vehicle. These require higher-level approval and a reason.
+- Full immutable audit log of every action and change (use the existing audit mechanism only if it can be used without modifying existing code; otherwise keep the module's own).
+- Configurable settings: weight deviation threshold, quantity tolerance, max trucks inside plant, max trucks per bay, permit validity period.
+- Blacklist management for drivers, vehicles and carriers.
+
+## SCREENS
+1. Module dashboard and live plant overview: a board showing every truck's current stage
+2. Customer portal: create order, register carrier/driver/vehicle, track status, download documents
+3. Order and carrier management (admin)
+4. Main gate screen (entry/exit, QR/plate input, safety checklist)
+5. Waiting yard queue board (live, big-screen mode) with call-truck button
+6. Warehouse gate screen (entry/exit)
+7. Weighbridge screen (tare/gross with simulated reading)
+8. Loading screen (bay, counter/flowmeter simulation, seal number)
+9. Document generation and print view
+10. Reports: average turnaround time, waiting time, weight deviations, exceptions count, volume per carrier, per product, per day; export to Excel
+11. Settings: users/roles mapping, thresholds, blacklist, audit log viewer
+12. Simulator page: simulate plate reader, RFID, weighbridge and flowmeter events
+
+## DATA MODEL (suggested, all prefixed "loading_")
+customers (only if no adapter source), carriers, drivers, vehicles, products/batches/stock (only if no adapter source), orders, loadings (status and timestamps per step), gate_events, weighings, loading_records, documents, exceptions, audit_logs, settings, blacklist.
+
+## SEED DATA
+Realistic sample data: products such as polyethylene, polypropylene, PVC, methanol; several carriers, drivers, vehicles, customers and orders at different workflow stages.
+
+## DELIVERY PHASES (show me the result after each phase)
+1. Analysis report of the existing project and integration plan (STOP and wait for my approval before coding)
+2. Module skeleton, database migrations and state machine
+3. API and services (including adapters and device simulators)
+4. Screens in the order of the workflow
+5. Reports, simulator, seed data, README (setup, workflow, how to disable the module, how to replace simulators with real devices)
+
+Write clean, modular code with automated tests for the state machine transitions and the idempotent inventory deduction.

@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import { User, Phone, Mail, MapPin, Building, CreditCard, ShoppingBag, Calendar, Edit, Save, X, Eye, FileText, Activity } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import PaymentMethodBadge from "@/components/PaymentMethodBadge";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { crmCurrency, crmDate, crmEnum, crmText } from "@/lib/crm-localization";
 
 interface UnifiedCustomerProfileProps {
   customerId: number;
@@ -77,6 +79,7 @@ interface CustomerOrder {
 }
 
 export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUpdate }: UnifiedCustomerProfileProps) {
+  const { language, direction } = useLanguage();
   const [isEditing, setIsEditing] = useState(mode === 'edit');
   const [editData, setEditData] = useState<Partial<CustomerProfile>>({});
   const { toast } = useToast();
@@ -133,7 +136,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
     },
     onSuccess: (result) => {
       console.log("Update success:", result);
-      toast({ title: "Success", description: "Customer profile updated successfully" });
+      toast({ title: crmText(language, "success"), description: crmText(language, "profileUpdated") });
       setIsEditing(false);
       setEditData({});
       queryClient.invalidateQueries({ queryKey: ['/api/crm/customers', customerId] });
@@ -143,33 +146,23 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
     onError: (error: any) => {
       console.error("Update error:", error);
       toast({ 
-        title: "Error", 
-        description: error.message || "Failed to update customer profile",
+        title: crmText(language, "error"),
+        description: error.message || crmText(language, "profileUpdateFailed"),
         variant: "destructive"
       });
     }
   });
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return crmDate(dateString, language);
   };
 
   const formatCurrency = (amount: string | number, currency: string = 'IQD') => {
-    const validCurrencies = ['USD', 'EUR', 'IQD'];
+    const validCurrencies = ['USD', 'EUR', 'IQD', 'IRR'];
     const currencyCode = validCurrencies.includes(currency) ? currency : 'IQD';
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-      minimumFractionDigits: 2,
-    }).format(numAmount);
+    return crmCurrency(numAmount, language, currencyCode);
   };
 
   const getStatusColor = (status: string | undefined | null) => {
@@ -199,10 +192,10 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex items-center justify-center p-8" dir={direction}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Loading customer profile...</p>
+           <p>{crmText(language, "loadingCustomerProfile")}</p>
         </div>
       </div>
     );
@@ -211,7 +204,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
   if (!customer) {
     return (
       <div className="text-center p-8">
-        <p className="text-gray-500">Customer not found</p>
+        <p className="text-gray-500">{crmText(language, "customerNotFound")}</p>
       </div>
     );
   }
@@ -224,7 +217,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={direction}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -243,10 +236,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="vip">VIP</SelectItem>
-                    <SelectItem value="blacklisted">Blacklisted</SelectItem>
+                    {["active", "inactive", "vip", "blacklisted"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Select
@@ -257,20 +247,17 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="wholesale">Wholesale</SelectItem>
-                    <SelectItem value="retail">Retail</SelectItem>
-                    <SelectItem value="distributor">Distributor</SelectItem>
-                    <SelectItem value="end_user">End User</SelectItem>
+                    {["wholesale", "retail", "distributor", "end_user"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             ) : (
               <>
                 <Badge className={getStatusColor(customer.customerStatus)}>
-                  {customer.customerStatus ? customer.customerStatus.toUpperCase() : 'UNKNOWN'}
+                  {crmEnum(customer.customerStatus, language)}
                 </Badge>
                 <Badge variant="outline">
-                  {customer.customerType ? customer.customerType.toUpperCase() : 'UNKNOWN'}
+                  {crmEnum(customer.customerType, language)}
                 </Badge>
               </>
             )}
@@ -286,17 +273,17 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                   className="bg-green-600 hover:bg-green-700"
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  Save Changes
+                  {crmText(language, "saveChanges")}
                 </Button>
                 <Button onClick={handleCancel} variant="outline">
                   <X className="w-4 h-4 mr-2" />
-                  Cancel
+                  {crmText(language, "cancel")}
                 </Button>
               </>
             ) : (
               <Button onClick={() => setIsEditing(true)} variant="outline">
                 <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
+                  {crmText(language, "editProfile")}
               </Button>
             )}
           </div>
@@ -305,11 +292,11 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="contact">Contact Info</TabsTrigger>
-          <TabsTrigger value="business">Business Info</TabsTrigger>
-          <TabsTrigger value="orders">Orders ({orders.length})</TabsTrigger>
-          <TabsTrigger value="activities">Activities</TabsTrigger>
+          <TabsTrigger value="overview">{crmText(language, "overview")}</TabsTrigger>
+          <TabsTrigger value="contact">{crmText(language, "contactInfo")}</TabsTrigger>
+          <TabsTrigger value="business">{crmText(language, "businessInfo")}</TabsTrigger>
+          <TabsTrigger value="orders">{crmText(language, "orders")} ({orders.length})</TabsTrigger>
+          <TabsTrigger value="activities">{crmText(language, "activities")}</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -320,24 +307,24 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="w-5 h-5" />
-                  Customer Overview
+                   {crmText(language, "customerOverview")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <ShoppingBag className="w-8 h-8 text-blue-600 mx-auto mb-2" />
                   <p className="text-2xl font-bold text-blue-600">{customer.totalOrdersCount || 0}</p>
-                  <p className="text-sm text-gray-600">Total Orders</p>
+                   <p className="text-sm text-gray-600">{crmText(language, "totalOrders")}</p>
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <CreditCard className="w-8 h-8 text-green-600 mx-auto mb-2" />
                   <p className="text-2xl font-bold text-green-600">{formatCurrency(customer.totalSpent || '0')}</p>
-                  <p className="text-sm text-gray-600">Total Spent</p>
+                   <p className="text-sm text-gray-600">{crmText(language, "totalSpent")}</p>
                 </div>
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
                   <Calendar className="w-8 h-8 text-purple-600 mx-auto mb-2" />
                   <p className="text-2xl font-bold text-purple-600">{formatCurrency(customer.averageOrderValue || '0')}</p>
-                  <p className="text-sm text-gray-600">Avg Order Value</p>
+                   <p className="text-sm text-gray-600">{crmText(language, "avgOrderValue")}</p>
                 </div>
               </CardContent>
             </Card>
@@ -345,25 +332,25 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
             {/* Customer Details */}
             <Card>
               <CardHeader>
-                <CardTitle>Customer Details</CardTitle>
+                 <CardTitle>{crmText(language, "customerDetails")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Customer Since</Label>
+                  <Label className="text-sm font-medium text-gray-500">{crmText(language, "customerSince")}</Label>
                   <p className="font-medium">{formatDate(customer.createdAt)}</p>
                 </div>
                 {customer.lastOrderDate && (
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">Last Order</Label>
+                    <Label className="text-sm font-medium text-gray-500">{crmText(language, "lastOrder")}</Label>
                     <p className="font-medium">{formatDate(customer.lastOrderDate)}</p>
                   </div>
                 )}
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Source</Label>
-                  <p className="font-medium capitalize">{customer.customerSource ? customer.customerSource.replace('_', ' ') : 'Unknown'}</p>
+                  <Label className="text-sm font-medium text-gray-500">{crmText(language, "source")}</Label>
+                  <p className="font-medium">{customer.customerSource ? crmEnum(customer.customerSource, language) : crmText(language, "unknown")}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-500">Payment Terms</Label>
+                  <Label className="text-sm font-medium text-gray-500">{crmText(language, "paymentTerms")}</Label>
                   <p className="font-medium capitalize">{customer.paymentTerms ? customer.paymentTerms.replace('_', ' ') : 'Not specified'}</p>
                 </div>
               </CardContent>
@@ -384,7 +371,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="firstName">First Name *</Label>
+                    <Label htmlFor="firstName">{crmText(language, "firstNameRequired")}</Label>
                     {isEditing ? (
                       <Input
                         id="firstName"
@@ -396,7 +383,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Label htmlFor="lastName">{crmText(language, "lastNameRequired")}</Label>
                     {isEditing ? (
                       <Input
                         id="lastName"
@@ -410,7 +397,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                 </div>
 
                 <div>
-                  <Label htmlFor="email">Email Address *</Label>
+                  <Label htmlFor="email">{crmText(language, "emailAddressRequired")}</Label>
                   {isEditing ? (
                     <Input
                       id="email"
@@ -425,7 +412,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="phone">Primary Phone *</Label>
+                    <Label htmlFor="phone">{crmText(language, "primaryPhoneRequired")}</Label>
                     {isEditing ? (
                       <Input
                         id="phone"
@@ -437,7 +424,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="alternatePhone">Alternate Phone</Label>
+                    <Label htmlFor="alternatePhone">{crmText(language, "alternatePhone")}</Label>
                     {isEditing ? (
                       <Input
                         id="alternatePhone"
@@ -445,13 +432,13 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                         onChange={(e) => handleEditChange('alternatePhone', e.target.value)}
                       />
                     ) : (
-                      <p className="mt-1 font-medium">{customer.alternatePhone || 'N/A'}</p>
+                       <p className="mt-1 font-medium">{customer.alternatePhone || crmText(language, "notAvailable")}</p>
                     )}
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="communicationPreference">Communication Preference</Label>
+                  <Label htmlFor="communicationPreference">{crmText(language, "communicationPreference")}</Label>
                   {isEditing ? (
                     <Select
                       value={displayValue('communicationPreference') || 'email'}
@@ -461,14 +448,11 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="phone">Phone</SelectItem>
-                        <SelectItem value="sms">SMS</SelectItem>
-                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        {["email", "phone", "sms", "whatsapp"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="mt-1 font-medium capitalize">{customer.communicationPreference}</p>
+                     <p className="mt-1 font-medium">{crmEnum(customer.communicationPreference, language)}</p>
                   )}
                 </div>
               </CardContent>
@@ -483,7 +467,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="address">Street Address *</Label>
+                  <Label htmlFor="address">{crmText(language, "streetAddressRequired")}</Label>
                   {isEditing ? (
                     <Textarea
                       id="address"
@@ -498,7 +482,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="city">City *</Label>
+                    <Label htmlFor="city">{crmText(language, "cityRequired")}</Label>
                     {isEditing ? (
                       <Input
                         id="city"
@@ -510,7 +494,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="state">State/Province</Label>
+                    <Label htmlFor="state">{crmText(language, "stateProvince")}</Label>
                     {isEditing ? (
                       <Input
                         id="state"
@@ -518,14 +502,14 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                         onChange={(e) => handleEditChange('state', e.target.value)}
                       />
                     ) : (
-                      <p className="mt-1 font-medium">{customer.state || 'N/A'}</p>
+                       <p className="mt-1 font-medium">{customer.state || crmText(language, "notAvailable")}</p>
                     )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="country">Country *</Label>
+                    <Label htmlFor="country">{crmText(language, "countryRequired")}</Label>
                     {isEditing ? (
                       <Input
                         id="country"
@@ -537,7 +521,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="postalCode">Postal Code</Label>
+                    <Label htmlFor="postalCode">{crmText(language, "postalCode")}</Label>
                     {isEditing ? (
                       <Input
                         id="postalCode"
@@ -545,7 +529,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                         onChange={(e) => handleEditChange('postalCode', e.target.value)}
                       />
                     ) : (
-                      <p className="mt-1 font-medium">{customer.postalCode || 'N/A'}</p>
+                       <p className="mt-1 font-medium">{customer.postalCode || crmText(language, "notAvailable")}</p>
                     )}
                   </div>
                 </div>
@@ -566,7 +550,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="company">Company Name</Label>
+                  <Label htmlFor="company">{crmText(language, "companyName")}</Label>
                   {isEditing ? (
                     <Input
                       id="company"
@@ -574,13 +558,13 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                       onChange={(e) => handleEditChange('company', e.target.value)}
                     />
                   ) : (
-                    <p className="mt-1 font-medium">{customer.company || 'N/A'}</p>
+                     <p className="mt-1 font-medium">{customer.company || crmText(language, "notAvailable")}</p>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="industry">Industry</Label>
+                    <Label htmlFor="industry">{crmText(language, "industry")}</Label>
                     {isEditing ? (
                       <Input
                         id="industry"
@@ -588,51 +572,45 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                         onChange={(e) => handleEditChange('industry', e.target.value)}
                       />
                     ) : (
-                      <p className="mt-1 font-medium">{customer.industry || 'N/A'}</p>
+                       <p className="mt-1 font-medium">{customer.industry || crmText(language, "notAvailable")}</p>
                     )}
                   </div>
                   <div>
-                    <Label htmlFor="businessType">Business Type</Label>
+                    <Label htmlFor="businessType">{crmText(language, "businessType")}</Label>
                     {isEditing ? (
                       <Select
                         value={displayValue('businessType') || ''}
                         onValueChange={(value) => handleEditChange('businessType', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
+                          <SelectValue placeholder={crmText(language, "selectType")} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="manufacturer">Manufacturer</SelectItem>
-                          <SelectItem value="distributor">Distributor</SelectItem>
-                          <SelectItem value="retailer">Retailer</SelectItem>
-                          <SelectItem value="end_user">End User</SelectItem>
+                           {["manufacturer", "distributor", "retailer", "end_user"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     ) : (
-                      <p className="mt-1 font-medium capitalize">{customer.businessType?.replace('_', ' ') || 'N/A'}</p>
+                     <p className="mt-1 font-medium">{customer.businessType ? crmEnum(customer.businessType, language) : crmText(language, "notAvailable")}</p>
                     )}
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="companySize">Company Size</Label>
+                  <Label htmlFor="companySize">{crmText(language, "companySize")}</Label>
                   {isEditing ? (
                     <Select
                       value={displayValue('companySize') || ''}
                       onValueChange={(value) => handleEditChange('companySize', value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select size" />
+                        <SelectValue placeholder={crmText(language, "selectSize")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="small">Small (1-50 employees)</SelectItem>
-                        <SelectItem value="medium">Medium (51-250 employees)</SelectItem>
-                        <SelectItem value="large">Large (251-1000 employees)</SelectItem>
-                        <SelectItem value="enterprise">Enterprise (1000+ employees)</SelectItem>
+                        {["small", "medium", "large", "enterprise"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="mt-1 font-medium capitalize">{customer.companySize || 'N/A'}</p>
+                     <p className="mt-1 font-medium">{customer.companySize ? crmEnum(customer.companySize, language) : crmText(language, "notAvailable")}</p>
                   )}
                 </div>
               </CardContent>
@@ -647,7 +625,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="creditLimit">Credit Limit</Label>
+                  <Label htmlFor="creditLimit">{crmText(language, "creditLimit")}</Label>
                   {isEditing ? (
                     <Input
                       id="creditLimit"
@@ -657,12 +635,12 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                       onChange={(e) => handleEditChange('creditLimit', e.target.value)}
                     />
                   ) : (
-                    <p className="mt-1 font-medium">{customer.creditLimit ? formatCurrency(customer.creditLimit) : 'N/A'}</p>
+                     <p className="mt-1 font-medium">{customer.creditLimit ? formatCurrency(customer.creditLimit) : crmText(language, "notAvailable")}</p>
                   )}
                 </div>
 
                 <div>
-                  <Label htmlFor="paymentTerms">Payment Terms</Label>
+                  <Label htmlFor="paymentTerms">{crmText(language, "paymentTerms")}</Label>
                   {isEditing ? (
                     <Select
                       value={displayValue('paymentTerms') || 'immediate'}
@@ -672,19 +650,16 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="immediate">Immediate</SelectItem>
-                        <SelectItem value="net_30">Net 30</SelectItem>
-                        <SelectItem value="net_60">Net 60</SelectItem>
-                        <SelectItem value="net_90">Net 90</SelectItem>
+                        {["immediate", "net_30", "net_60", "net_90"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="mt-1 font-medium capitalize">{customer.paymentTerms ? customer.paymentTerms.replace('_', ' ') : 'Not specified'}</p>
+                     <p className="mt-1 font-medium">{customer.paymentTerms ? crmEnum(customer.paymentTerms, language) : crmText(language, "notSpecified")}</p>
                   )}
                 </div>
 
                 <div>
-                  <Label htmlFor="preferredPaymentMethod">Preferred Payment Method</Label>
+                  <Label htmlFor="preferredPaymentMethod">{crmText(language, "preferredPaymentMethod")}</Label>
                   {isEditing ? (
                     <Input
                       id="preferredPaymentMethod"
@@ -692,12 +667,12 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                       onChange={(e) => handleEditChange('preferredPaymentMethod', e.target.value)}
                     />
                   ) : (
-                    <p className="mt-1 font-medium">{customer.preferredPaymentMethod || 'N/A'}</p>
+                     <p className="mt-1 font-medium">{customer.preferredPaymentMethod ? crmEnum(customer.preferredPaymentMethod, language) : crmText(language, "notAvailable")}</p>
                   )}
                 </div>
 
                 <div>
-                  <Label htmlFor="notes">Notes</Label>
+                  <Label htmlFor="notes">{crmText(language, "notes")}</Label>
                   {isEditing ? (
                     <Textarea
                       id="notes"
@@ -706,7 +681,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                       rows={4}
                     />
                   ) : (
-                    <p className="mt-1 font-medium">{customer.notes || 'No notes'}</p>
+                     <p className="mt-1 font-medium">{customer.notes || crmText(language, "notAvailable")}</p>
                   )}
                 </div>
               </CardContent>
@@ -720,16 +695,16 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShoppingBag className="w-5 h-5" />
-                Order History
+                {crmText(language, "orderHistory")}
               </CardTitle>
               <CardDescription>
-                Complete order history for this customer
+                {crmText(language, "completeOrderHistory")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {orders.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  No orders found for this customer.
+                  {crmText(language, "noOrders")}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -737,13 +712,13 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                     <div key={order.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <h3 className="font-medium">Order #{order.orderNumber}</h3>
+                           <h3 className="font-medium">{crmText(language, "order")} #{order.orderNumber}</h3>
                           <p className="text-sm text-gray-600">{formatDate(order.createdAt)}</p>
                         </div>
                         <div className="text-right">
                           <p className="font-semibold">{formatCurrency(order.totalAmount)}</p>
                           <Badge variant="outline" className="mt-1">
-                            {order.status ? order.status.toUpperCase() : 'UNKNOWN'}
+                           {crmEnum(order.status, language)}
                           </Badge>
                         </div>
                       </div>
@@ -756,7 +731,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
                               className="text-xs"
                             />
                           )}
-                          {order.carrier && <span>Carrier: {order.carrier}</span>}
+                           {order.carrier && <span>{crmText(language, "carrier")}: {order.carrier}</span>}
                         </div>
                       )}
                     </div>
@@ -773,27 +748,27 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="w-5 h-5" />
-                Customer Activities
+                {crmText(language, "customerActivities")}
               </CardTitle>
               <CardDescription>
-                Timeline of all customer interactions and activities
+                {crmText(language, "activityTimeline")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {activities.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  No activities recorded for this customer.
+                  {crmText(language, "noActivities")}
                 </div>
               ) : (
                 <div className="space-y-4">
                   {activities.map((activity) => (
                     <div key={activity.id} className="border-l-4 border-blue-200 pl-4">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-medium capitalize">{activity.activityType ? activity.activityType.replace('_', ' ') : 'Unknown activity'}</h3>
+                         <h3 className="font-medium capitalize">{activity.activityType ? crmEnum(activity.activityType, language) : crmText(language, "unknownActivity")}</h3>
                         <span className="text-sm text-gray-500">{formatDate(activity.createdAt)}</span>
                       </div>
                       <p className="text-gray-700">{activity.description}</p>
-                      <p className="text-sm text-gray-500 mt-1">By: {activity.performedBy}</p>
+                       <p className="text-sm text-gray-500 mt-1">{crmText(language, "by")}: {activity.performedBy}</p>
                     </div>
                   ))}
                 </div>

@@ -39,7 +39,7 @@ import {
   type InsertCustomerOrder as InsertOrder
 } from "@shared/customer-schema";
 import { shopDb } from "./shop-db";
-import { eq, desc, and, gte, lte, gt, sql, count, or, like, ilike, asc } from "drizzle-orm";
+import { eq, desc, and, gte, lte, gt, sql, count, or, like, ilike, asc, inArray } from "drizzle-orm";
 
 export interface IShopStorage {
   // Category management
@@ -63,6 +63,7 @@ export interface IShopStorage {
     priceMax?: number;
     inStock?: boolean;
     tags?: string[];
+    eligibleContractProductIds?: number[];
     sortBy?: 'name' | 'price' | 'created' | 'relevance';
     sortOrder?: 'asc' | 'desc';
     limit?: number;
@@ -80,6 +81,7 @@ export interface IShopStorage {
   getRandomProductsByCategory(category: string, limit: number): Promise<ShopProduct[]>;
   createShopProduct(product: InsertShopProduct): Promise<ShopProduct>;
   updateShopProduct(id: number, product: Partial<InsertShopProduct>): Promise<ShopProduct>;
+  syncBatchStockTotal(barcode: string): Promise<number>;
   deleteShopProduct(id: number): Promise<void>;
   
   // Discount settings management
@@ -366,6 +368,7 @@ export class ShopStorage implements IShopStorage {
       .where(
         and(
           eq(shopProducts.isActive, true),
+          eq(shopProducts.contractOnly, false),
           or(...categoryConditions),
           // Show products that are either in stock OR have showWhenOutOfStock enabled
           or(
@@ -446,6 +449,27 @@ export class ShopStorage implements IShopStorage {
     return updatedProduct;
   }
 
+  async syncBatchStockTotal(barcode: string): Promise<number> {
+    const { pool } = await import('./db');
+    const totalResult = await pool.query<{ total: number }>(`
+      SELECT COALESCE(SUM(stock_quantity), 0)::int AS total
+      FROM showcase_products
+      WHERE barcode = $1
+    `, [barcode]);
+    const totalStock = Number(totalResult.rows[0]?.total || 0);
+    const shopProducts = await this.getShopProducts();
+    const shopProduct = shopProducts.find(product => product.barcode?.trim() === barcode.trim());
+
+    if (shopProduct) {
+      await this.updateShopProduct(shopProduct.id, {
+        stockQuantity: totalStock,
+        inStock: totalStock > 0 || Boolean(shopProduct.showWhenOutOfStock),
+      });
+    }
+
+    return totalStock;
+  }
+
   async deleteShopProduct(id: number): Promise<void> {
     // Actually delete the product from shop database
     await shopDb
@@ -459,6 +483,7 @@ export class ShopStorage implements IShopStorage {
     priceMax?: number;
     inStock?: boolean;
     tags?: string[];
+    eligibleContractProductIds?: number[];
     sortBy?: 'name' | 'price' | 'created' | 'relevance';
     sortOrder?: 'asc' | 'desc';
     limit?: number;
@@ -478,6 +503,7 @@ export class ShopStorage implements IShopStorage {
       priceMax,
       inStock,
       tags,
+      eligibleContractProductIds = [],
       sortBy = 'relevance',
       sortOrder = 'desc',
       limit = 50,
@@ -485,8 +511,15 @@ export class ShopStorage implements IShopStorage {
     } = filters;
 
     // Build WHERE conditions - only active products
+    const contractVisibilityCondition = or(
+      eq(shopProducts.contractOnly, false),
+      eligibleContractProductIds.length > 0
+        ? inArray(shopProducts.id, eligibleContractProductIds)
+        : sql`false`
+    )!;
     const whereConditions = [
-      eq(shopProducts.isActive, true)
+      eq(shopProducts.isActive, true),
+      contractVisibilityCondition,
     ];
 
     // Text search in multiple fields
@@ -633,6 +666,7 @@ export class ShopStorage implements IShopStorage {
           .where(
             and(
               eq(shopProducts.isActive, true),
+              contractVisibilityCondition,
               // Show products that are either in stock OR have showWhenOutOfStock enabled
               or(
                 gt(shopProducts.stockQuantity, 0),
@@ -661,13 +695,13 @@ export class ShopStorage implements IShopStorage {
         max: sql<number>`MAX(CAST(${shopProducts.price} AS NUMERIC))`
       })
       .from(shopProducts)
-      .where(eq(shopProducts.isActive, true));
+      .where(and(eq(shopProducts.isActive, true), contractVisibilityCondition));
 
     // Extract available tags
     const allTagsResult = await shopDb
       .select({ tags: shopProducts.tags })
       .from(shopProducts)
-      .where(eq(shopProducts.isActive, true));
+      .where(and(eq(shopProducts.isActive, true), contractVisibilityCondition));
 
     const availableTags = Array.from(new Set(
       allTagsResult
@@ -1012,7 +1046,7 @@ export class ShopStorage implements IShopStorage {
         SELECT id, name, batch_number, stock_quantity, created_at
         FROM showcase_products 
         WHERE barcode = $1 AND stock_quantity > 0
-        ORDER BY created_at ASC
+        ORDER BY created_at ASC, id ASC
       `, [barcode]);
       
       console.log(`🔄 [FIFO] Reducing ${quantityToReduce} units from barcode ${barcode} across ${batchesResult.rows.length} batches`);
@@ -1071,7 +1105,7 @@ export class ShopStorage implements IShopStorage {
         SELECT id, name, batch_number, stock_quantity, created_at
         FROM showcase_products 
         WHERE barcode = $1 AND stock_quantity > 0
-        ORDER BY created_at ASC
+        ORDER BY created_at ASC, id ASC
         LIMIT 1
       `, [barcode]);
       
@@ -1083,7 +1117,15 @@ export class ShopStorage implements IShopStorage {
   }
 
   // Add new batch to the system
-  async addBatch(batchData: { barcode: string, batchNumber: string, stockQuantity: number, createdAt: string, updatedAt: string }): Promise<any> {
+  async addBatch(batchData: {
+    barcode: string;
+    batchNumber: string;
+    stockQuantity: number;
+    createdAt: string;
+    updatedAt: string;
+    imageUrl?: string | null;
+    imageUrls?: string[];
+  }): Promise<any> {
     try {
       const { pool } = await import('./db');
       
@@ -1102,6 +1144,12 @@ export class ShopStorage implements IShopStorage {
       }
       
       const originalProduct = originalResult.rows[0];
+      const imageUrls = batchData.imageUrls !== undefined
+        ? batchData.imageUrls
+        : (originalProduct.image_urls || (originalProduct.image_url ? [originalProduct.image_url] : []));
+      const imageUrl = batchData.imageUrl !== undefined
+        ? (batchData.imageUrl || imageUrls[0] || null)
+        : (originalProduct.image_url || imageUrls[0] || null);
       
       // Extract base SKU (first 3 parts) to prevent accumulation of batch numbers
       
@@ -1109,10 +1157,10 @@ export class ShopStorage implements IShopStorage {
       const insertResult = await pool.query(`
         INSERT INTO showcase_products (
           name, category, description, short_description, barcode, sku, stock_quantity, 
-          unit_price, currency, batch_number, is_active, is_non_chemical, sync_with_shop, 
-          created_at, updated_at
+          unit_price, currency, batch_number, is_active, is_non_chemical, sync_with_shop,
+          image_url, image_urls, created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::json, $16, $17
         ) RETURNING *
       `, [
         originalProduct.name,                 // $1
@@ -1128,8 +1176,10 @@ export class ShopStorage implements IShopStorage {
         originalProduct.is_active,            // $11
         originalProduct.is_non_chemical,      // $12
         originalProduct.sync_with_shop,       // $13
-        batchData.createdAt,                  // $14
-        batchData.updatedAt                   // $15
+        imageUrl,                              // $14
+        JSON.stringify(imageUrls),             // $15
+        batchData.createdAt,                  // $16
+        batchData.updatedAt                   // $17
       ]);
       
       console.log(`✅ [ADD-BATCH] Successfully added batch ${batchData.batchNumber} with ${batchData.stockQuantity} units`);

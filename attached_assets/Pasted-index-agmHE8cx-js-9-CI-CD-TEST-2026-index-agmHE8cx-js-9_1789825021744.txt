@@ -1,0 +1,98 @@
+index-agmHE8cx.js:9 CI_CD_TEST_2026
+index-agmHE8cx.js:9 [PWA] Service Worker registered, scope: https://momtazchem.com/
+/admin:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+App-CWZKzlM0.js:1561 📥 Loading Tawk.to widget at bottom-left position...
+App-CWZKzlM0.js:1561 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+App-CWZKzlM0.js:50 Auth check result: Object
+App-CWZKzlM0.js:647 🔍 [DEBUG] Site Management component initialized
+App-CWZKzlM0.js:50 Auth check result: Object
+App-CWZKzlM0.js:647 🔍 [DEBUG] Site Management component initialized
+App-CWZKzlM0.js:647 🔍 [DEBUG] Full userPermissions response: Object
+App-CWZKzlM0.js:647 🔍 [DEBUG] userPermissions.modules: Array(38)
+App-CWZKzlM0.js:647 🔍 [DEBUG] userPermissions.permissions: Array(38)
+App-CWZKzlM0.js:647 🔍 [DEBUG] Total allButtons count: 40
+App-CWZKzlM0.js:647 🔍 [DEBUG] AI Settings exists in allButtons: true
+App-CWZKzlM0.js:647 🔍 [DEBUG] Content Management exists in allButtons: true
+App-CWZKzlM0.js:647 🔍 [DEBUG] allowedModules: Array(38)
+App-CWZKzlM0.js:647 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+App-CWZKzlM0.js:647 🔍 [DEBUG] management_dashboard in allowedModules? true
+App-CWZKzlM0.js:647 🔍 [DEBUG] finance in allowedModules? true
+App-CWZKzlM0.js:647 🔍 [DEBUG] geography_analytics in allowedModules? true
+App-CWZKzlM0.js:647 🔍 [DEBUG] ai_settings in allowedModules? true
+App-CWZKzlM0.js:647 🔍 [DEBUG] content_management in allowedModules? true
+App-CWZKzlM0.js:647 🔍 [CRITICAL] Missing button detection:
+App-CWZKzlM0.js:647 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+App-CWZKzlM0.js:647 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+App-CWZKzlM0.js:647 🔍 [CRITICAL] Missing buttons count: 2
+App-CWZKzlM0.js:647 🔍 [DEBUG] finance button found in allButtons? Object
+App-CWZKzlM0.js:647 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+App-CWZKzlM0.js:647 🔍 [DEBUG] ai_settings button found in allButtons? Object
+App-CWZKzlM0.js:647 🔍 [DEBUG] content_management button found in allButtons? Object
+App-CWZKzlM0.js:647 🔍 [DEBUG] finance button in filtered? Object
+App-CWZKzlM0.js:647 🔍 [DEBUG] geography_analytics button in filtered? Object
+App-CWZKzlM0.js:647 🔍 [DEBUG] ai_settings button in filtered? Object
+App-CWZKzlM0.js:647 🔍 [DEBUG] content_management button in filtered? Object
+App-CWZKzlM0.js:647 🔍 [DEBUG] Site Management component initialized
+App-CWZKzlM0.js:482 Barcode effect triggered:  Canvas ref: null
+App-CWZKzlM0.js:480 📦 Found 9 batches for barcode 8649677191615
+App-CWZKzlM0.js:482 Barcode effect triggered: 8649677191615 Canvas ref: null
+App-CWZKzlM0.js:50 Auth check result: Object
+App-CWZKzlM0.js:478 🔍 [DEBUG] Form submission - Raw form data: Object
+App-CWZKzlM0.js:478 🔍 [DEBUG] Tags in form data: شیمیایی Type: string
+App-CWZKzlM0.js:478 🔍 [DEBUG] Description in form data: This is a high-quality chemical product...
+App-CWZKzlM0.js:478 🔍 [DEBUG] editingProduct state: 91
+App-CWZKzlM0.js:480 🚀 [DEBUG] Final processed data being sent to API: {
+  "name": "Light Solvent",
+  "category": "Paint & Solvents",
+  "description": "This is a high-quality chemical product...",
+  "shortDescription": "This is a high-quality chemical product...",
+  "priceRange": "",
+  "imageUrl": "/uploads/general-files/1789780737275-912cfb17f2603668.png",
+  "imageUrls": [
+    "/uploads/general-files/1789780737275-912cfb17f2603668.png",
+    "/uploads/general-files/1789781211702-83a3a3204fb2aa1d.png"
+  ],
+  "pdfCatalogUrl": "",
+  "catalogFileName": "",
+  "specifications": {},
+  "features": [],
+  "applications": [],
+  "showCatalogToCustomers": false,
+  "msdsUrl": "",
+  "showMsdsToCustomers": false,
+  "msdsFileName": "",
+  "stockQuantity": 25,
+  "minStockLevel": 10,
+  "maxStockLevel": 1000,
+  "unitPrice": "1",
+  "currency": "USD",
+  "batchNumber": "12",
+  "netWeight": null,
+  "grossWeight": null,
+  "weightUnit": "kg",
+  "weight": "",
+  "barcode": "8649677191615",
+  "sku": "FA-WAT-12",
+  "tags": [
+    "شیمیایی"
+  ],
+  "isActive": true,
+  "syncWithShop": true,
+  "showWhenOutOfStock": false,
+  "isNonChemical": false,
+  "isFlammable": false,
+  "isVariant": false,
+  "displayMode": "3d_model",
+  "model3dKey": "3d-models/1789824673529-0c01e3d0d63b75a3.glb",
+  "model3dFileName": "1771735708706-3f132d6180e03f71.glb",
+  "transportationTemperature": "",
+  "inventoryAddition": 0,
+  "newBatchNumber": null
+}
+App-CWZKzlM0.js:480 📝 [DEBUG] Calling updateProduct with ID: 91
+App-CWZKzlM0.js:480 📝 [DEBUG] updateProduct function exists: function
+/api/products/91:1  Failed to load resource: the server responded with a status of 500 ()
+App-CWZKzlM0.js:478 ❌ [DEBUG] Update mutation failed: Error: خطای داخلی سرور
+    at X (queryClient-C76wM52K.js:1:23044)
+    at async Z (queryClient-C76wM52K.js:1:23349)
+onError @ App-CWZKzlM0.js:478

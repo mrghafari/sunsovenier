@@ -1,6 +1,41 @@
 import { Router } from "express";
 import { vendorStorage } from "./vendor-storage";
 import { requireAdminAuth, requireAdminRole } from "./admin-auth";
+import { pool } from "./db";
+
+const safeToDeleteVendor = `
+  v.is_active IS FALSE
+  AND COALESCE(v.total_sales, 0) = 0
+  AND COALESCE(v.total_products, 0) = 0
+  AND COALESCE(v.total_reviews, 0) = 0
+  AND NOT EXISTS (SELECT 1 FROM products p WHERE p.vendor_id = v.id)
+  AND NOT EXISTS (SELECT 1 FROM shop_products p WHERE p.vendor_id = v.id)
+  AND NOT EXISTS (SELECT 1 FROM showcase_products p WHERE p.vendor_id = v.id)
+  AND NOT EXISTS (SELECT 1 FROM vendor_transactions tx WHERE tx.vendor_id = v.id)
+  AND NOT EXISTS (SELECT 1 FROM vendor_payments pay WHERE pay.vendor_id = v.id)
+  AND NOT EXISTS (
+    SELECT 1 FROM vendor_balances b WHERE b.vendor_id = v.id
+      AND (COALESCE(b.current_balance, 0) <> 0 OR COALESCE(b.total_sales, 0) <> 0
+        OR COALESCE(b.total_commission, 0) <> 0 OR COALESCE(b.total_paid, 0) <> 0
+        OR b.last_transaction_at IS NOT NULL)
+  )
+`;
+
+const requireVerifiedVendorDeletionAdmin = async (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => {
+  try {
+    const result = await pool.query(`
+      SELECT 1 FROM users u JOIN admin_roles r ON r.id = u.role_id
+      WHERE u.id = $1 AND u.is_active = TRUE AND r.is_active = TRUE
+        AND regexp_replace(lower(trim(r.name)), '[ _-]+', ' ', 'g')
+          IN ('admin', 'super admin', 'supper admin')
+    `, [req.session?.adminId]);
+    if (!result.rowCount) return res.status(403).json({ success: false, message: "Active administrator role required" });
+    next();
+  } catch (error) {
+    console.error("Unable to verify vendor deletion administrator:", error);
+    res.status(500).json({ success: false, message: "Unable to verify administrator" });
+  }
+};
 
 export function createAdminVendorRouter() {
   const router = Router();
@@ -135,6 +170,18 @@ export function createAdminVendorRouter() {
     }
   });
 
+  // Inform the UI which vendors can be safely removed. The DELETE endpoint
+  // repeats this check under a transaction; this list is only a hint.
+  router.get("/deletable", requireVerifiedVendorDeletionAdmin, async (_req, res) => {
+    try {
+      const result = await pool.query(`SELECT v.id FROM vendors v WHERE ${safeToDeleteVendor}`);
+      res.json({ success: true, vendorIds: result.rows.map(row => row.id) });
+    } catch (error) {
+      console.error("Error checking vendor deletion eligibility:", error);
+      res.status(500).json({ success: false, message: "Could not check deletion eligibility" });
+    }
+  });
+
   // Get vendor by ID
   router.get("/:id", async (req, res) => {
     try {
@@ -231,12 +278,61 @@ export function createAdminVendorRouter() {
     }
   });
 
-  // Update vendor (admin can update any field)
+  // The profile route below is the only way to edit identity/contact fields.
+  // Profile edits are deliberately restricted to current contact/identity fields.
+  // Do not replace the vendor row: orders, payments and transaction references
+  // continue to point at the same vendor ID.
+  router.patch("/:id/profile", async (req, res) => {
+    const vendorId = Number(req.params.id);
+    if (!Number.isSafeInteger(vendorId) || vendorId <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid vendor ID" });
+    }
+
+    const allowed = ["vendorName", "contactPhone", "contactEmail", "address", "businessLicense"] as const;
+    const body = req.body;
+    if (!body || typeof body !== "object" || Array.isArray(body) ||
+        Object.keys(body).length === 0 ||
+        Object.keys(body).some(key => !allowed.includes(key as typeof allowed[number]))) {
+      return res.status(400).json({ success: false, message: "Only vendor name, phone, email, address and business license can be edited" });
+    }
+
+    const changes: Partial<Record<typeof allowed[number], string>> = {};
+    for (const key of allowed) {
+      if (!(key in body)) continue;
+      const value = body[key];
+      if (typeof value !== "string" || !value.trim() || value.trim().length > 500 ||
+          (key === "contactEmail" && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) || value.trim().length > 254))) {
+        return res.status(400).json({ success: false, message: `Invalid ${key}` });
+      }
+      changes[key] = value.trim();
+    }
+
+    try {
+      const existing = await vendorStorage.getVendorById(vendorId);
+      if (!existing) return res.status(404).json({ success: false, message: "Vendor not found" });
+      const vendor = await vendorStorage.updateVendor(vendorId, changes);
+      res.json({ success: true, vendor });
+    } catch (error: any) {
+      if (error?.code === "23505") {
+        return res.status(409).json({ success: false, message: "Email is already in use" });
+      }
+      console.error("Error updating vendor profile:", error);
+      res.status(500).json({ success: false, message: "Error updating vendor profile" });
+    }
+  });
+
+  // Existing status update remains separate from the restricted profile edit.
   router.patch("/:id", async (req, res) => {
     try {
-      const vendorId = parseInt(req.params.id);
-
-      const vendor = await vendorStorage.updateVendor(vendorId, req.body);
+      const vendorId = Number(req.params.id);
+      if (!Number.isSafeInteger(vendorId) || vendorId <= 0 ||
+          !req.body || typeof req.body !== "object" || Array.isArray(req.body) ||
+          Object.keys(req.body).length !== 1 || typeof req.body.isActive !== "boolean") {
+        return res.status(400).json({ success: false, message: "Only vendor status can be updated here" });
+      }
+      const existing = await vendorStorage.getVendorById(vendorId);
+      if (!existing) return res.status(404).json({ success: false, message: "Vendor not found" });
+      const vendor = await vendorStorage.updateVendor(vendorId, { isActive: req.body.isActive });
 
       res.json({
         success: true,
@@ -252,27 +348,48 @@ export function createAdminVendorRouter() {
     }
   });
 
-  // Delete vendor (soft delete by deactivating)
-  router.delete("/:id", async (req, res) => {
+  // Permanently delete only an inactive vendor with no products or financial
+  // history. All checks and cleanup happen atomically; FK cascades must never
+  // erase transaction rows.
+  router.delete("/:id", requireVerifiedVendorDeletionAdmin, async (req, res) => {
+    const vendorId = Number(req.params.id);
+    if (!Number.isSafeInteger(vendorId) || vendorId <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid vendor ID" });
+    }
+    let client;
     try {
-      const vendorId = parseInt(req.params.id);
-
-      // Deactivate instead of delete
-      await vendorStorage.updateVendor(vendorId, {
-        isActive: false,
-        isApproved: false
-      });
-
-      res.json({
-        success: true,
-        message: "Vendor deactivated successfully"
-      });
-    } catch (error: any) {
-      console.error("Error deactivating vendor:", error);
-      res.status(500).json({
-        success: false,
-        message: "Error deactivating vendor"
-      });
+      client = await pool.connect();
+      await client.query("BEGIN");
+      await client.query("SET LOCAL lock_timeout = '5s'");
+      // Product/vendor-user tables in older databases have no FK to vendors.
+      // Briefly block writes while checking them so no orphan can be created
+      // between the eligibility check and removal.
+      await client.query(`LOCK TABLE products, shop_products, showcase_products,
+        vendor_transactions, vendor_payments, vendor_balances, vendor_users
+        IN SHARE ROW EXCLUSIVE MODE`);
+      const existing = await client.query("SELECT id FROM vendors WHERE id = $1 FOR UPDATE", [vendorId]);
+      if (!existing.rowCount) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ success: false, message: "Vendor not found" });
+      }
+      const eligibility = await client.query(`SELECT v.id FROM vendors v WHERE v.id = $1 AND ${safeToDeleteVendor}`, [vendorId]);
+      if (!eligibility.rowCount) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({ success: false, message: "Vendor is active or has products, sales or financial history" });
+      }
+      // These are account and empty balance rows, not historical sales.
+      await client.query("DELETE FROM vendor_users WHERE vendor_id = $1", [vendorId]);
+      await client.query("DELETE FROM vendor_balances WHERE vendor_id = $1", [vendorId]);
+      const deleted = await client.query(`DELETE FROM vendors v WHERE v.id = $1 AND ${safeToDeleteVendor} RETURNING v.id`, [vendorId]);
+      if (!deleted.rowCount) throw new Error("Vendor eligibility changed during deletion");
+      await client.query("COMMIT");
+      res.json({ success: true, message: "Vendor permanently deleted" });
+    } catch (error) {
+      if (client) await client.query("ROLLBACK");
+      console.error("Error safely deleting vendor:", error);
+      res.status(500).json({ success: false, message: "Could not safely delete vendor" });
+    } finally {
+      client?.release();
     }
   });
 

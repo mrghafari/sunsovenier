@@ -25,16 +25,100 @@ import {
   orderStatuses
 } from "@shared/order-management-schema";
 import { customerOrders, orderItems } from "@shared/customer-schema";
-import { crmCustomers, vendors } from "@shared/schema";
+import { crmCustomers, vendors, simpleSmsTemplates } from "@shared/schema";
+import { emailTemplates } from "@shared/email-schema";
 import { showcaseProducts as products } from "@shared/showcase-schema";
 import { shopProducts } from "@shared/shop-schema";
+import { getCheckoutDestination } from "./delivery-appointment";
 import { db } from "./db";
 import { pool as dbPool } from "./db";
-import { eq, and, desc, asc, inArray, sql, isNotNull } from "drizzle-orm";
+import { eq, and, desc, asc, inArray, notInArray, sql, isNotNull, or } from "drizzle-orm";
 import ProformaInvoiceConverter from "./proforma-invoice-converter";
 import { AutoInvoiceConverter } from "./auto-invoice-converter";
 import { orderConsolidationService } from "./order-consolidation-service";
 import { sequenceSyncService } from "./sequence-sync";
+import {
+  FINANCIAL_VISIBLE_STATUSES,
+  LOGISTICS_VISIBLE_STATUSES,
+  WAREHOUSE_VISIBLE_STATUSES,
+  resolveOrderStatus,
+} from "@shared/order-status";
+import { finalizeOrderReservations } from "./cart-inventory-reservation";
+
+const WAREHOUSE_HISTORY_STATUSES: string[] = [
+  'warehouse_rejected', 'logistics_assigned', 'logistics_processing',
+  'logistics_dispatched', 'shipped', 'in_transit', 'logistics_delivered',
+  'delivered', 'completed',
+];
+const WAREHOUSE_ACTIVE_STATUSES = WAREHOUSE_VISIBLE_STATUSES.filter(status => status !== 'warehouse_rejected');
+
+function warehouseHistoryCondition(statuses: string[]) {
+  return or(
+    inArray(orderManagement.currentStatus, statuses),
+    isNotNull(orderManagement.warehouseProcessedAt),
+    sql`EXISTS (
+      SELECT 1 FROM order_status_history warehouse_history
+      WHERE warehouse_history.order_management_id = ${orderManagement.id}
+        AND (
+          warehouse_history.changed_by_department = 'warehouse'
+          OR warehouse_history.to_status LIKE 'warehouse_%'
+          OR warehouse_history.from_status LIKE 'warehouse_%'
+        )
+    )`,
+  );
+}
+
+function warehouseViewCondition(view: 'current' | 'history') {
+  return view === 'history'
+    ? and(
+        warehouseHistoryCondition(WAREHOUSE_HISTORY_STATUSES),
+        notInArray(sql<string>`lower(trim(${orderManagement.currentStatus}))`, WAREHOUSE_ACTIVE_STATUSES),
+      )
+    : inArray(orderManagement.currentStatus, [...WAREHOUSE_VISIBLE_STATUSES]);
+}
+
+export type OrderWeightItem = {
+  quantity: string | number | null;
+  shopGrossWeight: string | number | null;
+  shopWeight: string | number | null;
+  shopBarcode: string | null;
+};
+
+type ProductWeight = {
+  grossWeight: string | number | null;
+  weight: string | number | null;
+};
+
+function positiveNumber(value: string | number | null | undefined): number | undefined {
+  if (value === null || value === undefined || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+export async function calculateTotalOrderWeight(
+  items: OrderWeightItem[],
+  findKardexWeightByBarcode: (barcode: string) => Promise<ProductWeight | undefined>,
+): Promise<number> {
+  let totalWeight = 0;
+
+  for (const item of items) {
+    const quantity = positiveNumber(item.quantity) ?? 1;
+    let productWeight =
+      positiveNumber(item.shopGrossWeight) ??
+      positiveNumber(item.shopWeight);
+
+    if (productWeight === undefined && item.shopBarcode) {
+      const kardexWeight = await findKardexWeightByBarcode(item.shopBarcode);
+      productWeight =
+        positiveNumber(kardexWeight?.grossWeight) ??
+        positiveNumber(kardexWeight?.weight);
+    }
+
+    totalWeight += (productWeight ?? 0) * quantity;
+  }
+
+  return Math.round(totalWeight * 100) / 100;
+}
 
 // Helper function to get logistics notification settings
 async function getLogisticsNotificationSettings(): Promise<{email: boolean, sms: boolean, whatsapp: boolean}> {
@@ -84,8 +168,10 @@ export interface IOrderManagementStorage {
   getNextValidStatuses(currentStatus: OrderStatus, department: Department): OrderStatus[];
   
   // Department filtering (respects sequence)
-  getOrdersByDepartment(department: Department, status?: OrderStatus[]): Promise<OrderManagement[]>;
-  getOrdersByStatus(status: OrderStatus | OrderStatus[]): Promise<OrderManagement[]>;
+  getOrdersByDepartment(department: Department, status?: string[], includeWarehouseHistory?: boolean, options?: { ids: number[] }): Promise<OrderManagement[]>;
+  getWarehouseOrdersPage(view: 'current' | 'history', limit: number, offset: number): Promise<{ orders: OrderManagement[]; total: number }>;
+  getWarehouseOrderCounts(): Promise<{ current: number; history: number }>;
+  getOrdersByStatus(status: OrderStatus | string | Array<OrderStatus | string>): Promise<OrderManagement[]>;
   getFinancialPendingOrders(): Promise<OrderManagement[]>;
   getFinancialApprovedOrders(): Promise<any[]>;
   getWarehousePendingOrders(): Promise<OrderManagement[]>;
@@ -282,6 +368,13 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       customerOrderId: currentOrder.customerOrderId, 
       currentStatus: currentOrder.currentStatus 
     });
+
+    // Every warehouse UI/API path eventually uses this method. Finalize the
+    // physical FIFO sale here so a generic status endpoint cannot move an order
+    // out of the warehouse while leaving its batch reservations pending.
+    if (newStatus === orderStatuses.WAREHOUSE_APPROVED) {
+      await finalizeOrderReservations(currentOrder.customerOrderId);
+    }
     
     // Update order status and department-specific fields
     const updateData: Partial<OrderManagement> = {
@@ -292,11 +385,10 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     // Update department-specific fields
     if (department === 'financial') {
       updateData.financialReviewerId = changedBy;
-      // 🚨 CRITICAL: Only set financialReviewedAt when explicitly approving (FINANCIAL_APPROVED status)
-      // NOT for routine updates or auto-sync transitions like warehouse_pending
-      if (newStatus === orderStatuses.FINANCIAL_APPROVED) {
-        updateData.financialReviewedAt = new Date();
-      }
+      // A manual financial action may move regular orders directly to
+      // warehouse_pending. Record the review regardless of that destination;
+      // automatic syncs use a different department and do not enter this branch.
+      updateData.financialReviewedAt = currentOrder.financialReviewedAt || new Date();
       if (notes) updateData.financialNotes = notes;
       
       // 📋 CONSOLIDATION: After financial approval, consolidate complete order data
@@ -337,6 +429,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
             recipientMobile: customerOrders.recipientMobile,
             customerFirstName: crmCustomers.firstName,
             customerLastName: crmCustomers.lastName,
+            preferredLanguage: crmCustomers.preferredLanguage,
             customerOrderId: orderManagement.customerOrderId,
             orderNumber: customerOrders.orderNumber
           })
@@ -351,7 +444,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         if (orderWithCustomer[0]?.customerPhone) {
           const customerData = orderWithCustomer[0];
           const customerName = `${customerData.customerFirstName || ''} ${customerData.customerLastName || ''}`.trim();
-          const orderNumber = customerData.orderNumber || `سفارش #${customerData.customerOrderId}`;
+          const orderNumber = customerData.orderNumber || String(customerData.customerOrderId);
           
           // Determine target phone: use recipient mobile if provided, otherwise customer phone
           const targetPhone = customerData.recipientMobile || customerData.customerPhone;
@@ -376,7 +469,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
                   targetPhone, 
                   deliveryCode, 
                   customerData.customerOrderId,
-                  customerName || 'مشتری عزیز',
+                  customerName,
                   orderNumber
                 ).then(result => {
                   console.log(`✅ [SMS] Delivery code sent: ${result}`);
@@ -394,7 +487,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
                 this.sendDeliveryCodeWhatsApp(
                   targetPhone, 
                   deliveryCode, 
-                  customerName || 'مشتری عزیز',
+                  customerName,
                   orderNumber
                 ).then(result => {
                   console.log(`✅ [WHATSAPP] Delivery code sent: ${result}`);
@@ -412,8 +505,9 @@ export class OrderManagementStorage implements IOrderManagementStorage {
                 this.sendDeliveryCodeEmail(
                   customerData.customerEmail,
                   deliveryCode,
-                  customerName || 'مشتری عزیز',
-                  orderNumber
+                  customerName,
+                  orderNumber,
+                  customerData.preferredLanguage || undefined
                 ).then(result => {
                   console.log(`✅ [EMAIL] Delivery code sent: ${result}`);
                   return { channel: 'Email', success: result };
@@ -552,7 +646,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         if (currentStatus === orderStatuses.WAREHOUSE_PROCESSING) {
           return ['warehouse_verified' as OrderStatus, orderStatuses.WAREHOUSE_REJECTED];
         }
-        if (currentStatus === 'warehouse_verified') {
+        if (currentStatus === orderStatuses.WAREHOUSE_VERIFIED) {
           return [orderStatuses.WAREHOUSE_APPROVED, orderStatuses.WAREHOUSE_REJECTED];
         }
         break;
@@ -597,7 +691,37 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     });
   }
   
-  async getOrdersByDepartment(department: Department, statuses?: OrderStatus[]): Promise<any[]> {
+  async getWarehouseOrdersPage(view: 'current' | 'history', limit: number, offset: number) {
+    const condition = warehouseViewCondition(view);
+    // Page IDs before joining receipt/customer data. Counting does not require those joins.
+    const [pageIds, [countRow]] = await Promise.all([
+      db.select({ id: orderManagement.id }).from(orderManagement)
+        .where(condition).orderBy(asc(orderManagement.createdAt), asc(orderManagement.id))
+        .limit(limit).offset(offset),
+      db.select({ total: sql<number>`count(*)::int` }).from(orderManagement).where(condition),
+    ]);
+    const orders = pageIds.length
+      ? await this.getOrdersByDepartment(
+          'warehouse',
+          view === 'history' ? WAREHOUSE_HISTORY_STATUSES : undefined,
+          view === 'history',
+          { ids: pageIds.map(row => row.id) },
+        )
+      : [];
+    return { orders, total: Number(countRow?.total || 0) };
+  }
+
+  async getWarehouseOrderCounts() {
+    const [[current], [history]] = await Promise.all([
+      db.select({ total: sql<number>`count(*)::int` }).from(orderManagement)
+        .where(warehouseViewCondition('current')),
+      db.select({ total: sql<number>`count(*)::int` }).from(orderManagement)
+        .where(warehouseViewCondition('history')),
+    ]);
+    return { current: Number(current.total), history: Number(history.total) };
+  }
+
+  async getOrdersByDepartment(department: Department, statuses?: string[], includeWarehouseHistory = false, options?: { ids: number[] }): Promise<any[]> {
     console.log('🔍 [DEPARTMENT] getOrdersByDepartment called with department:', department);
     
     let query = db.select({
@@ -631,6 +755,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       transportationType: orderManagement.transportationType,
       trackingNumber: orderManagement.trackingNumber,
       estimatedDeliveryDate: orderManagement.estimatedDeliveryDate,
+      estimatedDeliveryAt: orderManagement.estimatedDeliveryAt,
+      estimatedDeliveryTimeZone: orderManagement.estimatedDeliveryTimeZone,
       actualDeliveryDate: orderManagement.actualDeliveryDate,
       deliveryPersonName: orderManagement.deliveryPersonName,
       deliveryPersonPhone: orderManagement.deliveryPersonPhone,
@@ -651,6 +777,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       currency: customerOrders.currency,
       orderNumber: customerOrders.orderNumber, // شماره سفارش M[YY][NNNNN]
       paymentMethod: customerOrders.paymentMethod, // نوع تسویه حساب
+      customerOrderStatus: customerOrders.status,
+      paymentStatus: customerOrders.paymentStatus,
       customerDeliveryMethod: customerOrders.deliveryMethod, // روش ارسال انتخابی مشتری در چک‌اوت
       customerVehicleType: customerOrders.vehicleType, // نوع خودروی انتخابی مشتری در ارسال هوشمند
       customerOrderTotalWeight: customerOrders.totalWeight, // وزن ذخیره شده در جدول سفارشات مشتری
@@ -687,59 +815,45 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     .leftJoin(paymentReceipts, eq(paymentReceipts.customerOrderId, customerOrders.id))
     .$dynamic();
     
+    if (options?.ids.length === 0) return [];
     if (department === 'financial') {
       // بخش مالی فقط سفارشات در مراحل مالی را می‌بیند - جلوگیری از تکرار
-      const financialStatuses = statuses || [
-        'pending', // سفارشات در انتظار - مهم: این status در ابتدای سفارش ست می‌شود
-        'finance_pending', // سفارشات آماده بررسی مالی - CRITICAL: اضافه شد برای M2511214
-        orderStatuses.PENDING_PAYMENT,
-        orderStatuses.PAYMENT_UPLOADED, 
-        orderStatuses.FINANCIAL_REVIEWING,
-        orderStatuses.FINANCIAL_APPROVED, // نمایش سفارشات تایید شده برای visibility
-        orderStatuses.FINANCIAL_REJECTED // فقط سفارشات رد شده در مالی باقی می‌مانند
-      ];
+      const financialStatuses = statuses || [...FINANCIAL_VISIBLE_STATUSES] as OrderStatus[];
       
       console.log('🔍 [FINANCIAL] Searching for orders with statuses (financial stage only):', financialStatuses);
       console.log('🚫 [DUPLICATION FIX] Financial department shows only financial-stage orders to prevent duplication');
       
-      query = query.where(inArray(orderManagement.currentStatus, financialStatuses));
+      query = query.where(and(
+        inArray(orderManagement.currentStatus, financialStatuses),
+        options?.ids ? inArray(orderManagement.id, options.ids) : undefined,
+      ));
     } else if (department === 'warehouse') {
       // انبار فقط سفارشات در مراحل انبار را می‌بیند - جلوگیری از تکرار
-      const warehouseStatuses = statuses || [
-        orderStatuses.WAREHOUSE_PENDING, // سفارشات منتظر انبار
-        orderStatuses.FINANCIAL_APPROVED, // تایید شده توسط مالی و آماده ورود به انبار
-        orderStatuses.WAREHOUSE_NOTIFIED,
-        orderStatuses.WAREHOUSE_PROCESSING,
-        'warehouse_verified', // مرحله اول تایید انبار
-        orderStatuses.WAREHOUSE_APPROVED, // تایید نهایی انبار
-        orderStatuses.WAREHOUSE_REJECTED // رد شده توسط انبار
-      ];
+      const warehouseStatuses = statuses || [...WAREHOUSE_VISIBLE_STATUSES] as OrderStatus[];
       console.log('🔍 [WAREHOUSE] Searching for orders with statuses (warehouse stage only):', warehouseStatuses);
-      console.log('🚫 [DUPLICATION FIX] Warehouse department shows only warehouse-stage orders to prevent duplication');
-      query = query.where(inArray(orderManagement.currentStatus, warehouseStatuses));
+      query = query.where(and(
+        includeWarehouseHistory
+          ? warehouseHistoryCondition(warehouseStatuses)
+          : inArray(orderManagement.currentStatus, warehouseStatuses),
+        options?.ids ? inArray(orderManagement.id, options.ids) : undefined,
+      ));
     } else if (department === 'logistics') {
       // لجستیک فقط سفارشات در مراحل لجستیک را می‌بیند - جلوگیری از تکرار
-      const logisticsStatuses = statuses || [
-        orderStatuses.WAREHOUSE_APPROVED, // تایید شده توسط انبار و آماده ورود به لجستیک
-        'in_transit', // در حال ارسال
-        'shipped', // ارسال شده
-        // 'delivered' حذف شده - در تب تحویل شده‌ها نشان داده می‌شود
-        // 'logistics_delivered' حذف شده - در تب تحویل شده‌ها نشان داده می‌شود
-        orderStatuses.LOGISTICS_ASSIGNED,
-        orderStatuses.LOGISTICS_PROCESSING,
-        orderStatuses.LOGISTICS_DISPATCHED
-      ];
+      const logisticsStatuses = statuses || [...LOGISTICS_VISIBLE_STATUSES] as OrderStatus[];
       console.log('🔍 [LOGISTICS] Searching for orders with statuses (logistics stage only):', logisticsStatuses);
       console.log('🚫 [DUPLICATION FIX] Logistics department shows only logistics-stage orders to prevent duplication');
-      query = query.where(inArray(orderManagement.currentStatus, logisticsStatuses));
+      query = query.where(and(
+        inArray(orderManagement.currentStatus, logisticsStatuses),
+        options?.ids ? inArray(orderManagement.id, options.ids) : undefined,
+      ));
     }
     
-    const results = await query.orderBy(asc(orderManagement.createdAt)); // سفارشات قدیمی‌تر در بالای لیست
+    const results = await query.orderBy(asc(orderManagement.createdAt), asc(orderManagement.id)); // سفارشات قدیمی‌تر در بالای لیست
     
     console.log('📊 [DEPARTMENT] Retrieved', results.length, 'orders for department:', department);
-    if (results.length > 0) {
+    if (results.length > 0 && !options?.ids) {
       console.log('📊 [DEPARTMENT] First order sample:', JSON.stringify(results[0], null, 2));
-    } else {
+    } else if (!options?.ids) {
       console.log('📊 [DEPARTMENT] No orders found - checking basic count...');
       const basicCount = await db.select({ count: sql`count(*)` }).from(orderManagement);
       console.log('📊 [DEPARTMENT] Total orders in order_management table:', basicCount[0]);
@@ -770,6 +884,15 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         currency: row.currency,
         orderNumber: row.orderNumber, // شماره سفارش M[YY][NNNNN] یا فرمت قدیمی
         paymentMethod: row.paymentMethod, // 🔥 CRITICAL: Include payment method from database
+        status: row.customerOrderStatus,
+        paymentStatus: row.paymentStatus,
+        statusProjection: resolveOrderStatus({
+          workflowStatus: row.currentStatus,
+          orderStatus: row.customerOrderStatus,
+          paymentStatus: row.paymentStatus,
+          paymentMethod: row.paymentMethod,
+          financialReviewedAt: row.financialReviewedAt,
+        }),
         
         // Weight and delivery information - with fallback to customer_orders weight
         totalWeight: calculatedWeight || row.customerOrderTotalWeight || 0,
@@ -782,6 +905,9 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         transportationType: row.transportationType,
         trackingNumber: row.trackingNumber,
         estimatedDeliveryDate: row.estimatedDeliveryDate,
+        estimatedDeliveryAt: row.estimatedDeliveryAt,
+        estimatedDeliveryTimeZone: row.estimatedDeliveryTimeZone,
+        ...getCheckoutDestination(row.shippingAddress),
         actualDeliveryDate: row.actualDeliveryDate,
         deliveryPersonName: row.deliveryPersonName,
         deliveryPersonPhone: row.deliveryPersonPhone,
@@ -1028,7 +1154,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     return this.getOrdersByDepartment('warehouse');
   }
   
-  async getOrdersByStatus(status: OrderStatus | OrderStatus[]): Promise<OrderManagement[]> {
+  async getOrdersByStatus(status: OrderStatus | string | Array<OrderStatus | string>): Promise<OrderManagement[]> {
     const statuses = Array.isArray(status) ? status : [status];
     
     const query = db.select({
@@ -1051,6 +1177,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       transportationType: orderManagement.transportationType,
       trackingNumber: orderManagement.trackingNumber,
       estimatedDeliveryDate: orderManagement.estimatedDeliveryDate,
+      estimatedDeliveryAt: orderManagement.estimatedDeliveryAt,
+      estimatedDeliveryTimeZone: orderManagement.estimatedDeliveryTimeZone,
       actualDeliveryDate: orderManagement.actualDeliveryDate,
       deliveryPersonName: orderManagement.deliveryPersonName,
       deliveryPersonPhone: orderManagement.deliveryPersonPhone,
@@ -1107,6 +1235,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       transportationType: row.transportationType,
       trackingNumber: row.trackingNumber,
       estimatedDeliveryDate: row.estimatedDeliveryDate,
+      estimatedDeliveryAt: row.estimatedDeliveryAt,
+      estimatedDeliveryTimeZone: row.estimatedDeliveryTimeZone,
       actualDeliveryDate: row.actualDeliveryDate,
       deliveryPersonName: row.deliveryPersonName,
       deliveryPersonPhone: row.deliveryPersonPhone,
@@ -1327,23 +1457,66 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     }
   }
 
-  async sendDeliveryCodeSms(customerPhone: string, deliveryCode: string, customerOrderId: number, customerName: string, orderNumber: string): Promise<boolean> {
+  async sendDeliveryCodeSms(customerPhone: string, deliveryCode: string, customerOrderId: number, customerName = '', orderNumber = ''): Promise<boolean> {
     try {
       const { createSmsService } = await import('./sms-service');
+      const { pool } = await import('./db');
+      const { resolveSmsLanguage, selectLocalizedSms } = await import('./sms-language');
+      const {
+        readSettings,
+        DEFAULT_DELIVERY_SMS_TEXTS,
+        renderDeliveryTemplate,
+        validateTemplateBody,
+        LogisticsDeliveryNotificationValidationError,
+      } = await import('./logistics-delivery-notification-settings');
       const smsService = await createSmsService();
-      
-      // Use template 3 for delivery code (قالب شماره 3 - کد تحویل سفارش) 
-      const result = await smsService.sendSmsUsingTemplate(3, customerPhone, {
-        customer_name: customerName,
-        order_number: orderNumber,
-        delivery_code: deliveryCode
+      const customerResult = await pool.query(
+        'SELECT customer_id FROM customer_orders WHERE id = $1 LIMIT 1',
+        [customerOrderId],
+      );
+      const language = await resolveSmsLanguage(
+        pool,
+        customerResult.rows[0]?.customer_id,
+        customerPhone,
+      );
+      const recipient = customerName || {
+        en: 'Dear customer',
+        fa: 'مشتری گرامی',
+        ar: 'عميلنا العزيز',
+        tr: 'Değerli müşterimiz',
+      }[language];
+      const reference = orderNumber || String(customerOrderId);
+      const settings = await readSettings();
+      const selectedTemplateId = settings.smsTemplateIds[language];
+      let templateContent: string;
+      if (selectedTemplateId !== null) {
+        const [template] = await db.select({
+          language: simpleSmsTemplates.language,
+          content: simpleSmsTemplates.templateContent,
+        }).from(simpleSmsTemplates).where(and(
+          eq(simpleSmsTemplates.id, selectedTemplateId),
+          eq(simpleSmsTemplates.isActive, true),
+        )).limit(1);
+        if (!template || template.language !== language) {
+          throw new LogisticsDeliveryNotificationValidationError(
+            `Selected SMS delivery template for ${language} is missing, inactive, or has the wrong language`,
+          );
+        }
+        validateTemplateBody(template.content, "sms", language);
+        templateContent = template.content;
+      } else {
+        templateContent = selectLocalizedSms(DEFAULT_DELIVERY_SMS_TEXTS, language)!;
+      }
+      const message = renderDeliveryTemplate(templateContent, {
+        customer_name: recipient,
+        order_number: reference,
+        delivery_code: deliveryCode,
       });
-      
-      console.log(`📱 [SMS TEMPLATE 3] Delivery code ${deliveryCode} sent to ${customerPhone} for order ${orderNumber}:`, result);
-      
+      const result = await smsService.sendSms({ to: customerPhone, message });
       return result.success;
     } catch (error) {
-      console.error('❌ [SMS] Error sending delivery code using template 3:', error);
+      if (error instanceof Error && error.name === "LogisticsDeliveryNotificationValidationError") throw error;
+      console.error('[SMS] Delivery-code notification failed');
       return false;
     }
   }
@@ -1369,23 +1542,80 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     }
   }
 
-  async sendDeliveryCodeEmail(customerEmail: string, deliveryCode: string, customerName: string, orderNumber: string): Promise<boolean> {
+  async sendDeliveryCodeEmail(customerEmail: string, deliveryCode: string, customerName: string, orderNumber: string, language?: string): Promise<boolean> {
     try {
       const { emailService } = await import('./email-service');
-      
-      // Use template #20 for delivery verification code (قالب شماره 20 - کد تحویل سفارش)
-      // Template variables: customer_name, order_number, delivery_code
-      const result = await emailService.sendEmailWithTemplate('#20', {
-        customer_name: customerName,
+      const { pool } = await import('./db');
+      const { resolveEmailLanguage } = await import('./sms-language');
+      const {
+        readSettings,
+        renderDeliveryTemplate,
+        validateEmailTemplateBodies,
+        validateTemplatePlaceholders,
+        LogisticsDeliveryNotificationValidationError,
+      } = await import('./logistics-delivery-notification-settings');
+      const normalizedLanguage = await resolveEmailLanguage(pool, customerEmail, language);
+      const recipient = customerName || {
+        en: 'Dear customer',
+        fa: 'مشتری گرامی',
+        ar: 'عميلنا العزيز',
+        tr: 'Değerli müşterimiz',
+      }[normalizedLanguage];
+      const settings = await readSettings();
+      const selectedTemplateId = settings.emailTemplateIds[normalizedLanguage];
+      const variables = {
+        customer_name: recipient,
         order_number: orderNumber,
-        delivery_code: deliveryCode
-      }, customerEmail, 'orders');
-      
-      console.log(`📧 [EMAIL TEMPLATE #20] Delivery code ${deliveryCode} sent to ${customerEmail} for order ${orderNumber}:`, result);
-      
-      return result;
+        delivery_code: deliveryCode,
+      };
+      if (selectedTemplateId === null) {
+        // Preserve the existing localized delivery email template (#20) as the default.
+        const defaultTemplate = await emailService.getEmailTemplateByNumber('#20', normalizedLanguage);
+        if (!defaultTemplate) {
+          throw new LogisticsDeliveryNotificationValidationError(
+            `Default email delivery template #20 is unavailable for ${normalizedLanguage}`,
+          );
+        }
+        validateTemplatePlaceholders(defaultTemplate.subject, "email", normalizedLanguage);
+        validateEmailTemplateBodies(
+          defaultTemplate.htmlContent,
+          defaultTemplate.textContent,
+          normalizedLanguage,
+        );
+        return await emailService.sendEmailWithTemplate('#20', variables, customerEmail, 'orders', normalizedLanguage);
+      }
+
+      const [template] = await db.select({
+        language: emailTemplates.language,
+        subject: emailTemplates.subject,
+        htmlContent: emailTemplates.htmlContent,
+        textContent: emailTemplates.textContent,
+      }).from(emailTemplates).where(and(
+        eq(emailTemplates.id, selectedTemplateId),
+        eq(emailTemplates.isActive, true),
+      )).limit(1);
+      if (!template || template.language !== normalizedLanguage) {
+        throw new LogisticsDeliveryNotificationValidationError(
+          `Selected email delivery template for ${normalizedLanguage} is missing, inactive, or has the wrong language`,
+        );
+      }
+      validateTemplatePlaceholders(template.subject, "email", normalizedLanguage);
+      validateEmailTemplateBodies(template.htmlContent, template.textContent, normalizedLanguage);
+      const text = renderDeliveryTemplate(
+        template.textContent || template.htmlContent.replace(/<[^>]*>/g, ""),
+        variables,
+      );
+      const html = renderDeliveryTemplate(template.htmlContent, variables, true);
+      const subject = renderDeliveryTemplate(template.subject, variables);
+      return await emailService.sendEmail({
+        to: customerEmail,
+        subject,
+        text,
+        html,
+      }, 'orders');
     } catch (error) {
-      console.error('❌ [EMAIL] Error sending delivery code using template #20:', error);
+      if (error instanceof Error && error.name === "LogisticsDeliveryNotificationValidationError") throw error;
+      console.error('[EMAIL] Delivery-code notification failed');
       return false;
     }
   }
@@ -1427,7 +1657,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
           c.first_name as firstName,
           c.last_name as lastName,
           c.phone as phone,
-          c.email as email
+          c.email as email,
+          c.preferred_language as preferredLanguage
         FROM customer_orders co
         LEFT JOIN crm_customers c ON co.customer_id = c.id
         WHERE co.id = $1
@@ -1502,8 +1733,9 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         const emailSuccess = await this.sendDeliveryCodeEmail(
           customerEmail,
           deliveryCode,
-          customerName || 'مشتری عزیز',
-          customer.ordernumber
+          customerName,
+          customer.ordernumber,
+          customer.preferredlanguage
         );
         results.push({ channel: 'Email', success: emailSuccess });
         console.log(`📧 [EMAIL] Delivery code sent to ${customerEmail} - Success: ${emailSuccess}`);
@@ -1786,12 +2018,36 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     deliveryCompanyAddress?: string;
   }): Promise<OrderManagement> {
     const updateData: Partial<OrderManagement> = {
-      ...deliveryData,
-      estimatedDeliveryDate: deliveryData.estimatedDeliveryDate ? new Date(deliveryData.estimatedDeliveryDate) : undefined,
-      postalWeight: deliveryData.postalWeight ? deliveryData.postalWeight : undefined,
-      postalPrice: deliveryData.postalPrice ? deliveryData.postalPrice : undefined,
       updatedAt: new Date(),
     };
+    if (deliveryData.trackingNumber !== undefined) updateData.trackingNumber = deliveryData.trackingNumber;
+    if (deliveryData.estimatedDeliveryDate !== undefined) {
+      updateData.estimatedDeliveryDate = deliveryData.estimatedDeliveryDate
+        ? new Date(deliveryData.estimatedDeliveryDate)
+        : undefined;
+      // A legacy estimate replaces a local appointment, so clear its paired fields.
+      updateData.estimatedDeliveryAt = null;
+      updateData.estimatedDeliveryTimeZone = null;
+    }
+    if (deliveryData.deliveryPersonName !== undefined) updateData.deliveryPersonName = deliveryData.deliveryPersonName;
+    if (deliveryData.deliveryPersonPhone !== undefined) updateData.deliveryPersonPhone = deliveryData.deliveryPersonPhone;
+    if (deliveryData.deliveryMethod !== undefined) updateData.deliveryMethod = deliveryData.deliveryMethod;
+    if (deliveryData.transportationType !== undefined) updateData.transportationType = deliveryData.transportationType;
+    if (deliveryData.postalServiceName !== undefined) updateData.postalServiceName = deliveryData.postalServiceName;
+    if (deliveryData.postalTrackingCode !== undefined) updateData.postalTrackingCode = deliveryData.postalTrackingCode;
+    if (deliveryData.postalWeight) updateData.postalWeight = deliveryData.postalWeight;
+    if (deliveryData.postalPrice) updateData.postalPrice = deliveryData.postalPrice;
+    if (deliveryData.postalInsurance !== undefined) updateData.postalInsurance = deliveryData.postalInsurance;
+    if (deliveryData.vehicleType !== undefined) updateData.vehicleType = deliveryData.vehicleType;
+    if (deliveryData.vehiclePlate !== undefined) updateData.vehiclePlate = deliveryData.vehiclePlate;
+    if (deliveryData.vehicleModel !== undefined) updateData.vehicleModel = deliveryData.vehicleModel;
+    if (deliveryData.vehicleColor !== undefined) updateData.vehicleColor = deliveryData.vehicleColor;
+    if (deliveryData.driverName !== undefined) updateData.driverName = deliveryData.driverName;
+    if (deliveryData.driverPhone !== undefined) updateData.driverPhone = deliveryData.driverPhone;
+    if (deliveryData.driverLicense !== undefined) updateData.driverLicense = deliveryData.driverLicense;
+    if (deliveryData.deliveryCompanyName !== undefined) updateData.deliveryCompanyName = deliveryData.deliveryCompanyName;
+    if (deliveryData.deliveryCompanyPhone !== undefined) updateData.deliveryCompanyPhone = deliveryData.deliveryCompanyPhone;
+    if (deliveryData.deliveryCompanyAddress !== undefined) updateData.deliveryCompanyAddress = deliveryData.deliveryCompanyAddress;
 
     const [updatedOrder] = await db
       .update(orderManagement)
@@ -1880,53 +2136,23 @@ export class OrderManagementStorage implements IOrderManagementStorage {
 
       console.log(`📊 [WEIGHT] Found ${items.length} items for order ${customerOrderId}`);
 
-      // Calculate total weight using gross weight (وزن ناخالص) for logistics calculations
-      let totalWeight = 0;
-      
-      for (const item of items) {
-        let productWeight = 0;
-        const quantity = parseFloat(item.quantity?.toString() || '1');
-        
-        console.log(`🏷️ [WEIGHT] Processing item: ${item.productName} (ID: ${item.productId}) x${quantity}`);
-        
-        // First try to get weight from shop_products
-        if (item.shopGrossWeight) {
-          productWeight = parseFloat(item.shopGrossWeight.toString());
-          console.log(`⚖️ [WEIGHT] Using shop gross weight: ${productWeight} kg`);
-        } else if (item.shopWeight) {
-          productWeight = parseFloat(item.shopWeight.toString());
-          console.log(`⚖️ [WEIGHT] Using shop legacy weight: ${productWeight} kg`);
-        } else if (item.shopBarcode) {
-          // If no weight in shop, try to get from showcase_products by barcode
-          console.log(`🔍 [WEIGHT] No weight in shop, searching Kardex by barcode: ${item.shopBarcode}`);
-          
-          const { showcaseProducts } = await import('../shared/showcase-schema');
+      const finalWeight = await calculateTotalOrderWeight(
+        items,
+        async (barcode) => {
+          console.log(`🔍 [WEIGHT] No weight in shop, searching Kardex by barcode: ${barcode}`);
+
           const showcaseWeight = await db
             .select({
-              grossWeight: showcaseProducts.grossWeight,
-              netWeight: showcaseProducts.netWeight,
-              weight: showcaseProducts.weight
+              grossWeight: products.grossWeight,
+              weight: products.weight
             })
-            .from(showcaseProducts)
-            .where(eq(showcaseProducts.barcode, item.shopBarcode))
+            .from(products)
+            .where(eq(products.barcode, barcode))
             .limit(1);
 
-          if (showcaseWeight.length > 0 && showcaseWeight[0].grossWeight) {
-            productWeight = parseFloat(showcaseWeight[0].grossWeight.toString());
-            console.log(`⚖️ [WEIGHT] Using Kardex gross weight: ${productWeight} kg`);
-          } else if (showcaseWeight.length > 0 && showcaseWeight[0].weight) {
-            productWeight = parseFloat(showcaseWeight[0].weight.toString());
-            console.log(`⚖️ [WEIGHT] Using Kardex legacy weight: ${productWeight} kg`);
-          }
-        }
-        
-        const itemTotalWeight = productWeight * quantity;
-        totalWeight += itemTotalWeight;
-        
-        console.log(`📦 [WEIGHT] Item total: ${productWeight} kg x ${quantity} = ${itemTotalWeight} kg`);
-      }
-
-      const finalWeight = Math.round(totalWeight * 100) / 100; // Round to 2 decimal places
+          return showcaseWeight[0];
+        },
+      );
       console.log(`🎯 [WEIGHT] Final calculated weight for order ${customerOrderId}: ${finalWeight} kg`);
       
       return finalWeight;
@@ -2186,8 +2412,17 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         }
       }
       
-      // Calculate total weight from order items
-      const totalWeight = await this.calculateOrderWeight(orderId);
+      // Preserve the weight captured with the order. Recalculating from the
+      // current catalog can return zero for legacy orders whose products or
+      // product weights have since changed.
+      const storedManagementWeight = Number(orderManagement.totalWeight || 0);
+      const storedCustomerWeight = Number(customerOrder.totalWeight || 0);
+      const storedWeight = storedManagementWeight > 0
+        ? storedManagementWeight
+        : storedCustomerWeight;
+      const totalWeight = storedWeight > 0
+        ? storedWeight
+        : await this.calculateOrderWeight(orderId);
       
       const result = {
         // Order management info
@@ -2207,7 +2442,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         totalQuantity: orderItemsResult.reduce((sum, item) => sum + parseInt(item.quantity || '0'), 0),
         totalAmount: customerOrder.totalAmount,
         totalWeight: totalWeight,
-        weightUnit: 'kg',
+        weightUnit: orderManagement.weightUnit || customerOrder.weightUnit || 'kg',
         orderDate: customerOrder.createdAt,
         orderNumber: customerOrder.orderNumber, // شماره سفارش M[YY][NNNNN]
         customerNotes: customerOrder.notes, // یادداشت مشتری از چک‌اوت

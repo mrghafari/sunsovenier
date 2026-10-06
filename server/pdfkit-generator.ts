@@ -9,9 +9,12 @@ import { CompanyStorage } from './company-storage';
 // Get company logo from database
 async function getCompanyLogo(companyInfo?: any): Promise<Buffer | null> {
   try {
-    if (!companyInfo) {
-      const companyStorage = new CompanyStorage();
-      companyInfo = await companyStorage.getCompanyInformation();
+    // Invoice records may carry a snapshot of company fields without the
+    // current logo. Keep the snapshot for invoice text, but still resolve the
+    // configured logo from Company Information when it is available.
+    if (!companyInfo || !companyInfo.logoUrl) {
+      const storedCompanyInfo = await new CompanyStorage().getCompanyInformation();
+      companyInfo = { ...(storedCompanyInfo || {}), ...(companyInfo || {}) };
     }
     
     if (companyInfo?.logoUrl) {
@@ -79,11 +82,11 @@ async function getCompanyLogo(companyInfo?: any): Promise<Buffer | null> {
       }
     }
     
-    // Fallback to default logo if exists
-    if (fs.existsSync('server/logo-base64.txt')) {
-      const base64Data = fs.readFileSync('server/logo-base64.txt', 'utf8');
-      console.log('ℹ️ [PDF LOGO] Using fallback logo from file');
-      return Buffer.from(base64Data, 'base64');
+    // Fallback to the public company logo (or the legacy bundled base64 logo).
+    const fallbackLogo = getSafeInvoiceLogo();
+    if (fallbackLogo) {
+      console.log('ℹ️ [PDF LOGO] Using fallback bundled company logo');
+      return fallbackLogo;
     }
     
     console.log('ℹ️ [PDF LOGO] No logo available');
@@ -93,10 +96,8 @@ async function getCompanyLogo(companyInfo?: any): Promise<Buffer | null> {
     
     // Fallback to default logo if exists
     try {
-      if (fs.existsSync('server/logo-base64.txt')) {
-        const base64Data = fs.readFileSync('server/logo-base64.txt', 'utf8');
-        return Buffer.from(base64Data, 'base64');
-      }
+      const fallbackLogo = getSafeInvoiceLogo();
+      if (fallbackLogo) return fallbackLogo;
     } catch (fallbackError) {
       console.warn('⚠️ [PDF LOGO] Fallback also failed:', fallbackError);
     }
@@ -131,6 +132,10 @@ function getSafeInvoiceLogo(): Buffer | null {
     console.warn('⚠️ [PDF LOGO] Safe invoice logo unavailable:', error);
     return null;
   }
+}
+
+function normalizeInvoiceCompanyName(value: unknown): string {
+  return String(value || '').replace(/ممتاز\s*شیمیب/g, 'ممتازشیمی');
 }
 
 // Get company information including addresses from database
@@ -297,6 +302,14 @@ async function generateLegacyInvoicePDF(invoiceData: any): Promise<Buffer> {
             console.log('✅ Company logo added to invoice PDF (left side)');
           } catch (logoError) {
             console.warn('⚠️ Logo embedding failed:', logoError);
+            const fallbackLogo = getSafeInvoiceLogo();
+            if (fallbackLogo && fallbackLogo !== companyLogoBase64) {
+              try {
+                doc.image(fallbackLogo, 50, 30, { width: 80, height: 60 });
+              } catch (fallbackLogoError) {
+                console.warn('⚠️ Bundled invoice logo embedding failed:', fallbackLogoError);
+              }
+            }
           }
         } else {
           console.log('ℹ️ No company logo available for invoice PDF');
@@ -558,24 +571,31 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
   const lang = ['en', 'ar', 'tr', 'fa'].includes(data.language) ? data.language : 'en';
   const rtl = lang === 'ar' || lang === 'fa';
   const L: Record<string, any> = {
-    en: ['Invoice', 'Proforma Invoice', 'Invoice number', 'Order number', 'Invoice date', 'Seller', 'Customer', 'Name', 'Phone', 'Email', 'Address', 'Payment method', 'Payment status', 'Product', 'Quantity', 'Unit price', 'Amount', 'Subtotal', 'VAT', 'Surcharge / duties', 'Shipping', 'Total', 'This is a proforma invoice. The final invoice will be issued after payment confirmation.', 'This is the final invoice.'],
-    ar: ['فاتورة', 'فاتورة أولية', 'رقم الفاتورة', 'رقم الطلب', 'تاريخ الفاتورة', 'البائع', 'العميل', 'الاسم', 'الهاتف', 'البريد الإلكتروني', 'العنوان', 'طريقة الدفع', 'حالة الدفع', 'المنتج', 'الكمية', 'سعر الوحدة', 'المبلغ', 'المجموع الفرعي', 'ضريبة القيمة المضافة', 'رسوم إضافية', 'الشحن', 'الإجمالي', 'هذه فاتورة أولية. سيتم إصدار الفاتورة النهائية بعد تأكيد الدفع.', 'هذه هي الفاتورة النهائية.'],
-    tr: ['Fatura', 'Proforma Fatura', 'Fatura numarası', 'Sipariş numarası', 'Fatura tarihi', 'Satıcı', 'Müşteri', 'Ad', 'Telefon', 'E-posta', 'Adres', 'Ödeme yöntemi', 'Ödeme durumu', 'Ürün', 'Miktar', 'Birim fiyatı', 'Tutar', 'Ara toplam', 'KDV', 'Ek ücretler / vergiler', 'Kargo', 'Toplam', 'Bu bir proforma faturadır. Ödeme onayından sonra nihai fatura düzenlenir.', 'Bu nihai faturadır.'],
-    fa: ['فاکتور', 'پیش‌فاکتور', 'شماره فاکتور', 'شماره سفارش', 'تاریخ فاکتور', 'فروشنده', 'مشتری', 'نام', 'تلفن', 'ایمیل', 'آدرس', 'روش پرداخت', 'وضعیت پرداخت', 'کالا', 'تعداد', 'قیمت واحد', 'مبلغ', 'جمع جزء', 'مالیات بر ارزش افزوده', 'عوارض / هزینه اضافی', 'هزینه ارسال', 'مجموع کل', 'این پیش‌فاکتور است و پس از تأیید پرداخت، فاکتور نهایی صادر می‌شود.', 'این فاکتور نهایی است.']
+    en: ['Invoice', 'Proforma Invoice', 'Invoice number', 'Order number', 'Invoice date', 'Seller', 'Customer', 'Name', 'Phone', 'Email', 'Address', 'Payment method', 'Payment status', 'Product', 'Quantity', 'Unit price', 'Amount', 'Subtotal', 'Discount', 'VAT', 'Surcharge / duties', 'Shipping', 'Total', 'This is a proforma invoice. The final invoice will be issued after payment confirmation.', 'This is the final invoice.'],
+    ar: ['فاتورة', 'فاتورة أولية', 'رقم الفاتورة', 'رقم الطلب', 'تاريخ الفاتورة', 'البائع', 'العميل', 'الاسم', 'الهاتف', 'البريد الإلكتروني', 'العنوان', 'طريقة الدفع', 'حالة الدفع', 'المنتج', 'الكمية', 'سعر الوحدة', 'المبلغ', 'المجموع الفرعي', 'الخصم', 'ضريبة القيمة المضافة', 'رسوم إضافية', 'الشحن', 'الإجمالي', 'هذه فاتورة أولية. سيتم إصدار الفاتورة النهائية بعد تأكيد الدفع.', 'هذه هي الفاتورة النهائية.'],
+    tr: ['Fatura', 'Proforma Fatura', 'Fatura numarası', 'Sipariş numarası', 'Fatura tarihi', 'Satıcı', 'Müşteri', 'Ad', 'Telefon', 'E-posta', 'Adres', 'Ödeme yöntemi', 'Ödeme durumu', 'Ürün', 'Miktar', 'Birim fiyatı', 'Tutar', 'Ara toplam', 'İndirim', 'KDV', 'Ek ücretler / vergiler', 'Kargo', 'Toplam', 'Bu bir proforma faturadır. Ödeme onayından sonra nihai fatura düzenlenir.', 'Bu nihai faturadır.'],
+    fa: ['فاکتور', 'پیش‌فاکتور', 'شماره فاکتور', 'شماره سفارش', 'تاریخ فاکتور', 'فروشنده', 'مشتری', 'نام', 'تلفن', 'ایمیل', 'آدرس', 'روش پرداخت', 'وضعیت پرداخت', 'کالا', 'تعداد', 'قیمت واحد', 'مبلغ', 'جمع جزء', 'تخفیف', 'مالیات بر ارزش افزوده', 'عوارض / هزینه اضافی', 'هزینه ارسال', 'مجموع کل', 'این پیش‌فاکتور است و پس از تأیید پرداخت، فاکتور نهایی صادر می‌شود.', 'این فاکتور نهایی است.']
   }[lang];
   const extra: Record<string, string[]> = {
-    en: ['Registration number', 'Tax number', 'Company', 'Postal code', 'Country / city'],
-    ar: ['رقم التسجيل', 'الرقم الضريبي', 'الشركة', 'الرمز البريدي', 'الدولة / المدينة'],
-    tr: ['Kayıt numarası', 'Vergi numarası', 'Şirket', 'Posta kodu', 'Ülke / şehir'],
-    fa: ['شماره ثبت', 'شماره مالیاتی', 'شرکت', 'کد پستی', 'کشور / شهر'],
+    en: ['Registration number', 'Tax number', 'Company', 'Postal code', 'Country / city', 'Batch'],
+    ar: ['رقم التسجيل', 'الرقم الضريبي', 'الشركة', 'الرمز البريدي', 'الدولة / المدينة', 'التشغيلة'],
+    tr: ['Kayıt numarası', 'Vergi numarası', 'Şirket', 'Posta kodu', 'Ülke / şehir', 'Parti'],
+    fa: ['شماره ثبت', 'شماره مالیاتی', 'شرکت', 'کد پستی', 'کشور / شهر', 'بچ'],
   }[lang];
   const company = data.companyInfo || await getCompanyInformation() || {};
-  // Use the logo selected in Company Information for both invoices and
-  // proforma invoices. getCompanyLogo keeps the bundled logo as a fallback
-  // when the configured upload cannot be read.
-  const companyLogo = await getCompanyLogo(company);
-  const suffix = lang === 'en' ? 'En' : lang === 'ar' ? 'Ar' : lang === 'tr' ? 'Tr' : 'En';
-  const companyName = company[`companyName${suffix}`] || company.companyName || company.companyNameEn || 'Momtaz Chemical Solutions';
+  // Resolve the logo from the server-side Company Information record instead
+  // of trusting a potentially stale or incomplete client snapshot. Keep the
+  // supplied company snapshot for invoice text and historical fields.
+  const companyLogo = await getCompanyLogo();
+  const suffix = lang === 'en' ? 'En' : lang === 'ar' ? 'Ar' : lang === 'tr' ? 'Tr' : 'Fa';
+  const localizedCompanyName = company[`companyName${suffix}`]
+    || (lang === 'fa' ? company.companyNameAr : undefined)
+    || company.companyName
+    || company.companyNameEn
+    || 'Momtaz Chemical Solutions';
+  const companyName = normalizeInvoiceCompanyName(
+    localizedCompanyName
+  );
   const customer = data.customer || {};
   const str = (v: any) => v === undefined || v === null || v === '' ? '—' : String(v);
   const latinDigits = (v: any) => str(v)
@@ -648,8 +668,38 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
         });
       }
     };
+    const rtlSentence = (value: any, x: number, y: number, width: number) => {
+      const words = str(value).trim().split(/\s+/);
+      const wordGap = doc.widthOfString(' ');
+      let cursor = x + width;
+      let lineY = y;
+
+      for (const word of words) {
+        const wordWidth = doc.widthOfString(word);
+        if (cursor - wordWidth < x && cursor < x + width) {
+          lineY += 13;
+          cursor = x + width;
+        }
+        cursor -= wordWidth;
+        doc.text(tx(word), cursor, lineY, {
+          width: wordWidth + 1,
+          align: 'right',
+          lineBreak: false,
+        });
+        cursor -= wordGap;
+      }
+    };
     if (companyLogo) {
-      try { doc.image(companyLogo, 42, 32, { fit: [64, 48] }); } catch {}
+      try {
+        doc.image(companyLogo, 42, 32, { fit: [64, 48] });
+      } catch {
+        // A configured upload can exist but still be unreadable by PDFKit.
+        // Retry with the known-good public/bundled logo before continuing.
+        const fallbackLogo = getSafeInvoiceLogo();
+        if (fallbackLogo) {
+          try { doc.image(fallbackLogo, 42, 32, { fit: [64, 48] }); } catch {}
+        }
+      }
     }
     doc.font('VazirBold').fontSize(18).text(tx(companyName), 112, 42, { width: 370, align: 'center' });
     doc.fontSize(15).text(tx(data.invoiceType === 'PROFORMA' ? L[1] : L[0]), 42, 68, { width: 510, align: 'center' });
@@ -662,7 +712,13 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
     const header = () => { doc.rect(42, y, 510, 24).fillAndStroke('#eeeeee', '#777777'); doc.fillColor('#000').font('VazirBold').fontSize(9); cols.forEach((c: any) => doc.text(tx(c[0]), c[1] + 3, y + 7, { width: c[2] - 6, align: 'center' })); y += 24; };
     header(); const items = data.items || []; doc.font('VazirRegular').fontSize(8);
     items.forEach((item: any) => {
-      if (y > 735) { doc.addPage(); y = 42; header(); }
+      const batchSummary = Array.isArray(item.batches) && item.batches.length > 0
+        ? item.batches
+            .map((batch: any) => `${str(batch.batchNumber)} × ${latinDigits(batch.quantity)}`)
+            .join(', ')
+        : '';
+      const rowHeight = batchSummary ? 38 : 24;
+      if (y + rowHeight > 760) { doc.addPage(); y = 42; header(); }
       const row = [item.name || item.productName, item.quantity, fmt(item.unitPrice), fmt(item.total || item.totalPrice || Number(item.quantity || 0) * Number(item.unitPrice || 0))];
       cols.forEach((c: any, i: number) => {
         const ri = rtl ? [3, 2, 1, 0][i] : i;
@@ -675,13 +731,38 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
           align: isProductCell ? al : 'center',
           lineBreak: false,
         });
+        if (isProductCell && batchSummary) {
+          const batchLine = `${extra[5]}: ${batchSummary}`;
+          doc.fontSize(7).fillColor('#444').text(rtl ? tx(batchLine) : batchLine, c[1] + 3, y + 21, {
+            width: c[2] - 6,
+            height: 13,
+            ellipsis: true,
+            align: al,
+            lineBreak: false,
+          }).fillColor('#000').fontSize(8);
+        }
       });
-      doc.rect(42, y, 510, 24).stroke('#bbb');
-      y += 24;
+      doc.rect(42, y, 510, rowHeight).stroke('#bbb');
+      y += rowHeight;
     });
-    const subtotal = Number(data.subtotal ?? items.reduce((s: number, i: any) => s + Number(i.total || i.totalPrice || Number(i.quantity || 0) * Number(i.unitPrice || 0)), 0)); const vat = Number(data.vatAmount || 0), duties = Number(data.dutiesAmount || 0), shipping = Number(data.shippingCost || 0);
-    if (y > 650) { doc.addPage(); y = 42; } y += 14; [[L[17], subtotal], [L[18], vat], [L[19], duties], [L[20], shipping], [L[21], subtotal + vat + duties + shipping]].forEach((r: any, i) => { doc.font(i === 4 ? 'VazirBold' : 'VazirRegular').fontSize(i === 4 ? 11 : 9); pair(r[0], `${fmt(r[1])} ${str(data.currency || 'IQD')}`, 42, y, 510); y += 19; });
-    doc.font('VazirRegular').fontSize(9).text(tx(data.invoiceType === 'PROFORMA' ? L[22] : L[23]), 42, y + 10, { width: 510, align: al }); doc.end();
+    const subtotal = Number(data.subtotal ?? items.reduce((s: number, i: any) => s + Number(i.total || i.totalPrice || Number(i.quantity || 0) * Number(i.unitPrice || 0)), 0)); const discount = Number(data.discountAmount || 0), vat = Number(data.vatAmount || 0), duties = Number(data.dutiesAmount || 0), shipping = Number(data.shippingCost || 0);
+    const grandTotal = data.total !== undefined && data.total !== null
+      ? Number(data.total)
+      : subtotal + vat + duties + shipping;
+    const totals: Array<[string, number]> = [[L[17], subtotal]];
+    if (discount > 0) totals.push([L[18], -discount]);
+    totals.push([L[19], vat], [L[20], duties], [L[21], shipping], [L[22], grandTotal]);
+    if (y > 650) { doc.addPage(); y = 42; }
+    y += 14;
+    totals.forEach((r: any, i: number) => { const isGrandTotal = i === totals.length - 1; doc.font(isGrandTotal ? 'VazirBold' : 'VazirRegular').fontSize(isGrandTotal ? 11 : 9); pair(r[0], `${fmt(r[1])} ${str(data.currency || 'IQD')}`, 42, y, 510); y += 19; });
+    doc.font('VazirRegular').fontSize(9);
+    const footerText = data.invoiceType === 'PROFORMA' ? L[23] : L[24];
+    if (rtl) {
+      rtlSentence(footerText, 42, y + 10, 510);
+    } else {
+      doc.text(footerText, 42, y + 10, { width: 510, align: 'left' });
+    }
+    doc.end();
   });
 }
 

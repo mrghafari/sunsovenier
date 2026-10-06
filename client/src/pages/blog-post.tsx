@@ -38,6 +38,7 @@ import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import Breadcrumbs from "@/components/seo/Breadcrumbs";
 import { useToast } from "@/hooks/use-toast";
+import type { Language } from "@/lib/i18n";
 
 marked.setOptions({
   breaks: true,
@@ -80,6 +81,8 @@ export default function BlogPost() {
       const { translation, ...postData } = json.data;
       return {
         ...postData,
+        translationLanguage: translation?.language || language,
+        availableLanguages: json.data.availableLanguages || [],
         title: translation?.title || '',
         slug: translation?.slug || '',
         excerpt: translation?.excerpt || '',
@@ -260,6 +263,20 @@ export default function BlogPost() {
   }
 
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const articleLanguage = post.translationLanguage || language;
+  const articleDirection = articleLanguage === "ar" || articleLanguage === "fa" ? "rtl" : "ltr";
+  const languageNamesForNotice: Record<Language, string> = {
+    en: "English",
+    ar: "العربية",
+    tr: "Türkçe",
+    fa: "فارسی",
+  };
+  const fallbackNoticeCopy = {
+    en: `This article is shown in ${({ en: "English", ar: "Arabic", tr: "Turkish", fa: "Persian" } as Record<string, string>)[articleLanguage] || articleLanguage} because a translation in ${languageNamesForNotice[language]} is not available.`,
+    ar: `تُعرض هذه المقالة باللغة ${{ en: "الإنجليزية", ar: "العربية", tr: "التركية", fa: "الفارسية" }[articleLanguage as Language]} لعدم توفر ترجمة باللغة ${languageNamesForNotice[language]}.`,
+    tr: `Bu makale, ${languageNamesForNotice[language]} çevirisi bulunmadığı için ${{ en: "İngilizce", ar: "Arapça", tr: "Türkçe", fa: "Farsça" }[articleLanguage as Language]} olarak gösteriliyor.`,
+    fa: `این مقاله به زبان ${{ en: "انگلیسی", ar: "عربی", tr: "ترکی", fa: "فارسی" }[articleLanguage as Language]} نمایش داده می‌شود، زیرا ترجمهٔ ${languageNamesForNotice[language]} موجود نیست.`,
+  }[language];
 
   return (
     <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 ${direction === 'rtl' ? 'rtl' : 'ltr'}`}>
@@ -351,6 +368,8 @@ export default function BlogPost() {
             <h1
               className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-8 max-w-4xl leading-tight"
               data-testid="blog-post-title"
+              lang={articleLanguage}
+              dir={articleDirection}
             >
               {post.title}
             </h1>
@@ -452,12 +471,19 @@ export default function BlogPost() {
             </div>
 
             {/* Article Body */}
-            <Card className="border-0 shadow-xl rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+            {articleLanguage !== language && (
+              <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100" role="status">
+                {fallbackNoticeCopy}
+              </p>
+            )}
+            <Card className="border-0 shadow-xl rounded-3xl overflow-hidden bg-white dark:bg-slate-900" lang={articleLanguage} dir={articleDirection}>
               <CardContent className="p-8 md:p-12">
                 <article
                   className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-white prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-a:text-blue-600 prose-img:rounded-2xl prose-blockquote:border-l-blue-500 prose-blockquote:bg-blue-50 dark:prose-blockquote:bg-blue-900/20 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-xl"
                   dangerouslySetInnerHTML={{ __html: htmlContent }}
                   data-testid="blog-post-content"
+                  lang={articleLanguage}
+                  dir={articleDirection}
                 />
               </CardContent>
             </Card>

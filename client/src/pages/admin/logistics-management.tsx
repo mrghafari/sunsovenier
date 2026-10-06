@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import {canAdminConfirmDelivery,isSiteAdminDeliveryRole,isFourDigitDeliveryCode,normalizeDeliveryConfirmationCode} from "@shared/admin-delivery-confirmation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PaymentMethodBadge from '@/components/PaymentMethodBadge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { 
@@ -29,6 +31,7 @@ import {
   Shield,
   AlertTriangle,
   FileText,
+  Loader2,
   Printer,
   Calculator,
   History,
@@ -46,18 +49,26 @@ import {
   Clock,
   RefreshCw,
   LogIn,
-  Info
+  Info,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
 import PostalServicesTab from '@/components/PostalServicesTab';
 import DeliveryServicesTab from '@/components/DeliveryServicesTab';
 import PostalShippingParamsTab from '@/components/PostalShippingParamsTab';
 import VehicleTemplateEditor from '@/components/admin/VehicleTemplateEditor';
-import InternationalGeographyTab from '@/components/InternationalGeographyTab';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Car, Star, TrendingUp, Calendar as CalendarIcon, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { logisticsLocale, logisticsT, type LogisticsLanguage } from './logistics-translations';
+import LogisticsWorkspaceHeader from '@/components/admin/logistics-redesign/LogisticsWorkspaceHeader';
+import LogisticsCenterRouteEditor from '@/components/admin/logistics-redesign/LogisticsCenterRouteEditor';
+import CustomerNotificationSettings from '@/components/admin/logistics-redesign/CustomerNotificationSettings';
+import { formatDeliveryAppointment } from '../../../../shared/delivery-timezone';
+import LoadingMeasurementCapture from '@/components/admin/accounting/loading-measurement-capture';
+import { loadingCaptureCopy } from '@/components/admin/accounting/loading-measurement-capture-copy';
 
 // Types for vehicle history
 interface VehicleDeliveryHistory {
@@ -97,6 +108,10 @@ interface VehicleUsageStats {
 
 // Vehicle History Section Component
 function VehicleHistorySection() {
+  const { language: contextLanguage, direction } = useLanguage();
+  const language = (['en', 'fa', 'ar', 'tr'].includes(contextLanguage) ? contextLanguage : 'en') as LogisticsLanguage;
+  const vehicleT = (key: string) => logisticsT(language, key);
+  const vehicleLocale = logisticsLocale(language);
   const [viewMode, setViewMode] = useState<'overview' | 'details'>('overview');
   const [selectedPlate, setSelectedPlate] = useState<string>("");
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
@@ -189,7 +204,7 @@ function VehicleHistorySection() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(vehicleLocale, {
       style: 'currency',
       currency: 'IQD',
       minimumFractionDigits: 0,
@@ -207,9 +222,9 @@ function VehicleHistorySection() {
     
     return (
       <Badge className={statusColors[status as keyof typeof statusColors] || statusColors.pending}>
-        {status === 'completed' ? 'مکمل' : 
-         status === 'failed' ? 'ناموفق' : 
-         status === 'cancelled' ? 'لغو شده' : 'در انتظار'}
+         {status === 'completed' ? vehicleT('completed') :
+          status === 'failed' ? vehicleT('error') :
+          status === 'cancelled' ? vehicleT('cancelled') : vehicleT('pending')}
       </Badge>
     );
   };
@@ -220,10 +235,10 @@ function VehicleHistorySection() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <History className="h-5 w-5" />
-            تاریخچه تحویلات خودروها
+            {vehicleT('vehicleHistory')}
           </CardTitle>
           <CardDescription>
-            مشاهده تاریخچه کامل تحویلات هر خودرو از ناوگان شرکت
+            {vehicleT('vehicleHistoryDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -232,35 +247,35 @@ function VehicleHistorySection() {
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
               <h4 className="font-medium text-blue-800 mb-3 flex items-center gap-2">
                 <Search className="w-4 h-4" />
-                جستجوی تاریخچه (حداقل ۳ حرف)
+                {vehicleT('historySearch')}
               </h4>
               <div className="flex gap-3 items-end flex-wrap">
                 <div className="flex-1 min-w-[200px]">
-                  <Label htmlFor="search-query">عبارت جستجو</Label>
+                  <Label htmlFor="search-query">{vehicleT('searchTerm')}</Label>
                   <Input
                     id="search-query"
-                    placeholder="پلاک، نام راننده، موبایل یا شماره سفارش..."
+                    placeholder={vehicleT('historyPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   />
                 </div>
                 <div className="w-[150px]">
-                  <Label>نوع جستجو</Label>
+                  <Label>{vehicleT('searchType')}</Label>
                   <Select value={searchType} onValueChange={(v) => setSearchType(v as any)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="plate">پلاک خودرو</SelectItem>
-                      <SelectItem value="driver">نام راننده</SelectItem>
-                      <SelectItem value="phone">موبایل</SelectItem>
-                      <SelectItem value="order">شماره سفارش</SelectItem>
+                      <SelectItem value="plate">{vehicleT('searchPlate')}</SelectItem>
+                      <SelectItem value="driver">{vehicleT('searchDriver')}</SelectItem>
+                      <SelectItem value="phone">{vehicleT('searchPhone')}</SelectItem>
+                      <SelectItem value="order">{vehicleT('searchOrder')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="w-[140px]">
-                  <Label>از تاریخ</Label>
+                  <Label>{vehicleT('fromDate')}</Label>
                   <Input
                     type="date"
                     value={dateRange.from?.toISOString().split('T')[0] || ''}
@@ -268,7 +283,7 @@ function VehicleHistorySection() {
                   />
                 </div>
                 <div className="w-[140px]">
-                  <Label>تا تاریخ</Label>
+                  <Label>{vehicleT('toDate')}</Label>
                   <Input
                     type="date"
                     value={dateRange.to?.toISOString().split('T')[0] || ''}
@@ -281,19 +296,19 @@ function VehicleHistorySection() {
                   className="flex items-center gap-2"
                 >
                   <Search className="h-4 w-4" />
-                  جستجو
+                  {vehicleT('search')}
                 </Button>
               </div>
               {searchQuery && searchQuery.length < 3 && (
-                <p className="text-xs text-orange-600 mt-2">حداقل ۳ حرف وارد کنید</p>
+                <p className="text-xs text-orange-600 mt-2">{vehicleT('minThree')}</p>
               )}
             </div>
 
             {/* Search Results */}
             {allHistoryData?.data && allHistoryData.data.length > 0 && searchQuery.length >= 3 && (
               <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                <h4 className="font-medium text-green-800 mb-3">
-                  نتایج جستجو ({allHistoryData.data.length} مورد)
+                  <h4 className="font-medium text-green-800 mb-3">
+                    {vehicleT('searchResults')} ({allHistoryData.data.length})
                 </h4>
                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
                   {allHistoryData.data.map((item: any) => (
@@ -307,12 +322,12 @@ function VehicleHistorySection() {
                           {item.plateNumber}
                         </div>
                         <div>
-                          <span className="text-sm font-medium">{item.driverName || 'راننده نامشخص'}</span>
-                          <span className="text-xs text-gray-500 mr-2">| سفارش: {item.orderNumber}</span>
+                          <span className="text-sm font-medium">{item.driverName || vehicleT('unknownDriver')}</span>
+                          <span className="text-xs text-gray-500 mr-2">| {vehicleT('orderLabel')}: {item.orderNumber}</span>
                         </div>
                       </div>
                       <div className="text-left text-xs text-gray-500">
-                        {item.deliveryDateTime ? new Date(item.deliveryDateTime).toLocaleDateString('fa-IR') : '-'}
+                        {item.deliveryDateTime ? new Intl.DateTimeFormat(vehicleLocale).format(new Date(item.deliveryDateTime)) : '-'}
                       </div>
                     </div>
                   ))}
@@ -324,63 +339,50 @@ function VehicleHistorySection() {
             {statsData?.data?.length > 0 ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">نمای کلی ناوگان</h3>
+                  <h3 className="text-lg font-semibold">{vehicleT('overview')}</h3>
                   <Badge variant="outline">
-                    {statsData.data.length} خودرو
+                    {statsData.data.length} {vehicleT('vehicles')}
                   </Badge>
                 </div>
                 
-                <ScrollArea className="h-[400px]">
-                  <div className="grid gap-4">
-                    {statsData.data.map((stat: VehicleUsageStats) => (
-                      <Card key={stat.id} className="p-4 hover:shadow-md transition-shadow cursor-pointer"
-                            onClick={() => handlePlateClick(stat.plateNumber)}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Car className="h-8 w-8 text-blue-500" />
-                            <div>
-                              <h3 className="font-semibold text-lg">{stat.plateNumber}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {stat.totalDeliveries} تحویل | {Math.round(Number(stat.totalDistance) || 0)} km
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold">{formatCurrency(Number(stat.totalRevenue) || 0)}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {Math.round(Number(stat.onTimeDeliveryRate) || 0)}% به موقع
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-                          <div>
-                            <div className="text-lg font-semibold text-green-600">
-                              {stat.successfulDeliveries}
-                            </div>
-                            <div className="text-xs text-muted-foreground">موفق</div>
-                          </div>
-                          <div>
-                            <div className="text-lg font-semibold text-red-600">
-                              {stat.failedDeliveries}
-                            </div>
-                            <div className="text-xs text-muted-foreground">ناموفق</div>
-                          </div>
-                          <div>
-                            <div className="text-lg font-semibold text-yellow-600">
-                              {stat.averageRating ? Number(stat.averageRating).toFixed(1) : 'N/A'}
-                            </div>
-                            <div className="text-xs text-muted-foreground">امتیاز</div>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
+                <div className="max-h-[480px] overflow-auto rounded-md border">
+                  <Table className="min-w-[900px]">
+                    <TableHeader className="sticky top-0 z-10 bg-slate-100">
+                      <TableRow>
+                        <TableHead className="text-start">{vehicleT('plate')}</TableHead>
+                        <TableHead className="text-start">{vehicleT('deliveries')}</TableHead>
+                        <TableHead className="text-start">{vehicleT('successful')}</TableHead>
+                        <TableHead className="text-start">{vehicleT('failed')}</TableHead>
+                        <TableHead className="text-start">{vehicleT('distance')} ({vehicleT('unitKm')})</TableHead>
+                        <TableHead className="text-start">{vehicleT('revenue')}</TableHead>
+                        <TableHead className="text-start">{vehicleT('onTime')}</TableHead>
+                        <TableHead className="text-start">{vehicleT('rating')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {statsData.data.map((stat: VehicleUsageStats) => (
+                        <TableRow key={stat.id} className="hover:bg-blue-50">
+                          <TableCell>
+                            <Button variant="link" className="h-auto p-0 font-semibold" onClick={() => handlePlateClick(stat.plateNumber)}>
+                              {stat.plateNumber}
+                            </Button>
+                          </TableCell>
+                          <TableCell>{stat.totalDeliveries}</TableCell>
+                          <TableCell className="text-green-700">{stat.successfulDeliveries}</TableCell>
+                          <TableCell className="text-red-700">{stat.failedDeliveries}</TableCell>
+                          <TableCell>{Math.round(Number(stat.totalDistance) || 0)}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatCurrency(Number(stat.totalRevenue) || 0)}</TableCell>
+                          <TableCell>{Math.round(Number(stat.onTimeDeliveryRate) || 0)}%</TableCell>
+                          <TableCell>{stat.averageRating ? Number(stat.averageRating).toFixed(1) : '—'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                {statsLoading ? 'در حال بارگذاری...' : 'هنوز داده‌ای برای نمایش وجود ندارد'}
+                {statsLoading ? vehicleT('loading') : vehicleT('empty')}
               </div>
             )}
           </div>
@@ -402,15 +404,15 @@ function VehicleHistorySection() {
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              برگشت
+              {vehicleT('back')}
             </Button>
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Car className="h-5 w-5" />
-                تاریخچه خودرو {selectedPlate}
+                {vehicleT('vehicleDetails')} {selectedPlate}
               </CardTitle>
               <CardDescription>
-                جزئیات کامل تحویلات و عملکرد
+                {vehicleT('performanceDetails')}
               </CardDescription>
             </div>
           </div>
@@ -419,7 +421,7 @@ function VehicleHistorySection() {
       <CardContent>
         {historyLoading || summaryLoading ? (
           <div className="text-center py-8 text-muted-foreground">
-            در حال بارگذاری جزئیات...
+            {vehicleT('loadingDetails')}
           </div>
         ) : historyData?.data?.length > 0 ? (
           <div className="space-y-6">
@@ -430,48 +432,48 @@ function VehicleHistorySection() {
                   <div className="text-2xl font-bold text-blue-600">
                     {summaryData.data.stats.totalDeliveries}
                   </div>
-                  <div className="text-sm text-muted-foreground">کل تحویلات</div>
+                    <div className="text-sm text-muted-foreground">{vehicleT('totalDeliveries')}</div>
                 </Card>
                 <Card className="p-4 text-center">
                   <div className="text-2xl font-bold text-green-600">
                     {Math.round(Number(summaryData.data.stats.onTimeDeliveryRate) || 0)}%
                   </div>
-                  <div className="text-sm text-muted-foreground">به موقع</div>
+                    <div className="text-sm text-muted-foreground">{vehicleT('onTime')}</div>
                 </Card>
                 <Card className="p-4 text-center">
                   <div className="text-2xl font-bold text-purple-600">
                     {formatCurrency(Number(summaryData.data.stats.totalRevenue) || 0)}
                   </div>
-                  <div className="text-sm text-muted-foreground">کل درآمد</div>
+                    <div className="text-sm text-muted-foreground">{vehicleT('revenue')}</div>
                 </Card>
                 <Card className="p-4 text-center">
                   <div className="text-2xl font-bold text-yellow-600">
                     {summaryData.data.stats.averageRating ? Number(summaryData.data.stats.averageRating).toFixed(1) : 'N/A'}
                   </div>
-                  <div className="text-sm text-muted-foreground">امتیاز میانگین</div>
+                    <div className="text-sm text-muted-foreground">{vehicleT('averageRating')}</div>
                 </Card>
               </div>
             )}
 
             {/* Delivery History Table */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">تاریخچه تحویلات</h3>
-              <Table>
-                <TableHeader>
+              <h3 className="text-lg font-semibold">{vehicleT('deliveryHistory')}</h3>
+              <div className="overflow-x-auto"><Table className="min-w-[900px] border border-slate-200">
+                <TableHeader className="sticky top-0 bg-slate-700">
                   <TableRow>
-                    <TableHead className="text-right">شماره سفارش</TableHead>
-                    <TableHead className="text-right">مشتری</TableHead>
-                    <TableHead className="text-right">مقصد</TableHead>
-                    <TableHead className="text-right">وزن</TableHead>
-                    <TableHead className="text-right">هزینه</TableHead>
-                    <TableHead className="text-right">وضعیت</TableHead>
-                    <TableHead className="text-right">تاریخ تحویل</TableHead>
-                    <TableHead className="text-right">امتیاز</TableHead>
+                    <TableHead className="border-e border-slate-600 text-start text-slate-50">{vehicleT('searchOrder')}</TableHead>
+                    <TableHead className="border-e border-slate-600 text-start text-slate-50">{vehicleT('customer')}</TableHead>
+                    <TableHead className="border-e border-slate-600 text-start text-slate-50">{vehicleT('destination')}</TableHead>
+                    <TableHead className="border-e border-slate-600 text-start text-slate-50">{vehicleT('weight')}</TableHead>
+                    <TableHead className="border-e border-slate-600 text-start text-slate-50">{vehicleT('cost')}</TableHead>
+                    <TableHead className="border-e border-slate-600 text-start text-slate-50">{vehicleT('status')}</TableHead>
+                    <TableHead className="border-e border-slate-600 text-start text-slate-50">{vehicleT('deliveryDate')}</TableHead>
+                    <TableHead className="text-start text-slate-50">{vehicleT('rating')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {historyData.data.map((delivery: VehicleDeliveryHistory) => (
-                    <TableRow key={delivery.id}>
+                    <TableRow key={delivery.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50">
                       <TableCell className="font-medium">{delivery.orderNumber}</TableCell>
                       <TableCell>
                         <div>
@@ -489,8 +491,8 @@ function VehicleHistorySection() {
                       <TableCell>{getStatusBadge(delivery.deliveryStatus)}</TableCell>
                       <TableCell>
                         {delivery.deliveryDateTime ? 
-                          format(new Date(delivery.deliveryDateTime), 'yyyy/MM/dd HH:mm') : 
-                          'نامشخص'
+                          new Intl.DateTimeFormat(vehicleLocale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(delivery.deliveryDateTime)) :
+                          vehicleT('unknown')
                         }
                       </TableCell>
                       <TableCell>
@@ -500,18 +502,18 @@ function VehicleHistorySection() {
                             <span>{Number(delivery.customerRating).toFixed(1)}</span>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-muted-foreground">{vehicleT('noRating')}</span>
                         )}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
+              </Table></div>
             </div>
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            {selectedPlate ? 'تاریخچه‌ای برای این خودرو یافت نشد' : 'برای مشاهده جزئیات، شماره پلاک خودرو را جستجو کنید'}
+            {selectedPlate ? vehicleT('noResults') : vehicleT('searchDelivered')}
           </div>
         )}
       </CardContent>
@@ -520,12 +522,12 @@ function VehicleHistorySection() {
 }
 
 // Safe date formatting function to prevent Invalid Date errors
-const formatDateSafe = (dateString: string | null | undefined, locale = 'en-US', options = {}): string => {
-  if (!dateString) return 'تاریخ نامشخص';
+const formatDateSafe = (dateString: string | null | undefined, locale = 'en-US', options = {}, language: LogisticsLanguage = 'en'): string => {
+  if (!dateString) return logisticsT(language, 'unknownDate');
   
   try {
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return 'تاریخ نامعتبر';
+    if (isNaN(date.getTime())) return logisticsT(language, 'invalidDate');
     
     return date.toLocaleDateString(locale, {
       year: 'numeric',
@@ -534,42 +536,35 @@ const formatDateSafe = (dateString: string | null | undefined, locale = 'en-US',
       ...options
     });
   } catch (error) {
-    return 'خطا در تاریخ';
+    return logisticsT(language, 'dateError');
   }
 };
 
 // Status display name mapping function
-const getStatusDisplayName = (status: string): string => {
-  const statusMap: { [key: string]: string } = {
-    'pending': 'در انتظار',
-    'confirmed': 'تایید شده',
-    'financial_review': 'بررسی مالی',
-    'warehouse_pending': 'در انتظار انبار',
-    'warehouse_ready': 'آماده انبار',
-    'warehouse_processing': 'در حال پردازش انبار',
-    'logistics_pending': 'در انتظار لجستیک',
-    'logistics_assigned': 'اختصاص یافته لجستیک',
-    'logistics_dispatched': 'ارسال شده',
-    'in_transit': 'در حال حمل',
-    'delivered': 'تحویل داده شده',
-    'cancelled': 'لغو شده',
-    'returned': 'برگشت داده شده'
+const getStatusDisplayName = (status: string, language: LogisticsLanguage = 'en'): string => {
+  const statusMap: Record<string, string> = {
+    pending: 'pending', confirmed: 'confirmed', financial_review: 'pending',
+    warehouse_pending: 'pending', warehouse_ready: 'confirmed', warehouse_processing: 'pending',
+    logistics_pending: 'pending', logistics_assigned: 'confirmed', logistics_dispatched: 'inTransit',
+    in_transit: 'inTransit', delivered: 'completed', cancelled: 'cancelled', returned: 'returned',
   };
-  
-  return statusMap[status] || status;
+  return logisticsT(language, statusMap[status] || '') || status;
 };
 
 interface TransportationCompany {
   id: number;
   name: string;
-  contactPerson?: string;
-  phone: string;
-  email?: string;
-  address?: string;
-  website?: string;
-  isActive: boolean;
-  rating?: number;
-  totalDeliveries: number;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  website?: string | null;
+  maxWeight?: string | null;
+  baseRate?: string | null;
+  ratePerKm?: string | null;
+  isActive: boolean | null;
+  rating?: string | null;
+  totalDeliveries: number | null;
 }
 
 interface ReadyVehicle {
@@ -646,6 +641,10 @@ interface LogisticsOrder {
   driverPhone?: string;
   trackingNumber?: string;
   estimatedDeliveryDate?: string;
+  estimatedDeliveryAt?: string | null;
+  estimatedDeliveryTimeZone?: string | null;
+  destinationCountry?: string | null;
+  destinationCity?: string | null;
   actualDeliveryDate?: string;
   deliveryPersonName?: string;
   deliveryPersonPhone?: string;
@@ -657,12 +656,16 @@ interface LogisticsOrder {
   customerAddress?: string;
   
   // Delivery Address information
-  shippingAddress?: string;
+  shippingAddress?: string | { city?: string; name?: string; phone?: string; address?: string; postalCode?: string };
   billingAddress?: string;
   recipientName?: string;
   recipientPhone?: string;
   recipientAddress?: string;
   deliveryNotes?: string;
+  customerNotes?: string;
+  notes?: string;
+  financialNotes?: string;
+  warehouseNotes?: string;
   
   // GPS Location data for logistics coordination
   gpsLatitude?: number | string | null;
@@ -684,6 +687,52 @@ interface LogisticsOrder {
 }
 
 const LogisticsManagement = () => {
+  const { language: contextLanguage, direction } = useLanguage();
+  const language = (['en', 'fa', 'ar', 'tr'].includes(contextLanguage) ? contextLanguage : 'en') as LogisticsLanguage;
+  const t = (key: string) => logisticsT(language, key);
+  const temporaryDriverValue = 'راننده موقت';
+  const displayDriverName = (name?: string) => name === temporaryDriverValue ? t('temporaryDriver') : name;
+  const locale = logisticsLocale(language);
+  const formatLogisticsDate = (value?: string, withTime = false) => {
+    if (!value) return t('unknown');
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return t('unknown');
+    return new Intl.DateTimeFormat(locale, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+    }).format(date);
+  };
+  const formatLogisticsTime = (value?: string) => {
+    if (!value) return t('unknown');
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return t('unknown');
+    return new Intl.DateTimeFormat(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
+  const formatLegacyDeliveryDate = (value?: string) => {
+    if (!value) return t('unknown');
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return t('unknown');
+    return new Intl.DateTimeFormat(locale, {
+      year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC',
+    }).format(date);
+  };
+  const formatEstimatedDelivery = (order?: Pick<LogisticsOrder, 'estimatedDeliveryAt' | 'estimatedDeliveryTimeZone' | 'estimatedDeliveryDate'> | null) => {
+    if (order?.estimatedDeliveryAt && order.estimatedDeliveryTimeZone) {
+      try {
+        const appointment = formatDeliveryAppointment(order.estimatedDeliveryAt, order.estimatedDeliveryTimeZone, locale);
+        if (appointment) return `${appointment} (${order.estimatedDeliveryTimeZone})`;
+      } catch {
+        // Invalid appointment metadata falls back to the legacy date-only value.
+      }
+    }
+    return formatLegacyDeliveryDate(order?.estimatedDeliveryDate);
+  };
+  const formatLogisticsCurrency = (value: string | number) => new Intl.NumberFormat(locale, {
+    style: 'currency', currency: 'IQD', maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
   const [activeTab, setActiveTab] = useState('orders');
   const [orderButtonStates, setOrderButtonStates] = useState<{[orderId: number]: { 
     isCodeSent: boolean; 
@@ -707,6 +756,9 @@ const LogisticsManagement = () => {
   const [selectedVehicleDetails, setSelectedVehicleDetails] = useState<any>(null);
   const [availableFleetVehicles, setAvailableFleetVehicles] = useState<any[]>([]);
   const [expandedVehicleIds, setExpandedVehicleIds] = useState<Set<number>>(new Set());
+  const [expandedOrderVehicleId, setExpandedOrderVehicleId] = useState<number | null>(null);
+  const [expandedOrderAddressId, setExpandedOrderAddressId] = useState<number | null>(null);
+  const [expandedOrderDetailsId, setExpandedOrderDetailsId] = useState<number | null>(null);
   
   // States for enhanced suitable vehicles display
   const [isSuitableVehiclesOpen, setIsSuitableVehiclesOpen] = useState(false);
@@ -775,6 +827,16 @@ const LogisticsManagement = () => {
   const [confirmingDeliveryOrderId, setConfirmingDeliveryOrderId] = useState<number | null>(null);
   const [deliveryConfirmStep, setDeliveryConfirmStep] = useState<1 | 2>(1);
   const [deliveryConfirmDialogOpen, setDeliveryConfirmDialogOpen] = useState(false);
+  const [deliveryVerificationCode, setDeliveryVerificationCode] = useState("");
+  const [isSubmittingDeliveryVerification,setIsSubmittingDeliveryVerification] = useState(false);
+  const [deliveryGps, setDeliveryGps] = useState<GeolocationCoordinates | null>(null);
+  const [isCapturingDeliveryGps, setIsCapturingDeliveryGps] = useState(false);
+  const gpsCopy = {
+    en: { request: "Capture delivery GPS", captured: "GPS captured", accuracy: "Approximate accuracy", required: "Enable location access to confirm delivery.", code: "Enter the customer delivery code" },
+    fa: { request: "دریافت GPS محل تحویل", captured: "موقعیت GPS ثبت شد", accuracy: "دقت تقریبی", required: "برای تأیید تحویل، موقعیت مکانی گوشی را فعال کنید.", code: "کد تحویل مشتری را وارد کنید" },
+    ar: { request: "التقاط موقع التسليم", captured: "تم تسجيل موقع GPS", accuracy: "الدقة التقريبية", required: "فعّل الوصول إلى الموقع لتأكيد التسليم.", code: "أدخل رمز تسليم العميل" },
+    tr: { request: "Teslimat GPS konumunu al", captured: "GPS konumu kaydedildi", accuracy: "Yaklaşık doğruluk", required: "Teslimatı onaylamak için konum erişimini etkinleştirin.", code: "Müşteri teslimat kodunu girin" },
+  }[language];
 
   // State for updating delivery method
   const [updatingDeliveryMethod, setUpdatingDeliveryMethod] = useState<{[orderId: number]: boolean}>({});
@@ -790,28 +852,27 @@ const LogisticsManagement = () => {
       
       if (response.success) {
         toast({
-          title: '✅ روش ارسال تغییر یافت',
-          description: `روش ارسال به "${
-            deliveryMethod === 'postal' ? 'پستی' :
-            deliveryMethod === 'smart_vehicle' ? 'حمل با خودرو' :
-            deliveryMethod === 'self_pickup' ? 'حمل توسط مشتری' :
-            deliveryMethod === 'freight_collect' ? 'پس کرایه' : deliveryMethod
-          }" تغییر یافت`,
+          title: t('success'),
+          description: t('deliveryMethodChanged').replace('{method}',
+            deliveryMethod === 'postal' ? t('postalMethod') :
+            deliveryMethod === 'smart_vehicle' ? t('smartVehicleMethod') :
+            deliveryMethod === 'self_pickup' ? t('selfPickupMethod') :
+            deliveryMethod === 'freight_collect' ? t('freightCollectMethod') : deliveryMethod),
         });
         // Refresh orders to show updated delivery method
         queryClient.invalidateQueries({ queryKey: ['/api/order-management/logistics'] });
       } else {
         toast({
-          title: '❌ خطا',
-          description: response.message || 'خطا در تغییر روش ارسال',
+          title: t('error'),
+          description: response.message || t('deliveryMethodError'),
           variant: 'destructive',
         });
       }
     } catch (error) {
       console.error('❌ Error updating delivery method:', error);
       toast({
-        title: '❌ خطا',
-        description: 'خطا در اتصال به سرور',
+        title: t('error'),
+        description: t('serverConnectionError'),
         variant: 'destructive',
       });
     } finally {
@@ -822,7 +883,7 @@ const LogisticsManagement = () => {
   // Fleet vehicles API integration (previously "ready vehicles")
   const { data: fleetVehiclesData, isLoading: loadingFleetVehicles } = useQuery({
     queryKey: ['/api/logistics/ready-vehicles'],
-    enabled: activeTab === 'fleet-vehicles'
+    enabled: activeTab === 'orders' || activeTab === 'delivered' || activeTab === 'fleet-vehicles'
   });
 
   // Vehicle templates API integration
@@ -855,12 +916,12 @@ const LogisticsManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/ready-vehicles'] });
       setIsCreateReadyVehicleDialogOpen(false);
-      toast({ title: "موفقیت", description: "خودرو آماده کار با موفقیت ایجاد شد" });
+      toast({ title: t('success'), description: t('readyVehicleCreatedFull') });
     },
     onError: (error: any) => {
       toast({ 
-        title: "خطا", 
-        description: error?.response?.data?.message || "خطا در ایجاد خودرو آماده کار", 
+        title: t('error'),
+        description: error?.response?.data?.message || t('readyVehicleError'),
         variant: "destructive" 
       });
     }
@@ -873,12 +934,12 @@ const LogisticsManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/ready-vehicles'] });
       setIsEditReadyVehicleDialogOpen(false);
       setSelectedReadyVehicle(null);
-      toast({ title: "موفقیت", description: "خودرو آماده کار با موفقیت بروزرسانی شد" });
+      toast({ title: t('success'), description: t('readyVehicleUpdatedFull') });
     },
     onError: (error: any) => {
       toast({ 
-        title: "خطا", 
-        description: error?.response?.data?.message || "خطا در بروزرسانی خودرو آماده کار", 
+        title: t('error'),
+        description: error?.response?.data?.message || t('readyVehicleError'),
         variant: "destructive" 
       });
     }
@@ -889,12 +950,12 @@ const LogisticsManagement = () => {
     mutationFn: (id: number) => apiRequest(`/api/logistics/ready-vehicles/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/ready-vehicles'] });
-      toast({ title: "موفقیت", description: "خودرو آماده کار با موفقیت حذف شد" });
+      toast({ title: t('success'), description: t('readyVehicleDeletedFull') });
     },
     onError: (error: any) => {
       toast({ 
-        title: "خطا", 
-        description: error?.response?.data?.message || "خطا در حذف خودرو آماده کار", 
+        title: t('error'),
+        description: error?.response?.data?.message || t('operationFailed'),
         variant: "destructive" 
       });
     }
@@ -971,6 +1032,13 @@ const LogisticsManagement = () => {
   });
 
   const user = (adminUser as any)?.user;
+  const isDeliverySiteAdmin = isSiteAdminDeliveryRole(user?.roleName);
+  const adminDeliveryCopy = {
+    fa: {action:"تأیید تحویل با کد",invalid:"کد تحویل باید دقیقاً چهار رقم باشد",busy:"در حال تأیید…",help:"کد چهاررقمی تحویل مشتری را وارد کنید. تأیید ادمین به GPS نیاز ندارد و سفارش را به پایان می‌رساند."},
+    en: {action:"Confirm delivery with code",invalid:"Enter exactly four digits",busy:"Confirming…",help:"Enter the customer's four-digit delivery code. Admin confirmation does not require GPS and completes the order."},
+    ar: {action:"تأكيد التسليم بالرمز",invalid:"أدخل أربعة أرقام بالضبط",busy:"جارٍ التأكيد…",help:"أدخل رمز تسليم العميل المكون من أربعة أرقام. تأكيد المسؤول لا يتطلب GPS وينهي الطلب."},
+    tr: {action:"Kodla teslimatı onayla",invalid:"Tam olarak dört rakam girin",busy:"Onaylanıyor…",help:"Müşterinin dört haneli teslimat kodunu girin. Yönetici onayı GPS gerektirmez ve siparişi tamamlar."},
+  }[language];
 
   // Company information query for logo
   const { data: companyInfo } = useQuery({
@@ -983,9 +1051,22 @@ const LogisticsManagement = () => {
   console.log('Company Info:', companyInfo);
 
   // Get orders that have reached logistics stage (warehouse approved)
-  const { data: logisticsOrdersResponse, isLoading: loadingLogisticsOrders, refetch: refetchLogisticsOrders } = useQuery({
-    queryKey: ['/api/order-management/logistics'],
+  const {
+    data: logisticsOrdersResponse,
+    isLoading: loadingLogisticsOrders,
+    refetch: refetchLogisticsOrders,
+    fetchNextPage: fetchNextLogisticsPage,
+    hasNextPage: hasNextLogisticsPage,
+    isFetchingNextPage: isFetchingNextLogisticsPage,
+  } = useInfiniteQuery({
+    queryKey: ['/api/order-management/logistics', 'infinite'],
     enabled: activeTab === 'orders',
+    initialPageParam: 0,
+    queryFn: ({ pageParam = 0 }) => fetch(`/api/order-management/logistics?offset=${pageParam}`, { credentials: 'include', cache: 'no-cache' }).then(res => {
+      if (!res.ok) throw new Error('خطا در دریافت سفارشات لجستیک');
+      return res.json();
+    }),
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextOffset : undefined,
     staleTime: 0, // Always consider data stale
     gcTime: 0, // Don't cache at all - always fresh (v5 syntax)
     refetchOnWindowFocus: true, // Refetch when user comes back
@@ -993,9 +1074,22 @@ const LogisticsManagement = () => {
   });
 
   // Get delivered orders for delivered tab
-  const { data: deliveredOrdersResponse, isLoading: loadingDeliveredOrders, refetch: refetchDeliveredOrders } = useQuery({
-    queryKey: ['/api/order-management/delivered'],
+  const {
+    data: deliveredOrdersResponse,
+    isLoading: loadingDeliveredOrders,
+    refetch: refetchDeliveredOrders,
+    fetchNextPage: fetchNextDeliveredPage,
+    hasNextPage: hasNextDeliveredPage,
+    isFetchingNextPage: isFetchingNextDeliveredPage,
+  } = useInfiniteQuery({
+    queryKey: ['/api/order-management/delivered', 'infinite'],
     enabled: activeTab === 'delivered',
+    initialPageParam: 0,
+    queryFn: ({ pageParam = 0 }) => fetch(`/api/order-management/delivered?offset=${pageParam}`, { credentials: 'include' }).then(res => {
+      if (!res.ok) throw new Error('خطا در دریافت سفارشات تحویل‌شده');
+      return res.json();
+    }),
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextOffset : undefined,
     staleTime: 0, // Always consider data stale
     gcTime: 0, // Don't cache at all - always fresh (v5 syntax)
     refetchOnWindowFocus: true, // Refetch when user comes back
@@ -1010,12 +1104,25 @@ const LogisticsManagement = () => {
     // Then refetch
     await refetchLogisticsOrders();
     toast({
-      title: "🔄 به‌روزرسانی شد",
-      description: "لیست سفارشات لجستیک از سرور بازیابی شد",
+      title: `🔄 ${t('update')}`,
+      description: t('refreshDescription'),
     });
   };
   
-  const logisticsOrders = (logisticsOrdersResponse as any)?.orders || [];
+  const logisticsOrders = logisticsOrdersResponse?.pages.flatMap((page: any) => page.orders || []) || [];
+  const deliveredOrders = deliveredOrdersResponse?.pages.flatMap((page: any) => page.orders || []) || [];
+
+  // Load the next 100 rows when the active order table approaches the bottom.
+  const loadMoreOrdersOnScroll = useCallback(() => {
+    if (window.innerHeight + window.scrollY < document.documentElement.scrollHeight - 700) return;
+    if (activeTab === 'orders' && hasNextLogisticsPage && !isFetchingNextLogisticsPage) fetchNextLogisticsPage();
+    if (activeTab === 'delivered' && hasNextDeliveredPage && !isFetchingNextDeliveredPage) fetchNextDeliveredPage();
+  }, [activeTab, fetchNextLogisticsPage, fetchNextDeliveredPage, hasNextLogisticsPage, hasNextDeliveredPage, isFetchingNextLogisticsPage, isFetchingNextDeliveredPage]);
+
+  useEffect(() => {
+    window.addEventListener('scroll', loadMoreOrdersOnScroll);
+    return () => window.removeEventListener('scroll', loadMoreOrdersOnScroll);
+  }, [loadMoreOrdersOnScroll]);
   
   // Debug: Log first order to check recipient data
   if (logisticsOrders.length > 0) {
@@ -1048,7 +1155,7 @@ const LogisticsManagement = () => {
       phone: order.customerPhone
     },
     // Ensure customerAddress is available for display
-    customerAddress: order.customerAddress || 'آدرس ثبت نشده',
+    customerAddress: order.customerAddress || t('noAddressRegistered'),
     // Add GPS location availability flag
     hasGpsLocation: !!(order.gpsLatitude && order.gpsLongitude)
   }));
@@ -1061,18 +1168,7 @@ const LogisticsManagement = () => {
   // Iraqi provinces and cities data
   const { data: provincesResponse, isLoading: loadingProvinces } = useQuery({
     queryKey: ['/api/logistics/provinces'],
-    enabled: activeTab === 'cities' || activeTab === 'geography' || activeTab === 'international'
-  });
-
-  // Geography data for new geography tab (also enabled for international tab)
-  const { data: geographyProvincesResponse, isLoading: loadingGeographyProvinces } = useQuery({
-    queryKey: ['/api/logistics/provinces-detailed'],
-    enabled: activeTab === 'geography' || activeTab === 'international'
-  });
-
-  const { data: geographyCitiesResponse, isLoading: loadingGeographyCities } = useQuery({
-    queryKey: ['/api/logistics/cities-detailed'],
-    enabled: activeTab === 'geography' || activeTab === 'international'
+    enabled: activeTab === 'cities'
   });
 
   // Vehicle optimization states
@@ -1081,7 +1177,7 @@ const LogisticsManagement = () => {
 
   const { data: citiesResponse, isLoading: loadingCities } = useQuery({
     queryKey: ['/api/logistics/cities'],
-    enabled: activeTab === 'cities' || activeTab === 'geography' || activeTab === 'international'
+    enabled: activeTab === 'cities'
   });
 
 
@@ -1112,10 +1208,10 @@ const LogisticsManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/vehicle-templates'] });
       setIsCreateVehicleDialogOpen(false);
-      toast({ title: "موفقیت", description: "الگوی خودرو ایجاد شد" });
+      toast({ title: t('success'), description: t('templateCreated') });
     },
     onError: () => {
-      toast({ title: "خطا", description: "خطا در ایجاد الگوی خودرو", variant: "destructive" });
+      toast({ title: t('error'), description: t('templateCreateError'), variant: "destructive" });
     }
   });
 
@@ -1129,10 +1225,10 @@ const LogisticsManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/vehicle-templates'] });
       setEditingVehicle(null);
-      toast({ title: "موفقیت", description: "الگوی خودرو بروزرسانی شد" });
+      toast({ title: t('success'), description: t('templateUpdated') });
     },
     onError: () => {
-      toast({ title: "خطا", description: "خطا در بروزرسانی الگوی خودرو", variant: "destructive" });
+      toast({ title: t('error'), description: t('templateUpdateError'), variant: "destructive" });
     }
   });
 
@@ -1143,10 +1239,10 @@ const LogisticsManagement = () => {
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/vehicle-templates'] });
-      toast({ title: "موفقیت", description: "الگوی خودرو حذف شد" });
+      toast({ title: t('success'), description: t('templateDeleted') });
     },
     onError: () => {
-      toast({ title: "خطا", description: "خطا در حذف الگوی خودرو", variant: "destructive" });
+      toast({ title: t('error'), description: t('templateDeleteError'), variant: "destructive" });
     }
   });
 
@@ -1160,27 +1256,27 @@ const LogisticsManagement = () => {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/vehicle-selection-history'] });
       toast({ 
-        title: "انتخاب بهینه انجام شد", 
-        description: `وسیله انتخاب شده: ${result.data.selectedVehicle.vehicleName} - هزینه: ${parseInt(result.data.selectedVehicle.totalCost)} دینار`
+        title: t('optimizeSuccess'),
+        description: t('selectedVehicle').replace('{vehicle}', String(result.data.selectedVehicle.vehicleName)).replace('{cost}', `${parseInt(result.data.selectedVehicle.totalCost)} ${t('currencyIqd')}`)
       });
     },
     onError: () => {
-      toast({ title: "خطا", description: "خطا در انتخاب وسیله بهینه", variant: "destructive" });
+      toast({ title: t('error'), description: t('optimizeError'), variant: "destructive" });
     }
   });
 
   const getStatusBadge = (status: string) => {
     const statusMap = {
-      'warehouse_approved': { color: 'bg-blue-500', text: 'تایید انبار' },
-      'logistics_assigned': { color: 'bg-yellow-500', text: 'اختصاص لجستیک' },
-      'logistics_processing': { color: 'bg-orange-500', text: 'در حال پردازش' },
-      'logistics_dispatched': { color: 'bg-purple-500', text: 'ارسال شده' },
-      'logistics_delivered': { color: 'bg-green-500', text: 'تحویل داده شده' },
-      'available': { color: 'bg-green-500', text: 'آزاد' },
-      'assigned': { color: 'bg-yellow-500', text: 'اختصاص یافته' },
-      'in_transit': { color: 'bg-blue-500', text: 'در حال حمل' },
-      'maintenance': { color: 'bg-red-500', text: 'تعمیر' },
-      'offline': { color: 'bg-gray-500', text: 'آفلاین' },
+      'warehouse_approved': { color: 'bg-blue-500', text: t('warehouseApprovedStatus') },
+      'logistics_assigned': { color: 'bg-yellow-500', text: t('logisticsAssignedStatus') },
+      'logistics_processing': { color: 'bg-orange-500', text: t('processingStatus') },
+      'logistics_dispatched': { color: 'bg-purple-500', text: t('dispatchedStatus') },
+      'logistics_delivered': { color: 'bg-green-500', text: t('deliveredStatus') },
+      'available': { color: 'bg-green-500', text: t('freeStatus') },
+      'assigned': { color: 'bg-yellow-500', text: t('assignedStatus') },
+      'in_transit': { color: 'bg-blue-500', text: t('inTransit') },
+      'maintenance': { color: 'bg-red-500', text: t('maintenanceStatus') },
+      'offline': { color: 'bg-gray-500', text: t('offlineStatus') },
     };
     const config = (statusMap as any)[status] || { color: 'bg-gray-500', text: status };
     return <Badge className={config.color}>{config.text}</Badge>;
@@ -1191,8 +1287,18 @@ const LogisticsManagement = () => {
   // Handle enhanced vehicle assignment workflow
   // Smart vehicle recommendation based on template matching
   const getRecommendedVehicles = (order: LogisticsOrder, availableVehicles: any[], suitableTemplates: any[]) => {
-    const orderWeight = order.calculatedWeight || order.totalWeight || 0;
-    const orderCity = order.shippingAddress?.city || '';
+    const orderWeight = Number(order.calculatedWeight ?? order.totalWeight ?? 0) || 0;
+    const shippingAddress = order.shippingAddress;
+    let orderCity = '';
+    if (typeof shippingAddress === 'string') {
+      try {
+        orderCity = JSON.parse(shippingAddress)?.city || '';
+      } catch {
+        orderCity = '';
+      }
+    } else if (shippingAddress && typeof shippingAddress === 'object') {
+      orderCity = (shippingAddress as { city?: string }).city || '';
+    }
     
     console.log('🤖 [SMART RECOMMENDATION] Analyzing order requirements:', {
       weight: orderWeight,
@@ -1211,54 +1317,54 @@ const LogisticsManagement = () => {
       
       if (matchingTemplate) {
         score += 40; // Base score for template match
-        reasons.push('مطابق با الگوی پیشنهادی');
+        reasons.push(t('recommendationTemplateMatch'));
         
         // Weight efficiency scoring
-        const weightCapacity = parseFloat(matchingTemplate.maxWeightKg) || parseFloat(vehicle.loadCapacity) || 0;
+        const weightCapacity = Number(matchingTemplate.maxWeightKg) || Number(vehicle.loadCapacity) || 0;
         if (weightCapacity > 0) {
           const utilizationRate = orderWeight / weightCapacity;
           if (utilizationRate >= 0.7 && utilizationRate <= 0.9) {
             score += 30; // Optimal utilization
-            reasons.push('استفاده بهینه از ظرفیت');
+            reasons.push(t('recommendationOptimalCapacity'));
           } else if (utilizationRate >= 0.5 && utilizationRate < 0.7) {
             score += 20; // Good utilization
-            reasons.push('استفاده مناسب از ظرفیت');
+            reasons.push(t('recommendationGoodCapacity'));
           } else if (utilizationRate < 0.5) {
             score += 10; // Underutilized but safe
-            reasons.push('ظرفیت اضافی موجود');
+            reasons.push(t('recommendationExtraCapacity'));
           }
         }
         
         // Route compatibility
         if (matchingTemplate.allowedRoutes?.includes('urban') && orderCity) {
           score += 15;
-          reasons.push('مناسب برای حمل شهری');
+          reasons.push(t('recommendationUrbanTransport'));
         }
         
         // Cost efficiency
-        const totalCost = parseFloat(matchingTemplate.basePrice) + 
-                         (parseFloat(matchingTemplate.pricePerKm) * 10) + // Assume 10km average
-                         (parseFloat(matchingTemplate.pricePerKg) * orderWeight);
+        const totalCost = Number(matchingTemplate.basePrice) +
+                         (Number(matchingTemplate.pricePerKm) * 10) + // Assume 10km average
+                         (Number(matchingTemplate.pricePerKg) * orderWeight);
         
         if (totalCost < 100000) {
           score += 20;
-          reasons.push('هزینه اقتصادی');
+          reasons.push(t('recommendationEconomicalCost'));
         } else if (totalCost < 200000) {
           score += 10;
-          reasons.push('هزینه متعادل');
+          reasons.push(t('recommendationModerateCost'));
         }
       }
       
       // Vehicle availability and status
       if (vehicle.isAvailable !== false && vehicle.status !== 'maintenance') {
         score += 25;
-        reasons.push('آماده به خدمت');
+        reasons.push(t('recommendationReady'));
       }
       
       // Driver availability
-      if (vehicle.driverName && vehicle.driverName !== 'راننده موقت') {
+      if (vehicle.driverName && vehicle.driverName !== temporaryDriverValue) {
         score += 15;
-        reasons.push('راننده تعیین شده');
+        reasons.push(t('recommendationAssignedDriver'));
       }
       
       return {
@@ -1389,7 +1495,7 @@ const LogisticsManagement = () => {
               priority: 1,
               isCheckoutSuggested: true,
               matchType: 'exact',
-              matchReason: `انطباق کامل با الگوی "${checkoutVehicleDetails.vehicleType}" انتخاب شده توسط مشتری`
+              matchReason: t('exactTemplateMatch').replace('{vehicle}', checkoutVehicleDetails.vehicleType)
             })));
             console.log('🎯 [TEMPLATE SUCCESS] Added exact template matches with priority 1');
           }
@@ -1405,7 +1511,7 @@ const LogisticsManagement = () => {
               priority: 2,
               isCheckoutSuggested: true,
               matchType: 'partial',
-              matchReason: `انطباق نزدیک با الگوی "${checkoutVehicleDetails.vehicleType}" انتخاب شده توسط مشتری`
+              matchReason: t('partialTemplateMatch').replace('{vehicle}', checkoutVehicleDetails.vehicleType)
             })));
             console.log('🔄 [TEMPLATE PARTIAL] Added partial template matches with priority 2');
           }
@@ -1423,7 +1529,7 @@ const LogisticsManagement = () => {
               priority: 3,
               isCheckoutSuggested: false,
               matchType: 'alternative',
-              matchReason: 'گزینه جایگزین با ظرفیت مناسب'
+              matchReason: t('alternativeCapacity')
             })));
             console.log('🔀 [ALTERNATIVES] Added alternative vehicles with priority 3');
           }
@@ -1474,7 +1580,7 @@ const LogisticsManagement = () => {
               vehicleName: `${v.make || ''} ${v.model || ''}`.trim() || v.vehicleType,
               licensePlate: v.plateNumber,
               plateNumber: v.plateNumber,
-              driverName: 'راننده موقت',
+              driverName: temporaryDriverValue,
               driverPhone: '',
               driverMobile: '',
               loadCapacity: v.maxLoadKg || v.maxWeight || 10000,
@@ -1482,7 +1588,7 @@ const LogisticsManagement = () => {
               isAvailable: v.currentStatus === 'available',
               color: v.color,
               matchType: 'alternative',
-              matchReason: 'خودرو از ناوگان شرکت',
+              matchReason: t('companyFleetVehicle'),
               isCheckoutSuggested: false
             }));
           }
@@ -1512,7 +1618,7 @@ const LogisticsManagement = () => {
             vehicleName: `${v.make || ''} ${v.model || ''}`.trim() || v.vehicleType,
             licensePlate: v.plateNumber,
             plateNumber: v.plateNumber,
-            driverName: 'راننده موقت',
+            driverName: temporaryDriverValue,
             driverPhone: '',
             driverMobile: '',
             loadCapacity: v.maxLoadKg || v.maxWeight || 10000,
@@ -1520,7 +1626,7 @@ const LogisticsManagement = () => {
             isAvailable: v.currentStatus === 'available',
             color: v.color,
             matchType: 'alternative',
-            matchReason: 'خودرو از ناوگان شرکت',
+              matchReason: t('companyFleetVehicle'),
             isCheckoutSuggested: false
           }));
           
@@ -1536,8 +1642,8 @@ const LogisticsManagement = () => {
     } catch (error) {
       console.error('❌ [VEHICLE ASSIGNMENT ERROR]:', error);
       toast({
-        title: "خطا",
-        description: "خطا در بارگذاری خودروهای موجود",
+        title: t('error'),
+        description: t('vehiclesLoadError'),
         variant: "destructive"
       });
       setAvailableFleetVehicles([]);
@@ -1565,8 +1671,8 @@ const LogisticsManagement = () => {
 
       if (response.ok) {
         toast({
-          title: "موفقیت",
-          description: "خودرو با موفقیت به سفارش اختصاص یافت"
+          title: t('success'),
+          description: t('vehicleAssigned')
         });
         
         // Refresh the orders list
@@ -1576,8 +1682,8 @@ const LogisticsManagement = () => {
         // Vehicle is already assigned to another undelivered order
         const errorData = await response.json();
         toast({
-          title: "خودرو در دسترس نیست",
-          description: errorData.message || "این خودرو قبلاً به سفارش دیگری تخصیص یافته و هنوز تحویل نشده است",
+          title: t('vehicleUnavailable'),
+          description: errorData.message || t('vehicleAlreadyAssigned'),
           variant: "destructive"
         });
       } else {
@@ -1586,8 +1692,8 @@ const LogisticsManagement = () => {
     } catch (error) {
       console.error('Error assigning vehicle:', error);
       toast({
-        title: "خطا",
-        description: "خطا در اختصاص وسیله ارسال محموله",
+        title: t('error'),
+        description: t('vehicleAssignmentError'),
         variant: "destructive"
       });
     }
@@ -1597,8 +1703,8 @@ const LogisticsManagement = () => {
   const handleTemplateVehicleSelection = async (vehicle: any, isOptimal: boolean = false) => {
     if (!selectedOrderForVehicle) {
       toast({
-        title: "خطا",
-        description: "سفارش انتخاب شده‌ای برای اختصاص خودرو وجود ندارد",
+        title: t('error'),
+        description: t('noOrderSelected'),
         variant: "destructive"
       });
       return;
@@ -1610,7 +1716,7 @@ const LogisticsManagement = () => {
         vehicleName: vehicle.name,
         vehicleType: vehicle.vehicleType,
         plateNumber: `TMP-${Date.now()}`, // Temporary plate number
-        driverName: 'راننده موقت',
+        driverName: temporaryDriverValue,
         driverPhone: '09120000000',
         licensePlate: `TMP-${Date.now()}`,
         maxWeight: vehicle.maxWeightKg,
@@ -1618,7 +1724,7 @@ const LogisticsManagement = () => {
         status: 'available',
         isCheckoutSuggested: isOptimal,
         totalCost: vehicle.totalCost,
-        notes: `خودرو انتخاب شده از قالب ${vehicle.name} - ${isOptimal ? 'انتخاب بهینه سیستم' : 'انتخاب دستی'}`
+        notes: `${t('readyVehicleFromTemplate')}: ${vehicle.name} - ${isOptimal ? t('optimalSelectionSystem') : t('manualSelection')}`
       };
 
       // Call the create ready vehicle API
@@ -1645,8 +1751,8 @@ const LogisticsManagement = () => {
         ]);
 
         toast({
-          title: isOptimal ? "🎯 انتخاب بهینه اضافه شد" : "✅ خودرو اضافه شد",
-          description: `خودرو ${vehicle.name} ${isOptimal ? '(انتخاب بهینه سیستم)' : ''} به لیست خودروهای آماده اضافه شد و آماده اختصاص است`,
+          title: isOptimal ? `🎯 ${t('optimalVehicleAdded')}` : `✅ ${t('vehicleAdded')}`,
+          description: `${vehicle.name}: ${t('readyVehicleFromTemplate')}`,
           variant: "default"
         });
 
@@ -1662,40 +1768,40 @@ const LogisticsManagement = () => {
     } catch (error) {
       console.error('Error creating ready vehicle from template:', error);
       toast({
-        title: "خطا",
-        description: "خطا در ایجاد خودرو آماده از قالب انتخابی",
+        title: t('error'),
+        description: t('readyVehicleCreateError'),
         variant: "destructive"
       });
     }
   };
 
   const VEHICLE_TYPES = {
-    motorcycle: "موتور",
-    bicycle: "دوچرخه",
-    scooter: "اسکوتر",
-    van: "وانت",
-    pickup: "پیکاپ", 
-    small_truck: "کامیون کوچک",
-    light_truck: "کامیون سبک",
-    medium_truck: "کامیون متوسط",
-    heavy_truck: "کامیون سنگین",
-    articulated_truck: "کامیون کشنده",
-    tanker: "تانکر",
-    refrigerated_truck: "کامیون یخچالی",
-    flatbed_truck: "کامیون بار باز",
-    container_truck: "کامیون کانتینری",
-    crane_truck: "کامیون جرثقیل",
-    dump_truck: "کامیون کمپرسی",
-    cargo_van: "ون باری",
-    mini_bus: "مینی‌بوس",
-    bus: "اتوبوس",
-    trailer: "تریلی"
+    motorcycle: t('vehicleTypeMotorcycle'),
+    bicycle: t('vehicleTypeBicycle'),
+    scooter: t('vehicleTypeScooter'),
+    van: t('vehicleTypeVan'),
+    pickup: t('vehicleTypePickup'),
+    small_truck: t('vehicleTypeSmallTruck'),
+    light_truck: t('vehicleTypeLightTruck'),
+    medium_truck: t('vehicleTypeMediumTruck'),
+    heavy_truck: t('vehicleTypeHeavyTruck'),
+    articulated_truck: t('vehicleTypeArticulatedTruck'),
+    tanker: t('vehicleTypeTanker'),
+    refrigerated_truck: t('vehicleTypeRefrigeratedTruck'),
+    flatbed_truck: t('vehicleTypeFlatbedTruck'),
+    container_truck: t('vehicleTypeContainerTruck'),
+    crane_truck: t('vehicleTypeCraneTruck'),
+    dump_truck: t('vehicleTypeDumpTruck'),
+    cargo_van: t('vehicleTypeCargoVan'),
+    mini_bus: t('vehicleTypeMiniBus'),
+    bus: t('vehicleTypeBus'),
+    trailer: t('vehicleTypeTrailer')
   };
 
   const ROUTE_TYPES = {
-    urban: "شهری",
-    interurban: "بین شهری",
-    highway: "آزادراه"
+    urban: t('routeUrban'),
+    interurban: t('routeInterurban'),
+    highway: t('routeHighway')
   };
 
   const handleCreateVehicle = (formData: FormData) => {
@@ -1722,14 +1828,14 @@ const LogisticsManagement = () => {
 
   const handleOptimizeVehicle = () => {
     if (!optimizationRequest.orderNumber || !optimizationRequest.weightKg || !optimizationRequest.routeType || !optimizationRequest.distanceKm) {
-      toast({ title: "خطا", description: "لطفاً همه فیلدهای اجباری را پر کنید", variant: "destructive" });
+      toast({ title: t('error'), description: t('requiredFields'), variant: "destructive" });
       return;
     }
     optimizeVehicleMutation.mutate(optimizationRequest);
   };
 
   const handleDeleteVehicle = (vehicleId: number) => {
-    if (confirm("آیا از حذف این الگوی خودرو مطمئن هستید؟")) {
+    if (confirm(t('deleteTemplateQuestion'))) {
       deleteVehicleMutation.mutate(vehicleId);
     }
   };
@@ -1777,94 +1883,94 @@ const LogisticsManagement = () => {
             <div>
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Truck className="h-5 w-5" />
-                مدیریت قالب‌های خودرو
+                {t('templateManagement')}
               </h2>
-              <p className="text-muted-foreground text-sm">مدیریت الگوهای خودرو برای سیستم انتخاب بهینه و محاسبه هزینه</p>
+              <p className="text-muted-foreground text-sm">{t('templateManagementDescription')}</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-md font-medium">الگوهای خودرو</h3>
+              <h3 className="text-md font-medium">{t('vehicleTemplates')}</h3>
               <Dialog open={isCreateVehicleDialogOpen} onOpenChange={setIsCreateVehicleDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm">
                     <Plus className="h-4 w-4 ml-2" />
-                    افزودن الگوی جدید
+                    {t('addTemplate')}
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl" dir="rtl">
+                <DialogContent className="max-w-2xl" dir={direction}>
                   <DialogHeader>
-                    <DialogTitle>افزودن الگوی خودروی جدید</DialogTitle>
-                    <DialogDescription>اطلاعات الگوی خودرو را برای استفاده در انتخاب بهینه وارد کنید</DialogDescription>
+                    <DialogTitle>{t('addTemplateTitle')}</DialogTitle>
+                    <DialogDescription>{t('templateDescription')}</DialogDescription>
                   </DialogHeader>
                   <form onSubmit={(e) => { e.preventDefault(); handleCreateVehicle(new FormData(e.currentTarget)); }}>
                     <div className="grid grid-cols-2 gap-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="name">نام فارسی *</Label>
+                        <Label htmlFor="name">{t('persianName')}</Label>
                         <Input id="name" name="name" required />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="nameEn">نام انگلیسی</Label>
+                        <Label htmlFor="nameEn">{t('englishName')}</Label>
                         <Input id="nameEn" name="nameEn" />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="vehicleType">نوع خودرو *</Label>
+                        <Label htmlFor="vehicleType">{t('vehicleType')}</Label>
                         <select name="vehicleType" required className="w-full p-2 border rounded">
-                          <option value="">انتخاب نوع خودرو</option>
+                          <option value="">{t('selectVehicleType')}</option>
                           {Object.entries(VEHICLE_TYPES).map(([key, value]) => (
                             <option key={key} value={key}>{value}</option>
                           ))}
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="maxWeightKg">حداکثر وزن (کیلوگرم) *</Label>
+                        <Label htmlFor="maxWeightKg">{t('maxWeight')}</Label>
                         <Input id="maxWeightKg" name="maxWeightKg" type="number" required />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="basePrice">قیمت پایه (دینار) *</Label>
+                        <Label htmlFor="basePrice">{t('basePrice')}</Label>
                         <Input id="basePrice" name="basePrice" type="number" required />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="pricePerKm">قیمت هر کیلومتر (دینار) *</Label>
+                        <Label htmlFor="pricePerKm">{t('pricePerKm')}</Label>
                         <Input id="pricePerKm" name="pricePerKm" type="number" required />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="allowedRoutes">مسیرهای مجاز *</Label>
+                        <Label htmlFor="allowedRoutes">{t('allowedRoutes')}</Label>
                         <Input id="allowedRoutes" name="allowedRoutes" placeholder="urban,interurban,highway" required />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="averageSpeedKmh">سرعت متوسط (کیلومتر/ساعت)</Label>
+                        <Label htmlFor="averageSpeedKmh">{t('averageSpeed')}</Label>
                         <Input id="averageSpeedKmh" name="averageSpeedKmh" type="number" defaultValue="50" />
                       </div>
                       <div className="space-y-2 col-span-2">
                         <Label className="flex items-center gap-2">
                           <Flame className="h-4 w-4 text-orange-500" />
                           <Shield className="h-4 w-4 text-red-500" />
-                          قابلیت حمل مواد خطرناک و آتش زا
+                          {t('hazardousCapability')}
                         </Label>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label className="text-sm text-gray-600">مواد آتش زا</Label>
+                            <Label className="text-sm text-gray-600">{t('flammable')}</Label>
                             <Select name="supportsFlammable">
                               <SelectTrigger>
-                                <SelectValue placeholder="انتخاب کنید" />
+                                <SelectValue placeholder={t('select')} />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="true">مجاز</SelectItem>
-                                <SelectItem value="false">غیر مجاز</SelectItem>
+                                <SelectItem value="true">{t('permitted')}</SelectItem>
+                                <SelectItem value="false">{t('notPermitted')}</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm text-gray-600">مواد خطرناک</Label>
+                            <Label className="text-sm text-gray-600">{t('hazardous')}</Label>
                             <Select name="supportsHazardous">
                               <SelectTrigger>
-                                <SelectValue placeholder="انتخاب کنید" />
+                                <SelectValue placeholder={t('select')} />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="true">مجاز</SelectItem>
-                                <SelectItem value="false">غیر مجاز</SelectItem>
+                                <SelectItem value="true">{t('permitted')}</SelectItem>
+                                <SelectItem value="false">{t('notPermitted')}</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -1873,9 +1979,9 @@ const LogisticsManagement = () => {
 
                     </div>
                     <DialogFooter>
-                      <Button type="button" variant="outline" onClick={() => setIsCreateVehicleDialogOpen(false)}>انصراف</Button>
+                      <Button type="button" variant="outline" onClick={() => setIsCreateVehicleDialogOpen(false)}>{t('cancel')}</Button>
                       <Button type="submit" disabled={createVehicleMutation.isPending}>
-                        {createVehicleMutation.isPending ? "در حال ایجاد..." : "ایجاد الگو"}
+                        {createVehicleMutation.isPending ? t('creatingTemplate') : t('createTemplate')}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -1885,54 +1991,54 @@ const LogisticsManagement = () => {
 
             <Card>
               <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
+                <div className="overflow-x-auto"><Table className="min-w-[980px] border border-slate-200">
+                  <TableHeader className="sticky top-0 bg-slate-700">
                     <TableRow>
-                      <TableHead>نام</TableHead>
-                      <TableHead>نوع</TableHead>
-                      <TableHead>حداکثر وزن</TableHead>
-                      <TableHead>حجم</TableHead>
-                      <TableHead>مواد خطرناک و آتش زا</TableHead>
-                      <TableHead>قیمت پایه</TableHead>
-                      <TableHead>قیمت/کیلومتر</TableHead>
-                      <TableHead>وضعیت</TableHead>
-                      <TableHead>عملیات</TableHead>
+                      <TableHead className="border-e border-slate-600 text-start text-slate-50">{t('name')}</TableHead>
+                      <TableHead className="border-e border-slate-600 text-start text-slate-50">{t('type')}</TableHead>
+                      <TableHead className="border-e border-slate-600 text-start text-slate-50">{t('maxWeight')}</TableHead>
+                      <TableHead className="border-e border-slate-600 text-start text-slate-50">{t('volume')}</TableHead>
+                      <TableHead className="border-e border-slate-600 text-start text-slate-50">{t('dangerousAndFlammable')}</TableHead>
+                      <TableHead className="border-e border-slate-600 text-start text-slate-50">{t('basePrice')}</TableHead>
+                      <TableHead className="border-e border-slate-600 text-start text-slate-50">{t('pricePerKm')}</TableHead>
+                      <TableHead className="border-e border-slate-600 text-start text-slate-50">{t('status')}</TableHead>
+                      <TableHead className="text-start text-slate-50">{t('operations')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {vehiclesLoading ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8">در حال بارگذاری...</TableCell>
+                        <TableCell colSpan={9} className="py-8 text-center">{t('loading')}</TableCell>
                       </TableRow>
                     ) : vehicles.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8">هیچ الگوی خودرویی یافت نشد</TableCell>
+                        <TableCell colSpan={9} className="py-8 text-center">{t('noData')}</TableCell>
                       </TableRow>
                     ) : (
                       vehicles.map((vehicle: any) => (
-                        <TableRow key={vehicle.id}>
+                        <TableRow key={vehicle.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50">
                           <TableCell>{vehicle.name}</TableCell>
                           <TableCell>{(VEHICLE_TYPES as any)[vehicle.vehicleType] || vehicle.vehicleType}</TableCell>
-                          <TableCell>{parseInt(vehicle.maxWeightKg)} کیلوگرم</TableCell>
-                          <TableCell>{parseInt(vehicle.maxVolumeM3) || 0} متر مکعب</TableCell>
+                          <TableCell>{parseInt(vehicle.maxWeightKg)} {t('unitKg')}</TableCell>
+                          <TableCell>{parseInt(vehicle.maxVolumeM3) || 0} m³</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
                               <Badge variant={vehicle.supportsFlammable ? "default" : "secondary"} className="text-xs flex items-center gap-1">
                                 <Flame className="h-3 w-3" />
-                                {vehicle.supportsFlammable ? "آتش زا" : "ممنوع"}
+                                {vehicle.supportsFlammable ? t('flammable') : t('notPermitted')}
                               </Badge>
                               <Badge variant={vehicle.supportsHazardous ? "default" : "secondary"} className="text-xs flex items-center gap-1">
                                 <Shield className="h-3 w-3" />
-                                {vehicle.supportsHazardous ? "خطرناک" : "ممنوع"}
+                                {vehicle.supportsHazardous ? t('hazardous') : t('notPermitted')}
                               </Badge>
                             </div>
                           </TableCell>
-                          <TableCell>{parseInt(vehicle.basePrice)} دینار</TableCell>
-                          <TableCell>{parseInt(vehicle.pricePerKm)} دینار</TableCell>
+                          <TableCell>{parseInt(vehicle.basePrice)} {t('currencyIqd')}</TableCell>
+                          <TableCell>{parseInt(vehicle.pricePerKm)} {t('currencyIqd')}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Badge variant={vehicle.isActive ? "default" : "secondary"}>
-                                {vehicle.isActive ? "فعال" : "غیرفعال"}
+                                {vehicle.isActive ? t('active') : t('inactive')}
                               </Badge>
                               <Button
                                 size="sm"
@@ -1940,7 +2046,7 @@ const LogisticsManagement = () => {
                                 onClick={() => handleToggleVehicleStatus(vehicle.id, !vehicle.isActive)}
                                 disabled={updateVehicleMutation.isPending}
                               >
-                                {vehicle.isActive ? "غیرفعال" : "فعال"}
+                                {vehicle.isActive ? t('inactive') : t('active')}
                               </Button>
                             </div>
                           </TableCell>
@@ -1952,7 +2058,7 @@ const LogisticsManagement = () => {
                                 onClick={() => setEditingVehicle(vehicle)}
                               >
                                 <Edit className="w-4 h-4 mr-2" />
-                                ویرایش
+                                {t('edit')}
                               </Button>
                               <Button 
                                 size="sm" 
@@ -1960,7 +2066,7 @@ const LogisticsManagement = () => {
                                 onClick={() => handleDeleteVehicle(vehicle.id)}
                               >
                                 <AlertTriangle className="w-4 h-4 mr-2" />
-                                حذف
+                                {t('delete')}
                               </Button>
                             </div>
                           </TableCell>
@@ -1968,7 +2074,7 @@ const LogisticsManagement = () => {
                       ))
                     )}
                   </TableBody>
-                </Table>
+                </Table></div>
               </CardContent>
             </Card>
 
@@ -1981,15 +2087,15 @@ const LogisticsManagement = () => {
                   setCustomEditVehicleType('');
                 }
               }}>
-                <DialogContent className="max-w-2xl" dir="rtl">
+                <DialogContent className="max-w-2xl" dir={direction}>
                   <DialogHeader>
-                    <DialogTitle>ویرایش الگوی خودرو</DialogTitle>
-                    <DialogDescription>اطلاعات الگوی خودرو را ویرایش کنید</DialogDescription>
+                    <DialogTitle>{t('editTemplate')}</DialogTitle>
+                    <DialogDescription>{t('editTemplateDescription')}</DialogDescription>
                   </DialogHeader>
                   <form onSubmit={(e) => { e.preventDefault(); handleEditVehicle(new FormData(e.currentTarget)); }}>
                     <div className="grid grid-cols-2 gap-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="edit-name">نام فارسی *</Label>
+                        <Label htmlFor="edit-name">{t('persianName')}</Label>
                         <Input 
                           id="edit-name" 
                           name="name" 
@@ -1998,7 +2104,7 @@ const LogisticsManagement = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-nameEn">نام انگلیسی</Label>
+                        <Label htmlFor="edit-nameEn">{t('englishName')}</Label>
                         <Input 
                           id="edit-nameEn" 
                           name="nameEn" 
@@ -2006,7 +2112,7 @@ const LogisticsManagement = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-vehicleType">نوع خودرو *</Label>
+                        <Label htmlFor="edit-vehicleType">{t('vehicleType')}</Label>
                         <select 
                           name="vehicleType" 
                           defaultValue={Object.keys(VEHICLE_TYPES).includes(editingVehicle.vehicleType) ? editingVehicle.vehicleType : 'سایر'}
@@ -2020,11 +2126,11 @@ const LogisticsManagement = () => {
                             }
                           }}
                         >
-                          <option value="">انتخاب نوع خودرو</option>
+                          <option value="">{t('selectVehicleType')}</option>
                           {Object.entries(VEHICLE_TYPES).map(([key, value]) => (
                             <option key={key} value={key}>{value}</option>
                           ))}
-                          <option value="سایر">سایر (وارد کردن نوع دلخواه)</option>
+                          <option value="سایر">{t('other')} ({t('enterVehicleType')})</option>
                         </select>
                         {showCustomEditInput && (
                           <div className="mt-2">
@@ -2032,7 +2138,7 @@ const LogisticsManagement = () => {
                               name="customVehicleType"
                               value={customEditVehicleType}
                               onChange={(e) => setCustomEditVehicleType(e.target.value)}
-                              placeholder="نوع خودروی مورد نظر را وارد کنید"
+                              placeholder={t('enterVehicleType')}
                               required={showCustomEditInput}
                               className="w-full"
                             />
@@ -2040,7 +2146,7 @@ const LogisticsManagement = () => {
                         )}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-maxWeightKg">حداکثر وزن (کیلوگرم) *</Label>
+                        <Label htmlFor="edit-maxWeightKg">{t('maxWeight')}</Label>
                         <input 
                           id="edit-maxWeightKg" 
                           name="maxWeightKg" 
@@ -2051,7 +2157,7 @@ const LogisticsManagement = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-basePrice">قیمت پایه (دینار) *</Label>
+                        <Label htmlFor="edit-basePrice">{t('basePrice')}</Label>
                         <input 
                           id="edit-basePrice" 
                           name="basePrice" 
@@ -2062,7 +2168,7 @@ const LogisticsManagement = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-pricePerKm">قیمت هر کیلومتر (دینار) *</Label>
+                        <Label htmlFor="edit-pricePerKm">{t('pricePerKm')}</Label>
                         <input 
                           id="edit-pricePerKm" 
                           name="pricePerKm" 
@@ -2073,7 +2179,7 @@ const LogisticsManagement = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-allowedRoutes">مسیرهای مجاز *</Label>
+                        <Label htmlFor="edit-allowedRoutes">{t('allowedRoutes')}</Label>
                         <Input 
                           id="edit-allowedRoutes" 
                           name="allowedRoutes" 
@@ -2083,7 +2189,7 @@ const LogisticsManagement = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-averageSpeedKmh">سرعت متوسط (کیلومتر/ساعت)</Label>
+                        <Label htmlFor="edit-averageSpeedKmh">{t('averageSpeed')}</Label>
                         <input 
                           id="edit-averageSpeedKmh" 
                           name="averageSpeedKmh" 
@@ -2093,7 +2199,7 @@ const LogisticsManagement = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-maxVolumeM3">حجم حداکثر (متر مکعب)</Label>
+                        <Label htmlFor="edit-maxVolumeM3">{t('maxVolume')}</Label>
                         <input 
                           id="edit-maxVolumeM3" 
                           name="maxVolumeM3" 
@@ -2106,30 +2212,30 @@ const LogisticsManagement = () => {
                         <Label className="flex items-center gap-2">
                           <Flame className="h-4 w-4 text-orange-500" />
                           <Shield className="h-4 w-4 text-red-500" />
-                          قابلیت حمل مواد خطرناک و آتش زا
+                          {t('hazardousCapability')}
                         </Label>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label className="text-sm text-gray-600">مواد آتش زا</Label>
+                            <Label className="text-sm text-gray-600">{t('flammable')}</Label>
                             <Select name="supportsFlammable" defaultValue={editingVehicle.supportsFlammable?.toString() || "false"}>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="true">مجاز</SelectItem>
-                                <SelectItem value="false">غیر مجاز</SelectItem>
+                                <SelectItem value="true">{t('permitted')}</SelectItem>
+                                <SelectItem value="false">{t('notPermitted')}</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-sm text-gray-600">مواد خطرناک</Label>
+                            <Label className="text-sm text-gray-600">{t('hazardous')}</Label>
                             <Select name="supportsHazardous" defaultValue={editingVehicle.supportsHazardous?.toString() || "false"}>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="true">مجاز</SelectItem>
-                                <SelectItem value="false">غیر مجاز</SelectItem>
+                                <SelectItem value="true">{t('permitted')}</SelectItem>
+                                <SelectItem value="false">{t('notPermitted')}</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -2145,16 +2251,16 @@ const LogisticsManagement = () => {
                             defaultChecked={editingVehicle.isActive}
                             className="w-4 h-4"
                           />
-                          <Label htmlFor="edit-isActive">فعال</Label>
+                          <Label htmlFor="edit-isActive">{t('activeLabel')}</Label>
                         </div>
                       </div>
                     </div>
                     <DialogFooter>
                       <Button type="button" variant="outline" onClick={() => setEditingVehicle(null)}>
-                        انصراف
+                        {t('cancel')}
                       </Button>
                       <Button type="submit" disabled={updateVehicleMutation.isPending}>
-                        {updateVehicleMutation.isPending ? "در حال بروزرسانی..." : "بروزرسانی"}
+                        {updateVehicleMutation.isPending ? t('updating') : t('update')}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -2172,15 +2278,15 @@ const LogisticsManagement = () => {
     if (!selectedOrder) return;
     
     const printContent = `
-      <html>
+      <html dir="${direction}" lang="${language}">
         <head>
-          <title>جزئیات سفارش ${selectedOrder.orderNumber}</title>
+          <title>${t('details')} ${selectedOrder.orderNumber}</title>
           <style>
             * { box-sizing: border-box; }
             body { 
               font-family: 'Segoe UI', Arial, sans-serif; 
-              direction: rtl; 
-              text-align: right; 
+              direction: ${direction};
+              text-align: start;
               margin: 0;
               padding: 20mm 20mm 15mm 20mm; /* یکسان کردن حاشیه‌ها با print دوم */
               font-size: 14px;
@@ -2365,94 +2471,94 @@ const LogisticsManagement = () => {
         </head>
         <body>
           <div class="header">
-            <img src="${(companyInfo as any)?.data?.logoUrl || '/uploads/Logo_1753245273579.jpeg'}" alt="شرکت ممتاز شیمی" style="max-width: 120px; max-height: 80px; margin-bottom: 15px;" onerror="this.style.display='none'">
-            <h1>جزئیات سفارش لجستیک</h1>
-            <h2>سفارش ${selectedOrder.orderNumber}</h2>
-            <p>تاریخ چاپ: ${new Date().toLocaleDateString('en-US')}</p>
+            <img src="${(companyInfo as any)?.data?.logoUrl || '/attached_assets/company-logo.png'}" alt="${t('companyName')}" style="max-width: 120px; max-height: 80px; margin-bottom: 15px;" onerror="this.onerror=null;this.src='/attached_assets/company-logo.png'">
+            <h1>${t('logisticsOrderDetails')}</h1>
+            <h2>${t('orderLabel')} ${selectedOrder.orderNumber}</h2>
+            <p>${t('date')}: ${new Intl.DateTimeFormat(locale).format(new Date())}</p>
           </div>
 
           <div class="section">
-            <h3>🧑‍💼 اطلاعات مشتری</h3>
+            <h3>${t('customer')}</h3>
             <div class="info-grid">
               <div class="info-item">
-                <span class="label">نام و نام خانوادگی:</span>
+                <span class="label">${t('fullName')}:</span>
                 <span class="value">${(selectedOrder.customer?.firstName || selectedOrder.customerFirstName)} ${(selectedOrder.customer?.lastName || selectedOrder.customerLastName)}</span>
               </div>
               <div class="info-item">
-                <span class="label">شماره تماس:</span>
+                <span class="label">${t('phone')}:</span>
                 <span class="value" style="font-size: 20px; font-weight: bold; color: #2563eb;">${selectedOrder.customer?.phone || selectedOrder.customerPhone}</span>
               </div>
               <div class="info-item">
-                <span class="label">ایمیل:</span>
-                <span class="value">${selectedOrder.customer?.email || selectedOrder.customerEmail || 'ثبت نشده'}</span>
+                <span class="label">${t('email')}:</span>
+                <span class="value">${selectedOrder.customer?.email || selectedOrder.customerEmail || t('emailNotSet')}</span>
               </div>
             </div>
           </div>
 
           <div class="section">
-            <h3>📍 آدرس تحویل</h3>
+            <h3>${t('deliveryAddress')}</h3>
             <div class="info-grid">
               <div class="info-item">
-                <span class="label">👤 نام گیرنده:</span>
+                <span class="label">👤 ${t('recipientName')}:</span>
                 <span class="value" style="font-size: 16px; font-weight: bold;">${(() => {
                   if (selectedOrder.recipientName) return selectedOrder.recipientName;
                   if (selectedOrder.shippingAddress) {
                     const addr = typeof selectedOrder.shippingAddress === 'string' 
                       ? JSON.parse(selectedOrder.shippingAddress) 
                       : selectedOrder.shippingAddress;
-                    return addr?.name || 'ثبت نشده';
+                    return addr?.name || t('emailNotSet');
                   }
-                  return 'ثبت نشده';
+                  return t('emailNotSet');
                 })()}</span>
               </div>
               <div class="info-item">
-                <span class="label">📞 تلفن گیرنده:</span>
+                <span class="label">📞 ${t('recipientPhone')}:</span>
                 <span class="value phone-value">${(() => {
                   if (selectedOrder.recipientPhone) return selectedOrder.recipientPhone;
                   if (selectedOrder.shippingAddress) {
                     const addr = typeof selectedOrder.shippingAddress === 'string' 
                       ? JSON.parse(selectedOrder.shippingAddress) 
                       : selectedOrder.shippingAddress;
-                    return addr?.phone || 'ثبت نشده';
+                    return addr?.phone || t('emailNotSet');
                   }
-                  return 'ثبت نشده';
+                  return t('emailNotSet');
                 })()}</span>
               </div>
               <div class="info-item address-item" style="grid-column: 1 / -1;">
-                <span class="label address-label">🏠 آدرس کامل تحویل</span>
+                <span class="label address-label">🏠 ${t('fullDeliveryAddress')}</span>
                 <span class="value address-value">${(() => {
                   if (selectedOrder.recipientAddress) return selectedOrder.recipientAddress;
                   if (selectedOrder.shippingAddress) {
                     const addr = typeof selectedOrder.shippingAddress === 'string' 
                       ? JSON.parse(selectedOrder.shippingAddress) 
                       : selectedOrder.shippingAddress;
-                    return addr?.address || 'ثبت نشده';
+                    return addr?.address || t('emailNotSet');
                   }
-                  return 'ثبت نشده';
+                  return t('emailNotSet');
                 })()}</span>
               </div>
               <div class="info-item">
-                <span class="label">شهر:</span>
+                <span class="label">${t('city')}:</span>
                 <span class="value">${(() => {
                   if (selectedOrder.shippingAddress) {
                     const addr = typeof selectedOrder.shippingAddress === 'string' 
                       ? JSON.parse(selectedOrder.shippingAddress) 
                       : selectedOrder.shippingAddress;
-                    return addr?.city || 'ثبت نشده';
+                    return addr?.city || t('emailNotSet');
                   }
-                  return 'ثبت نشده';
+                  return t('emailNotSet');
                 })()}</span>
               </div>
               <div class="info-item">
-                <span class="label">کد پستی:</span>
+                <span class="label">${t('postalCode')}:</span>
                 <span class="value">${(() => {
                   if (selectedOrder.shippingAddress) {
                     const addr = typeof selectedOrder.shippingAddress === 'string' 
                       ? JSON.parse(selectedOrder.shippingAddress) 
                       : selectedOrder.shippingAddress;
-                    return addr?.postalCode || 'ثبت نشده';
+                    return addr?.postalCode || t('emailNotSet');
                   }
-                  return 'ثبت نشده';
+                  return t('emailNotSet');
                 })()}</span>
               </div>
             </div>
@@ -2460,44 +2566,44 @@ const LogisticsManagement = () => {
 
           ${(selectedOrder as any).financialReviewedAt || (selectedOrder as any).financialNotes ? `
           <div class="section">
-            <h3>💰 اطلاعات مالی</h3>
+            <h3>${t('financialInfo')}</h3>
             <div class="info-grid">
               ${(selectedOrder as any).financialReviewedAt ? `
               <div class="info-item">
-                <span class="label">تاریخ بررسی مالی:</span>
+                <span class="label">${t('financialReviewDate')}:</span>
                 <span class="value">${new Date((selectedOrder as any).financialReviewedAt).toLocaleDateString('en-GB')}</span>
               </div>` : ''}
               ${(selectedOrder as any).financialNotes ? `
               <div class="info-item" style="grid-column: 1 / -1;">
-                <span class="label">یادداشت‌های مالی:</span>
+                <span class="label">${t('financialNotes')}:</span>
                 <span class="value">${(selectedOrder as any).financialNotes}</span>
               </div>` : ''}
             </div>
           </div>` : ''}
 
           <div class="section">
-            <h3>📦 جزئیات سفارش</h3>
+            <h3>${t('details')}</h3>
             <div class="info-grid">
               <div class="info-item">
-                <span class="label">وزن محموله:</span>
-                <span class="value">${selectedOrder.calculatedWeight || selectedOrder.totalWeight} کیلوگرم</span>
+                <span class="label">${t('cargoWeight')}:</span>
+                <span class="value">${selectedOrder.calculatedWeight || selectedOrder.totalWeight} ${t('unitKg')}</span>
               </div>
               <div class="info-item">
-                <span class="label">روش تحویل:</span>
+                <span class="label">${t('deliveryMethodLabel')}:</span>
                 <span class="value">${selectedOrder.vehicleType || (selectedOrder as any).selectedVehicleName || 
-                  (selectedOrder.deliveryMethod === 'smart_vehicle' ? '🚚 ارسال هوشمند' :
-                   selectedOrder.deliveryMethod === 'self_pickup' ? '🏢 تحویل حضوری' :
-                   selectedOrder.deliveryMethod === 'freight_collect' ? '💰 پس کرایه' :
-                   selectedOrder.deliveryMethod === 'postal' ? '📮 ارسال پستی' :
-                   selectedOrder.deliveryMethod === 'courier' ? 'پیک موتوری' :
-                   selectedOrder.deliveryMethod || '⚠️ نامشخص')}</span>
+                  (selectedOrder.deliveryMethod === 'smart_vehicle' ? `🚚 ${t('smartDelivery')}` :
+                   selectedOrder.deliveryMethod === 'self_pickup' ? `🏢 ${t('customerPickup')}` :
+                   selectedOrder.deliveryMethod === 'freight_collect' ? `💰 ${t('freightCollect')}` :
+                   selectedOrder.deliveryMethod === 'postal' ? `📮 ${t('postalDelivery')}` :
+                   selectedOrder.deliveryMethod === 'courier' ? t('courierMethod') :
+                   selectedOrder.deliveryMethod || `⚠️ ${t('unknownValue')}`)}</span>
               </div>
             </div>
           </div>
 
           ${selectedOrder.deliveryNotes ? `
           <div class="section">
-            <h3>📝 یادداشت‌های تحویل</h3>
+            <h3>${t('deliveryNotes')}</h3>
             <p>${selectedOrder.deliveryNotes}</p>
           </div>
           ` : ''}
@@ -2527,16 +2633,16 @@ const LogisticsManagement = () => {
 
     const printContent = `
     <!DOCTYPE html>
-    <html dir="rtl" lang="ar">
+    <html dir="${direction}" lang="${language}">
     <head>
       <meta charset="utf-8">
-      <title>Print</title>
+      <title>${t('details')}</title>
       <style>
         body { 
           font-family: 'Segoe UI', Tahoma, Arial, sans-serif; 
           margin: 0;
           padding: 20mm 20mm 15mm 20mm; /* حاشیه‌های یکسان */
-          direction: rtl; 
+          direction: ${direction};
           font-size: 14px;
           line-height: 1.6;
         }
@@ -2629,123 +2735,123 @@ const LogisticsManagement = () => {
     </head>
     <body>
       <div class="header">
-        <img src="${(companyInfo as any)?.data?.logoUrl || '/uploads/Logo_1753245273579.jpeg'}" alt="شرکت ممتاز شیمی" style="max-width: 120px; max-height: 80px; margin-bottom: 15px;" onerror="this.style.display='none'">
-        <div class="company-name">ممتاز شیمی</div>
-        <div>جزئیات سفارش</div>
-        <div style="font-size: 12px; color: #6b7280;">تاریخ چاپ: ${new Date().toLocaleDateString('en-GB')}</div>
+        <img src="${(companyInfo as any)?.data?.logoUrl || '/attached_assets/company-logo.png'}" alt="${t('companyName')}" style="max-width: 120px; max-height: 80px; margin-bottom: 15px;" onerror="this.onerror=null;this.src='/attached_assets/company-logo.png'">
+        <div class="company-name">${t('companyName')}</div>
+        <div>${t('orderLabel')} ${t('details')}</div>
+          <div style="font-size: 12px; color: #6b7280;">${t('date')}: ${new Intl.DateTimeFormat(locale).format(new Date())}</div>
       </div>
 
       <div class="section">
-        <div class="section-title">اطلاعات سفارش</div>
+        <div class="section-title">${t('orderInformation')}</div>
         <div class="info-grid">
           <div class="info-item">
-            <span class="label">شماره سفارش:</span>
+            <span class="label">${t('orderNumberLabelPrint')}:</span>
             <span class="value">${orderDetails.orderNumber}</span>
           </div>
           <div class="info-item">
-            <span class="label">تاریخ ثبت:</span>
-            <span class="value">${orderDetails.createdAt ? new Date(orderDetails.createdAt).toLocaleDateString('en-GB') : 'نامشخص'}</span>
+            <span class="label">${t('registrationDate')}:</span>
+            <span class="value">${orderDetails.createdAt ? new Intl.DateTimeFormat(locale).format(new Date(orderDetails.createdAt)) : t('unknown')}</span>
           </div>
           <div class="info-item">
-            <span class="label">وضعیت:</span>
+            <span class="label">${t('currentStatusPrint')}:</span>
             <span class="value status-badge ${orderDetails.status === 'warehouse_approved' ? 'status-confirmed' : 
                                               orderDetails.status === 'pending' ? 'status-pending' : 'status-rejected'}">
-              ${orderDetails.status === 'warehouse_approved' ? 'تایید انبار' : 
-                orderDetails.status === 'logistics_dispatched' ? 'ارسال شده' : 
-                orderDetails.status || 'نامشخص'}
+              ${orderDetails.status === 'warehouse_approved' ? t('warehouseConfirmed') :
+                orderDetails.status === 'logistics_dispatched' ? t('dispatched') :
+                orderDetails.status || t('unknownValue')}
             </span>
           </div>
           <div class="info-item">
-            <span class="label">روش پرداخت:</span>
+            <span class="label">${t('paymentMethod')}:</span>
             <span class="value">${(() => {
               const method = orderDetails.paymentMethod;
               console.log('🔍 [PAYMENT DEBUG] Payment method value:', method, 'Type:', typeof method);
               
               if (!method || method === null || method === undefined) {
                 console.warn('⚠️ [PAYMENT METHOD] Missing payment method in order details:', orderDetails);
-                return 'داده نامعلوم - خطا در سیستم';
+                return t('unknownValue');
               }
               
               switch (method.toLowerCase()) {
-                case 'wallet_full': return 'کیف پول کامل';
-                case 'wallet_partial': return 'پرداخت ترکیبی';
-                case 'bank_transfer': return 'واریز بانکی';
-                case 'bank_transfer_grace': return 'واریز بانکی (مهلت‌دار)';
-                case 'online_payment': return 'درگاه آنلاین';
-                case 'digital_wallet': return 'کیف پول دیجیتال';
-                case 'iraqi_bank_gateway': return 'درگاه بانکی عراقی';
-                case 'hybrid': return 'ترکیبی';
-                case 'cash': return 'نقدی';
-                case 'credit': return 'اعتباری';
-                default: return method + ' (سایر)';
+                case 'wallet_full': return t('paymentWalletFull');
+                case 'wallet_partial': return t('paymentMixed');
+                case 'bank_transfer': return t('paymentBankTransfer');
+                case 'bank_transfer_grace': return t('paymentBankTransferGrace');
+                case 'online_payment': return t('paymentOnline');
+                case 'digital_wallet': return t('paymentDigitalWallet');
+                case 'iraqi_bank_gateway': return t('paymentIraqiGateway');
+                case 'hybrid': return t('paymentHybrid');
+                case 'cash': return t('paymentCash');
+                case 'credit': return t('paymentCredit');
+                default: return `${method} (${t('other')})`;
               }
             })()}</span>
           </div>
 
           <div class="info-item">
-            <span class="label">وزن کل:</span>
-            <span class="value">${orderDetails.calculatedWeight || orderDetails.totalWeight || 'محاسبه نشده'} کیلوگرم</span>
+            <span class="label">${t('weight')}:</span>
+            <span class="value">${orderDetails.calculatedWeight || orderDetails.totalWeight || t('notCalculated')} ${t('unitKg')}</span>
           </div>
         </div>
       </div>
 
       <div class="section">
-        <div class="section-title">اطلاعات مشتری</div>
+        <div class="section-title">${t('customerInformation')}</div>
         <div class="info-grid">
           <div class="info-item">
-            <span class="label">نام:</span>
+            <span class="label">${t('nameLabel')}:</span>
             <span class="value">${orderDetails.customerFirstName || ''} ${orderDetails.customerLastName || ''}</span>
           </div>
           <div class="info-item">
-            <span class="label">ایمیل:</span>
-            <span class="value">${orderDetails.customerEmail || 'نامشخص'}</span>
+            <span class="label">${t('email')}:</span>
+            <span class="value">${orderDetails.customerEmail || t('unknownValue')}</span>
           </div>
           <div class="info-item">
-            <span class="label">تلفن:</span>
-            <span class="value">${orderDetails.customerPhone || 'نامشخص'}</span>
+            <span class="label">${t('phone')}:</span>
+            <span class="value">${orderDetails.customerPhone || t('unknownValue')}</span>
           </div>
         </div>
       </div>
 
-      ${orderDetails.shippingAddress ? `
+      ${(orderDetails.recipientAddress || orderDetails.shippingAddress) ? `
       <div class="section">
-        <div class="section-title">آدرس تحویل</div>
+        <div class="section-title">${t('deliveryAddressLabel')}</div>
         <div class="info-grid">
           <div class="info-item">
-            <span class="label">نام گیرنده (برای پست):</span>
-            <span class="value" style="font-size: 16px; font-weight: bold; color: #000;">${orderDetails.shippingAddress.name || 'نامشخص'}</span>
+            <span class="label">${t('recipientPostalName')}:</span>
+            <span class="value" style="font-size: 16px; font-weight: bold; color: #000;">${orderDetails.recipientName || orderDetails.shippingAddress?.name || t('unknownValue')}</span>
           </div>
           <div class="info-item">
-            <span class="label">تلفن گیرنده:</span>
-            <span class="value" style="font-size: 16px; font-weight: bold; color: #000;">${orderDetails.shippingAddress.phone || 'نامشخص'}</span>
+            <span class="label">${t('recipientPhone')}:</span>
+            <span class="value" style="font-size: 16px; font-weight: bold; color: #000;">${orderDetails.recipientPhone || orderDetails.shippingAddress?.phone || t('unknownValue')}</span>
           </div>
           <div class="info-item" style="grid-column: 1 / -1;">
-            <span class="label">آدرس گیرنده (برای پست):</span>
-            <span class="value" style="font-size: 18px; font-weight: bold; color: #000; line-height: 1.4;">${orderDetails.shippingAddress.address || 'نامشخص'}</span>
+            <span class="label">${t('recipientPostalAddress')}:</span>
+            <span class="value" style="font-size: 18px; font-weight: bold; color: #000; line-height: 1.4;">${orderDetails.recipientAddress || orderDetails.shippingAddress?.address || t('unknownValue')}</span>
           </div>
           <div class="info-item">
-            <span class="label">شهر:</span>
-            <span class="value">${orderDetails.shippingAddress.city || 'نامشخص'}</span>
+            <span class="label">${t('city')}:</span>
+            <span class="value">${orderDetails.shippingAddress?.city || t('unknownValue')}</span>
           </div>
           <div class="info-item">
-            <span class="label">کد پستی:</span>
-            <span class="value">${orderDetails.shippingAddress.postalCode || 'نامشخص'}</span>
+            <span class="label">${t('postalCode')}:</span>
+            <span class="value">${orderDetails.shippingAddress?.postalCode || t('unknownValue')}</span>
           </div>
         </div>
       </div>` : ''}
 
       ${orderDetails.financialReviewedAt || orderDetails.financialNotes ? `
       <div class="section">
-        <div class="section-title">اطلاعات مالی</div>
+        <div class="section-title">${t('financialInfo')}</div>
         <div class="info-grid">
           ${orderDetails.financialReviewedAt ? `
           <div class="info-item">
-            <span class="label">تاریخ بررسی مالی:</span>
+            <span class="label">${t('financialReviewDate')}:</span>
             <span class="value">${new Date(orderDetails.financialReviewedAt).toLocaleDateString('en-GB')}</span>
           </div>` : ''}
           ${orderDetails.financialNotes ? `
           <div class="info-item" style="grid-column: 1 / -1;">
-            <span class="label">یادداشت‌های مالی:</span>
+            <span class="label">${t('financialNotes')}:</span>
             <span class="value">${orderDetails.financialNotes}</span>
           </div>` : ''}
         </div>
@@ -2753,12 +2859,12 @@ const LogisticsManagement = () => {
 
       ${orderDetails.deliveryNotes || orderDetails.logisticsNotes ? `
       <div class="section">
-        <div class="section-title">یادداشت تحویل</div>
+        <div class="section-title">${t('deliveryNotes')}</div>
         <div class="value">${orderDetails.deliveryNotes || orderDetails.logisticsNotes}</div>
       </div>` : ''}
 
       <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #6b7280;">
-        این سند توسط سیستم مدیریت ممتاز شیمی تولید شده است
+        ${t('generatedBySystem')}
       </div>
     </body>
     </html>
@@ -2782,31 +2888,41 @@ const LogisticsManagement = () => {
 
   // Handle delivery completion - open two-step confirmation
   const handleDeliveredStart = (orderManagementId: number) => {
+    if (!isDeliverySiteAdmin || !canAdminConfirmDelivery(getConfirmingDeliveryOrder(orderManagementId) || {})) return;
+    setDeliveryVerificationCode("");
+    setDeliveryGps(null);
     setConfirmingDeliveryOrderId(orderManagementId);
-    setDeliveryConfirmStep(1);
+    // Admins enter the one-time delivery code directly; browser GPS is not required.
+    setDeliveryConfirmStep(2);
     setDeliveryConfirmDialogOpen(true);
   };
 
   const handleDeliveryConfirmStep1 = () => {
+    // Administrator confirmations do not require browser GPS. Carrier confirmations
+    // use the dedicated mobile endpoint, where GPS is mandatory.
+    setDeliveryGps(null);
     setDeliveryConfirmStep(2);
   };
 
   const handleDeliveryConfirmStep2 = async () => {
-    if (!confirmingDeliveryOrderId) return;
+    if (!confirmingDeliveryOrderId || !isFourDigitDeliveryCode(deliveryVerificationCode) || isSubmittingDeliveryVerification) return;
+    setIsSubmittingDeliveryVerification(true);
     
     console.log('🚚 [DELIVERY] Starting delivery completion for order:', confirmingDeliveryOrderId);
     
     try {
-      const response = await fetch('/api/order-management/update-order-status', {
+      const confirmingOrder = getConfirmingDeliveryOrder();
+      const response = await fetch(`/api/order-management/${confirmingDeliveryOrderId}/verify-delivery`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
         body: JSON.stringify({
-          orderManagementId: confirmingDeliveryOrderId,
-          newStatus: 'delivered',
-          notes: 'سفارش با موفقیت تحویل داده شد'
+          verificationCode: normalizeDeliveryConfirmationCode(deliveryVerificationCode),
+          customerLocation: confirmingOrder?.shippingAddress || confirmingOrder?.customerAddress || '',
+          isVerified: true,
+          verifiedAt: new Date().toISOString(),
         })
       });
 
@@ -2820,24 +2936,28 @@ const LogisticsManagement = () => {
         queryClient.invalidateQueries({ queryKey: ['/api/order-management/delivered'] });
         console.log('🚚 [DELIVERY] Cache invalidated for both tabs');
         toast({
-          title: "موفقیت",
-          description: "سفارش با موفقیت به عنوان تحویل شده ثبت گردید",
+          title: t('success'),
+          description: t('deliveryCompleted'),
         });
         // Close dialog and reset state
         setDeliveryConfirmDialogOpen(false);
         setConfirmingDeliveryOrderId(null);
         setDeliveryConfirmStep(1);
+        setDeliveryVerificationCode("");
+        setDeliveryGps(null);
       } else {
         console.error('🚚 [DELIVERY] API returned error:', result.message);
-        throw new Error(result.message || 'خطا در ثبت تحویل');
+        throw new Error(result.message || t('deliveryUpdateError'));
       }
     } catch (error) {
       console.error('🚚 [DELIVERY] Error marking order as delivered:', error);
       toast({
-        title: "خطا",
-        description: error instanceof Error ? error.message : "خطا در ثبت تحویل سفارش",
+        title: t('error'),
+        description: error instanceof Error ? error.message : t('deliveryUpdateError'),
         variant: "destructive"
       });
+    } finally {
+      setIsSubmittingDeliveryVerification(false);
     }
   };
 
@@ -2845,11 +2965,13 @@ const LogisticsManagement = () => {
     setDeliveryConfirmDialogOpen(false);
     setConfirmingDeliveryOrderId(null);
     setDeliveryConfirmStep(1);
+    setDeliveryVerificationCode("");
+    setDeliveryGps(null);
   };
 
-  const getConfirmingDeliveryOrder = () => {
-    const allOrders = (logisticsOrdersResponse as any)?.orders || [];
-    return allOrders.find((order: any) => order.id === confirmingDeliveryOrderId);
+  const getConfirmingDeliveryOrder = (orderId = confirmingDeliveryOrderId) => {
+    const allOrders = logisticsOrdersResponse?.pages.flatMap((page: any) => page.orders || []) || [];
+    return allOrders.find((order: any) => order.id === orderId);
   };
 
   // Send or resend delivery code using configured notification channels (Email/SMS/WhatsApp)
@@ -2873,8 +2995,8 @@ const LogisticsManagement = () => {
       if (result.success) {
         setResentCodes(prev => ({ ...prev, [orderManagementId]: true }));
         toast({
-          title: '✅ کد تحویل ارسال شد',
-          description: `کد تحویل ${result.deliveryCode} از طریق کانال‌های فعال (ایمیل/پیامک/واتساپ) ارسال شد`,
+          title: t('deliveryCodeSent'),
+          description: t('deliveryCodeSentDescription').replace('{code}', String(result.deliveryCode || '')),
         });
         
         // Reset success state after 3 seconds
@@ -2886,16 +3008,16 @@ const LogisticsManagement = () => {
         queryClient.invalidateQueries({ queryKey: ['/api/order-management/logistics'] });
       } else {
         toast({
-          title: '❌ خطا در ارسال کد',
-          description: result.message || 'خطا در ارسال کد تحویل',
+          title: t('error'),
+          description: result.message || t('deliveryCodeError'),
           variant: 'destructive',
         });
       }
     } catch (error) {
       console.error('❌ Error sending delivery code:', error);
       toast({
-        title: '❌ خطا در ارسال',
-        description: 'خطا در اتصال به سرور برای ارسال کد تحویل',
+        title: t('error'),
+        description: t('serverConnectionError'),
         variant: 'destructive',
       });
     } finally {
@@ -2908,7 +3030,7 @@ const LogisticsManagement = () => {
     const [smsEnabled, setSmsEnabled] = useState(false);
     const [whatsappEnabled, setWhatsappEnabled] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
+    const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
 
     useEffect(() => {
       const fetchSettings = async () => {
@@ -2936,36 +3058,45 @@ const LogisticsManagement = () => {
       fetchSettings();
     }, []);
 
-    const saveSettings = async () => {
-      setIsSaving(true);
-      try {
-        const updates = [
-          { key: 'logistics_notification_email', value: emailEnabled.toString() },
-          { key: 'logistics_notification_sms', value: smsEnabled.toString() },
-          { key: 'logistics_notification_whatsapp', value: whatsappEnabled.toString() }
-        ];
+    const updateSetting = async (
+      key: string,
+      enabled: boolean,
+      setEnabled: React.Dispatch<React.SetStateAction<boolean>>,
+    ) => {
+      const previousValue = !enabled;
+      setEnabled(enabled);
+      setSavingKeys((current) => new Set(current).add(key));
 
-        for (const update of updates) {
-          await fetch(`/api/admin/shop-settings/${update.key}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ setting_value: update.value })
-          });
+      try {
+        const response = await fetch(`/api/admin/shop-settings/${key}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ setting_value: enabled.toString() }),
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result?.success) {
+          throw new Error(result?.message || t('settingsSaveError'));
         }
 
         toast({
-          title: 'تنظیمات ذخیره شد',
-          description: 'تنظیمات اطلاع‌رسانی با موفقیت ذخیره شد',
+          title: t('settingsSaved'),
+          description: t('settingsSavedDescription'),
         });
       } catch (error) {
+        setEnabled(previousValue);
         console.error('Error saving notification settings:', error);
         toast({
-          title: 'خطا در ذخیره',
-          description: 'خطا در ذخیره تنظیمات اطلاع‌رسانی',
+          title: t('error'),
+          description: error instanceof Error ? error.message : t('settingsSaveError'),
           variant: 'destructive',
         });
       } finally {
-        setIsSaving(false);
+        setSavingKeys((current) => {
+          const next = new Set(current);
+          next.delete(key);
+          return next;
+        });
       }
     };
 
@@ -2980,15 +3111,17 @@ const LogisticsManagement = () => {
     }
 
     return (
-      <div className="space-y-6">
+      <CustomerNotificationSettings t={t} direction={direction} language={language} />
+      /*
+      <div className="space-y-6" dir={direction}>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Mail className="w-5 h-5" />
-              تنظیمات اطلاع‌رسانی به مشتری
+              {t('customerNotifications')}
             </CardTitle>
             <CardDescription>
-              انتخاب روش‌های اطلاع‌رسانی به مشتری هنگام ارسال سفارش - هر کدام یا ترکیبی از آنها را می‌توانید فعال کنید
+              {t('notificationDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -2999,19 +3132,20 @@ const LogisticsManagement = () => {
                     <Mail className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium">ایمیل</h4>
-                    <p className="text-sm text-gray-500">ارسال اطلاعات حمل و کد تحویل از طریق ایمیل</p>
+                    <h4 className="font-medium">{t('email')}</h4>
+                    <p className="text-sm text-gray-500">{t('sendByEmail')}</p>
                   </div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={emailEnabled}
-                    onChange={(e) => setEmailEnabled(e.target.checked)}
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
+                <Switch
+                  checked={emailEnabled}
+                  disabled={savingKeys.has('logistics_notification_email')}
+                  onCheckedChange={(checked) => updateSetting(
+                    'logistics_notification_email',
+                    checked,
+                    setEmailEnabled,
+                  )}
+                  aria-label={t('email')}
+                />
               </div>
 
               <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -3020,19 +3154,20 @@ const LogisticsManagement = () => {
                     <Phone className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium">پیامک (SMS)</h4>
-                    <p className="text-sm text-gray-500">ارسال اطلاعات حمل و کد تحویل از طریق پیامک</p>
+                    <h4 className="font-medium">{t('sms')}</h4>
+                    <p className="text-sm text-gray-500">{t('sendBySms')}</p>
                   </div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={smsEnabled}
-                    onChange={(e) => setSmsEnabled(e.target.checked)}
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                </label>
+                <Switch
+                  checked={smsEnabled}
+                  disabled={savingKeys.has('logistics_notification_sms')}
+                  onCheckedChange={(checked) => updateSetting(
+                    'logistics_notification_sms',
+                    checked,
+                    setSmsEnabled,
+                  )}
+                  aria-label={t('sms')}
+                />
               </div>
 
               <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -3041,46 +3176,30 @@ const LogisticsManagement = () => {
                     <Send className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium">واتساپ (WhatsApp)</h4>
-                    <p className="text-sm text-gray-500">ارسال اطلاعات حمل و کد تحویل از طریق واتساپ</p>
+                    <h4 className="font-medium">{t('whatsapp')}</h4>
+                    <p className="text-sm text-gray-500">{t('sendByWhatsapp')}</p>
                   </div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={whatsappEnabled}
-                    onChange={(e) => setWhatsappEnabled(e.target.checked)}
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                </label>
+                <Switch
+                  checked={whatsappEnabled}
+                  disabled={savingKeys.has('logistics_notification_whatsapp')}
+                  onCheckedChange={(checked) => updateSetting(
+                    'logistics_notification_whatsapp',
+                    checked,
+                    setWhatsappEnabled,
+                  )}
+                  aria-label={t('whatsapp')}
+                />
               </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t">
-              <Button onClick={saveSettings} disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    در حال ذخیره...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    ذخیره تنظیمات
-                  </>
-                )}
-              </Button>
             </div>
 
             <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-amber-800">توجه</h4>
+                  <h4 className="font-medium text-amber-800">{t('attention')}</h4>
                   <p className="text-sm text-amber-700">
-                    این تنظیمات برای تمام سفارشاتی که به بخش لجستیک می‌رسند اعمال می‌شود. 
-                    پس از فعال‌سازی هر روش اطلاع‌رسانی، اطمینان حاصل کنید که سرویس مربوطه به درستی پیکربندی شده است.
+                    {t('notificationWarning')}
                   </p>
                 </div>
               </div>
@@ -3088,12 +3207,324 @@ const LogisticsManagement = () => {
           </CardContent>
         </Card>
       </div>
+    */);
+  };
+
+  const SettingsTab = () => (
+    <Tabs defaultValue="notifications" className="space-y-4">
+      <TabsList className="grid w-full max-w-xl grid-cols-2">
+        <TabsTrigger value="notifications">{t('customerNotifications')}</TabsTrigger>
+        <TabsTrigger value="delivery-services">{t('tabDeliveryServices')}</TabsTrigger>
+      </TabsList>
+      <TabsContent value="notifications">
+        <CustomerNotificationSettings t={t} direction={direction} language={language} />
+      </TabsContent>
+      <TabsContent value="delivery-services">
+        <LogisticsCenterRouteEditor t={t} />
+        <DeliveryServicesTab language={language} />
+      </TabsContent>
+    </Tabs>
+  );
+
+  const OrdersTab = () => {
+    const [ordersSearchQuery, setOrdersSearchQuery] = useState('');
+    const [ordersSortBy, setOrdersSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'order_number'>('date_desc');
+    const customerName = (order: LogisticsOrder) =>
+      [order.customerFirstName || order.customer?.firstName, order.customerLastName || order.customer?.lastName].filter(Boolean).join(' ') || t('unknown');
+    const checkoutAddress = (order: LogisticsOrder) => {
+      let selectedAddress: any = order.shippingAddress;
+      if (typeof selectedAddress === 'string') {
+        try {
+          selectedAddress = JSON.parse(selectedAddress);
+        } catch {
+          selectedAddress = { address: selectedAddress };
+        }
+      }
+      const city = selectedAddress?.city || selectedAddress?.cityName || selectedAddress?.province || t('unknown');
+      const addressParts = [
+        order.recipientAddress || selectedAddress?.address || selectedAddress?.fullAddress || order.customerAddress,
+        selectedAddress?.district || selectedAddress?.area,
+        selectedAddress?.city || selectedAddress?.cityName,
+        selectedAddress?.province,
+        selectedAddress?.country,
+        selectedAddress?.postalCode,
+      ].filter((value, index, values) => value && values.indexOf(value) === index);
+      return {
+        city,
+        fullAddress: addressParts.join(' · ') || t('noAddress'),
+      };
+    };
+    const weight = (order: LogisticsOrder) => `${Number(order.calculatedWeight ?? order.totalWeight ?? 0) || 0} ${order.weightUnit || 'kg'}`;
+    const assignedVehicle = (order: LogisticsOrder) => {
+      const normalizedPlate = order.vehiclePlate?.trim().toLocaleLowerCase();
+      return normalizedPlate
+        ? (fleetVehicles as ReadyVehicle[]).find((vehicle) => vehicle.licensePlate?.trim().toLocaleLowerCase() === normalizedPlate)
+        : undefined;
+    };
+    const gpsActions = (order: LogisticsOrder) => order.hasGpsLocation ? (
+      <div className="flex flex-wrap gap-1">
+        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={async () => {
+          const lat = parseFloat(String(order.gpsLatitude || '0')).toFixed(6);
+          const lng = parseFloat(String(order.gpsLongitude || '0')).toFixed(6);
+          try { await navigator.clipboard.writeText(`${lat}, ${lng}`); } catch { /* clipboard is optional */ }
+        }}>{t('location')}</Button>
+        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => window.open(`https://www.google.com/maps?q=${order.gpsLatitude},${order.gpsLongitude}`, '_blank')}>{t('route')}</Button>
+      </div>
+    ) : null;
+    const filteredOrders = mappedLogisticsOrders.filter((order: LogisticsOrder) => {
+      if (ordersSearchQuery.length < 3) return true;
+      const query = ordersSearchQuery.toLowerCase();
+      return [order.orderNumber, order.customerEmail || order.customer?.email, order.customerPhone || order.customer?.phone, order.deliveryCode, order.trackingNumber]
+        .some((value) => String(value || '').toLowerCase().includes(query));
+    }).sort((a: LogisticsOrder, b: LogisticsOrder) => {
+      if (ordersSortBy === 'order_number') return String(a.orderNumber || '').localeCompare(String(b.orderNumber || ''));
+      if (ordersSortBy === 'amount_desc') return Number(b.totalAmount || 0) - Number(a.totalAmount || 0);
+      if (ordersSortBy === 'amount_asc') return Number(a.totalAmount || 0) - Number(b.totalAmount || 0);
+      const delta = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      return ordersSortBy === 'date_asc' ? -delta : delta;
+    });
+    return (
+      <div className="space-y-4" dir={direction}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900">{t('logisticsOrders')}</h3>
+            <p className="text-sm text-slate-500">{t('warehouseApproved')}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="border-slate-300 bg-slate-50 text-slate-700">{filteredOrders.length} {t('activeOrders')}</Badge>
+            <Button variant="outline" size="sm" onClick={forceRefreshLogisticsOrders} className="gap-2 border-slate-300">
+              <RefreshCw className="h-4 w-4" />{t('refresh')}
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 rounded-md border border-slate-300 bg-slate-50 p-3">
+          <div className="relative min-w-[260px] flex-1">
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input value={ordersSearchQuery} onChange={(event) => setOrdersSearchQuery(event.target.value)} placeholder={t('searchDelivered')} className="h-8 border-slate-300 ps-9" />
+          </div>
+          <Select value={ordersSortBy} onValueChange={(value: any) => setOrdersSortBy(value)}>
+            <SelectTrigger className="h-8 w-[190px] border-slate-300"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date_desc">{t('sortDate')}</SelectItem>
+              <SelectItem value="date_asc">{t('sortOldest')}</SelectItem>
+              <SelectItem value="amount_desc">{t('sortAmount')}</SelectItem>
+              <SelectItem value="order_number">{t('order')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {loadingLogisticsOrders ? (
+          <Card><CardContent className="py-12 text-center text-slate-500">{t('loading')}</CardContent></Card>
+        ) : filteredOrders.length === 0 ? (
+          <Card><CardContent className="py-12 text-center text-slate-500"><Package className="mx-auto mb-3 h-10 w-10 text-slate-300" /><p>{t('noResults')}</p></CardContent></Card>
+        ) : (
+          <Card className="overflow-hidden border-slate-300 shadow-sm">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                 <Table className="min-w-[1200px] text-xs">
+                  <TableHeader className="sticky top-0 z-10 bg-slate-700">
+                    <TableRow className="border-slate-700 hover:bg-slate-700">
+                       {[t('row'), t('order'), t('destination'), t('weight'), t('methodVehicle'), t('status'), t('date'), t('codeTracking'), t('actions')].map((label) => <TableHead key={label} className={`h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50 ${label === t('date') ? 'w-[92px] max-w-[92px]' : ''}`}>{label}</TableHead>)}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrders.map((order: LogisticsOrder, index: number) => {
+                      const noteEntries = [
+                        { key: 'customer', label: t('customerNote'), value: order.customerNotes || order.notes, color: 'blue' },
+                        { key: 'financial', label: t('financialNote'), value: order.financialNotes, color: 'emerald' },
+                        { key: 'warehouse', label: t('warehouseNote'), value: order.warehouseNotes, color: 'purple' },
+                      ].filter((entry) => entry.value?.trim());
+                      const vehicle = assignedVehicle(order);
+                      const isVehicleExpanded = expandedOrderVehicleId === order.id;
+                      const isAddressExpanded = expandedOrderAddressId === order.id;
+                      const isDetailsExpanded = expandedOrderDetailsId === order.id;
+                      const hasNotes = noteEntries.length > 0;
+                      const hasAssignedVehicle = Boolean(order.vehiclePlate);
+                      const deliveryAddress = checkoutAddress(order);
+                      return <React.Fragment key={order.id}>
+                      <TableRow className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50">
+                        <TableCell className="border-e border-slate-200 px-3 py-2 font-mono text-slate-500">{index + 1}</TableCell>
+                        <TableCell className="border-e border-slate-200 px-3 py-2 font-semibold text-slate-900">
+                          <button
+                            type="button"
+                             aria-expanded={isDetailsExpanded}
+                             onClick={() => setExpandedOrderDetailsId(isDetailsExpanded ? null : order.id)}
+                             className="inline-flex cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 text-start hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                             title={t('details')}
+                          >
+                            {hasNotes && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-sm ring-2 ring-emerald-100" />}
+                            <span>{order.orderNumber || `#${order.customerOrderId}`}</span>
+                             {isDetailsExpanded ? <ChevronUp className="h-3.5 w-3.5 text-emerald-700" /> : <ChevronDown className="h-3.5 w-3.5 text-emerald-700" />}
+                          </button>
+                          <div className="text-[11px] font-normal text-slate-500">{formatLogisticsDate(order.createdAt)}</div>
+                        </TableCell>
+                        <TableCell className="max-w-[220px] whitespace-normal border-e border-slate-200 px-3 py-2">
+                          <button
+                            type="button"
+                            aria-expanded={isAddressExpanded}
+                            onClick={() => setExpandedOrderAddressId(isAddressExpanded ? null : order.id)}
+                            className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-start font-semibold text-violet-800 transition-colors hover:border-violet-400 hover:bg-violet-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                            title={t('clickAddressDetails')}
+                          >
+                            <MapPin className="h-3.5 w-3.5 shrink-0" />
+                            <span className="break-words">{deliveryAddress.city}</span>
+                            {isAddressExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                          </button>
+                        </TableCell>
+                        <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap">{weight(order)}</TableCell>
+                        <TableCell className="max-w-[180px] whitespace-normal border-e border-slate-200 px-3 py-2">
+                          <div className="mb-1 text-slate-600">{order.customerDeliveryMethod || order.deliveryMethod || t('unknown')}</div>
+                          {hasAssignedVehicle ? (
+                            <button
+                              type="button"
+                              aria-expanded={isVehicleExpanded}
+                              onClick={() => setExpandedOrderVehicleId(isVehicleExpanded ? null : order.id)}
+                              className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-blue-300 bg-blue-100 px-2 py-1 font-mono font-semibold text-blue-800 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                              title={t('clickVehicleDetails')}
+                            >
+                              <Truck className="h-3.5 w-3.5 shrink-0" />
+                              <span className="break-all">{order.vehiclePlate}</span>
+                              {isVehicleExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                            </button>
+                          ) : (
+                            <div className="text-slate-500">{order.selectedVehicleName || t('noVehicle')}</div>
+                          )}
+                        </TableCell>
+                        <TableCell className="border-e border-slate-200 px-3 py-2"><Badge className="whitespace-normal bg-emerald-100 text-emerald-800">{getStatusDisplayName(order.currentStatus, language)}</Badge></TableCell>
+                        <TableCell className="w-[92px] max-w-[92px] whitespace-nowrap border-e border-slate-200 px-2 py-2 leading-4">
+                          <div>{formatLogisticsDate(order.updatedAt || order.createdAt)}</div>
+                          <div className="text-slate-500">{formatLogisticsTime(order.updatedAt || order.createdAt)}</div>
+                        </TableCell>
+                        <TableCell className="border-e border-slate-200 px-3 py-2 font-mono">
+                          {order.deliveryCode || order.trackingNumber || (
+                            ['delivered', 'logistics_delivered', 'completed'].includes(order.currentStatus)
+                              ? <span className="font-semibold text-red-600">{t('codeConsumed')}</span>
+                              : t('noCode')
+                          )}
+                        </TableCell>
+                        <TableCell className="px-3 py-2"><div className="flex max-w-[270px] flex-wrap gap-1">
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => handleShowOrderDetails(order)}><Eye className="me-1 h-3.5 w-3.5" />{t('details')}</Button>
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => handleVehicleAssignment(order)}><Truck className="me-1 h-3.5 w-3.5" />{t('assign')}</Button>
+                          <Button size="sm" className="h-7 bg-blue-600 px-2 text-xs hover:bg-blue-700" onClick={() => handleSendDeliveryCode(order.id, !!order.deliveryCode)} disabled={resendingCodes[order.id]}><Send className="me-1 h-3.5 w-3.5" />{order.deliveryCode ? t('resendCode') : t('sendCode')}</Button>
+                          {isDeliverySiteAdmin && canAdminConfirmDelivery(getConfirmingDeliveryOrder(order.id) || {}) && (
+                            <Button size="sm" className="h-7 bg-emerald-600 px-2 text-xs hover:bg-emerald-700" onClick={() => handleDeliveredStart(order.id)} disabled={isSubmittingDeliveryVerification} data-testid={`button-delivery-confirm-${order.id}`}><CheckCircle className="me-1 h-3.5 w-3.5" />{adminDeliveryCopy.action}</Button>
+                          )}
+                          {gpsActions(order)}
+                        </div></TableCell>
+                      </TableRow>
+                      {isDetailsExpanded && (
+                        <TableRow className="border-b-2 border-emerald-200 bg-emerald-50/70 hover:bg-emerald-50">
+                           <TableCell colSpan={9} className="p-0">
+                            <div className="border-s-4 border-emerald-500 px-4 py-4">
+                               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                 {[
+                                   [t('customer'), customerName(order)],
+                                   [t('phone'), order.customerPhone || order.customer?.phone || t('unknown')],
+                                   [t('email'), order.customerEmail || order.customer?.email || t('notRegistered')],
+                                   [t('amount'), formatLogisticsCurrency(order.totalAmount)],
+                                   [t('paymentMethod'), order.paymentMethod || t('paymentUnknown')],
+                                 ].map(([label, value]) => (
+                                   <div key={label} className="rounded-lg border border-emerald-100 bg-white px-3 py-2 shadow-sm">
+                                     <div className="mb-0.5 text-[11px] font-medium text-slate-500">{label}</div>
+                                     <div className="break-words text-sm font-semibold text-slate-800">{value}</div>
+                                   </div>
+                                 ))}
+                              </div>
+                               {hasNotes && <div className="mt-4 grid gap-3 md:grid-cols-3">
+                                {noteEntries.map((entry) => (
+                                  <div
+                                    key={entry.key}
+                                    className={`rounded-lg border p-3 ${
+                                      entry.color === 'blue'
+                                        ? 'border-blue-200 bg-blue-50'
+                                        : entry.color === 'purple'
+                                          ? 'border-purple-200 bg-purple-50'
+                                          : 'border-emerald-200 bg-emerald-50'
+                                    }`}
+                                  >
+                                    <div className="mb-1 text-xs font-semibold text-slate-600">{entry.label}</div>
+                                    <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">{entry.value}</p>
+                                  </div>
+                                ))}
+                               </div>}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {isAddressExpanded && (
+                        <TableRow className="border-b-2 border-violet-200 bg-violet-50/70 hover:bg-violet-50">
+                           <TableCell colSpan={9} className="p-0">
+                            <div className="border-s-4 border-violet-500 px-4 py-4">
+                              <div className="flex items-start gap-3">
+                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-white">
+                                  <MapPin className="h-5 w-5" />
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="mb-1 text-xs font-medium text-violet-700">{t('checkoutDeliveryAddress')}</div>
+                                  <div className="break-words text-sm font-semibold leading-6 text-slate-900">{deliveryAddress.fullAddress}</div>
+                                  {(order.recipientName || order.recipientPhone) && (
+                                    <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-600">
+                                      {order.recipientName && <span><strong>{t('recipientName')}:</strong> {order.recipientName}</span>}
+                                      {order.recipientPhone && <span><strong>{t('phone')}:</strong> <span className="font-mono">{order.recipientPhone}</span></span>}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {isVehicleExpanded && (
+                        <TableRow className="border-b-2 border-blue-200 bg-blue-50/70 hover:bg-blue-50">
+                           <TableCell colSpan={9} className="p-0">
+                            <div className="border-s-4 border-blue-500 px-4 py-4">
+                              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white"><Truck className="h-5 w-5" /></span>
+                                  <div>
+                                    <div className="font-semibold text-slate-900">{t('assignedVehicleDetails')}</div>
+                                    <div className="font-mono text-sm font-bold text-blue-700">{order.vehiclePlate}</div>
+                                  </div>
+                                </div>
+                                <Badge className={vehicle?.isAvailable ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}>
+                                  {vehicle?.isAvailable ? t('availableStatus') : t('assignedStatus')}
+                                </Badge>
+                              </div>
+                              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                                {[
+                                  [t('vehicleType').replace(' *', ''), vehicle?.vehicleTemplateName || vehicle?.vehicleType || order.vehicleType || order.selectedVehicleName || t('unknown')],
+                                  [t('driver'), displayDriverName(vehicle?.driverName || order.driverName) || t('unknownDriver')],
+                                  [t('phone'), vehicle?.driverMobile || order.driverPhone || t('unknown')],
+                                  [t('capacity'), vehicle ? `${vehicle.loadCapacity} ${t('unitKg')}` : t('unknown')],
+                                  [t('location'), vehicle?.currentLocation || t('noLocation')],
+                                  [t('flammable'), vehicle?.supportsFlammable ? t('flammableAllowed') : vehicle?.notAllowedFlammable ? t('flammableForbidden') : t('normal')],
+                                  [t('lastUpdated'), formatLogisticsDate(vehicle?.updatedAt || order.updatedAt, true)],
+                                  [t('notes'), vehicle?.notes || t('noNotes')],
+                                ].map(([label, value]) => (
+                                  <div key={label} className="rounded-lg border border-blue-100 bg-white px-3 py-2 shadow-sm">
+                                    <div className="mb-0.5 text-[11px] font-medium text-slate-500">{label}</div>
+                                    <div className="break-words text-sm font-semibold text-slate-800">{value}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      </React.Fragment>;
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     );
   };
 
-  const OrdersTab = () => {
+  const LegacyOrdersTab = () => {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6" dir={direction}>
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">مدیریت سفارشات لجستیک</h3>
           <div className="flex gap-2">
@@ -3473,9 +3904,10 @@ const LogisticsManagement = () => {
                           : "bg-green-600 hover:bg-green-700 text-white"}
                         onClick={() => handleDeliveredStart(order.id)}
                         data-testid={`button-delivery-confirm-${order.id}`}
+                        disabled={!isDeliverySiteAdmin || !canAdminConfirmDelivery(getConfirmingDeliveryOrder(order.id) || {}) || isSubmittingDeliveryVerification}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        {confirmingDeliveryOrderId === order.id ? "در حال تایید..." : "تحویل شد"}
+                        {confirmingDeliveryOrderId === order.id ? adminDeliveryCopy.busy : adminDeliveryCopy.action}
                       </Button>
                       {order.hasGpsLocation && (
                         <div className="border border-gray-300 rounded-lg p-1.5 bg-gray-50 h-fit">
@@ -3572,7 +4004,181 @@ const LogisticsManagement = () => {
 
   // Delivered Orders Tab Component
   const DeliveredOrdersTab = () => {
-    const deliveredOrders = (deliveredOrdersResponse as any)?.orders || [];
+    const [deliveredSearchQuery, setDeliveredSearchQuery] = useState('');
+    const [deliveredSortBy, setDeliveredSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'order_number'>('date_desc');
+    const [expandedDeliveredVehicleId, setExpandedDeliveredVehicleId] = useState<number | null>(null);
+    const [expandedDeliveredAddressId, setExpandedDeliveredAddressId] = useState<number | null>(null);
+    const orders = deliveredOrders.map((order: any) => ({ ...order, hasGpsLocation: !!(order.gpsLatitude && order.gpsLongitude) }));
+    const deliveredCheckoutAddress = (order: any) => {
+      let selectedAddress = order.shippingAddress;
+      if (typeof selectedAddress === 'string') {
+        try {
+          selectedAddress = JSON.parse(selectedAddress);
+        } catch {
+          selectedAddress = { address: selectedAddress };
+        }
+      }
+      const city = selectedAddress?.city || selectedAddress?.cityName || selectedAddress?.province || t('unknown');
+      const addressParts = [
+        order.recipientAddress || selectedAddress?.address || selectedAddress?.fullAddress || order.customerAddress,
+        selectedAddress?.district || selectedAddress?.area,
+        selectedAddress?.city || selectedAddress?.cityName,
+        selectedAddress?.province,
+        selectedAddress?.country,
+        selectedAddress?.postalCode,
+      ].filter((value, index, values) => value && values.indexOf(value) === index);
+      return { city, fullAddress: addressParts.join(' · ') || t('noAddress') };
+    };
+    const assignedDeliveredVehicle = (order: any) => {
+      const normalizedPlate = order.vehiclePlate?.trim().toLocaleLowerCase();
+      return normalizedPlate
+        ? (fleetVehicles as ReadyVehicle[]).find((vehicle) => vehicle.licensePlate?.trim().toLocaleLowerCase() === normalizedPlate)
+        : undefined;
+    };
+    const filtered = orders.filter((order: any) => {
+      if (deliveredSearchQuery.length < 3) return true;
+      const query = deliveredSearchQuery.toLowerCase();
+      return [order.orderNumber, order.customerEmail, order.customerPhone, order.deliveryCode, order.trackingNumber].some((value) => String(value || '').toLowerCase().includes(query));
+    }).sort((a: any, b: any) => {
+      if (deliveredSortBy === 'order_number') return String(a.orderNumber || '').localeCompare(String(b.orderNumber || ''));
+      if (deliveredSortBy === 'amount_desc') return Number(b.totalAmount || 0) - Number(a.totalAmount || 0);
+      if (deliveredSortBy === 'amount_asc') return Number(a.totalAmount || 0) - Number(b.totalAmount || 0);
+      const delta = new Date(b.actualDeliveryDate || b.createdAt).getTime() - new Date(a.actualDeliveryDate || a.createdAt).getTime();
+      return deliveredSortBy === 'date_asc' ? -delta : delta;
+    });
+    return (
+      <div className="space-y-4" dir={direction}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><h3 className="text-lg font-semibold text-slate-900">{t('delivered')}</h3><p className="text-sm text-slate-500">{filtered.length} {t('activeOrders')}</p></div>
+          <Button variant="outline" size="sm" onClick={() => refetchDeliveredOrders()} className="gap-2 border-slate-300"><RefreshCw className="h-4 w-4" />{t('refresh')}</Button>
+        </div>
+        <div className="flex flex-wrap gap-2 rounded-md border border-slate-300 bg-slate-50 p-3">
+          <div className="relative min-w-[260px] flex-1"><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><Input value={deliveredSearchQuery} onChange={(event) => setDeliveredSearchQuery(event.target.value)} placeholder={t('searchDelivered')} className="h-8 border-slate-300 ps-9" /></div>
+          <Select value={deliveredSortBy} onValueChange={(value: any) => setDeliveredSortBy(value)}><SelectTrigger className="h-8 w-[190px] border-slate-300"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="date_desc">{t('sortDate')}</SelectItem><SelectItem value="date_asc">{t('sortOldest')}</SelectItem><SelectItem value="amount_desc">{t('sortAmount')}</SelectItem><SelectItem value="order_number">{t('order')}</SelectItem></SelectContent></Select>
+        </div>
+        {loadingDeliveredOrders ? <Card><CardContent className="py-12 text-center text-slate-500">{t('loading')}</CardContent></Card> : filtered.length === 0 ? <Card><CardContent className="py-12 text-center text-slate-500"><Package className="mx-auto mb-3 h-10 w-10 text-slate-300" />{t('noResults')}</CardContent></Card> : (
+          <Card className="overflow-hidden border-slate-300 shadow-sm"><CardContent className="p-0"><div className="overflow-x-auto"><Table className="min-w-[1380px] text-xs">
+            <TableHeader className="bg-slate-700"><TableRow className="border-slate-700 hover:bg-slate-700">{[t('row'), t('order'), t('customer'), t('destination'), t('amount'), t('weight'), t('methodVehicle'), t('status'), t('date'), t('codeTracking'), t('actions')].map((label) => <TableHead key={label} className={`h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50 ${label === t('date') ? 'w-[92px] max-w-[92px]' : ''} ${label === t('codeTracking') ? 'w-[105px] max-w-[105px]' : ''}`}>{label}</TableHead>)}</TableRow></TableHeader>
+            <TableBody>{filtered.map((order: any, index: number) => {
+              const vehicle = assignedDeliveredVehicle(order);
+              const isVehicleExpanded = expandedDeliveredVehicleId === order.id;
+              const isAddressExpanded = expandedDeliveredAddressId === order.id;
+              const deliveryAddress = deliveredCheckoutAddress(order);
+              return <React.Fragment key={order.id}><TableRow className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-emerald-50">
+              <TableCell className="border-e border-slate-200 px-3 py-2 font-mono text-slate-500">{index + 1}</TableCell>
+              <TableCell className="border-e border-slate-200 px-3 py-2 font-semibold">{order.orderNumber || `#${order.customerOrderId}`}<div className="font-normal text-slate-500">{order.actualDeliveryDate ? formatLogisticsDate(order.actualDeliveryDate, true) : formatLogisticsDate(order.createdAt, true)}</div></TableCell>
+              <TableCell className="border-e border-slate-200 px-3 py-2"><div className="font-medium">{[order.customerFirstName, order.customerLastName].filter(Boolean).join(' ') || order.customer?.firstName || t('unknown')}</div><div className="text-slate-500">{order.customerPhone || order.customer?.phone || t('unknown')}</div></TableCell>
+              <TableCell className="max-w-[220px] whitespace-normal border-e border-slate-200 px-3 py-2">
+                <button
+                  type="button"
+                  aria-expanded={isAddressExpanded}
+                  onClick={() => setExpandedDeliveredAddressId(isAddressExpanded ? null : order.id)}
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-start font-semibold text-violet-800 transition-colors hover:border-violet-400 hover:bg-violet-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                  title={t('clickAddressDetails')}
+                >
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <span className="break-words">{deliveryAddress.city}</span>
+                  {isAddressExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                </button>
+              </TableCell>
+              <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap"><span className="font-semibold">{formatLogisticsCurrency(order.totalAmount)}</span><div className="text-slate-500">{order.paymentMethod || t('paymentUnknown')}</div></TableCell>
+              <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap">{Number(order.calculatedWeight ?? order.totalWeight ?? 0) || 0} {order.weightUnit || 'kg'}</TableCell>
+              <TableCell className="max-w-[180px] whitespace-normal border-e border-slate-200 px-3 py-2">
+                <div className="mb-1 text-slate-600">{order.customerDeliveryMethod || order.deliveryMethod || t('unknown')}</div>
+                {order.vehiclePlate ? (
+                  <button
+                    type="button"
+                    aria-expanded={isVehicleExpanded}
+                    onClick={() => setExpandedDeliveredVehicleId(isVehicleExpanded ? null : order.id)}
+                    className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-blue-300 bg-blue-100 px-2 py-1 font-mono font-semibold text-blue-800 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    title={t('clickVehicleDetails')}
+                  >
+                    <Truck className="h-3.5 w-3.5 shrink-0" />
+                    <span className="break-all">{order.vehiclePlate}</span>
+                    {isVehicleExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                  </button>
+                ) : <div className="text-slate-500">{order.selectedVehicleName || t('noVehicle')}</div>}
+              </TableCell>
+              <TableCell className="border-e border-slate-200 px-3 py-2"><Badge className="bg-emerald-100 text-emerald-800">{getStatusDisplayName(order.currentStatus || 'delivered', language)}</Badge></TableCell>
+              <TableCell className="w-[92px] max-w-[92px] whitespace-nowrap border-e border-slate-200 px-2 py-2 leading-4">
+                <div>{formatLogisticsDate(order.actualDeliveryDate || order.createdAt)}</div>
+                <div className="text-slate-500">{formatLogisticsTime(order.actualDeliveryDate || order.createdAt)}</div>
+              </TableCell>
+              <TableCell className="w-[105px] max-w-[105px] break-all border-e border-slate-200 px-2 py-2 font-mono text-[11px] leading-4">
+                {order.deliveryCode || order.trackingNumber || (
+                  ['delivered', 'logistics_delivered', 'completed'].includes(order.currentStatus || 'delivered')
+                    ? <span className="font-semibold text-red-600">{t('codeConsumed')}</span>
+                    : t('noCode')
+                )}
+              </TableCell>
+              <TableCell className="px-3 py-2"><div className="flex flex-wrap gap-1"><Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { setSelectedOrder(order); setIsOrderDetailsOpen(true); }}><Eye className="me-1 h-3.5 w-3.5" />{t('details')}</Button>{order.hasGpsLocation && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => window.open(`https://www.google.com/maps?q=${order.gpsLatitude},${order.gpsLongitude}`, '_blank')}><MapPin className="me-1 h-3.5 w-3.5" />{t('location')}</Button>}</div></TableCell>
+            </TableRow>
+            {isAddressExpanded && (
+              <TableRow className="border-b-2 border-violet-200 bg-violet-50/70 hover:bg-violet-50">
+                <TableCell colSpan={11} className="p-0">
+                  <div className="border-s-4 border-violet-500 px-4 py-4">
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-white">
+                        <MapPin className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="mb-1 text-xs font-medium text-violet-700">{t('checkoutDeliveryAddress')}</div>
+                        <div className="break-words text-sm font-semibold leading-6 text-slate-900">{deliveryAddress.fullAddress}</div>
+                        {(order.recipientName || order.recipientPhone) && (
+                          <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-600">
+                            {order.recipientName && <span><strong>{t('recipientName')}:</strong> {order.recipientName}</span>}
+                            {order.recipientPhone && <span><strong>{t('phone')}:</strong> <span className="font-mono">{order.recipientPhone}</span></span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+            {isVehicleExpanded && (
+              <TableRow className="border-b-2 border-blue-200 bg-blue-50/70 hover:bg-blue-50">
+                <TableCell colSpan={11} className="p-0">
+                  <div className="border-s-4 border-blue-500 px-4 py-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white"><Truck className="h-5 w-5" /></span>
+                        <div>
+                          <div className="font-semibold text-slate-900">{t('assignedVehicleDetails')}</div>
+                          <div className="font-mono text-sm font-bold text-blue-700">{order.vehiclePlate}</div>
+                        </div>
+                      </div>
+                      <Badge className="bg-slate-100 text-slate-700">{t('deliveryCompleted')}</Badge>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                      {[
+                        [t('vehicleType').replace(' *', ''), vehicle?.vehicleTemplateName || vehicle?.vehicleType || order.vehicleType || order.selectedVehicleName || t('unknown')],
+                        [t('driver'), displayDriverName(vehicle?.driverName || order.driverName) || t('unknownDriver')],
+                        [t('phone'), vehicle?.driverMobile || order.driverPhone || t('unknown')],
+                        [t('capacity'), vehicle ? `${vehicle.loadCapacity} ${t('unitKg')}` : t('unknown')],
+                        [t('location'), vehicle?.currentLocation || t('noLocation')],
+                        [t('flammable'), vehicle?.supportsFlammable ? t('flammableAllowed') : vehicle?.notAllowedFlammable ? t('flammableForbidden') : t('normal')],
+                        [t('lastUpdated'), formatLogisticsDate(vehicle?.updatedAt || order.updatedAt || order.actualDeliveryDate, true)],
+                        [t('notes'), vehicle?.notes || t('noNotes')],
+                      ].map(([label, value]) => (
+                        <div key={label} className="rounded-lg border border-blue-100 bg-white px-3 py-2 shadow-sm">
+                          <div className="mb-0.5 text-[11px] font-medium text-slate-500">{label}</div>
+                          <div className="break-words text-sm font-semibold text-slate-800">{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+            </React.Fragment>})}</TableBody>
+          </Table></div></CardContent></Card>
+        )}
+      </div>
+    );
+  };
+
+  const LegacyDeliveredOrdersTab = () => {
     const [deliveredSearchQuery, setDeliveredSearchQuery] = useState('');
     const [deliveredSortBy, setDeliveredSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'order_number'>('date_desc');
     
@@ -3857,6 +4463,8 @@ const LogisticsManagement = () => {
 
   const CompaniesTab = () => {
     const [showAddForm, setShowAddForm] = useState(false);
+    const [editingCompany, setEditingCompany] = useState<TransportationCompany | null>(null);
+    const [detailsCompany, setDetailsCompany] = useState<TransportationCompany | null>(null);
     const [companyFormData, setCompanyFormData] = useState({
       name: '',
       contactPerson: '',
@@ -3864,128 +4472,151 @@ const LogisticsManagement = () => {
       email: '',
       address: '',
       website: '',
-      contractEndDate: '',
       maxWeight: '',
       baseRate: '',
-      ratePerKm: ''
+      ratePerKm: '',
+      isActive: true,
     });
 
+    const resetCompanyForm = () => {
+      setShowAddForm(false);
+      setEditingCompany(null);
+      setCompanyFormData({
+        name: '', contactPerson: '', phone: '', email: '', address: '', website: '',
+        maxWeight: '', baseRate: '', ratePerKm: '', isActive: true,
+      });
+    };
+
     const addCompanyMutation = useMutation({
-      mutationFn: async (data: any) => {
-        const response = await fetch('/api/logistics/companies', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        if (!response.ok) throw new Error('Failed to create company');
-        return response.json();
+      mutationFn: async (data: Record<string, unknown>) => {
+        const result = await apiRequest('/api/logistics/companies', { method: 'POST', body: data });
+        if (!result?.success) throw new Error(result?.message || t('companySaveError'));
+        return result;
       },
       onSuccess: () => {
-        setShowAddForm(false);
-        setCompanyFormData({
-          name: '',
-          contactPerson: '',
-          phone: '',
-          email: '',
-          address: '',
-          website: '',
-          contractEndDate: '',
-          maxWeight: '',
-          baseRate: '',
-          ratePerKm: ''
-        });
+        resetCompanyForm();
         queryClient.invalidateQueries({ queryKey: ['/api/logistics/companies'] });
-        toast({ title: "موفق", description: "شرکت حمل و نقل جدید ثبت شد" });
-      }
+        toast({ title: t('success'), description: t('companyCreated') });
+      },
+      onError: (error: Error) => toast({ title: t('error'), description: error.message || t('companySaveError'), variant: 'destructive' }),
+    });
+
+    const updateCompanyMutation = useMutation({
+      mutationFn: async ({ id, data }: { id: number; data: Record<string, unknown> }) => {
+        const result = await apiRequest(`/api/logistics/companies/${id}`, { method: 'PUT', body: data });
+        if (!result?.success) throw new Error(result?.message || t('companySaveError'));
+        return result;
+      },
+      onSuccess: () => {
+        resetCompanyForm();
+        queryClient.invalidateQueries({ queryKey: ['/api/logistics/companies'] });
+        toast({ title: t('success'), description: t('companyUpdated') });
+      },
+      onError: (error: Error) => toast({ title: t('error'), description: error.message || t('companySaveError'), variant: 'destructive' }),
     });
 
     const handleSubmitCompany = (e: React.FormEvent) => {
       e.preventDefault();
-      if (!companyFormData.name || !companyFormData.phone) {
+      if (!companyFormData.name.trim() || !companyFormData.phone.trim()) {
         toast({ 
-          title: "خطا", 
-          description: "لطفاً نام شرکت و شماره تماس را وارد کنید",
+          title: t('error'),
+          description: t('companyRequired'),
           variant: "destructive"
         });
         return;
       }
-      addCompanyMutation.mutate(companyFormData);
+      const data = {
+        name: companyFormData.name.trim(),
+        contactPerson: companyFormData.contactPerson.trim() || null,
+        phone: companyFormData.phone.trim(),
+        email: companyFormData.email.trim() || null,
+        address: companyFormData.address.trim() || null,
+        website: companyFormData.website.trim() || null,
+        maxWeight: companyFormData.maxWeight || null,
+        baseRate: companyFormData.baseRate || null,
+        ratePerKm: companyFormData.ratePerKm || null,
+        isActive: companyFormData.isActive,
+      };
+      if (editingCompany) {
+        updateCompanyMutation.mutate({ id: editingCompany.id, data });
+      } else {
+        addCompanyMutation.mutate(data);
+      }
     };
 
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">شرکت‌های حمل و نقل</h3>
-          <Button onClick={() => setShowAddForm(true)}>
+          <h3 className="text-lg font-semibold">{t('transportCompanies')}</h3>
+          <Button onClick={() => { resetCompanyForm(); setShowAddForm(true); }}>
             <Plus className="w-4 h-4 mr-2" />
-            شرکت جدید
+            {t('newCompany')}
           </Button>
         </div>
 
-        {showAddForm && (
-          <Card>
-            <CardHeader>
-              <CardTitle>ثبت شرکت حمل و نقل جدید</CardTitle>
-            </CardHeader>
-            <CardContent>
+        <Dialog open={showAddForm} onOpenChange={(open) => { if (!open) resetCompanyForm(); else setShowAddForm(true); }}>
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingCompany ? t('editCompany') : t('registerCompany')}</DialogTitle>
+            </DialogHeader>
               <form onSubmit={handleSubmitCompany} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name">نام شرکت *</Label>
+                    <Label htmlFor="name">{t('company')} *</Label>
                     <Input
                       id="name"
                       value={companyFormData.name}
                       onChange={(e) => setCompanyFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="نام شرکت حمل و نقل"
+                      placeholder={t('companyNamePlaceholder')}
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="contactPerson">نام مسئول</Label>
+                    <Label htmlFor="contactPerson">{t('contactPerson')}</Label>
                     <Input
                       id="contactPerson"
                       value={companyFormData.contactPerson}
                       onChange={(e) => setCompanyFormData(prev => ({ ...prev, contactPerson: e.target.value }))}
-                      placeholder="نام شخص رابط"
+                      placeholder={t('contactPlaceholder')}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="phone">شماره تماس *</Label>
+                    <Label htmlFor="phone">{t('phone')} *</Label>
                     <Input
                       id="phone"
                       value={companyFormData.phone}
                       onChange={(e) => setCompanyFormData(prev => ({ ...prev, phone: e.target.value }))}
-                      placeholder="شماره تماس شرکت"
+                      placeholder={t('phonePlaceholder')}
                       required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email">ایمیل</Label>
+                    <Label htmlFor="email">{t('email')}</Label>
                     <Input
                       id="email"
                       type="email"
                       value={companyFormData.email}
                       onChange={(e) => setCompanyFormData(prev => ({ ...prev, email: e.target.value }))}
-                      placeholder="آدرس ایمیل"
+                      placeholder={t('emailPlaceholder')}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="address">آدرس</Label>
+                  <Label htmlFor="address">{t('address')}</Label>
                   <Input
                     id="address"
                     value={companyFormData.address}
                     onChange={(e) => setCompanyFormData(prev => ({ ...prev, address: e.target.value }))}
-                    placeholder="آدرس کامل شرکت"
+                    placeholder={t('companyAddressPlaceholder')}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="website">وب‌سایت</Label>
+                  <Label htmlFor="website">{t('website')}</Label>
                   <Input
                     id="website"
                     type="url"
@@ -3995,77 +4626,149 @@ const LogisticsManagement = () => {
                   />
                 </div>
 
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {([
+                    ['maxWeight', 'companyMaxWeight'],
+                    ['baseRate', 'companyBaseRate'],
+                    ['ratePerKm', 'companyRatePerKm'],
+                  ] as const).map(([field, label]) => (
+                    <div key={field}>
+                      <Label htmlFor={`company-${field}`}>{t(label)}</Label>
+                      <Input
+                        id={`company-${field}`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={companyFormData[field]}
+                        onChange={(e) => setCompanyFormData(prev => ({ ...prev, [field]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch id="company-is-active" checked={companyFormData.isActive} onCheckedChange={(isActive) => setCompanyFormData(prev => ({ ...prev, isActive }))} />
+                  <Label htmlFor="company-is-active">{t('active')}</Label>
+                </div>
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={addCompanyMutation.isPending}>
-                    {addCompanyMutation.isPending ? 'در حال ثبت...' : 'ثبت شرکت'}
+                  <Button type="submit" disabled={addCompanyMutation.isPending || updateCompanyMutation.isPending}>
+                    {addCompanyMutation.isPending || updateCompanyMutation.isPending ? t('saving') : editingCompany ? t('save') : t('registered')}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
-                    لغو
+                  <Button type="button" variant="outline" onClick={resetCompanyForm}>
+                    {t('cancel')}
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
-        )}
+          </DialogContent>
+        </Dialog>
 
-        <div className="grid gap-4">
+        <Dialog open={!!detailsCompany} onOpenChange={(open) => { if (!open) setDetailsCompany(null); }}>
+          <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{t('companyDetails')}: {detailsCompany?.name}</DialogTitle>
+            </DialogHeader>
+            {detailsCompany && (
+              <dl className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-x-4 gap-y-3 text-sm">
+                {([
+                  ['contactPerson', t('contactPerson')],
+                  ['phone', t('phone')],
+                  ['email', t('email')],
+                  ['address', t('address')],
+                  ['website', t('website')],
+                  ['maxWeight', t('companyMaxWeight')],
+                  ['baseRate', t('companyBaseRate')],
+                  ['ratePerKm', t('companyRatePerKm')],
+                  ['rating', t('rating')],
+                  ['totalDeliveries', t('deliveries')],
+                ] as const).map(([field, label]) => (
+                  <React.Fragment key={field}>
+                    <dt className="font-medium text-slate-600">{label}</dt>
+                    <dd className="min-w-0 break-words">
+                      {field === 'email' && detailsCompany.email
+                        ? <a className="text-blue-700 underline" href={`mailto:${detailsCompany.email}`}>{detailsCompany.email}</a>
+                        : field === 'website' && detailsCompany.website
+                          ? <a className="text-blue-700 underline" href={detailsCompany.website} target="_blank" rel="noopener noreferrer">{detailsCompany.website}</a>
+                          : detailsCompany[field] ?? t('unknown')}
+                    </dd>
+                  </React.Fragment>
+                ))}
+                <dt className="font-medium text-slate-600">{t('status')}</dt>
+                <dd>{detailsCompany.isActive ? t('active') : t('inactive')}</dd>
+              </dl>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <div>
           {loadingCompanies ? (
-            <div className="text-center py-8">در حال بارگذاری...</div>
+            <div className="text-center py-8">{t('loading')}</div>
           ) : companies.length === 0 ? (
             <Card>
               <CardContent className="text-center py-8">
                 <Truck className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">هیچ شرکت حمل و نقل ثبت نشده است</p>
+                <p className="text-gray-500">{t('noCompanies')}</p>
               </CardContent>
             </Card>
           ) : (
-            companies.map((company: TransportationCompany) => (
-              <Card key={company.id}>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-semibold">{company.name}</h4>
-                      <p className="text-sm text-gray-600">{company.contactPerson}</p>
-                      <div className="flex items-center gap-4 mt-2 flex-wrap">
-                        <span className="text-sm">📞 {company.phone}</span>
-                        <span className="text-sm">✉️ {company.email}</span>
-                        {company.website && (
-                          <a 
-                            href={company.website} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:underline"
-                          >
-                            🌐 {company.website}
-                          </a>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-sm">⭐ {company.rating || 0}/5</span>
-                        <span className="text-sm">({company.totalDeliveries} تحویل)</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      {company.isActive ? (
-                        <Badge className="bg-green-500">فعال</Badge>
-                      ) : (
-                        <Badge className="bg-red-500">غیرفعال</Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <Button size="sm" variant="outline">
-                      <Edit className="w-4 h-4 mr-2" />
-                      ویرایش
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <Eye className="w-4 h-4 mr-2" />
-                      جزئیات
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+            <Card className="overflow-hidden border-slate-300 shadow-sm">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[1180px] text-xs">
+                    <TableHeader className="sticky top-0 z-10 bg-slate-700">
+                      <TableRow className="border-slate-700 hover:bg-slate-700">
+                        {[t('row'), t('company'), t('contactPerson'), t('phone'), t('email'), t('address'), t('website'), t('rating'), t('deliveries'), t('status'), t('actions')].map((label) => (
+                          <TableHead key={label} className="h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50">{label}</TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {companies.map((company: TransportationCompany, index: number) => (
+                        <TableRow key={company.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50">
+                          <TableCell className="border-e border-slate-200 px-3 py-2 font-mono text-slate-500">{index + 1}</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2 font-semibold text-slate-900">{company.name}</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2">{company.contactPerson || t('unknown')}</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap">{company.phone || t('unknown')}</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2">
+                            {company.email ? <a href={`mailto:${company.email}`} className="break-all text-blue-700 hover:underline">{company.email}</a> : t('unknown')}
+                          </TableCell>
+                          <TableCell className="max-w-[240px] whitespace-normal border-e border-slate-200 px-3 py-2">{company.address || t('noAddress')}</TableCell>
+                          <TableCell className="max-w-[200px] border-e border-slate-200 px-3 py-2">
+                            {company.website ? <a href={company.website} target="_blank" rel="noopener noreferrer" className="break-all text-blue-600 hover:underline">{company.website}</a> : t('unknown')}
+                          </TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap">{company.rating || 0}/5</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2 text-center">{company.totalDeliveries || 0}</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2">
+                            <Badge variant="outline" className={company.isActive ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-rose-300 bg-rose-50 text-rose-700'}>
+                              {company.isActive ? t('active') : t('inactive')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="px-3 py-2">
+                            <div className="flex flex-wrap gap-1">
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => {
+                                setEditingCompany(company);
+                                setCompanyFormData({
+                                  name: company.name,
+                                  contactPerson: company.contactPerson || '',
+                                  phone: company.phone || '',
+                                  email: company.email || '',
+                                  address: company.address || '',
+                                  website: company.website || '',
+                                  maxWeight: company.maxWeight || '',
+                                  baseRate: company.baseRate || '',
+                                  ratePerKm: company.ratePerKm || '',
+                                  isActive: company.isActive ?? false,
+                                });
+                                setShowAddForm(true);
+                              }}><Edit className="me-1 h-3.5 w-3.5" />{t('editAction')}</Button>
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setDetailsCompany(company)}><Eye className="me-1 h-3.5 w-3.5" />{t('detailsAction')}</Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       </div>
@@ -4085,11 +4788,11 @@ const LogisticsManagement = () => {
     },
     onSuccess: (data) => {
       setShippingCalculation(data);
-      toast({ title: "محاسبه هزینه حمل با موفقیت انجام شد" });
+      toast({ title: t('shippingCalculated') });
     },
     onError: (error: any) => {
       toast({ 
-        title: "خطا در محاسبه هزینه حمل", 
+        title: t('error'),
         description: error.message,
         variant: "destructive" 
       });
@@ -4109,15 +4812,15 @@ const LogisticsManagement = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                استان‌های عراق ({provinces.length})
+                {t('provincesOfIraq')} ({provinces.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {loadingProvinces ? (
-                  <div className="text-center py-4">در حال بارگذاری...</div>
+                  <div className="text-center py-4">{t('loading')}</div>
                 ) : provinces.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">هیچ استانی یافت نشد</p>
+                  <p className="text-gray-500 text-center py-4">{t('noProvinces')}</p>
                 ) : (
                   provinces.map((province: any) => (
                     <div key={province.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
@@ -4125,7 +4828,7 @@ const LogisticsManagement = () => {
                         <span className="font-medium">{province.name_ar}</span>
                         <span className="text-sm text-gray-600 block">{province.name_en}</span>
                       </div>
-                      <Badge variant="outline">{province.cities_count || 0} شهر</Badge>
+                      <Badge variant="outline">{province.cities_count || 0} {t('city')}</Badge>
                     </div>
                   ))
                 )}
@@ -4138,15 +4841,15 @@ const LogisticsManagement = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                شهرهای عراق ({cities.length})
+                {t('citiesOfIraq')} ({cities.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {loadingCities ? (
-                  <div className="text-center py-4">در حال بارگذاری...</div>
+                  <div className="text-center py-4">{t('loading')}</div>
                 ) : cities.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">هیچ شهری یافت نشد</p>
+                  <p className="text-gray-500 text-center py-4">{t('noCities')}</p>
                 ) : (
                   cities.map((city: any) => (
                     <div key={city.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
@@ -4168,20 +4871,20 @@ const LogisticsManagement = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="w-5 h-5" />
-              محاسبه هزینه حمل
+              {t('calculateShipping')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div>
-                <Label htmlFor="city">شهر مقصد</Label>
+                <Label htmlFor="city">{t('destinationCity')}</Label>
                 <select 
                   id="city"
                   className="w-full p-2 border rounded"
                   value={selectedCity}
                   onChange={(e) => setSelectedCity(e.target.value)}
                 >
-                  <option value="">انتخاب شهر</option>
+                  <option value="">{t('selectCity')}</option>
                   {cities.map((city: any) => (
                     <option key={city.id} value={city.name_ar}>
                       {city.name_ar} ({city.province_name})
@@ -4191,7 +4894,7 @@ const LogisticsManagement = () => {
               </div>
               
               <div>
-                <Label htmlFor="weight">وزن (کیلوگرم)</Label>
+                <Label htmlFor="weight">{t('weight')} ({t('unitKg')})</Label>
                 <Input
                   id="weight"
                   type="number"
@@ -4203,7 +4906,7 @@ const LogisticsManagement = () => {
               </div>
               
               <div>
-                <Label htmlFor="orderValue">ارزش سفارش (دینار)</Label>
+                <Label htmlFor="orderValue">{t('orderValue')}</Label>
                 <Input
                   id="orderValue"
                   type="number"
@@ -4218,8 +4921,8 @@ const LogisticsManagement = () => {
                   onClick={() => {
                     if (!selectedCity || !shippingWeight) {
                       toast({ 
-                        title: "خطا", 
-                        description: "لطفاً شهر و وزن را انتخاب کنید",
+                        title: t('error'),
+                        description: t('selectCityWeight'),
                         variant: "destructive" 
                       });
                       return;
@@ -4233,7 +4936,7 @@ const LogisticsManagement = () => {
                   disabled={calculateShippingMutation.isPending}
                   className="w-full"
                 >
-                  {calculateShippingMutation.isPending ? 'در حال محاسبه...' : 'محاسبه هزینه'}
+                  {calculateShippingMutation.isPending ? t('calculating') : t('calculate')}
                 </Button>
               </div>
             </div>
@@ -4241,7 +4944,7 @@ const LogisticsManagement = () => {
             {/* Shipping Calculation Results */}
             {shippingCalculation && (
               <div className="mt-6 space-y-4">
-                <h4 className="font-semibold">نتایج محاسبه هزینه حمل برای {shippingCalculation.city}</h4>
+                <h4 className="font-semibold">{t('calculateShipping')} — {shippingCalculation.city}</h4>
                 <div className="grid gap-4">
                   {shippingCalculation.calculations.map((calc: any, index: number) => (
                     <Card key={index} className="border-l-4 border-l-blue-500">
@@ -4256,19 +4959,19 @@ const LogisticsManagement = () => {
                             </div>
                             <p className="text-sm text-gray-600">{calc.description}</p>
                             <div className="grid grid-cols-2 gap-4 text-sm">
-                              <span>هزینه پایه: {Number(calc.base_price).toLocaleString()} دینار</span>
-                              <span>هزینه وزن: {calc.weight_cost.toLocaleString()} دینار</span>
-                              <span>زمان تحویل: {calc.estimated_days} روز</span>
-                              <span>بیمه: {calc.insurance_available ? 'موجود' : 'غیر موجود'}</span>
+                              <span>{t('basePrice')}: {Number(calc.base_price).toLocaleString()} {t('currencyIqd')}</span>
+                              <span>{t('weight')}: {calc.weight_cost.toLocaleString()} {t('currencyIqd')}</span>
+                              <span>{t('deliveryDate')}: {calc.estimated_days} {t('days')}</span>
+                              <span>{t('insurance')}: {calc.insurance_available ? t('available') : t('unavailable')}</span>
                             </div>
                           </div>
                           <div className="text-left">
                             <div className="text-lg font-bold text-green-600">
-                              {calc.is_free_shipping ? 'ارسال رایگان' : `${calc.final_total.toLocaleString()} دینار`}
+                              {calc.is_free_shipping ? t('freeShipping') : `${calc.final_total.toLocaleString()} ${t('currencyIqd')}`}
                             </div>
                             {calc.insurance_cost > 0 && (
                               <div className="text-sm text-gray-600">
-                                بیمه: {calc.insurance_cost.toLocaleString()} دینار
+                                {t('insurance')}: {calc.insurance_cost.toLocaleString()} {t('currencyIqd')}
                               </div>
                             )}
                           </div>
@@ -4287,91 +4990,17 @@ const LogisticsManagement = () => {
 
 
 
-  // New Geography Tab for provinces and cities management with editing capabilities
+  // Geography management UI is no longer rendered.
   const GeographyTab = () => {
     const [editingProvince, setEditingProvince] = useState<any>(null);
     const [editingCity, setEditingCity] = useState<any>(null);
     const [isEditProvinceDialogOpen, setIsEditProvinceDialogOpen] = useState(false);
     const [isEditCityDialogOpen, setIsEditCityDialogOpen] = useState(false);
-    const [selectedOriginCity, setSelectedOriginCity] = useState<any>(null);
-    const [citySortField, setCitySortField] = useState<string | null>(null);
-    const [citySortDirection, setCitySortDirection] = useState<'asc' | 'desc'>('asc');
 
-    const geographyProvinces = (geographyProvincesResponse as any)?.data || [];
-    const geographyCities = (geographyCitiesResponse as any)?.data || [];
+    const geographyProvinces: any[] = [];
+    const geographyCities: any[] = [];
+    const loadingGeographyCities = false;
 
-    // Calculate dynamic distances based on selected origin city
-    const calculateDistance = (targetCity: any) => {
-      if (!selectedOriginCity) return targetCity.distance_from_erbil_km || 0;
-      
-      const originDistance = selectedOriginCity.distance_from_erbil_km || 0;
-      const targetDistance = targetCity.distance_from_erbil_km || 0;
-      
-      // Calculate relative distance using Erbil as common reference point
-      return Math.abs(targetDistance - originDistance);
-    };
-
-    // Handle sorting for cities table
-    const handleCitySort = (field: string) => {
-      if (citySortField === field) {
-        setCitySortDirection(citySortDirection === 'asc' ? 'desc' : 'asc');
-      } else {
-        setCitySortField(field);
-        setCitySortDirection('asc');
-      }
-    };
-
-    // Sort cities based on current sort field and direction
-    const sortedCities = [...geographyCities].sort((a: any, b: any) => {
-      if (!citySortField) return 0;
-      
-      let aValue, bValue;
-      
-      switch (citySortField) {
-        case 'id':
-          aValue = a.id || 0;
-          bValue = b.id || 0;
-          break;
-        case 'name':
-          aValue = a.name_arabic || a.name || '';
-          bValue = b.name_arabic || b.name || '';
-          break;
-        case 'province':
-          aValue = a.province_name || '';
-          bValue = b.province_name || '';
-          break;
-        case 'distance':
-          aValue = calculateDistance(a);
-          bValue = calculateDistance(b);
-          break;
-
-        default:
-          return 0;
-      }
-      
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        const result = aValue.localeCompare(bValue, 'ar');
-        return citySortDirection === 'asc' ? result : -result;
-      }
-      
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        const result = aValue - bValue;
-        return citySortDirection === 'asc' ? result : -result;
-      }
-      
-      return 0;
-    });
-
-    // Calculate province distance (average of cities in province)
-    const calculateProvinceDistance = (province: any) => {
-      if (!selectedOriginCity) return 0;
-      
-      const provinceCities = geographyCities.filter((city: any) => city.province_id === province.id);
-      if (provinceCities.length === 0) return 0;
-      
-      const totalDistance = provinceCities.reduce((sum: number, city: any) => sum + calculateDistance(city), 0);
-      return Math.round(totalDistance / provinceCities.length);
-    };
 
     // Update province mutation
     const updateProvinceMutation = useMutation({
@@ -4385,10 +5014,10 @@ const LogisticsManagement = () => {
         queryClient.invalidateQueries({ queryKey: ['/api/logistics/provinces-detailed'] });
         setIsEditProvinceDialogOpen(false);
         setEditingProvince(null);
-        toast({ title: "موفقیت", description: "استان با موفقیت به‌روزرسانی شد" });
+        toast({ title: t('success'), description: t('updated') });
       },
       onError: () => {
-        toast({ title: "خطا", description: "خطا در به‌روزرسانی استان", variant: "destructive" });
+        toast({ title: t('error'), description: t('operationFailed'), variant: "destructive" });
       }
     });
 
@@ -4404,10 +5033,10 @@ const LogisticsManagement = () => {
         queryClient.invalidateQueries({ queryKey: ['/api/logistics/cities-detailed'] });
         setIsEditCityDialogOpen(false);
         setEditingCity(null);
-        toast({ title: "موفقیت", description: "شهر با موفقیت به‌روزرسانی شد" });
+        toast({ title: t('success'), description: t('updated') });
       },
       onError: () => {
-        toast({ title: "خطا", description: "خطا در به‌روزرسانی شهر", variant: "destructive" });
+        toast({ title: t('error'), description: t('operationFailed'), variant: "destructive" });
       }
     });
 
@@ -4447,86 +5076,28 @@ const LogisticsManagement = () => {
           <div>
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <MapPin className="h-5 w-5" />
-              مدیریت جغرافیای عراق
+              {t('geographyManagement')}
             </h3>
-            <p className="text-sm text-gray-600 mt-1">مدیریت 18 استان و 188 شهر عراق با قابلیت انتخاب مبدا</p>
+            <p className="text-sm text-gray-600 mt-1">{t('geography')}</p>
           </div>
           <div className="flex gap-2">
             <Badge variant="outline" className="bg-blue-50">
-              {geographyProvinces.length} استان
+              {geographyProvinces.length} {t('province')}
             </Badge>
             <Badge variant="outline" className="bg-green-50">
-              {geographyCities.length} شهر
+              {geographyCities.length} {t('city')}
             </Badge>
           </div>
         </div>
-
-        {/* Origin City Selection */}
-        <Card className="border-2 border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-600 p-2 rounded-full">
-                  <MapPin className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-blue-900">انتخاب شهر مبدا برای محاسبه فواصل</h4>
-                  <p className="text-sm text-blue-700">
-                    {selectedOriginCity 
-                      ? `مبدا انتخاب شده: ${selectedOriginCity.name_arabic || selectedOriginCity.name}` 
-                      : 'مبدا پیش‌فرض: اربیل (تمام فاصله‌ها از اربیل محاسبه می‌شوند)'
-                    }
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <select
-                  value={selectedOriginCity?.id || ''}
-                  onChange={(e) => {
-                    const cityId = parseInt(e.target.value);
-                    const city = geographyCities.find((c: any) => c.id === cityId);
-                    setSelectedOriginCity(city || null);
-                  }}
-                  className="p-2 border rounded-md bg-white text-sm min-w-[200px]"
-                >
-                  <option value="">اربیل (پیش‌فرض)</option>
-                  {geographyCities.map((city: any) => (
-                    <option key={city.id} value={city.id}>
-                      {city.name_arabic || city.name} - {city.province_name}
-                    </option>
-                  ))}
-                </select>
-                {selectedOriginCity && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelectedOriginCity(null)}
-                    className="text-blue-600 border-blue-600 hover:bg-blue-100"
-                  >
-                    بازنشانی
-                  </Button>
-                )}
-              </div>
-            </div>
-            {selectedOriginCity && (
-              <div className="mt-3 p-3 bg-blue-100 rounded-md">
-                <p className="text-sm text-blue-800">
-                  <strong>نکته:</strong> فاصله‌ها بر اساس تفاوت فاصله شهرها از اربیل محاسبه می‌شوند. 
-                  شهر انتخابی به عنوان مبدا (0 کیلومتر) نمایش داده می‌شود.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
         <Card className="w-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5" />
-              شهرهای عراق ({geographyCities.length})
+              {t('citiesOfIraq')} ({geographyCities.length})
             </CardTitle>
             <CardDescription>
-              مدیریت 188 شهر عراق با فاصله‌های قابل تنظیم بر اساس مبدا انتخابی
+              {t('geography')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -4549,62 +5120,32 @@ const LogisticsManagement = () => {
                       }}>
                       <TableRow className="bg-white" style={{ backgroundColor: 'white', position: 'relative', zIndex: 50 }}>
                         <TableHead className="text-right w-20 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleCitySort('id')}
-                            className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
-                          >
-                            ردیف
-                            <ArrowUpDown className="h-3 w-3" />
-                          </Button>
+                          <div className="font-medium text-right">
+                            {t('rowNumber')}
+                          </div>
                         </TableHead>
                         <TableHead className="text-right w-48 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleCitySort('name')}
-                            className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
-                          >
-                            نام شهر
-                            <ArrowUpDown className="h-3 w-3" />
-                          </Button>
+                          <div className="font-medium text-right">
+                            {t('cityName')}
+                          </div>
                         </TableHead>
                         <TableHead className="text-right w-32 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleCitySort('province')}
-                            className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
-                          >
-                            استان
-                            <ArrowUpDown className="h-3 w-3" />
-                          </Button>
+                          <div className="font-medium text-right">
+                            {t('province')}
+                          </div>
                         </TableHead>
-                        <TableHead className="text-right w-64 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleCitySort('distance')}
-                            className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
-                          >
-                            فاصله از {selectedOriginCity ? (selectedOriginCity.name_arabic || selectedOriginCity.name) : 'اربیل'} (کیلومتر)
-                            <ArrowUpDown className="h-3 w-3" />
-                          </Button>
-                        </TableHead>
-
                         <TableHead className="text-right w-32 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
                           <div className="flex items-center justify-end gap-1">
                             <Bus className="h-4 w-4 text-blue-600" />
-                            <span>خط مسافربری</span>
+                            <span>{t('passengerLine')}</span>
                           </div>
                         </TableHead>
-                        <TableHead className="text-right w-24 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>وضعیت</TableHead>
-                        <TableHead className="text-right w-32 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>عملیات</TableHead>
+                        <TableHead className="text-start w-24 bg-white sticky top-0 z-50 border-b">{t('status')}</TableHead>
+                        <TableHead className="text-start w-32 bg-white sticky top-0 z-50 border-b">{t('operations')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sortedCities.map((city: any) => (
+                      {geographyCities.map((city: any) => (
                       <TableRow key={city.id}>
                         <TableCell className="font-medium text-right w-20">{city.id}</TableCell>
                         <TableCell className="text-right w-48">
@@ -4619,50 +5160,16 @@ const LogisticsManagement = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-right w-32">{city.province_name}</TableCell>
-                        <TableCell className="text-right w-64">
-                          <div className="flex justify-end items-center gap-2">
-                            <Badge 
-                              variant="outline" 
-                              className={selectedOriginCity?.id === city.id ? 
-                                "bg-yellow-100 border-yellow-500 text-yellow-700" : 
-                                "bg-green-50 border-green-200 text-green-700"
-                              }
-                            >
-                              {selectedOriginCity?.id === city.id ? 
-                                'مبدا (0 کیلومتر)' : 
-                                `${calculateDistance(city)} کیلومتر`
-                              }
-                            </Badge>
-                            {!selectedOriginCity && (
-                              <button
-                                onClick={() => {
-                                  setEditingCity(city);
-                                  setIsEditCityDialogOpen(true);
-                                }}
-                                className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1 py-0.5 rounded transition-colors"
-                                title="ویرایش سریع فاصله"
-                              >
-                                📍
-                              </button>
-                            )}
-                          </div>
-                          {!selectedOriginCity && (
-                            <div className="text-xs text-gray-500 mt-1 text-right">
-                              (از اربیل: {city.distance_from_erbil_km || 0} کیلومتر)
-                            </div>
-                          )}
-                        </TableCell>
-
                         <TableCell className="text-right w-32">
                           <div className="flex justify-end">
                             {city.has_intercity_bus_line ? (
                               <Badge className="bg-blue-100 text-blue-800 border-blue-300">
                                 <Bus className="h-3 w-3 mr-1" />
-                                دارد
+                                {t('available')}
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-300">
-                                ندارد
+                                {t('unavailable')}
                               </Badge>
                             )}
                           </div>
@@ -4670,7 +5177,7 @@ const LogisticsManagement = () => {
                         <TableCell className="text-right w-24">
                           <div className="flex justify-end">
                             <Badge variant={city.is_active ? "default" : "secondary"}>
-                              {city.is_active ? "فعال" : "غیرفعال"}
+                              {city.is_active ? t('enabledStatus') : t('disabledStatus')}
                             </Badge>
                           </div>
                         </TableCell>
@@ -4685,7 +5192,7 @@ const LogisticsManagement = () => {
                               }}
                             >
                               <Edit className="w-4 h-4 mr-2" />
-                              ویرایش
+                              {t('editAction')}
                             </Button>
                           </div>
                         </TableCell>
@@ -4701,16 +5208,16 @@ const LogisticsManagement = () => {
 
         {/* Edit Province Dialog */}
         <Dialog open={isEditProvinceDialogOpen} onOpenChange={setIsEditProvinceDialogOpen}>
-          <DialogContent className="max-w-2xl" dir="rtl">
+          <DialogContent className="max-w-2xl" dir={direction}>
             <DialogHeader>
-              <DialogTitle>ویرایش استان</DialogTitle>
-              <DialogDescription>ویرایش اطلاعات استان {editingProvince?.name_arabic}</DialogDescription>
+              <DialogTitle>{t('editProvince')}</DialogTitle>
+              <DialogDescription>{t('editProvince')} {editingProvince?.name_arabic}</DialogDescription>
             </DialogHeader>
             {editingProvince && (
               <form onSubmit={(e) => { e.preventDefault(); handleEditProvince(new FormData(e.currentTarget)); }}>
                 <div className="grid grid-cols-2 gap-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name_arabic">نام عربی *</Label>
+                    <Label htmlFor="name_arabic">{t('provinceArabicName')}</Label>
                     <Input 
                       id="name_arabic" 
                       name="name_arabic" 
@@ -4719,7 +5226,7 @@ const LogisticsManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="name_english">نام انگلیسی *</Label>
+                    <Label htmlFor="name_english">{t('provinceEnglishName')}</Label>
                     <Input 
                       id="name_english" 
                       name="name_english" 
@@ -4728,7 +5235,7 @@ const LogisticsManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="capital">مرکز استان *</Label>
+                    <Label htmlFor="capital">{t('capital')}</Label>
                     <Input 
                       id="capital" 
                       name="capital" 
@@ -4737,15 +5244,15 @@ const LogisticsManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="region">منطقه</Label>
+                    <Label htmlFor="region">{t('region')}</Label>
                     <select 
                       name="region" 
                       defaultValue={editingProvince.region}
                       className="w-full p-2 border rounded"
                     >
-                      <option value="north">شمال</option>
-                      <option value="center">مرکز</option>
-                      <option value="south">جنوب</option>
+                      <option value="north">{t('north')}</option>
+                      <option value="center">{t('center')}</option>
+                      <option value="south">{t('south')}</option>
                     </select>
                   </div>
                   <div className="space-y-2 col-span-2">
@@ -4756,14 +5263,14 @@ const LogisticsManagement = () => {
                         name="is_active" 
                         defaultChecked={editingProvince.is_active}
                       />
-                      <Label htmlFor="is_active">فعال</Label>
+                      <Label htmlFor="is_active">{t('active')}</Label>
                     </div>
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsEditProvinceDialogOpen(false)}>انصراف</Button>
+                  <Button type="button" variant="outline" onClick={() => setIsEditProvinceDialogOpen(false)}>{t('cancel')}</Button>
                   <Button type="submit" disabled={updateProvinceMutation.isPending}>
-                    {updateProvinceMutation.isPending ? "در حال به‌روزرسانی..." : "به‌روزرسانی"}
+                    {updateProvinceMutation.isPending ? t('updating') : t('update')}
                   </Button>
                 </DialogFooter>
               </form>
@@ -4773,19 +5280,19 @@ const LogisticsManagement = () => {
 
         {/* Edit City Dialog */}
         <Dialog open={isEditCityDialogOpen} onOpenChange={setIsEditCityDialogOpen}>
-          <DialogContent className="max-w-2xl" dir="rtl">
+          <DialogContent className="max-w-2xl" dir={direction}>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Edit className="w-5 h-5 text-blue-600" />
-                ویرایش شهر
+                  {t('editCity')}
               </DialogTitle>
               <DialogDescription className="bg-blue-50 p-3 rounded-lg">
                 <div className="flex items-center gap-2">
                   <span className="text-blue-700">🏙️</span>
-                  <span>ویرایش اطلاعات شهر <strong>{editingCity?.name_arabic || editingCity?.name}</strong></span>
+                  <span>{t('editCity')} <strong>{editingCity?.name_arabic || editingCity?.name}</strong></span>
                 </div>
                 <div className="text-xs text-blue-600 mt-1">
-                  استان: {editingCity?.province_name}
+                  {t('province')}: {editingCity?.province_name}
                 </div>
               </DialogDescription>
             </DialogHeader>
@@ -4793,7 +5300,7 @@ const LogisticsManagement = () => {
               <form onSubmit={(e) => { e.preventDefault(); handleEditCity(new FormData(e.currentTarget)); }}>
                 <div className="grid grid-cols-2 gap-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="city_name_arabic">نام عربی *</Label>
+                    <Label htmlFor="city_name_arabic">{t('cityArabicName')}</Label>
                     <Input 
                       id="city_name_arabic" 
                       name="name_arabic" 
@@ -4802,7 +5309,7 @@ const LogisticsManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="city_name_english">نام انگلیسی</Label>
+                    <Label htmlFor="city_name_english">{t('cityEnglishName')}</Label>
                     <Input 
                       id="city_name_english" 
                       name="name_english" 
@@ -4811,7 +5318,7 @@ const LogisticsManagement = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="distance_from_erbil_km" className="text-blue-700 font-medium">
-                      📍 فاصله از اربیل (کیلومتر) *
+                      {t('legacyErbilBaseline')}
                     </Label>
                     <div className="relative">
                       <Input 
@@ -4827,16 +5334,16 @@ const LogisticsManagement = () => {
                         placeholder="0"
                       />
                       <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm pointer-events-none">
-                        کیلومتر
+                        {t('unitKm')}
                       </span>
                     </div>
                     <p className="text-xs text-gray-600 bg-blue-50 p-2 rounded">
-                      💡 این فاصله برای محاسبه هزینه حمل و انتخاب خودرو استفاده می‌شود
+                      {t('legacyErbilBaselineDescription')}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>استان</Label>
+                    <Label>{t('province')}</Label>
                     <p className="text-sm text-gray-600 p-2 bg-gray-50 rounded">
                       {editingCity.province_name}
                     </p>
@@ -4849,7 +5356,7 @@ const LogisticsManagement = () => {
                         name="is_active" 
                         defaultChecked={editingCity.is_active}
                       />
-                      <Label htmlFor="city_is_active">فعال</Label>
+                      <Label htmlFor="city_is_active">{t('active')}</Label>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -4863,18 +5370,18 @@ const LogisticsManagement = () => {
                       />
                       <Bus className="h-4 w-4 text-blue-600" />
                       <Label htmlFor="city_has_intercity_bus_line" className="text-blue-800 font-medium">
-                        خط مسافربری بین شهری موجود است
+                        {t('busService')}
                       </Label>
                     </div>
                     <p className="text-xs text-blue-600 px-3">
-                      💡 این گزینه نشان می‌دهد که آیا در این شهر خدمات اتوبوس بین شهری ارائه می‌شود یا خیر
+                      {t('busHelp')}
                     </p>
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsEditCityDialogOpen(false)}>انصراف</Button>
+                  <Button type="button" variant="outline" onClick={() => setIsEditCityDialogOpen(false)}>{t('cancel')}</Button>
                   <Button type="submit" disabled={updateCityMutation.isPending}>
-                    {updateCityMutation.isPending ? "در حال به‌روزرسانی..." : "به‌روزرسانی"}
+                    {updateCityMutation.isPending ? t('updating') : t('update')}
                   </Button>
                 </DialogFooter>
               </form>
@@ -4902,10 +5409,10 @@ const LogisticsManagement = () => {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['/api/logistics/ready-vehicles'] });
         setIsCreateReadyVehicleDialogOpen(false);
-        toast({ title: "موفقیت", description: "خودرو آماده ثبت شد" });
+        toast({ title: t('success'), description: t('readyVehicleCreated') });
       },
       onError: () => {
-        toast({ title: "خطا", description: "خطا در ثبت خودرو آماده", variant: "destructive" });
+        toast({ title: t('error'), description: t('readyVehicleError'), variant: "destructive" });
       }
     });
 
@@ -4922,10 +5429,10 @@ const LogisticsManagement = () => {
         queryClient.invalidateQueries({ queryKey: ['/api/logistics/ready-vehicles'] });
         setIsEditReadyVehicleDialogOpen(false);
         setSelectedReadyVehicle(null);
-        toast({ title: "موفقیت", description: "خودرو آماده بروزرسانی شد" });
+        toast({ title: t('success'), description: t('readyVehicleUpdated') });
       },
       onError: () => {
-        toast({ title: "خطا", description: "خطا در بروزرسانی خودرو آماده", variant: "destructive" });
+        toast({ title: t('error'), description: t('readyVehicleError'), variant: "destructive" });
       }
     });
 
@@ -4938,10 +5445,10 @@ const LogisticsManagement = () => {
         }).then(res => res.json()),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['/api/logistics/ready-vehicles'] });
-        toast({ title: "موفقیت", description: "خودرو آماده حذف شد" });
+        toast({ title: t('success'), description: t('readyVehicleDeleted') });
       },
       onError: () => {
-        toast({ title: "خطا", description: "خطا در حذف خودرو آماده", variant: "destructive" });
+        toast({ title: t('error'), description: t('operationFailed'), variant: "destructive" });
       }
     });
 
@@ -4952,7 +5459,7 @@ const LogisticsManagement = () => {
       
       // Determine vehicle template and type based on selection
       const selectedVehicleType = formData.get('vehicleType') as string;
-      const isCustomType = selectedVehicleType === 'سایر';
+        const isCustomType = selectedVehicleType === 'سایر'; // stored enum compatibility
       const finalVehicleType = isCustomType ? customVehicleType : selectedVehicleType;
       
       // Find the selected vehicle template
@@ -4989,7 +5496,7 @@ const LogisticsManagement = () => {
       
       // Determine vehicle template and type based on selection
       const selectedVehicleType = formData.get('vehicleType') as string;
-      const isCustomType = selectedVehicleType === 'سایر';
+        const isCustomType = selectedVehicleType === 'سایر'; // stored enum compatibility
       const finalVehicleType = isCustomType ? customEditVehicleType : selectedVehicleType;
       
       // Find the selected vehicle template
@@ -5024,59 +5531,59 @@ const LogisticsManagement = () => {
           <div>
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Truck className="h-5 w-5 text-green-600" />
-              ناوگان خودروهای شرکت
+              {t('fleetManagement')}
             </h3>
-            <p className="text-muted-foreground text-sm">مدیریت خودروهای واقعی و آماده شرکت برای اختصاص به سفارشات</p>
+            <p className="text-muted-foreground text-sm">{t('fleetDescription')}</p>
           </div>
           <Button 
             onClick={() => setIsCreateReadyVehicleDialogOpen(true)}
             className="bg-green-600 hover:bg-green-700"
           >
             <Plus className="h-4 w-4 mr-2" />
-            افزودن خودرو به ناوگان
+            {t('addFleetVehicle')}
           </Button>
         </div>
 
         <Card>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
+            <div className="overflow-x-auto"><Table className="min-w-[1100px] border border-slate-200">
+              <TableHeader className="sticky top-0 bg-slate-700">
                 <TableRow>
-                  <TableHead>نوع خودرو</TableHead>
-                  <TableHead>پلاک خودرو</TableHead>
-                  <TableHead>نام راننده</TableHead>
-                  <TableHead>موبایل راننده</TableHead>
-                  <TableHead>ظرفیت حمل</TableHead>
-                  <TableHead>قابلیت‌های ویژه</TableHead>
-                  <TableHead>موقعیت فعلی</TableHead>
-                  <TableHead>وضعیت دسترسی</TableHead>
-                  <TableHead>عملیات</TableHead>
+                  <TableHead className="text-start">{t('vehicleType')}</TableHead>
+                  <TableHead className="text-start">{t('plate')}</TableHead>
+                  <TableHead className="text-start">{t('driver')}</TableHead>
+                  <TableHead className="text-start">{t('phone')}</TableHead>
+                  <TableHead className="text-start">{t('capacity')}</TableHead>
+                  <TableHead className="text-start">{t('description')}</TableHead>
+                  <TableHead className="text-start">{t('location')}</TableHead>
+                  <TableHead className="text-start">{t('status')}</TableHead>
+                  <TableHead className="text-start">{t('operations')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loadingFleetVehicles ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">در حال بارگذاری...</TableCell>
+                    <TableCell colSpan={9} className="text-center py-8">{t('loading')}</TableCell>
                   </TableRow>
                 ) : readyVehicles.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
                         <Truck className="h-12 w-12 text-gray-400" />
-                        <p className="text-gray-600">هیچ خودرویی در ناوگان شرکت ثبت نشده</p>
+                        <p className="text-gray-600">{t('noFleetVehicles')}</p>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
                   readyVehicles.map((vehicle: ReadyVehicle) => (
-                    <TableRow key={vehicle.id}>
+                        <TableRow key={vehicle.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50">
                       <TableCell>{vehicle.vehicleType}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="font-mono">
                           {vehicle.licensePlate}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">{vehicle.driverName}</TableCell>
+                      <TableCell className="font-medium">{displayDriverName(vehicle.driverName)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Phone className="h-3 w-3 text-blue-600" />
@@ -5086,7 +5593,7 @@ const LogisticsManagement = () => {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Weight className="h-3 w-3 text-orange-600" />
-                          <span className="font-medium text-orange-600">{vehicle.loadCapacity} کیلوگرم</span>
+                          <span className="font-medium text-orange-600">{vehicle.loadCapacity} {t('unitKg')}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -5094,28 +5601,28 @@ const LogisticsManagement = () => {
                           {vehicle.supportsFlammable && (
                             <Badge variant="outline" className="text-green-700 bg-green-50 border-green-200">
                               <Flame className="h-3 w-3 mr-1" />
-                              مجاز آتش‌زا
+                              {t('flammableAllowed')}
                             </Badge>
                           )}
                           {vehicle.notAllowedFlammable && (
                             <Badge variant="outline" className="text-red-700 bg-red-50 border-red-200">
                               <X className="h-3 w-3 mr-1" />
-                              ممنوع آتش‌زا
+                              {t('flammableForbidden')}
                             </Badge>
                           )}
                           {!vehicle.supportsFlammable && !vehicle.notAllowedFlammable && (
-                            <span className="text-gray-500 text-xs">عادی</span>
+                            <span className="text-gray-500 text-xs">{t('normal')}</span>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="text-xs">
-                          {vehicle.currentLocation || 'نامشخص'}
+                          {vehicle.currentLocation || t('noLocation')}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant={vehicle.isAvailable ? "default" : "destructive"}>
-                          {vehicle.isAvailable ? "آماده" : "مشغول"}
+                          {vehicle.isAvailable ? t('activeReady') : t('busy')}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -5130,7 +5637,7 @@ const LogisticsManagement = () => {
                             className="text-blue-600 border-blue-300 hover:bg-blue-50"
                           >
                             <Edit className="h-4 w-4 ml-1" />
-                            ویرایش
+                            {t('editAction')}
                           </Button>
                           <Button 
                             size="sm" 
@@ -5140,7 +5647,7 @@ const LogisticsManagement = () => {
                             className="text-red-600 border-red-300 hover:bg-red-50"
                           >
                             <AlertTriangle className="h-4 w-4 ml-1" />
-                            حذف
+                            {t('delete')}
                           </Button>
                         </div>
                       </TableCell>
@@ -5148,27 +5655,27 @@ const LogisticsManagement = () => {
                   ))
                 )}
               </TableBody>
-            </Table>
+            </Table></div>
           </CardContent>
         </Card>
 
         {/* Create Ready Vehicle Dialog */}
         <Dialog open={isCreateReadyVehicleDialogOpen} onOpenChange={setIsCreateReadyVehicleDialogOpen}>
-          <DialogContent className="max-w-2xl" dir="rtl">
+          <DialogContent className="max-w-2xl" dir={direction}>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Truck className="h-5 w-5 text-green-600" />
-                افزودن خودرو به ناوگان شرکت
+                {t('addFleetVehicle')}
               </DialogTitle>
               <DialogDescription>
-                اطلاعات خودرو و راننده را برای اضافه کردن به ناوگان خودروهای شرکت وارد کنید
+                {t('fleetDescription')}
               </DialogDescription>
             </DialogHeader>
             
             <form onSubmit={handleCreateReadyVehicle} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="vehicleType">الگوی خودرو *</Label>
+                    <Label htmlFor="vehicleType">{t('template')} *</Label>
                   <Select 
                     name="vehicleType" 
                     value={selectedVehicleType}
@@ -5178,11 +5685,11 @@ const LogisticsManagement = () => {
                     required
                   >
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="انتخاب الگوی خودرو" />
+                      <SelectValue placeholder={t('selectVehicleType')} />
                     </SelectTrigger>
                     <SelectContent>
                       {loadingVehicleTemplates ? (
-                        <SelectItem value="loading" disabled>در حال بارگذاری...</SelectItem>
+                        <SelectItem value="loading" disabled>{t('loading')}</SelectItem>
                       ) : (vehicleTemplatesData as any)?.data?.length > 0 ? (
                         (vehicleTemplatesData as any)?.data?.map((template: any) => (
                           <SelectItem key={template.id} value={template.name}>
@@ -5190,63 +5697,63 @@ const LogisticsManagement = () => {
                           </SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="no-data" disabled>هیچ الگوی خودرویی یافت نشد</SelectItem>
+                        <SelectItem value="no-data" disabled>{t('noData')}</SelectItem>
                       )}
                     </SelectContent>
                   </Select>
 
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="licensePlate">شماره خودرو *</Label>
+                  <Label htmlFor="licensePlate">{t('plate')} *</Label>
                   <Input 
                     id="licensePlate" 
                     name="licensePlate" 
                     required 
-                    placeholder="مثال: 12ج345678"
+                    placeholder={t('plateExample')}
                     className="font-mono"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="driverName">نام راننده *</Label>
+                  <Label htmlFor="driverName">{t('driver')} *</Label>
                   <Input 
                     id="driverName" 
                     name="driverName" 
                     required 
-                    placeholder="نام و نام خانوادگی راننده"
+                    placeholder={t('driverNamePlaceholder')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="driverMobile">موبایل راننده *</Label>
+                  <Label htmlFor="driverMobile">{t('phone')} *</Label>
                   <Input 
                     id="driverMobile" 
                     name="driverMobile" 
                     required 
-                    placeholder="مثال: 07501234567"
+                    placeholder={t('mobileExample')}
                     className="font-mono"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="loadCapacity">ظرفیت حمل (کیلوگرم) *</Label>
+                  <Label htmlFor="loadCapacity">{t('capacity')} ({t('unitKg')}) *</Label>
                   <Input 
                     id="loadCapacity" 
                     name="loadCapacity" 
                     type="number" 
                     required 
-                    placeholder="مثال: 1000"
+                    placeholder={t('capacityExample')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="currentLocation">موقعیت فعلی</Label>
+                  <Label htmlFor="currentLocation">{t('location')}</Label>
                   <Input 
                     id="currentLocation" 
                     name="currentLocation" 
-                    placeholder="مثال: اربیل، بغداد"
+                    placeholder={t('locationExample')}
                   />
                 </div>
                 
                 {/* Special Capabilities Section */}
                 <div className="space-y-2 col-span-2">
-                  <Label className="text-base font-semibold text-blue-700">قابلیت‌های ویژه حمل مواد</Label>
+                  <Label className="text-base font-semibold text-blue-700">{t('specialCapabilities')}</Label>
                   <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
                     <div className="flex items-center space-x-2">
                       <input type="hidden" name="supportsFlammable" value="false" />
@@ -5256,7 +5763,7 @@ const LogisticsManagement = () => {
                         name="supportsFlammable" 
                         value="true"
                       />
-                      <Label htmlFor="supportsFlammable" className="text-green-700">قابلیت حمل مواد آتش‌زا</Label>
+                      <Label htmlFor="supportsFlammable" className="text-green-700">{t('flammableAllowed')}</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <input type="hidden" name="notAllowedFlammable" value="false" />
@@ -5266,23 +5773,23 @@ const LogisticsManagement = () => {
                         name="notAllowedFlammable" 
                         value="true"
                       />
-                      <Label htmlFor="notAllowedFlammable" className="text-red-700">ممنوع حمل مواد آتش‌زا</Label>
+                      <Label htmlFor="notAllowedFlammable" className="text-red-700">{t('flammableForbidden')}</Label>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2 col-span-2">
-                  <Label htmlFor="notes">یادداشت‌ها</Label>
+                  <Label htmlFor="notes">{t('notes')}</Label>
                   <Input 
                     id="notes" 
                     name="notes" 
-                    placeholder="اطلاعات اضافی در مورد خودرو یا راننده"
+                    placeholder={t('notesPlaceholder')}
                   />
                 </div>
                 
                 {/* Status Section */}
                 <div className="space-y-2 col-span-2">
-                  <Label className="text-base font-semibold text-green-700">وضعیت دسترسی</Label>
+                  <Label className="text-base font-semibold text-green-700">{t('accessStatus')}</Label>
                   <div className="p-4 bg-green-50 rounded-lg">
                     <div className="flex items-center space-x-2">
                       <input type="hidden" name="isAvailable" value="false" />
@@ -5293,17 +5800,17 @@ const LogisticsManagement = () => {
                         value="true" 
                         defaultChecked
                       />
-                      <Label htmlFor="isAvailable" className="font-medium">آماده به کار</Label>
+                      <Label htmlFor="isAvailable" className="font-medium">{t('availableStatus')}</Label>
                     </div>
                   </div>
                 </div>
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsCreateReadyVehicleDialogOpen(false)}>
-                  انصراف
+                  {t('cancel')}
                 </Button>
                 <Button type="submit" disabled={createReadyVehicleMutation.isPending}>
-                  {createReadyVehicleMutation.isPending ? "در حال ثبت..." : "ثبت خودرو"}
+                  {createReadyVehicleMutation.isPending ? t('saving') : t('create')}
                 </Button>
               </DialogFooter>
             </form>
@@ -5312,14 +5819,14 @@ const LogisticsManagement = () => {
 
         {/* Edit Ready Vehicle Dialog */}
         <Dialog open={isEditReadyVehicleDialogOpen} onOpenChange={setIsEditReadyVehicleDialogOpen}>
-          <DialogContent className="max-w-2xl" dir="rtl">
+          <DialogContent className="max-w-2xl" dir={direction}>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Edit className="h-5 w-5 text-blue-600" />
-                ویرایش خودرو ناوگان
+                {t('edit')}
               </DialogTitle>
               <DialogDescription>
-                ویرایش اطلاعات خودرو {selectedReadyVehicle?.licensePlate} در ناوگان شرکت
+                {t('editFleetDescription').replace('{plate}', selectedReadyVehicle?.licensePlate || '')}
               </DialogDescription>
             </DialogHeader>
             
@@ -5327,7 +5834,7 @@ const LogisticsManagement = () => {
               <form onSubmit={handleUpdateReadyVehicle} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="edit-vehicleType">الگوی خودرو *</Label>
+                    <Label htmlFor="edit-vehicleType">{t('template')} *</Label>
                     <Select 
                       name="vehicleType" 
                       value={selectedEditVehicleType}
@@ -5337,11 +5844,11 @@ const LogisticsManagement = () => {
                       required
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="انتخاب الگوی خودرو" />
+                        <SelectValue placeholder={t('selectVehicleType')} />
                       </SelectTrigger>
                       <SelectContent>
                         {loadingVehicleTemplates ? (
-                          <SelectItem value="loading" disabled>در حال بارگذاری...</SelectItem>
+                          <SelectItem value="loading" disabled>{t('loading')}</SelectItem>
                         ) : (vehicleTemplatesData as any)?.data?.length > 0 ? (
                           (vehicleTemplatesData as any)?.data?.map((template: any) => (
                             <SelectItem key={template.id} value={template.name}>
@@ -5349,14 +5856,14 @@ const LogisticsManagement = () => {
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="no-data" disabled>هیچ الگوی خودرویی یافت نشد</SelectItem>
+                          <SelectItem value="no-data" disabled>{t('noData')}</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
 
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-licensePlate">شماره خودرو *</Label>
+                    <Label htmlFor="edit-licensePlate">{t('plate')} *</Label>
                     <Input 
                       id="edit-licensePlate" 
                       name="licensePlate" 
@@ -5366,7 +5873,7 @@ const LogisticsManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-driverName">نام راننده *</Label>
+                    <Label htmlFor="edit-driverName">{t('driver')} *</Label>
                     <Input 
                       id="edit-driverName" 
                       name="driverName" 
@@ -5375,7 +5882,7 @@ const LogisticsManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-driverMobile">موبایل راننده *</Label>
+                    <Label htmlFor="edit-driverMobile">{t('phone')} *</Label>
                     <Input 
                       id="edit-driverMobile" 
                       name="driverMobile" 
@@ -5385,7 +5892,7 @@ const LogisticsManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-loadCapacity">ظرفیت حمل (کیلوگرم) *</Label>
+                    <Label htmlFor="edit-loadCapacity">{t('capacity')} ({t('unitKg')}) *</Label>
                     <Input 
                       id="edit-loadCapacity" 
                       name="loadCapacity" 
@@ -5395,7 +5902,7 @@ const LogisticsManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="edit-currentLocation">موقعیت فعلی</Label>
+                    <Label htmlFor="edit-currentLocation">{t('location')}</Label>
                     <Input 
                       id="edit-currentLocation" 
                       name="currentLocation" 
@@ -5405,7 +5912,7 @@ const LogisticsManagement = () => {
                   
                   {/* Special Capabilities Section */}
                   <div className="space-y-2 col-span-2">
-                    <Label className="text-base font-semibold text-blue-700">قابلیت‌های ویژه حمل مواد</Label>
+                  <Label className="text-base font-semibold text-blue-700">{t('specialCapabilities')}</Label>
                     <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
                       <div className="flex items-center space-x-2">
                         <input type="hidden" name="supportsFlammable" value="false" />
@@ -5416,7 +5923,7 @@ const LogisticsManagement = () => {
                           value="true"
                           defaultChecked={selectedReadyVehicle.supportsFlammable}
                         />
-                        <Label htmlFor="edit-supportsFlammable" className="text-green-700">قابلیت حمل مواد آتش‌زا</Label>
+                        <Label htmlFor="edit-supportsFlammable" className="text-green-700">{t('flammableAllowed')}</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <input type="hidden" name="notAllowedFlammable" value="false" />
@@ -5427,13 +5934,13 @@ const LogisticsManagement = () => {
                           value="true"
                           defaultChecked={selectedReadyVehicle.notAllowedFlammable}
                         />
-                        <Label htmlFor="edit-notAllowedFlammable" className="text-red-700">ممنوع حمل مواد آتش‌زا</Label>
+                        <Label htmlFor="edit-notAllowedFlammable" className="text-red-700">{t('flammableForbidden')}</Label>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2 col-span-2">
-                    <Label htmlFor="edit-notes">یادداشت‌ها</Label>
+                    <Label htmlFor="edit-notes">{t('notes')}</Label>
                     <Input 
                       id="edit-notes" 
                       name="notes" 
@@ -5443,7 +5950,7 @@ const LogisticsManagement = () => {
                   
                   {/* Status Section */}
                   <div className="space-y-2 col-span-2">
-                    <Label className="text-base font-semibold text-green-700">وضعیت دسترسی</Label>
+                    <Label className="text-base font-semibold text-green-700">{t('accessStatus')}</Label>
                     <div className="p-4 bg-green-50 rounded-lg">
                       <div className="flex items-center space-x-2">
                         <input type="hidden" name="isAvailable" value="false" />
@@ -5454,17 +5961,17 @@ const LogisticsManagement = () => {
                           value="true" 
                           defaultChecked={selectedReadyVehicle.isAvailable}
                         />
-                        <Label htmlFor="edit-isAvailable" className="font-medium">آماده به کار</Label>
+                        <Label htmlFor="edit-isAvailable" className="font-medium">{t('availableStatus')}</Label>
                       </div>
                     </div>
                   </div>
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsEditReadyVehicleDialogOpen(false)}>
-                    انصراف
+                    {t('cancel')}
                   </Button>
                   <Button type="submit" disabled={updateReadyVehicleMutation.isPending}>
-                    {updateReadyVehicleMutation.isPending ? "در حال بروزرسانی..." : "بروزرسانی"}
+                    {updateReadyVehicleMutation.isPending ? t('updating') : t('update')}
                   </Button>
                 </DialogFooter>
                 </form>
@@ -5476,39 +5983,31 @@ const LogisticsManagement = () => {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">مدیریت لجستیک</h1>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">
-            {mappedLogisticsOrders.length} سفارش فعال
-          </Badge>
-          {orderCount > 0 && (
-            <Badge className="bg-orange-500 animate-pulse">
-              {orderCount} سفارش جدید
-            </Badge>
-          )}
-        </div>
-      </div>
+    <div className="min-h-[100dvh] bg-[#eef4f1] px-3 py-4 md:px-6 md:py-6" dir={direction}>
+      <div className="mx-auto max-w-[1680px]">
+      <LogisticsWorkspaceHeader
+        title={t('title')}
+        activeOrdersLabel={t('activeOrders')}
+        newOrdersLabel={t('newOrders')}
+        activeOrders={mappedLogisticsOrders.length}
+        newOrders={orderCount}
+        eyebrow={t('workspaceEyebrow')}
+        description={t('workspaceDescription')}
+        online={t('centerOnline')}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-11 gap-1">
-          <TabsTrigger value="orders">سفارشات</TabsTrigger>
-          <TabsTrigger value="delivered">تحویل شده</TabsTrigger>
-          <TabsTrigger value="companies">شرکت‌های حمل</TabsTrigger>
-          <TabsTrigger value="international">کشورها</TabsTrigger>
-          <TabsTrigger value="vehicle-templates">قالب‌های خودرو</TabsTrigger>
-          <TabsTrigger value="fleet-vehicles">ناوگان خودروها</TabsTrigger>
-          <TabsTrigger value="vehicle-history">تاریخچه خودروها</TabsTrigger>
-          <TabsTrigger value="postal">خدمات پست</TabsTrigger>
-          <TabsTrigger value="postal-params">محاسبات پست</TabsTrigger>
-          <TabsTrigger 
-            value="delivery-services" 
-            className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white hover:from-indigo-600 hover:to-purple-600"
-          >
-            سرویس دلیوری
-          </TabsTrigger>
-          <TabsTrigger value="settings">تنظیمات</TabsTrigger>
+        <TabsList className="sticky top-2 z-20 flex w-full flex-wrap justify-start gap-1 rounded-2xl border border-[#cddbd6] bg-[#e5efea]/95 p-1.5 shadow-[0_12px_30px_-22px_rgba(24,61,54,0.75)] backdrop-blur">
+          <TabsTrigger value="orders">{t('orders')}</TabsTrigger>
+          <TabsTrigger value="delivered">{t('delivered')}</TabsTrigger>
+          <TabsTrigger value="companies">{t('tabTransportCompanies')}</TabsTrigger>
+          <TabsTrigger value="vehicle-templates">{t('tabVehicleTemplates')}</TabsTrigger>
+          <TabsTrigger value="fleet-vehicles">{t('tabFleet')}</TabsTrigger>
+          <TabsTrigger value="vehicle-history">{t('tabVehicleHistory')}</TabsTrigger>
+          <TabsTrigger value="measured-loading">{loadingCaptureCopy(language, 'tab')}</TabsTrigger>
+          <TabsTrigger value="postal">{t('tabPostalServices')}</TabsTrigger>
+          <TabsTrigger value="postal-params">{t('tabPostalRates')}</TabsTrigger>
+          <TabsTrigger value="settings">{t('tabSettings')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders">
@@ -5536,8 +6035,8 @@ const LogisticsManagement = () => {
           <VehicleHistorySection />
         </TabsContent>
 
-        <TabsContent value="international">
-          <InternationalGeographyTab iraqContent={<GeographyTab />} />
+        <TabsContent value="measured-loading">
+          <LoadingMeasurementCapture />
         </TabsContent>
 
         <TabsContent value="postal">
@@ -5548,25 +6047,22 @@ const LogisticsManagement = () => {
           <PostalShippingParamsTab />
         </TabsContent>
 
-        <TabsContent value="delivery-services">
-          <DeliveryServicesTab />
-        </TabsContent>
-
         <TabsContent value="settings">
-          <NotificationSettingsTab />
+          <SettingsTab />
         </TabsContent>
       </Tabs>
+      </div>
 
       {/* Vehicle Assignment Dialog */}
       <Dialog open={isVehicleAssignmentOpen} onOpenChange={setIsVehicleAssignmentOpen}>
-        <DialogContent className="max-w-4xl" dir="rtl">
+        <DialogContent className="max-w-4xl" dir={direction}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Truck className="w-6 h-6 text-orange-600" />
-              اختصاص وسیله ارسال محموله به سفارش {selectedOrderForVehicle?.orderNumber}
+              {t('assignmentTitle').replace('{order}', selectedOrderForVehicle?.orderNumber || '')}
             </DialogTitle>
             <DialogDescription>
-              انتخاب خودروی مناسب از ناوگان شرکت بر اساس نوع خودروی انتخابی مشتری
+              {t('assignmentDescription')}
             </DialogDescription>
           </DialogHeader>
 
@@ -5576,25 +6072,25 @@ const LogisticsManagement = () => {
               <div className="bg-blue-50 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-blue-800 mb-3 flex items-center">
                   <Package className="w-5 h-5 mr-2" />
-                  اطلاعات سفارش
+                  {t('orderInformation')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label className="text-sm text-gray-600">مشتری</Label>
+                    <Label className="text-sm text-gray-600">{t('customer')}</Label>
                     <p className="font-medium">
                       {selectedOrderForVehicle.customer?.firstName} {selectedOrderForVehicle.customer?.lastName}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-sm text-gray-600">وزن محموله</Label>
+                    <Label className="text-sm text-gray-600">{t('cargoWeight')}</Label>
                     <p className="font-medium">
-                      {selectedOrderForVehicle.calculatedWeight || selectedOrderForVehicle.totalWeight} کیلوگرم
+                      {selectedOrderForVehicle.calculatedWeight || selectedOrderForVehicle.totalWeight} {t('unitKg')}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-sm text-gray-600">مقصد</Label>
+                    <Label className="text-sm text-gray-600">{t('customerDestination')}</Label>
                     <p className="font-medium">
-                      {(selectedOrderForVehicle.shippingAddress as any)?.city || 'نامشخص'}
+                      {(selectedOrderForVehicle.shippingAddress as any)?.city || t('unknown')}
                     </p>
                   </div>
                 </div>
@@ -5605,26 +6101,26 @@ const LogisticsManagement = () => {
                 <div className="bg-green-50 rounded-lg p-4">
                   <h3 className="text-lg font-semibold text-green-800 mb-3 flex items-center">
                     <CheckCircle className="w-5 h-5 mr-2" />
-                    خودروی انتخابی مشتری از سیستم هوشمند
+                    {t('customerSelectedVehicle')}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                      <Label className="text-sm text-gray-600">نوع خودرو</Label>
+                      <Label className="text-sm text-gray-600">{t('vehicleType')}</Label>
                       <p className="font-medium">{selectedVehicleDetails.vehicleType}</p>
                     </div>
                     <div>
-                      <Label className="text-sm text-gray-600">نام خودرو</Label>
+                      <Label className="text-sm text-gray-600">{t('vehicle')}</Label>
                       <p className="font-medium">{selectedVehicleDetails.vehicleName}</p>
                     </div>
                     <div>
-                      <Label className="text-sm text-gray-600">هزینه محاسبه شده</Label>
+                      <Label className="text-sm text-gray-600">{t('calculatedCost')}</Label>
                       <p className="font-medium text-green-700">
-                        {parseInt(selectedVehicleDetails.totalCost || 0).toLocaleString()} دینار
+                        {parseInt(selectedVehicleDetails.totalCost || 0).toLocaleString()} {t('currencyIqd')}
                       </p>
                     </div>
                     <div>
-                      <Label className="text-sm text-gray-600">ظرفیت حمل</Label>
-                      <p className="font-medium">{selectedVehicleDetails.maxWeight} کیلوگرم</p>
+                      <Label className="text-sm text-gray-600">{t('capacity')}</Label>
+                      <p className="font-medium">{selectedVehicleDetails.maxWeight} {t('unitKg')}</p>
                     </div>
                   </div>
                 </div>
@@ -5635,17 +6131,17 @@ const LogisticsManagement = () => {
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-semibold text-orange-800 flex items-center">
                     <Truck className="w-5 h-5 mr-2" />
-                    خودروهای آماده از ناوگان شرکت
+                    {t('readyFleet')}
                   </h3>
                   {(!user || ((adminUser as any)?.success === false && (adminUser as any)?.message?.includes('Access denied'))) && (
                     <Button
-                      onClick={() => window.location.href = '/admin/login'}
+                      onClick={() => window.location.href = '/mrg/login'}
                       size="sm"
                       variant="outline"
                       className="text-xs border-orange-300 text-orange-700 hover:bg-orange-100"
                     >
                       <LogIn className="w-4 h-4 ml-2" />
-                      {!user ? 'ورود برای مشاهده خودروها' : 'ورود مدیریت'}
+                      {!user ? t('loginToViewVehicles') : t('adminLogin')}
                     </Button>
                   )}
                 </div>
@@ -5653,7 +6149,7 @@ const LogisticsManagement = () => {
                   <div className="bg-blue-100 border border-blue-300 rounded-lg p-3 mb-4">
                     <div className="flex items-center gap-2 text-blue-800 text-sm font-medium">
                       <CheckCircle className="w-4 h-4" />
-                      خودروها بر اساس انطباق با انتخاب مشتری مرتب شده‌اند - خودروهای سبز رنگ بالاترین اولویت را دارند
+                      {t('vehiclePriority')}
                     </div>
                   </div>
                 )}
@@ -5663,30 +6159,30 @@ const LogisticsManagement = () => {
                     <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-orange-400" />
                     <p className="text-orange-600 mb-4">
                       {!user 
-                        ? "برای مشاهده خودروهای فیزیکی آماده، لطفاً با حساب مدیریت وارد سیستم شوید" 
+                        ? t('loginVehiclesMessage')
                         : (adminUser as any)?.success === false && (adminUser as any)?.message?.includes('Access denied')
-                        ? "دسترسی محدود: لطفاً با حساب مدیر سیستم وارد شوید تا خودروهای فیزیکی آماده را مشاهده کنید"
-                        : "هیچ خودروی مناسبی از این نوع در دسترس نیست"
+                        ? t('restrictedVehiclesMessage')
+                        : t('noReadyVehicleForType')
                       }
                     </p>
                     {(!user || ((adminUser as any)?.success === false && (adminUser as any)?.message?.includes('Access denied'))) ? (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <div className="text-sm text-blue-700 space-y-2 text-right">
-                          <p className="font-medium">💡 راهنمای ورود مدیریت:</p>
+                          <p className="font-medium">💡 {t('adminGuide')}</p>
                           <ul className="list-disc list-inside space-y-1">
-                            <li>خروج از حساب مشتری و ورود با حساب مدیریت</li>
-                            <li>یا از صفحه اصلی به بخش مدیریت سیستم بروید</li>
-                            <li>پس از ورود مدیریت، خودروهای فیزیکی آماده نمایش داده می‌شوند</li>
+                            <li>{t('signOutCustomer')}</li>
+                            <li>{t('openAdminArea')}</li>
+                            <li>{t('vehiclesAfterLogin')}</li>
                           </ul>
                         </div>
                       </div>
                     ) : (
                       <div className="text-sm text-gray-500 space-y-1">
-                        <p>دلایل احتمالی:</p>
+                        <p>{t('possibleReasons')}</p>
                         <ul className="list-disc list-inside text-right">
-                          <li>تمام خودروهای این نوع در حال استفاده هستند</li>
-                          <li>ظرفیت بارگیری خودروهای آماده کمتر از وزن محموله است</li>
-                          <li>نیاز به اضافه کردن خودروی جدید به ناوگان شرکت</li>
+                          <li>{t('allVehiclesInUse')}</li>
+                          <li>{t('capacityBelowCargo')}</li>
+                          <li>{t('addVehicleToFleetReason')}</li>
                         </ul>
                       </div>
                     )}
@@ -5736,28 +6232,28 @@ const LogisticsManagement = () => {
                             </h4>
                             {isCustomerSelected && (
                               <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white animate-pulse text-xs px-2 py-0.5">
-                                ⭐ انتخاب مشتری
+                                ⭐ {t('selectedByCustomer')}
                               </Badge>
                             )}
-                            <Badge className="bg-green-500 text-white text-xs px-2 py-0.5">آماده</Badge>
+                            <Badge className="bg-green-500 text-white text-xs px-2 py-0.5">{t('ready')}</Badge>
                           </div>
 
                           {/* Key Info in Row */}
                           <div className="flex items-center gap-4 text-xs flex-wrap">
                             <div className="flex items-center gap-1">
-                              <span className="text-gray-500">پلاک:</span>
+                              <span className="text-gray-500">{t('plate')}:</span>
                               <span className="font-medium">{vehicle.licensePlate || vehicle.plateNumber}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="text-gray-500">راننده:</span>
-                              <span className="font-medium">{vehicle.driverName}</span>
+                              <span className="text-gray-500">{t('driver')}:</span>
+                              <span className="font-medium">{displayDriverName(vehicle.driverName)}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="text-gray-500">تلفن:</span>
+                              <span className="text-gray-500">{t('phone')}:</span>
                               <span className="font-medium">{vehicle.driverMobile || vehicle.driverPhone}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <span className="text-gray-500">ظرفیت:</span>
+                              <span className="text-gray-500">{t('capacity')}:</span>
                               <span className="font-medium">{vehicle.loadCapacity || vehicle.maxWeight} kg</span>
                             </div>
                           </div>
@@ -5772,7 +6268,7 @@ const LogisticsManagement = () => {
                                 onClick={toggleDetails}
                               >
                                 <Info className="w-3 h-3 ml-1" />
-                                {showDetails ? 'بستن' : 'جزئیات'}
+                                {showDetails ? t('collapse') : t('details')}
                               </Button>
                             )}
                             <Button 
@@ -5792,7 +6288,7 @@ const LogisticsManagement = () => {
                               )}
                             >
                               <Truck className="w-3 h-3 ml-1" />
-                              اختصاص
+                              {t('vehicleAssignment')}
                             </Button>
                           </div>
                         </div>
@@ -5802,7 +6298,7 @@ const LogisticsManagement = () => {
                           <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
                             {vehicle.recommendationScore && (
                               <div className="flex items-center gap-3 text-xs">
-                                <span className="text-gray-600">امتیاز هوشمند:</span>
+                                <span className="text-gray-600">{t('smartScore')}:</span>
                                 <div className={`px-2 py-1 rounded-full font-bold ${
                                   vehicle.recommendationScore >= 80 ? 'bg-green-600 text-white' :
                                   vehicle.recommendationScore >= 60 ? 'bg-yellow-500 text-white' :
@@ -5811,13 +6307,13 @@ const LogisticsManagement = () => {
                                   {vehicle.recommendationScore}
                                 </div>
                                 {vehicle.isRecommended && (
-                                  <Badge className="bg-green-600 text-white text-xs">🤖 پیشنهاد سیستم</Badge>
+                                  <Badge className="bg-green-600 text-white text-xs">🤖 {t('smartRecommendation')}</Badge>
                                 )}
                               </div>
                             )}
                             {vehicle.recommendationReasons && vehicle.recommendationReasons.length > 0 && (
                               <div className="text-xs text-gray-600">
-                                <span className="font-medium">دلایل: </span>
+                                <span className="font-medium">{t('reasons')}: </span>
                                 {vehicle.recommendationReasons.join(' | ')}
                               </div>
                             )}
@@ -5854,14 +6350,14 @@ const LogisticsManagement = () => {
                 className="flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" />
-                پرینت
+                {t('print')}
               </Button>
               <div className="text-right flex-1">
                 <DialogTitle className="text-right">
-                  جزئیات سفارش {selectedOrder?.orderNumber || `#${selectedOrder?.customerOrderId}`}
+                  {t('orderDetailsTitle').replace('{order}', selectedOrder?.orderNumber || `#${selectedOrder?.customerOrderId}`)}
                 </DialogTitle>
                 <DialogDescription className="text-right">
-                  مشاهده کامل اطلاعات سفارش و آدرس تحویل
+                  {t('orderDetailsDescription')}
                 </DialogDescription>
               </div>
             </div>
@@ -5873,30 +6369,30 @@ const LogisticsManagement = () => {
               <div className="bg-blue-50 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-blue-800 mb-3 flex items-center">
                   <User className="w-5 h-5 mr-2" />
-                  اطلاعات مشتری
+                  {t('customerInformation')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm text-gray-600">نام و نام خانوادگی</Label>
+                    <Label className="text-sm text-gray-600">{t('fullName')}</Label>
                     <p className="font-medium">
                       {selectedOrder.customer?.firstName || selectedOrder.customerFirstName} {selectedOrder.customer?.lastName || selectedOrder.customerLastName}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-sm text-gray-600">شماره تماس</Label>
+                    <Label className="text-sm text-gray-600">{t('contactNumber')}</Label>
                     <p className="font-medium flex items-center">
                       <Phone className="w-4 h-4 mr-2 text-blue-600" />
                       {selectedOrder.customer?.phone || selectedOrder.customerPhone}
                     </p>
                   </div>
                   <div>
-                    <Label className="text-sm text-gray-600">ایمیل</Label>
-                    <p className="font-medium">{selectedOrder.customer?.email || selectedOrder.customerEmail || 'ثبت نشده'}</p>
+                    <Label className="text-sm text-gray-600">{t('email')}</Label>
+                    <p className="font-medium">{selectedOrder.customer?.email || selectedOrder.customerEmail || t('notRegistered')}</p>
                   </div>
                   <div>
-                    <Label className="text-sm text-gray-600">کد تحویل</Label>
+                    <Label className="text-sm text-gray-600">{t('deliveryCode')}</Label>
                     <p className="font-bold text-purple-700 text-lg">
-                      {selectedOrder.deliveryCode || 'کد ندارد'}
+                      {selectedOrder.deliveryCode || t('noDeliveryCode')}
                     </p>
                   </div>
                 </div>
@@ -5907,30 +6403,30 @@ const LogisticsManagement = () => {
                 <div className="bg-green-50 rounded-lg p-4">
                   <h3 className="text-lg font-semibold text-green-800 mb-3 flex items-center">
                     <MapPin className="w-5 h-5 mr-2" />
-                    آدرس تحویل
+                    {t('deliveryAddress')}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm text-gray-600">گیرنده</Label>
+                      <Label className="text-sm text-gray-600">{t('recipient')}</Label>
                       <p className="font-medium">{(selectedOrder.shippingAddress as any)?.name}</p>
                     </div>
                     <div>
-                      <Label className="text-sm text-gray-600">تلفن گیرنده</Label>
+                      <Label className="text-sm text-gray-600">{t('recipientPhone')}</Label>
                       <p className="font-medium flex items-center">
                         <Phone className="w-4 h-4 mr-2 text-green-600" />
                         {(selectedOrder.shippingAddress as any)?.phone}
                       </p>
                     </div>
                     <div className="md:col-span-2">
-                      <Label className="text-sm text-gray-600">آدرس کامل</Label>
+                       <Label className="text-sm text-gray-600">{t('fullAddress')}</Label>
                       <p className="font-medium">{(selectedOrder.shippingAddress as any)?.address}</p>
                     </div>
                     <div>
-                      <Label className="text-sm text-gray-600">شهر</Label>
+                      <Label className="text-sm text-gray-600">{t('city')}</Label>
                       <p className="font-medium">{(selectedOrder.shippingAddress as any)?.city}</p>
                     </div>
                     <div>
-                      <Label className="text-sm text-gray-600">کد پستی</Label>
+                      <Label className="text-sm text-gray-600">{t('postalCode')}</Label>
                       <p className="font-medium">{(selectedOrder.shippingAddress as any)?.postalCode}</p>
                     </div>
                   </div>
@@ -5941,27 +6437,27 @@ const LogisticsManagement = () => {
               <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-6 border border-orange-200">
                 <h3 className="text-xl font-bold text-orange-800 mb-4 flex items-center">
                   <Package className="w-6 h-6 mr-2" />
-                  جزئیات کامل سفارش
+                  {t('orderDetails')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Weight Information */}
                   <div className="bg-white rounded-lg p-4 shadow-sm border">
                     <Label className="text-sm font-semibold text-gray-700 flex items-center mb-2">
                       <Weight className="w-4 h-4 mr-1 text-blue-600" />
-                      اطلاعات وزن
+                      {t('weightInformation')}
                     </Label>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">وزن محاسبه شده:</span>
-                        <span className="font-semibold text-blue-700">{selectedOrder.calculatedWeight || 0} کیلوگرم</span>
+                        <span className="text-sm text-gray-600">{t('calculatedWeight')}:</span>
+                        <span className="font-semibold text-blue-700">{selectedOrder.calculatedWeight || 0} {t('unitKg')}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">وزن کل:</span>
-                        <span className="font-semibold text-purple-700">{selectedOrder.totalWeight || 0} کیلوگرم</span>
+                        <span className="text-sm text-gray-600">{t('totalWeight')}:</span>
+                        <span className="font-semibold text-purple-700">{selectedOrder.totalWeight || 0} {t('unitKg')}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">واحد وزن:</span>
-                        <span className="font-medium">{selectedOrder.weightUnit || 'kg'}</span>
+                        <span className="text-sm text-gray-600">{t('weightUnit')}:</span>
+                        <span className="font-medium">{selectedOrder.weightUnit || t('unitKg')}</span>
                       </div>
                     </div>
                   </div>
@@ -5970,25 +6466,25 @@ const LogisticsManagement = () => {
                   <div className="bg-white rounded-lg p-4 shadow-sm border">
                     <Label className="text-sm font-semibold text-gray-700 flex items-center mb-2">
                       <Calculator className="w-4 h-4 mr-1 text-green-600" />
-                      اطلاعات مالی
+                      {t('financialInformation')}
                     </Label>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">مبلغ کل:</span>
-                        <span className="font-bold text-green-700">{Math.floor(parseFloat(selectedOrder.totalAmount || '0')).toLocaleString()} {selectedOrder.currency || 'IQD'}</span>
+                        <span className="text-sm text-gray-600">{t('totalAmount')}:</span>
+                        <span className="font-bold text-green-700">{Math.floor(parseFloat(selectedOrder.totalAmount || '0')).toLocaleString()} {selectedOrder.currency || t('currencyIqd')}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">ارز:</span>
-                        <span className="font-medium">{selectedOrder.currency || 'دینار عراق'}</span>
+                        <span className="text-sm text-gray-600">{t('currency')}:</span>
+                        <span className="font-medium">{selectedOrder.currency || t('iraqiDinar')}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">شماره سفارش:</span>
+                        <span className="text-sm text-gray-600">{t('orderNumberLabel')}:</span>
                         <span className="font-semibold text-orange-700">{selectedOrder.orderNumber}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">نوع تسویه حساب:</span>
+                        <span className="text-sm text-gray-600">{t('paymentMethod')}:</span>
                         <Badge variant="outline" className="text-xs">
-                          {selectedOrder.paymentMethod || 'نامشخص'}
+                          {selectedOrder.paymentMethod || t('unknown')}
                         </Badge>
                       </div>
                     </div>
@@ -5998,26 +6494,26 @@ const LogisticsManagement = () => {
                   <div className="bg-white rounded-lg p-4 shadow-sm border">
                     <Label className="text-sm font-semibold text-gray-700 flex items-center mb-2">
                       <Truck className="w-4 h-4 mr-1 text-purple-600" />
-                      اطلاعات تحویل
+                      {t('deliveryInformation')}
                     </Label>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">روش تحویل:</span>
+                        <span className="text-sm text-gray-600">{t('method')}:</span>
                         <span className="font-semibold text-purple-700">{selectedOrder.vehicleType || selectedOrder.selectedVehicleName || 
-                          (selectedOrder.deliveryMethod === 'smart_vehicle' ? '🚚 ارسال هوشمند' :
-                           selectedOrder.deliveryMethod === 'self_pickup' ? '🏢 تحویل حضوری' :
-                           selectedOrder.deliveryMethod === 'freight_collect' ? '💰 پس کرایه' :
-                           selectedOrder.deliveryMethod === 'postal' ? '📮 ارسال پستی' :
-                           selectedOrder.deliveryMethod === 'courier' ? 'پیک موتوری' :
-                           selectedOrder.deliveryMethod || '⚠️ نامشخص')}</span>
+                          (selectedOrder.deliveryMethod === 'smart_vehicle' ? `🚚 ${t('smartVehicleMethod')}` :
+                           selectedOrder.deliveryMethod === 'self_pickup' ? `🏢 ${t('selfPickupMethod')}` :
+                           selectedOrder.deliveryMethod === 'freight_collect' ? `💰 ${t('freightCollectMethod')}` :
+                           selectedOrder.deliveryMethod === 'postal' ? `📮 ${t('postalMethod')}` :
+                           selectedOrder.deliveryMethod === 'courier' ? t('courierMethod') :
+                           selectedOrder.deliveryMethod || `⚠️ ${t('unknown')}`)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">نوع حمل:</span>
-                        <span className="font-medium">{selectedOrder.transportationType || 'استاندارد'}</span>
+                        <span className="text-sm text-gray-600">{t('transportationType')}:</span>
+                        <span className="font-medium">{selectedOrder.transportationType || t('standard')}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">کد ردیابی:</span>
-                        <span className="font-medium text-blue-600">{selectedOrder.trackingNumber || 'نامشخص'}</span>
+                        <span className="text-sm text-gray-600">{t('trackingCode')}:</span>
+                        <span className="font-medium text-blue-600">{selectedOrder.trackingNumber || t('unknown')}</span>
                       </div>
                     </div>
                   </div>
@@ -6028,20 +6524,20 @@ const LogisticsManagement = () => {
                   <div className="bg-white rounded-lg p-4 shadow-sm border">
                     <Label className="text-sm font-semibold text-gray-700 flex items-center mb-2">
                       <History className="w-4 h-4 mr-1 text-indigo-600" />
-                      تاریخ‌های مهم
+                      {t('importantDates')}
                     </Label>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">تاریخ ایجاد:</span>
-                        <span className="font-medium">{formatDateSafe(selectedOrder.createdAt)}</span>
+                        <span className="text-sm text-gray-600">{t('createdDate')}:</span>
+                        <span className="font-medium">{formatLogisticsDate(selectedOrder.createdAt)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">آخرین بروزرسانی:</span>
-                        <span className="font-medium">{formatDateSafe(selectedOrder.updatedAt)}</span>
+                        <span className="text-sm text-gray-600">{t('lastUpdated')}:</span>
+                        <span className="font-medium">{formatLogisticsDate(selectedOrder.updatedAt)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">تاریخ تحویل تخمینی:</span>
-                        <span className="font-medium">{formatDateSafe(selectedOrder.estimatedDeliveryDate) || 'نامشخص'}</span>
+                        <span className="text-sm text-gray-600">{t('approximateDelivery')}:</span>
+                        <span className="font-medium">{formatEstimatedDelivery(selectedOrder)}</span>
                       </div>
                     </div>
                   </div>
@@ -6049,18 +6545,18 @@ const LogisticsManagement = () => {
                   <div className="bg-white rounded-lg p-4 shadow-sm border">
                     <Label className="text-sm font-semibold text-gray-700 flex items-center mb-2">
                       <AlertCircle className="w-4 h-4 mr-1 text-red-600" />
-                      وضعیت و کد تحویل
+                      {t('deliveryStatusCode')}
                     </Label>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">وضعیت فعلی:</span>
+                        <span className="text-sm text-gray-600">{t('currentStatus')}:</span>
                         <Badge variant={selectedOrder.currentStatus === 'logistics_dispatched' ? 'default' : 'secondary'}>
-                          {getStatusDisplayName(selectedOrder.currentStatus)}
+                          {getStatusDisplayName(selectedOrder.currentStatus, language)}
                         </Badge>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">کد تحویل:</span>
-                        <span className="font-bold text-red-600">{selectedOrder.deliveryCode || 'تعیین نشده'}</span>
+                        <span className="text-sm text-gray-600">{t('deliveryCode')}:</span>
+                        <span className="font-bold text-red-600">{selectedOrder.deliveryCode || t('unset')}</span>
                       </div>
                     </div>
                   </div>
@@ -6072,7 +6568,7 @@ const LogisticsManagement = () => {
                 <div className="bg-yellow-50 rounded-lg p-4">
                   <h3 className="text-lg font-semibold text-yellow-800 mb-3 flex items-center">
                     <FileText className="w-5 h-5 mr-2" />
-                    یادداشت‌های تحویل
+                     {t('deliveryNotes')}
                   </h3>
                   <p className="text-gray-700">{selectedOrder.deliveryNotes}</p>
                 </div>
@@ -6084,14 +6580,14 @@ const LogisticsManagement = () => {
 
       {/* Enhanced Suitable Vehicles Dialog */}
       <Dialog open={isSuitableVehiclesOpen} onOpenChange={setIsSuitableVehiclesOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" dir={direction}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Bus className="h-5 w-5 text-blue-600" />
-              خودروهای مناسب برای سفارش {selectedOrderForVehicle?.orderNumber}
+              {t('suitableVehiclesTitle').replace('{order}', selectedOrderForVehicle?.orderNumber || '')}
             </DialogTitle>
             <DialogDescription>
-              تمام خودروهای مناسب که در زمان خرید شناسایی شده‌اند
+              {t('suitableVehiclesDescription')}
             </DialogDescription>
           </DialogHeader>
 
@@ -6102,52 +6598,52 @@ const LogisticsManagement = () => {
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Package className="h-5 w-5 text-blue-600" />
-                    خلاصه سفارش
+                    {t('orderSummary')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">مقصد:</span>
+                      <span className="text-sm text-gray-600">{t('destinationLabel')}:</span>
                       <span className="font-medium">{suitableVehiclesData.order?.destinationCity}</span>
                     </div>
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2">
                         <Weight className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">وزن:</span>
-                        <span className="font-bold text-blue-700">{suitableVehiclesData.order?.weight?.toLocaleString()} {suitableVehiclesData.order?.weightUnit}</span>
+                        <span className="text-sm text-gray-600">{t('weightLabel')}:</span>
+                        <span className="font-bold text-blue-700">{suitableVehiclesData.order?.weight?.toLocaleString()} {suitableVehiclesData.order?.weightUnit || t('unitKg')}</span>
                       </div>
                       {suitableVehiclesData.order?.weightSource && (
                         <span className="text-xs text-gray-400 mt-1">
-                          ({suitableVehiclesData.order.weightSource === 'order_management_calculated' ? 'محاسبه انبار' : 
-                            suitableVehiclesData.order.weightSource === 'order_management_total' ? 'وزن ثبت شده' : 'محاسبه خودکار'})
+                          ({suitableVehiclesData.order.weightSource === 'order_management_calculated' ? t('warehouseCalculation') :
+                            suitableVehiclesData.order.weightSource === 'order_management_total' ? t('recordedWeight') : t('automaticCalculation')})
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
                       <ArrowUpDown className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">مسافت:</span>
-                      <span className="font-medium">{suitableVehiclesData.order?.distance} کیلومتر</span>
+                      <span className="text-sm text-gray-600">{t('distanceLabel')}:</span>
+                      <span className="font-medium">{suitableVehiclesData.order?.distance} {t('unitKm')}</span>
                     </div>
                     {suitableVehiclesData.order?.customerVehicleType && (
                       <div className="flex items-center gap-2">
                         <Truck className="h-4 w-4 text-purple-500" />
-                        <span className="text-sm text-gray-600">خودرو انتخابی مشتری:</span>
+                        <span className="text-sm text-gray-600">{t('customerSelectedVehicle')}:</span>
                         <Badge className="bg-purple-100 text-purple-800">{suitableVehiclesData.order.customerVehicleType}</Badge>
                       </div>
                     )}
                     {suitableVehiclesData.order?.containsFlammableProducts && (
                       <div className="flex items-center gap-2">
                         <Flame className="h-4 w-4 text-red-500" />
-                        <span className="text-sm text-red-600">حاوی مواد آتش‌زا</span>
+                        <span className="text-sm text-red-600">{t('containsFlammable')}</span>
                       </div>
                     )}
                   </div>
                   
                   {suitableVehiclesData.order?.flammableProducts?.length > 0 && (
                     <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <h4 className="font-medium text-red-800 mb-2">محصولات آتش‌زا:</h4>
+                      <h4 className="font-medium text-red-800 mb-2">{t('flammableProducts')}:</h4>
                       <div className="flex flex-wrap gap-2">
                         {suitableVehiclesData.order.flammableProducts.map((product: any, index: number) => (
                           <Badge key={index} variant="destructive" className="text-xs">
@@ -6167,37 +6663,37 @@ const LogisticsManagement = () => {
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <CheckCircle className="h-5 w-5 text-green-600" />
-                      خودرو بهینه (پیشنهاد اول)
+                      {t('optimalVehicle')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
-                        <span className="text-sm text-gray-600">نام:</span>
+                        <span className="text-sm text-gray-600">{t('vehicleName')}:</span>
                         <p className="font-medium">{suitableVehiclesData.optimalVehicle.name}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-600">نوع:</span>
+                        <span className="text-sm text-gray-600">{t('type')}:</span>
                         <p className="font-medium">{suitableVehiclesData.optimalVehicle.vehicleType}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-600">هزینه کل:</span>
-                        <p className="font-bold text-green-700">{Math.floor(suitableVehiclesData.optimalVehicle.totalCost).toLocaleString()} IQD</p>
+                        <span className="text-sm text-gray-600">{t('totalCost')}:</span>
+                        <p className="font-bold text-green-700">{Math.floor(suitableVehiclesData.optimalVehicle.totalCost).toLocaleString()} {t('currencyIqd')}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-600">ظرفیت:</span>
-                        <p className="font-medium">{suitableVehiclesData.optimalVehicle.maxWeightKg} کیلوگرم</p>
+                        <span className="text-sm text-gray-600">{t('capacity')}:</span>
+                        <p className="font-medium">{suitableVehiclesData.optimalVehicle.maxWeightKg} {t('unitKg')}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-600">هزینه مسافت:</span>
-                        <p className="font-medium">{Math.floor(suitableVehiclesData.optimalVehicle.distanceCost).toLocaleString()} IQD</p>
+                        <span className="text-sm text-gray-600">{t('distanceCost')}:</span>
+                        <p className="font-medium">{Math.floor(suitableVehiclesData.optimalVehicle.distanceCost).toLocaleString()} {t('currencyIqd')}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-600">هزینه وزن:</span>
-                        <p className="font-medium">{Math.floor(suitableVehiclesData.optimalVehicle.weightCost).toLocaleString()} IQD</p>
+                        <span className="text-sm text-gray-600">{t('weightCost')}:</span>
+                        <p className="font-medium">{Math.floor(suitableVehiclesData.optimalVehicle.weightCost).toLocaleString()} {t('currencyIqd')}</p>
                       </div>
                       <div>
-                        <span className="text-sm text-gray-600">بهره‌وری وزن:</span>
+                        <span className="text-sm text-gray-600">{t('weightEfficiency')}:</span>
                         <p className="font-medium">{suitableVehiclesData.optimalVehicle.weightUtilization}%</p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -6206,12 +6702,12 @@ const LogisticsManagement = () => {
                         ) : (
                           <X className="h-4 w-4 text-red-500" />
                         )}
-                        <span className="text-sm">{suitableVehiclesData.optimalVehicle.safetyCompliant ? 'مطابق ایمنی' : 'نامطابق ایمنی'}</span>
+                        <span className="text-sm">{suitableVehiclesData.optimalVehicle.safetyCompliant ? t('safetyCompliant') : t('safetyNotCompliant')}</span>
                       </div>
                     </div>
                     {suitableVehiclesData.optimalVehicle.description && (
                       <div className="mt-3 p-2 bg-white rounded border">
-                        <span className="text-sm text-gray-600">توضیحات:</span>
+                        <span className="text-sm text-gray-600">{t('description')}:</span>
                         <p className="text-sm mt-1">{suitableVehiclesData.optimalVehicle.description}</p>
                       </div>
                     )}
@@ -6225,7 +6721,7 @@ const LogisticsManagement = () => {
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <ArrowUpDown className="h-5 w-5 text-blue-600" />
-                      گزینه‌های جایگزین ({suitableVehiclesData.alternatives.length} گزینه)
+                      {t('alternativeVehicles')} ({suitableVehiclesData.alternatives.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -6234,23 +6730,23 @@ const LogisticsManagement = () => {
                         <div key={index} className="p-4 border rounded-lg bg-gray-50">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
-                              <span className="text-sm text-gray-600">نام:</span>
+                              <span className="text-sm text-gray-600">{t('vehicleName')}:</span>
                               <p className="font-medium">{vehicle.name}</p>
                             </div>
                             <div>
-                              <span className="text-sm text-gray-600">نوع:</span>
+                              <span className="text-sm text-gray-600">{t('type')}:</span>
                               <p className="font-medium">{vehicle.vehicleType}</p>
                             </div>
                             <div>
-                              <span className="text-sm text-gray-600">هزینه کل:</span>
-                              <p className="font-bold text-blue-700">{Math.floor(vehicle.totalCost).toLocaleString()} IQD</p>
+                              <span className="text-sm text-gray-600">{t('totalCost')}:</span>
+                              <p className="font-bold text-blue-700">{Math.floor(vehicle.totalCost).toLocaleString()} {t('currencyIqd')}</p>
                             </div>
                             <div>
-                              <span className="text-sm text-gray-600">ظرفیت:</span>
-                              <p className="font-medium">{vehicle.maxWeightKg} کیلوگرم</p>
+                              <span className="text-sm text-gray-600">{t('capacity')}:</span>
+                              <p className="font-medium">{vehicle.maxWeightKg} {t('unitKg')}</p>
                             </div>
                             <div>
-                              <span className="text-sm text-gray-600">بهره‌وری وزن:</span>
+                              <span className="text-sm text-gray-600">{t('weightEfficiency')}:</span>
                               <p className="font-medium">{vehicle.weightUtilization}%</p>
                             </div>
                             <div className="flex items-center gap-2">
@@ -6259,7 +6755,7 @@ const LogisticsManagement = () => {
                               ) : (
                                 <X className="h-4 w-4 text-red-500" />
                               )}
-                              <span className="text-sm">{vehicle.safetyCompliant ? 'مطابق ایمنی' : 'نامطابق ایمنی'}</span>
+                              <span className="text-sm">{vehicle.safetyCompliant ? t('safetyCompliant') : t('safetyNotCompliant')}</span>
                             </div>
                           </div>
                         </div>
@@ -6274,10 +6770,10 @@ const LogisticsManagement = () => {
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Truck className="h-5 w-5 text-orange-600" />
-                    انتخاب از خودروهای آماده ناوگان شرکت
+                    {t('fleetSelection')}
                   </CardTitle>
                   <CardDescription>
-                    خودروهایی که نزدیک به انتخاب مشتری هستند و در حال حاضر آماده به کار می‌باشند
+                    {t('fleetSelectionDescription')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -6303,18 +6799,18 @@ const LogisticsManagement = () => {
                           }`}
                           onClick={() => {
                             // Handle vehicle selection
-                            console.log('انتخاب خودرو آماده:', vehicle);
+                            console.log('Ready vehicle selected:', vehicle);
                           }}
                         >
                           {/* Customer Selected Vehicle Indicator */}
                           {isCustomerSelected && (
                             <div className="absolute -top-3 -right-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm px-4 py-1.5 rounded-full shadow-lg font-bold animate-pulse">
-                              ⭐ انتخاب مشتری
+                              ⭐ {t('selectedByCustomer')}
                             </div>
                           )}
                           {vehicle.templateMatchType === 'partial' && !isCustomerSelected && (
                             <div className="absolute -top-2 -right-2 bg-yellow-600 text-white text-xs px-3 py-1 rounded-full shadow-md">
-                              تطابق جزئی 🔄
+                              {t('partialMatch')} 🔄
                             </div>
                           )}
                           
@@ -6329,20 +6825,20 @@ const LogisticsManagement = () => {
                             <div className="flex gap-2">
                               {isCustomerSelected && (
                                 <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm px-3 py-1">
-                                  ⭐ انتخاب مشتری
+                                   ⭐ {t('selectedByCustomer')}
                                 </Badge>
                               )}
                               {vehicle.templateMatchType === 'partial' && !isCustomerSelected && (
                                 <Badge className="bg-yellow-600 text-white">
-                                  🔄 مشابه انتخاب مشتری
+                                   🔄 {t('similarCustomerSelection')}
                                 </Badge>
                               )}
                               {vehicle.isCheckoutSuggested && !isCustomerSelected && !vehicle.templateMatchType && (
                                 <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white animate-pulse">
-                                  🎯 پیشنهاد سیستم
+                                   🎯 {t('systemSuggestion')}
                                 </Badge>
                               )}
-                              <Badge className="bg-green-500 text-white">آماده</Badge>
+                               <Badge className="bg-green-500 text-white">{t('ready')}</Badge>
                             </div>
                           </div>
                           
@@ -6350,7 +6846,7 @@ const LogisticsManagement = () => {
                             <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border-2 border-amber-400 rounded-lg p-3 mb-4">
                               <div className="flex items-center gap-2 text-amber-800 text-sm font-bold">
                                 <Star className="w-5 h-5 text-amber-600 fill-amber-400" />
-                                ⭐ این خودرو انتخاب مشتری در چک‌اوت است - اولویت اول
+                                 ⭐ {t('customerVehiclePriority')}
                               </div>
                             </div>
                           )}
@@ -6359,7 +6855,7 @@ const LogisticsManagement = () => {
                             <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 mb-4">
                               <div className="flex items-center gap-2 text-yellow-800 text-sm font-medium">
                                 <AlertTriangle className="w-4 h-4" />
-                                🔄 تطابق جزئی با قالب انتخابی مشتری - اولویت دوم
+                                 🔄 {t('partialCustomerMatch')}
                               </div>
                             </div>
                           )}
@@ -6368,27 +6864,27 @@ const LogisticsManagement = () => {
                             <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
                               <div className="flex items-center gap-2 text-green-800 text-sm font-medium">
                                 <CheckCircle className="w-4 h-4" />
-                                این خودرو مطابق انتخاب مشتری در سیستم هوشمند است
+                                 {t('matchedCustomerSelection')}
                               </div>
                             </div>
                           )}
                           
                           <div className="space-y-2 mb-4">
                             <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">شماره پلاک:</span>
+                               <span className="text-sm text-gray-600">{t('plateNumber')}:</span>
                               <span className="font-medium">{vehicle.licensePlate || vehicle.plateNumber}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">راننده:</span>
-                              <span className="font-medium">{vehicle.driverName}</span>
+                               <span className="text-sm text-gray-600">{t('driver')}:</span>
+                              <span className="font-medium">{displayDriverName(vehicle.driverName)}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">تلفن راننده:</span>
+                               <span className="text-sm text-gray-600">{t('driverPhone')}:</span>
                               <span className="font-medium">{vehicle.driverMobile || vehicle.driverPhone}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">ظرفیت:</span>
-                              <span className="font-medium">{vehicle.loadCapacity || vehicle.maxWeight} کیلوگرم</span>
+                               <span className="text-sm text-gray-600">{t('capacity')}:</span>
+                               <span className="font-medium">{vehicle.loadCapacity || vehicle.maxWeight} {t('unitKg')}</span>
                             </div>
                           </div>
                           
@@ -6411,7 +6907,7 @@ const LogisticsManagement = () => {
                             }}
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
-                            {isCustomerSelected ? '⭐ اختصاص خودروی انتخابی مشتری' : vehicle.isCheckoutSuggested ? 'اختصاص خودروی پیشنهادی' : 'اختصاص این خودرو'}
+                            {isCustomerSelected ? `⭐ ${t('customerVehicleAssignment')}` : vehicle.isCheckoutSuggested ? t('recommendedVehicle') : t('assignThisVehicle')}
                           </Button>
                         </div>
                       );})}
@@ -6419,8 +6915,8 @@ const LogisticsManagement = () => {
                   ) : (
                     <div className="text-center py-8">
                       <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-orange-400" />
-                      <p className="text-orange-600 mb-2">هیچ خودروی آماده‌ای از ناوگان شرکت در دسترس نیست</p>
-                      <p className="text-sm text-gray-500">لطفاً از خودروهای مناسب زیر انتخاب کنید</p>
+                      <p className="text-orange-600 mb-2">{t('noFleetAvailable')}</p>
+                      <p className="text-sm text-gray-500">{t('chooseSuitableBelow')}</p>
                     </div>
                   )}
                 </CardContent>
@@ -6432,7 +6928,7 @@ const LogisticsManagement = () => {
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Truck className="h-5 w-5 text-purple-600" />
-                      تمام خودروهای مناسب ({suitableVehiclesData.suitableVehicles.length} خودرو)
+                      {t('allSuitableVehicles')} ({suitableVehiclesData.suitableVehicles.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -6440,14 +6936,14 @@ const LogisticsManagement = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="text-right">ردیف</TableHead>
-                            <TableHead className="text-right">نام خودرو</TableHead>
-                            <TableHead className="text-right">نوع</TableHead>
-                            <TableHead className="text-right">هزینه کل</TableHead>
-                            <TableHead className="text-right">ظرفیت</TableHead>
-                            <TableHead className="text-right">بهره‌وری</TableHead>
-                            <TableHead className="text-right">ایمنی</TableHead>
-                            <TableHead className="text-right">انتخاب</TableHead>
+                            <TableHead className="text-right">{t('rowNumber')}</TableHead>
+                            <TableHead className="text-right">{t('vehicleName')}</TableHead>
+                            <TableHead className="text-right">{t('type')}</TableHead>
+                            <TableHead className="text-right">{t('totalCost')}</TableHead>
+                            <TableHead className="text-right">{t('capacity')}</TableHead>
+                            <TableHead className="text-right">{t('weightEfficiency')}</TableHead>
+                            <TableHead className="text-right">{t('safetyCompliant')}</TableHead>
+                            <TableHead className="text-right">{t('select')}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -6455,25 +6951,25 @@ const LogisticsManagement = () => {
                             <TableRow key={index} className={index === 0 ? "bg-green-50" : ""}>
                               <TableCell className="font-medium">
                                 {index + 1}
-                                {index === 0 && <span className="mr-2 text-green-600 text-xs">(بهینه)</span>}
+                                {index === 0 && <span className="mr-2 text-green-600 text-xs">({t('optimalChoice')})</span>}
                               </TableCell>
                               <TableCell className="font-medium">{vehicle.name}</TableCell>
                               <TableCell>{vehicle.vehicleType}</TableCell>
                               <TableCell className="font-bold">
-                                {Math.floor(vehicle.totalCost).toLocaleString()} IQD
+                                {Math.floor(vehicle.totalCost).toLocaleString()} {t('currencyIqd')}
                               </TableCell>
-                              <TableCell>{vehicle.maxWeightKg} کگ</TableCell>
+                              <TableCell>{vehicle.maxWeightKg} {t('unitKg')}</TableCell>
                               <TableCell>{vehicle.weightUtilization}%</TableCell>
                               <TableCell>
                                 {vehicle.safetyCompliant ? (
                                   <Badge variant="default" className="bg-green-100 text-green-800">
                                     <CheckCircle className="h-3 w-3 mr-1" />
-                                    مطابق
+                                    {t('safetyCompliant')}
                                   </Badge>
                                 ) : (
                                   <Badge variant="destructive" className="bg-red-100 text-red-800">
                                     <X className="h-3 w-3 mr-1" />
-                                    نامطابق
+                                    {t('safetyNotCompliant')}
                                   </Badge>
                                 )}
                               </TableCell>
@@ -6483,13 +6979,13 @@ const LogisticsManagement = () => {
                                   variant={index === 0 ? "default" : "outline"}
                                   className={index === 0 ? "bg-green-600 hover:bg-green-700 text-white" : "hover:bg-blue-50"}
                                   onClick={() => {
-                                    console.log('انتخاب خودروی مناسب:', vehicle);
+                                    console.log('Suitable vehicle selected:', vehicle);
                                     // Handle template vehicle selection - create a ready vehicle entry
                                     handleTemplateVehicleSelection(vehicle, index === 0);
                                   }}
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
-                                  {index === 0 ? 'انتخاب بهینه' : 'انتخاب این خودرو'}
+                                  {index === 0 ? t('optimalChoice') : t('assignThisVehicle')}
                                 </Button>
                               </TableCell>
                             </TableRow>
@@ -6507,10 +7003,10 @@ const LogisticsManagement = () => {
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <CheckCircle className="h-5 w-5 text-blue-600" />
-                      خودروهای انتخاب شده آماده اختصاص ({availableFleetVehicles.length} خودرو)
+                      {t('selectedVehiclesReady')} ({availableFleetVehicles.length})
                     </CardTitle>
                     <CardDescription>
-                      این خودروها از قالب‌های مناسب انتخاب شده و آماده اختصاص به سفارش هستند
+                      {t('selectedVehiclesDescription')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -6532,24 +7028,24 @@ const LogisticsManagement = () => {
                             </h5>
                             {vehicle.isCheckoutSuggested && (
                               <Badge className="bg-green-600 text-white text-xs px-1 py-0">
-                                🎯 بهینه
+                                🎯 {t('optimalChoice')}
                               </Badge>
                             )}
                           </div>
                           
                           <div className="space-y-1 text-xs text-gray-600 mb-3">
                             <div className="flex justify-between">
-                              <span>پلاک:</span>
+                              <span>{t('plate')}:</span>
                               <span className="font-medium">{vehicle.licensePlate || vehicle.plateNumber}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span>ظرفیت:</span>
-                              <span className="font-medium">{vehicle.loadCapacity || vehicle.maxWeight} کگ</span>
+                              <span>{t('capacity')}:</span>
+                              <span className="font-medium">{vehicle.loadCapacity || vehicle.maxWeight} {t('unitKg')}</span>
                             </div>
                             {vehicle.totalCost && (
                               <div className="flex justify-between">
-                                <span>هزینه:</span>
-                                <span className="font-medium text-blue-700">{Math.floor(vehicle.totalCost).toLocaleString()} IQD</span>
+                                <span>{t('cost')}:</span>
+                                <span className="font-medium text-blue-700">{Math.floor(vehicle.totalCost).toLocaleString()} {t('currencyIqd')}</span>
                               </div>
                             )}
                           </div>
@@ -6569,7 +7065,7 @@ const LogisticsManagement = () => {
                             )}
                           >
                             <CheckCircle className="w-3 h-3 mr-1" />
-                            اختصاص فوری
+                            {t('immediateAssignment')}
                           </Button>
                         </div>
                       ))}
@@ -6578,7 +7074,7 @@ const LogisticsManagement = () => {
                     {availableFleetVehicles.length > 6 && (
                       <div className="mt-4 text-center">
                         <Badge variant="outline" className="text-blue-600">
-                          +{availableFleetVehicles.length - 6} خودروی دیگر در دسترس
+                          +{availableFleetVehicles.length - 6} {t('moreVehiclesAvailable')}
                         </Badge>
                       </div>
                     )}
@@ -6593,7 +7089,7 @@ const LogisticsManagement = () => {
               variant="outline" 
               onClick={() => setIsSuitableVehiclesOpen(false)}
             >
-              بستن
+              {t('close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -6613,45 +7109,49 @@ const LogisticsManagement = () => {
           <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-right">
-                جزئیات سفارش #{selectedOrderForDetails.orderNumber || selectedOrderForDetails.customerOrderId}
+                {t('orderDetailsTitle').replace('{order}', `#${selectedOrderForDetails.orderNumber || selectedOrderForDetails.customerOrderId}`)}
               </DialogTitle>
             </DialogHeader>
             
-            <div className="space-y-6" dir="rtl">
+            <div className="space-y-6" dir={direction}>
               {/* Order Status & Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="border rounded-lg p-4 bg-blue-50">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Package className="w-4 h-4" />
-                    اطلاعات سفارش
+                    {t('orderInformation')}
                   </h3>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">شماره سفارش:</span>
+                      <span className="text-sm text-gray-600">{t('orderNumberLabel')}:</span>
                       <span className="font-medium">{selectedOrderForDetails.orderNumber || selectedOrderForDetails.customerOrderId}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">وضعیت:</span>
+                      <span className="text-sm text-gray-600">{t('status')}:</span>
                       <span>{getStatusBadge(selectedOrderForDetails.currentStatus)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">مبلغ کل:</span>
+                      <span className="text-sm text-gray-600">{t('totalAmount')}:</span>
                       <span className="font-medium">{Math.floor(parseFloat(selectedOrderForDetails.totalAmount)).toLocaleString()} {selectedOrderForDetails.currency}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">وزن محموله:</span>
-                      <span className="font-medium">{selectedOrderForDetails.calculatedWeight || selectedOrderForDetails.totalWeight || 0} {selectedOrderForDetails.weightUnit || 'کگ'}</span>
+                      <span className="text-sm text-gray-600">{t('cargoWeight')}:</span>
+                      <span className="font-medium">{selectedOrderForDetails.calculatedWeight || selectedOrderForDetails.totalWeight || 0} {selectedOrderForDetails.weightUnit || t('unitKg')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">روش تحویل:</span>
+                      <span className="text-sm text-gray-600">{t('method')}:</span>
                       <span className="font-medium text-green-700 bg-green-100 px-2 py-1 rounded">
-                        {selectedOrderForDetails.deliveryMethod || 'مشخص نشده'}
+                        {selectedOrderForDetails.deliveryMethod === 'postal' ? t('postalMethod') :
+                         selectedOrderForDetails.deliveryMethod === 'smart_vehicle' ? t('smartVehicleMethod') :
+                         selectedOrderForDetails.deliveryMethod === 'self_pickup' ? t('selfPickupMethod') :
+                         selectedOrderForDetails.deliveryMethod === 'freight_collect' ? t('freightCollectMethod') :
+                         selectedOrderForDetails.deliveryMethod || t('notSpecified')}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">کد تحویل:</span>
+                      <span className="text-sm text-gray-600">{t('deliveryCode')}:</span>
                       <span className="font-bold text-red-600 bg-red-100 px-2 py-1 rounded">
-                        {selectedOrderForDetails.deliveryCode || 'تولید نشده'}
+                        {selectedOrderForDetails.deliveryCode || t('notGenerated')}
                       </span>
                     </div>
                   </div>
@@ -6660,26 +7160,26 @@ const LogisticsManagement = () => {
                 <div className="border rounded-lg p-4 bg-green-50">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <User className="w-4 h-4" />
-                    اطلاعات مشتری
+                    {t('customerInformation')}
                   </h3>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">نام مشتری:</span>
+                      <span className="text-sm text-gray-600">{t('customerLabel')}:</span>
                       <span className="font-medium">
                         {selectedOrderForDetails.customer 
                           ? `${selectedOrderForDetails.customer.firstName || ''} ${selectedOrderForDetails.customer.lastName || ''}`.trim() 
                           : selectedOrderForDetails.customerFirstName && selectedOrderForDetails.customerLastName 
                             ? `${selectedOrderForDetails.customerFirstName} ${selectedOrderForDetails.customerLastName}` 
-                            : 'نامشخص'}
+                            : t('unknown')}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">تلفن:</span>
-                      <span className="font-medium">{selectedOrderForDetails.customer?.phone || selectedOrderForDetails.customerPhone || 'ثبت نشده'}</span>
+                      <span className="text-sm text-gray-600">{t('phone')}:</span>
+                      <span className="font-medium">{selectedOrderForDetails.customer?.phone || selectedOrderForDetails.customerPhone || t('notRegistered')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">ایمیل:</span>
-                      <span className="font-medium">{selectedOrderForDetails.customer?.email || selectedOrderForDetails.customerEmail || 'ثبت نشده'}</span>
+                      <span className="text-sm text-gray-600">{t('email')}:</span>
+                      <span className="font-medium">{selectedOrderForDetails.customer?.email || selectedOrderForDetails.customerEmail || t('notRegistered')}</span>
                     </div>
                   </div>
                 </div>
@@ -6689,24 +7189,24 @@ const LogisticsManagement = () => {
               <div className="border rounded-lg p-4 bg-orange-50">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
-                  اطلاعات تحویل
+                  {t('deliveryInformation')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <p className="text-sm text-gray-600 mb-1">آدرس ارسال:</p>
+                    <p className="text-sm text-gray-600 mb-1">{t('shippingAddress')}:</p>
                     <p className="font-medium">
                       {(() => {
                         const shippingData = selectedOrderForDetails.shippingAddress;
                         if (typeof shippingData === 'object' && shippingData !== null) {
-                          return [(shippingData as any).address, (shippingData as any).city].filter(Boolean).join(', ') || 'آدرس ثبت نشده';
+                          return [(shippingData as any).address, (shippingData as any).city].filter(Boolean).join(', ') || t('noAddressRegistered');
                         }
-                        return shippingData || selectedOrderForDetails.customerAddress || 'آدرس ثبت نشده';
+                        return shippingData || selectedOrderForDetails.customerAddress || t('noAddressRegistered');
                       })()}
                     </p>
                   </div>
                   {selectedOrderForDetails.recipientName && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">گیرنده:</p>
+                      <p className="text-sm text-gray-600 mb-1">{t('recipient')}:</p>
                       <p className="font-medium">{selectedOrderForDetails.recipientName}</p>
                       {selectedOrderForDetails.recipientPhone && (
                         <p className="text-sm text-gray-500">{selectedOrderForDetails.recipientPhone}</p>
@@ -6715,16 +7215,16 @@ const LogisticsManagement = () => {
                   )}
                   {selectedOrderForDetails.hasGpsLocation && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">موقعیت جغرافیایی:</p>
-                      <p className="text-sm text-green-600">✓ موقعیت GPS ثبت شده</p>
+                      <p className="text-sm text-gray-600 mb-1">{t('gpsLocation')}:</p>
+                      <p className="text-sm text-green-600">✓ {t('locationRecorded')}</p>
                       <p className="text-xs text-gray-500">
-                        Lat: {selectedOrderForDetails.gpsLatitude}, Lng: {selectedOrderForDetails.gpsLongitude}
+                        {t('latitude')}: {selectedOrderForDetails.gpsLatitude}, {t('longitude')}: {selectedOrderForDetails.gpsLongitude}
                       </p>
                     </div>
                   )}
                   {selectedOrderForDetails.deliveryNotes && (
                     <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600 mb-1">توضیحات تحویل:</p>
+                      <p className="text-sm text-gray-600 mb-1">{t('deliveryDescription')}:</p>
                       <p className="font-medium">{selectedOrderForDetails.deliveryNotes}</p>
                     </div>
                   )}
@@ -6736,18 +7236,18 @@ const LogisticsManagement = () => {
                 <div className="border rounded-lg p-4 bg-purple-50">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Truck className="w-4 h-4" />
-                    اطلاعات ردیابی
+                    {t('trackingInformation')}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedOrderForDetails.trackingNumber && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">کد رهگیری:</p>
+                        <p className="text-sm text-gray-600 mb-1">{t('trackingCode')}:</p>
                         <p className="font-medium">{selectedOrderForDetails.trackingNumber}</p>
                       </div>
                     )}
                     {selectedOrderForDetails.deliveryPersonName && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">تحویل‌دهنده:</p>
+                        <p className="text-sm text-gray-600 mb-1">{t('deliveryPerson')}:</p>
                         <p className="font-medium">{selectedOrderForDetails.deliveryPersonName}</p>
                         {selectedOrderForDetails.deliveryPersonPhone && (
                           <p className="text-sm text-gray-500">{selectedOrderForDetails.deliveryPersonPhone}</p>
@@ -6756,23 +7256,23 @@ const LogisticsManagement = () => {
                     )}
                     {(selectedOrderForDetails as any).vehicleType && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">نوع خودرو:</p>
+                        <p className="text-sm text-gray-600 mb-1">{t('vehicleTypeLabel')}:</p>
                         <p className="font-medium">{(selectedOrderForDetails as any).vehicleType}</p>
                         {(selectedOrderForDetails as any).vehiclePlate && (
-                          <p className="text-sm text-gray-500">پلاک: {(selectedOrderForDetails as any).vehiclePlate}</p>
+                          <p className="text-sm text-gray-500">{t('plateLabel')}: {(selectedOrderForDetails as any).vehiclePlate}</p>
                         )}
                       </div>
                     )}
-                    {selectedOrderForDetails.estimatedDeliveryDate && (
+                    {(selectedOrderForDetails.estimatedDeliveryAt || selectedOrderForDetails.estimatedDeliveryDate) && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">تاریخ تحویل تقریبی:</p>
-                        <p className="font-medium">{new Date(selectedOrderForDetails.estimatedDeliveryDate).toLocaleDateString('fa-IR')}</p>
+                        <p className="text-sm text-gray-600 mb-1">{t('approximateDelivery')}:</p>
+                        <p className="font-medium">{formatEstimatedDelivery(selectedOrderForDetails)}</p>
                       </div>
                     )}
                     {selectedOrderForDetails.actualDeliveryDate && (
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">تاریخ تحویل واقعی:</p>
-                        <p className="font-medium">{new Date(selectedOrderForDetails.actualDeliveryDate).toLocaleDateString('fa-IR')}</p>
+                        <p className="text-sm text-gray-600 mb-1">{t('actualDelivery')}:</p>
+                        <p className="font-medium">{formatLogisticsDate(selectedOrderForDetails.actualDeliveryDate)}</p>
                       </div>
                     )}
                   </div>
@@ -6785,15 +7285,15 @@ const LogisticsManagement = () => {
                 <div className="border rounded-lg p-4 bg-gray-50">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <FileText className="w-4 h-4" />
-                    یادداشت‌های سفارش
+                    {t('orderNotes')}
                   </h3>
                   <div className="space-y-3">
                     {/* یادداشت مشتری */}
                     {((selectedOrderForDetails as any).customerNotes || (selectedOrderForDetails as any).notes) && (
                       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">مشتری</span>
-                          <span className="text-xs text-amber-600">یادداشت چک‌اوت</span>
+                          <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">{t('customerLabel')}</span>
+                          <span className="text-xs text-amber-600">{t('checkoutNote')}</span>
                         </div>
                         <p className="text-amber-900">{(selectedOrderForDetails as any).customerNotes || (selectedOrderForDetails as any).notes}</p>
                       </div>
@@ -6803,8 +7303,8 @@ const LogisticsManagement = () => {
                     {(selectedOrderForDetails as any).financialNotes && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">بخش مالی</span>
-                          <span className="text-xs text-blue-600">یادداشت تایید پرداخت</span>
+                          <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">{t('financialNote')}</span>
+                          <span className="text-xs text-blue-600">{t('paymentApprovalNote')}</span>
                         </div>
                         <p className="text-blue-900">{(selectedOrderForDetails as any).financialNotes}</p>
                       </div>
@@ -6814,8 +7314,8 @@ const LogisticsManagement = () => {
                     {(selectedOrderForDetails as any).warehouseNotes && (
                       <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-green-200 text-green-800 px-2 py-0.5 rounded text-xs font-medium">انبار</span>
-                          <span className="text-xs text-green-600">یادداشت پردازش انبار</span>
+                          <span className="bg-green-200 text-green-800 px-2 py-0.5 rounded text-xs font-medium">{t('warehouseNote')}</span>
+                          <span className="text-xs text-green-600">{t('warehouseProcessingNote')}</span>
                         </div>
                         <p className="text-green-900">{(selectedOrderForDetails as any).warehouseNotes}</p>
                       </div>
@@ -6829,12 +7329,12 @@ const LogisticsManagement = () => {
                 <div className="border rounded-lg p-4 bg-yellow-50">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <DollarSign className="w-4 h-4" />
-                    اطلاعات مالی
+                    {t('financialInformation')}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">تاریخ بررسی مالی:</p>
-                      <p className="font-medium">{new Date((selectedOrderForDetails as any).financialReviewedAt).toLocaleDateString('en-GB')}</p>
+                      <p className="text-sm text-gray-600 mb-1">{t('reviewedDate')}:</p>
+                      <p className="font-medium">{new Date((selectedOrderForDetails as any).financialReviewedAt).toLocaleDateString(locale)}</p>
                     </div>
                   </div>
                 </div>
@@ -6848,13 +7348,13 @@ const LogisticsManagement = () => {
                 className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
               >
                 <Printer className="w-4 h-4" />
-                چاپ جزئیات
+                {t('printDetails')}
               </Button>
               <Button 
                 variant="outline" 
                 onClick={handleCloseOrderDetails}
               >
-                بستن
+                {t('close')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -6863,49 +7363,49 @@ const LogisticsManagement = () => {
 
       {/* Two-step Delivery Confirmation Dialog */}
       <AlertDialog open={deliveryConfirmDialogOpen} onOpenChange={setDeliveryConfirmDialogOpen}>
-        <AlertDialogContent dir="rtl" className="max-w-md">
+        <AlertDialogContent dir={direction} className="max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle className={deliveryConfirmStep === 1 ? "text-amber-600" : "text-red-600"}>
               {deliveryConfirmStep === 1 
-                ? "تایید تحویل سفارش - مرحله ۱ از ۲" 
-                : "تایید نهایی تحویل - مرحله ۲ از ۲"}
+                ? t('confirmDeliveryStepOne')
+                : t('confirmDeliveryStepTwo')}
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-4 text-right">
               {deliveryConfirmStep === 1 ? (
                 <div className="space-y-3">
                   <p className="text-base font-medium text-gray-800">
-                    آیا مطمئن هستید که می‌خواهید تحویل این سفارش را تایید کنید؟
+                    {t('confirmDeliveryQuestion')}
                   </p>
                   <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <p className="text-sm font-bold text-blue-800 mb-2">اطلاعات سفارش:</p>
+                    <p className="text-sm font-bold text-blue-800 mb-2">{t('orderInformation')}:</p>
                     <p className="text-sm text-blue-700">
-                      شماره سفارش: <span className="font-bold">{getConfirmingDeliveryOrder()?.orderNumber}</span>
+                      {t('orderNumberLabel')}: <span className="font-bold">{getConfirmingDeliveryOrder()?.orderNumber}</span>
                     </p>
                     <p className="text-sm text-blue-700">
-                      مشتری: <span className="font-bold">
+                      {t('customerLabel')}: <span className="font-bold">
                         {getConfirmingDeliveryOrder()?.customer?.firstName} {getConfirmingDeliveryOrder()?.customer?.lastName}
                       </span>
                     </p>
                     <p className="text-sm text-blue-700">
-                      کد تحویل: <span className="font-bold">{getConfirmingDeliveryOrder()?.deliveryCode || 'بدون کد'}</span>
+                      {t('deliveryCode')}: <span className="font-bold">{getConfirmingDeliveryOrder()?.deliveryCode || t('noDeliveryCode')}</span>
                     </p>
                   </div>
                   <p className="text-sm text-amber-600 font-medium">
-                    لطفاً اطلاعات را با دقت بررسی کنید و در صورت صحت، ادامه دهید.
+                    {t('reviewCarefully')}
                   </p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div className="bg-red-50 p-4 rounded-lg border border-red-200">
                     <p className="text-base font-bold text-red-800 mb-2">
-                      هشدار: این عملیات غیرقابل بازگشت است!
+                      {t('irreversibleWarning')}
                     </p>
                     <p className="text-sm text-red-700">
-                      پس از تایید نهایی، وضعیت سفارش به "تحویل داده شده" تغییر خواهد کرد.
+                      {t('finalDeliveryStatusWarning')}
                     </p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <p className="text-sm font-bold text-gray-800 mb-2">تایید نهایی برای سفارش:</p>
+                    <p className="text-sm font-bold text-gray-800 mb-2">{t('finalConfirmation')}:</p>
                     <p className="text-lg font-bold text-gray-900">
                       {getConfirmingDeliveryOrder()?.orderNumber}
                     </p>
@@ -6914,8 +7414,32 @@ const LogisticsManagement = () => {
                     </p>
                   </div>
                   <p className="text-sm text-red-600 font-bold">
-                    آیا کاملاً مطمئن هستید؟
+                    {t('areYouAbsolutelySure')}
                   </p>
+                  <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                    <Label htmlFor="delivery-verification-code">{t('deliveryCode')}</Label>
+                    <p className="text-sm text-blue-800">{adminDeliveryCopy.help}</p>
+                    <Input
+                      id="delivery-verification-code"
+                      value={deliveryVerificationCode}
+                      onChange={(event) => setDeliveryVerificationCode(normalizeDeliveryConfirmationCode(event.target.value))}
+                      placeholder={gpsCopy.code}
+                      inputMode="numeric"
+                      maxLength={4}
+                      pattern="[0-9]{4}"
+                      dir="ltr"
+                      disabled={isSubmittingDeliveryVerification}
+                      autoComplete="one-time-code"
+                      data-testid="input-delivery-verification-code"
+                    />
+                    {deliveryVerificationCode && !isFourDigitDeliveryCode(deliveryVerificationCode) && <p role="alert" className="text-sm text-red-700">{adminDeliveryCopy.invalid}</p>}
+                    {deliveryGps && (
+                      <p className="flex items-center gap-2 text-sm text-green-700">
+                        <MapPin className="h-4 w-4" />
+                        {gpsCopy.captured} — {gpsCopy.accuracy}: {Math.round(deliveryGps.accuracy)}m
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </AlertDialogDescription>
@@ -6923,25 +7447,29 @@ const LogisticsManagement = () => {
           <AlertDialogFooter className="flex gap-2 flex-row-reverse">
             <AlertDialogCancel 
               onClick={handleDeliveryConfirmCancel}
+              disabled={isSubmittingDeliveryVerification}
               className="flex-1"
             >
-              انصراف
+              {t('cancel')}
             </AlertDialogCancel>
             {deliveryConfirmStep === 1 ? (
               <Button 
                 onClick={handleDeliveryConfirmStep1}
+                disabled={isCapturingDeliveryGps}
                 className="flex-1 bg-amber-500 hover:bg-amber-600"
                 data-testid="button-delivery-step1"
               >
-                ادامه به مرحله بعد
+                {isCapturingDeliveryGps && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                {isCapturingDeliveryGps ? gpsCopy.request : t('continueNext')}
               </Button>
             ) : (
               <Button 
                 onClick={handleDeliveryConfirmStep2}
+                disabled={!isFourDigitDeliveryCode(deliveryVerificationCode) || isSubmittingDeliveryVerification}
                 className="flex-1 bg-red-600 hover:bg-red-700"
                 data-testid="button-delivery-step2"
               >
-                تایید نهایی تحویل
+                {isSubmittingDeliveryVerification ? adminDeliveryCopy.busy : t('finalDeliveryConfirm')}
               </Button>
             )}
           </AlertDialogFooter>
