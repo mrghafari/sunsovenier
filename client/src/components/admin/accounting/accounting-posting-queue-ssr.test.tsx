@@ -8,14 +8,15 @@ import AccountingPostingQueue, { postingBlockersAreClosedGates,postingSourceCanB
 import { postingQueueText } from "./accounting-posting-queue-copy";
 
 Object.defineProperty(globalThis, "React", { configurable: true, value: React });
-function markup(canManage: boolean, language = "en") {
+function markup(canManage: boolean, language = "en", withCompany = false) {
   const client = new QueryClient();
   const values: Record<string, string> = { "language-manually-selected": "true", language };
   Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
     getItem: (key: string) => values[key] ?? null, setItem: (key: string, value: string) => { values[key] = value; },
     removeItem: (key: string) => { delete values[key]; },
   } });
-  const content: ReactNode = <QueryClientProvider client={client}><LanguageProvider><AccountingPostingQueue companies={[]} canManage={canManage}/></LanguageProvider></QueryClientProvider>;
+  const companies = withCompany ? [{ id: 41, name: "Tigris Polymers" }] : [];
+  const content: ReactNode = <QueryClientProvider client={client}><LanguageProvider><AccountingPostingQueue companies={companies} defaultCompanyId={withCompany ? 41 : undefined} canManage={canManage}/></LanguageProvider></QueryClientProvider>;
   return renderToStaticMarkup(content);
 }
 
@@ -47,4 +48,14 @@ test("actual queue component preserves closed documentary/financial gates and fo
   assert.equal(postingBlockersAreClosedGates([]), false);
   assert.equal(postingBlockersAreClosedGates(["CUTOVER_CLOSED", "OPENING_EVIDENCE_REQUIRED"]), false);
   assert.equal(postingBlockersAreClosedGates(["POSTING_MAPPING_REQUIRED"]), false);
+});
+
+test("posting queue panel includes company-scoped independent zero-opening controls", () => {
+  const manager = markup(true, "en", true);
+  const viewer = markup(false, "fa", true);
+  assert.match(manager, /data-testid="accounting-zero-start"/);
+  assert.match(manager, /Independent zero-opening activation/);
+  assert.match(manager, /data-testid="zero-start-loading"/);
+  assert.match(viewer, /data-testid="accounting-zero-start"/);
+  assert.match(viewer, /dir="rtl"/);
 });

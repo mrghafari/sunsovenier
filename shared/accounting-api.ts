@@ -58,5 +58,5 @@ export type AccountingBootstrap = {
   currencies: AccountingRow[];
   resources: AccountingResource[];
   postingKeys: readonly PostingKey[];
-  integrationEnabled: false;
+  integrationEnabled: boolean;
 };

@@ -1,4 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
+import {sql} from "drizzle-orm";
 import { accountingDb } from "./db";
 import {z} from "zod";
 import { accountingCompanies, accountingCurrencies } from "./schema";
@@ -31,6 +32,7 @@ import {readPartialReturnPlan,postPartialReturn,readPartialReturnHistory,readPar
 import {readPostingQueue,previewQueuedPosting,enqueueReviewedPosting,processReviewedPostingBatch} from "./posting-queue";
 import {postingQueueScopeSchema} from "@shared/accounting-posting-queue";
 import {assertPipelineManager} from "./loading-invoice-stock";
+import {readZeroStart,activateZeroStart} from "./zero-start";
 import {readCapitalizationWorkbench,capitalizeInventoryDocument} from "./inventory-capitalization";
 import {stockBookMetadata,registerStockBook} from "./loading-invoice-stock";
 import {approveLoadingShipping} from "./loading-shipping";
@@ -60,8 +62,17 @@ export function createAccountingRouter() {
     try {
       const companies = await accountingDb.select().from(accountingCompanies);
       const currencies = await accountingDb.select().from(accountingCurrencies);
-      res.json({access:res.locals.accountingAccess,companies,currencies,resources:accountingResources,postingKeys:POSTING_KEYS,integrationEnabled:false});
+      const integration=(await accountingDb.execute(sql`select exists(select 1 from accounting_companies
+        where accounting_posting_enabled(id)) enabled`)).rows[0];
+      res.json({access:res.locals.accountingAccess,companies,currencies,resources:accountingResources,
+        postingKeys:POSTING_KEYS,integrationEnabled:integration.enabled===true});
     } catch (error) { next(error); }
+  });
+  router.get("/v2/zero-start",async(req,res,next)=>{
+    try{res.json(await readZeroStart(Number(req.query.companyId)));}catch(e){next(e);}
+  });
+  router.post("/v2/zero-start",async(req,res,next)=>{
+    try{res.json(await activateZeroStart(req.body,res.locals.accountingAccess));}catch(e){next(e);}
   });
   router.get("/v2/reports/:report/csv",async(req,res,next)=>{
     try{

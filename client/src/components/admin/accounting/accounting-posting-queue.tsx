@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, FileCheck2, RefreshCw, ShieldAlert } from "lucide-react";
+import AccountingZeroStart from "./accounting-zero-start";
 
 type Company = { id: number; name: string };
 type Pending = { payload: { sourceId: string; reviewConfirmed: true; posting: PostingQueueCommand }; companyId: number };
@@ -182,6 +183,7 @@ export default function AccountingPostingQueue({ companies, defaultCompanyId, ca
         <Button type="button" variant="outline" disabled={!canManage || submitMutation.isPending} onClick={()=>void enqueue(true)} data-testid="posting-queue-retry">{t(language,"retrySame")}</Button>
       </section>}
     </section>
+    <AccountingZeroStart companyId={company?.id} canManage={canManage} language={language}/>
     {error && <Alert variant="destructive" role="alert"><AlertCircle className="h-4 w-4"/><AlertTitle>{t(language,"error")}</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
     {message && <p role="status" className="rounded-lg border border-[#cbdccf] bg-[#edf4eb] p-3 text-xs text-[#42634e]">{message}</p>}
     <section className="overflow-hidden rounded-2xl border border-[#dfe6de] bg-[#fbfcf8]" data-testid="posting-queue-history">

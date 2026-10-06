@@ -80,3 +80,4 @@
 - [Return-credit attribution](return-credit-attribution.md) — linked payouts consume existing return credit without reopening debt; later withdrawals conservatively reduce attribution.
 - [Partial-return evidence](partial-return-evidence.md) — preserve original payment counters; collection caps and dated reports use posted debt reductions and restorations.
 - [SQL valuation checks](sql-valuation-verification.md) — SQL function creation can pass before branch-specific name-resolution failures; execute rollback-only financial valuations.
+- [Drizzle array interpolation](drizzle-array-interpolation.md) — JavaScript arrays may expand as SQL lists, not PostgreSQL array parameters; verify generated membership queries.

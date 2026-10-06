@@ -215,7 +215,17 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    signed-in/multi-currency end-to-end verification. The invoice/COGS/settlement
    handlers, coordinated returns and reviewed-command processing engine are
    implemented; do not describe those technical paths as deferred features.
-5. **Reconcile openings and approve a cutover.** Obtain actual opening/stock/
+5. **Approve the chosen opening boundary.** The user chose a declared independent
+   zero opening dated 2026-10-06, preserving all legacy balances, orders and stock.
+   This is not reconciliation of those legacy amounts. The authenticated admin
+   accounting manager can approve `/api/accounting/v2/zero-start` from the posting
+   queue panel. Approval and all primary native financial cutovers commit together;
+   immutable wallet/document exclusions and the first-order boundary prevent
+   historical enrollment. There is no fabricated zero-value journal. Only actual
+   documented new purchases can supply carrying stock; foreign cutovers stay
+   separately controlled. No real-manager identity is invented by the agent and
+   no live approval is implied by code delivery or migration.
+   For any later integration of legacy amounts, obtain actual opening/stock/
    wallet/AR/asset evidence, reconcile native balances with GL and freeze the
    old/new order boundary. Never manufacture zeros or conversion rates.
 6. **Full end-to-end verification, then explicit activation approval.** Cover
