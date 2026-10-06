@@ -25,7 +25,7 @@ const history: WalletRefundHistory = {
     id: 31, walletId: 44, entryDate: "2025-05-15", channel: "BANK", currency: "USD", baseCurrency: "IQD",
     amount: "75.50", payoutReference: "BANK-123", evidenceReference: "SUPPORT-991", reason: "Documented customer payout",
     sourceId: "stable-source-44", liabilityBase: "97500.00", fundingBase: "97500.00", fxGain: "0.00", fxLoss: "0.00",
-    journalId: 207, movementId: 119,
+    journalId: 207, movementId: 119, goodsReturnId: 65, receiptId: 22,
   }],
   pagination: { page: 1, pageSize: 20, totalRows: 1 },
 };
@@ -110,6 +110,28 @@ test("idempotency source ID is reused for an unchanged command and changes only 
   assert.equal(retry, first);
   assert.notEqual(changedCommand, first);
   assert.equal(switchedBackAfterUncertainFailure, first);
+});
+
+test("linked wallet-credit payout IDs are part of the immutable retry fingerprint and localized workbench", () => {
+  const sources = new Map<string, string>();
+  const initial = { companyId: 12, walletId: 44, amount: "75.50", entryDate: "2025-05-15", channel: "BANK", goodsReturnId: 65, receiptId: 22 };
+  const fingerprint = JSON.stringify(initial);
+  const first = walletRefundSourceForCommand(fingerprint, sources);
+  assert.equal(walletRefundSourceForCommand(JSON.stringify(initial), sources), first);
+  assert.notEqual(walletRefundSourceForCommand(JSON.stringify({ ...initial, goodsReturnId: 66 }), sources), first);
+  assert.notEqual(walletRefundSourceForCommand(JSON.stringify({ ...initial, receiptId: 23 }), sources), first);
+  for (const language of ["en", "fa", "ar", "tr"]) {
+    const html = withLanguage(language, <AccountingWalletRefunds companies={[{ id: 12, name: "Tigris Polymers" }]} defaultCompanyId={12} canManage/>);
+    assert.match(html, /data-testid="wallet-refund-goods-return-id"/);
+    assert.match(html, /data-testid="wallet-refund-receipt-id"/);
+    assert.ok(html.includes(walletRefundText(language, "returnCreditLimitation")));
+    for (const key of ["blocker_RETURN_CREDIT_LINK_REQUIRED", "blocker_RETURN_CREDIT_LINK_INVALID", "blocker_RETURN_CREDIT_EXHAUSTED"]) {
+      assert.ok(walletRefundText(language, key).length > 10);
+    }
+    const table = renderToStaticMarkup(<WalletRefundHistoryTable rows={history.rows} language={language}/>);
+    assert.match(table, />#65</);
+    assert.match(table, />#22</);
+  }
 });
 
 test("immutable history SSR exposes payout snapshots, supporting documents, base FX and IDs without mutation actions", () => {

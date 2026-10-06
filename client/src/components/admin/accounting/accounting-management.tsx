@@ -19,6 +19,8 @@ import AccountingInventoryCapitalization from "./accounting-inventory-capitaliza
 import AccountingLoadingReturns from "./accounting-loading-returns";
 import AccountingWalletRefunds from "./accounting-wallet-refunds";
 import { walletRefundText } from "./accounting-wallet-refunds-copy";
+import AccountingPostingQueue from "./accounting-posting-queue";
+import { postingQueueText } from "./accounting-posting-queue-copy";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -102,7 +104,7 @@ export default function AccountingManagement() {
   const seedMutation = useSeedAccounting();
   const [seedCountry,setSeedCountry]=useState<"IR"|"IQ">(language==="fa"?"IR":"IQ");
   const [activeResource, setActiveResource] = useState<AccountingResource>("companies");
-   const [activePanel, setActivePanel] = useState<"setup" | "reports" | "receipts" | "documents" | "inventory" | "fifo" | "credit" | "loading-invoices" | "capitalization" | "shipment-costs" | "loading-returns" | "wallet-refunds">("setup");
+   const [activePanel, setActivePanel] = useState<"setup" | "reports" | "receipts" | "documents" | "inventory" | "fifo" | "credit" | "loading-invoices" | "capitalization" | "shipment-costs" | "loading-returns" | "wallet-refunds" | "posting-queue">("setup");
   const [record, setRecord] = useState<AccountingRow | undefined>();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -295,6 +297,7 @@ export default function AccountingManagement() {
         <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label={txt("title")}>
           <button type="button" role="tab" aria-selected={activePanel === "credit"} onClick={() => setActivePanel("credit")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "credit" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{(creditCopy[language as keyof typeof creditCopy]??creditCopy.en).title}</button>
           <button type="button" role="tab" aria-selected={activePanel === "wallet-refunds"} onClick={() => setActivePanel("wallet-refunds")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "wallet-refunds" ? "bg-[#735b3e] text-[#fbf6ed]" : "bg-[#f0e9dd] text-[#685940]"}`}>{walletRefundText(language,"title")}</button>
+          <button type="button" role="tab" aria-selected={activePanel === "posting-queue"} onClick={() => setActivePanel("posting-queue")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "posting-queue" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{postingQueueText(language,"title")}</button>
           <button type="button" role="tab" aria-selected={activePanel === "setup"} onClick={() => setActivePanel("setup")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "setup" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{txt("setupNav")}</button>
           <button type="button" role="tab" aria-selected={activePanel === "reports"} onClick={() => setActivePanel("reports")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "reports" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{txt("reportsNav")}</button>
           <button type="button" role="tab" aria-selected={activePanel === "receipts"} onClick={() => setActivePanel("receipts")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "receipts" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{language === "fa" ? "رسیدها و چک‌ها" : language === "ar" ? "الإيصالات والشيكات" : language === "tr" ? "Tahsilatlar ve çekler" : "Receipts & cheques"}</button>
@@ -315,7 +318,8 @@ export default function AccountingManagement() {
           activePanel === "fifo" ? <div className="mt-5"><AccountingInventoryFifo companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} /></div> :
           activePanel === "loading-invoices" ? <div className="mt-5"><AccountingLoadingInvoices companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} /></div> :
          activePanel === "shipment-costs" ? <div className="mt-5"><AccountingShipmentCosts companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} /></div> :
-          activePanel === "loading-returns" ? <div className="mt-5"><AccountingLoadingReturns companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} /></div> :
+           activePanel === "loading-returns" ? <div className="mt-5"><AccountingLoadingReturns companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} onWalletPayout={() => setActivePanel("wallet-refunds")} /></div> :
+           activePanel === "posting-queue" ? <div className="mt-5"><AccountingPostingQueue companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} defaultCompanyId={companyId} canManage={canManage}/></div> :
            activePanel === "capitalization" ? <div className="mt-5"><AccountingInventoryCapitalization companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} /></div> :
         <div className="mt-6 grid items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
           <aside className="rounded-[22px] border border-[#dce2db] bg-[#e8ede7] p-3">

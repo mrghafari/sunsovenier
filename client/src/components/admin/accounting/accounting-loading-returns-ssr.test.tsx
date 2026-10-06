@@ -28,10 +28,10 @@ test("loading-return SSR shows correctly bounded implementation progress and vie
   const html = render(false);
   assert.match(html, /IMPLEMENTATION status/);
   assert.match(html, /not company balances or financial activation/);
-  assert.match(html, /full-goods returns of unpaid and fully\/partly paid loading invoices/);
-  assert.match(html, /partial goods\/receipt returns and documented foreign-currency payouts/);
-  assert.match(html, /Coordinated linked returns and separately approved automatic processing/);
-  assert.doesNotMatch(html, /Partial-goods returns and foreign-currency payouts/);
+  assert.match(html, /documentary full\/partial returns, linked wallet-credit payouts and a reviewed controlled posting queue/);
+  assert.match(html, /Documentary opening and opening-balance reconciliation/);
+  assert.match(html, /Financial activation and separately authorized processing-engine start/);
+  assert.match(html, /Authenticated end-to-end verification/);
   assert.match(html, /read-only/i);
   assert.doesNotMatch(html, /Confirm and post full return/);
 });

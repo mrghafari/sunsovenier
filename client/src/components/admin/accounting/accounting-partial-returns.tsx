@@ -97,8 +97,8 @@ function draftFromPending(pending: UncertainSubmission | undefined): Draft | und
   };
 }
 
-export default function AccountingPartialReturns({ companies, canManage = false, language = "en" }: {
-  companies: Company[]; canManage?: boolean; language?: string;
+export default function AccountingPartialReturns({ companies, canManage = false, language = "en", onWalletPayout }: {
+  companies: Company[]; canManage?: boolean; language?: string; onWalletPayout?: () => void;
 }) {
   const [uncertain, setUncertain] = useState<UncertainSubmission | undefined>(() => loadPendingSubmission());
   const [draft, setDraft] = useState<Draft>(() => draftFromPending(uncertain) ?? ({
@@ -319,6 +319,10 @@ export default function AccountingPartialReturns({ companies, canManage = false,
           <Field label={t(language,"amount")}><input type="text" inputMode="decimal" value={draft.allocations[String(item.receivableId)] ?? ""} disabled={formLocked} onChange={e => changeFinancial({ allocations: { ...draft.allocations, [String(item.receivableId)]: clean(e.target.value) } })} className={`${inputClass} font-mono tabular-nums`}/></Field>
         </div>)}
         <div className="grid gap-3 md:grid-cols-2"><Field label={t(language,"wallet")}><input type="text" inputMode="decimal" value={draft.walletAmount} disabled={formLocked} onChange={e => changeFinancial({ walletAmount: clean(e.target.value) })} className={`${inputClass} font-mono tabular-nums`}/></Field><p className="self-end text-xs leading-5 text-[#758179]">{t(language,"walletNote")} · {t(language,"amountReturned")}: {receipt.walletReturned} / {receipt.walletCredit} {receipt.currency}</p></div>
+        {onWalletPayout && <aside className="space-y-2 rounded-lg border border-[#e6d9c4] bg-[#fcfaf5] p-3 md:col-span-2">
+          <p className="text-xs leading-5 text-[#806844]">{t(language,"linkedPayoutPath")}</p>
+          <button type="button" onClick={onWalletPayout} className="inline-flex h-9 items-center rounded-lg bg-[#735b3e] px-3 text-xs font-semibold text-[#fbf6ed] hover:bg-[#624b32]" data-testid="partial-return-wallet-payout-link">{t(language,"openWalletPayout")}</button>
+        </aside>}
       </section>}
       {targets && !invoice && draft.kind === "GOODS" && draft.targetId && <Empty text={t(language,"selectTargetFirst")}/>}
       {targets && !receipt && draft.kind === "RECEIPT" && draft.targetId && <Empty text={t(language,"selectTargetFirst")}/>}

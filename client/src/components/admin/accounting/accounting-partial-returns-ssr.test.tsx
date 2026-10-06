@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import React from "react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { PartialReturnPlan } from "@shared/accounting-partial-returns";
 import AccountingPartialReturns, { canReviewPartialReturn, partialReturnPlanAlreadyPosted, partialReturnPlanFingerprint, partialReturnPayoutReferenceValid, PartialReturnPlanReview } from "./accounting-partial-returns";
 import { partialReturnText } from "./accounting-partial-returns-copy";
+
+Object.assign(globalThis, { React });
 
 const plan: PartialReturnPlan = {
   input: { kind: "GOODS", companyId: 12, invoiceId: 71, entryDate: "2025-05-15", items: [{ orderItemId: 91, quantityTons: "1.250" }] },

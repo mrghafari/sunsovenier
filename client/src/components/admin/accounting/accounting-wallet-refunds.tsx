@@ -12,15 +12,16 @@ import { AlertCircle, BadgeCheck, CircleDollarSign, FileCheck2, ShieldAlert } fr
 type Company = { id: number; name: string };
 type Receipt = { companyId: number; id: number; journalId: number; movementId: number; duplicate: boolean; payoutReference: string };
 type Channel = "BANK" | "CASH";
-type Draft = { companyId: string; walletId: string; amount: string; entryDate: string; channel: Channel; payoutReference: string; evidenceReference: string; reason: string };
+type Draft = { companyId: string; walletId: string; amount: string; entryDate: string; channel: Channel; payoutReference: string; evidenceReference: string; reason: string; goodsReturnId: string; receiptId: string };
 const inputClass = "h-10 w-full rounded-lg border border-[#d4ddd4] bg-[#f7f9f5] px-3 text-sm text-[#29423f] outline-none focus:border-[#60877a] focus:ring-2 focus:ring-[#60877a]/15 disabled:opacity-60";
 const rtlLanguages = ["fa", "ar"];
 const emptyDraft = (companyId: number | undefined): Draft => ({
-  companyId: companyId ? String(companyId) : "", walletId: "", amount: "", entryDate: "", channel: "BANK", payoutReference: "", evidenceReference: "", reason: "",
+  companyId: companyId ? String(companyId) : "", walletId: "", amount: "", entryDate: "", channel: "BANK", payoutReference: "", evidenceReference: "", reason: "", goodsReturnId: "", receiptId: "",
 });
 const sameQuote = (a: WalletRefundQuote, b: WalletRefundQuote) =>
   a.companyId === b.companyId && a.walletId === b.walletId && a.amount === b.amount
-  && a.entryDate === b.entryDate && a.channel === b.channel;
+  && a.entryDate === b.entryDate && a.channel === b.channel
+  && a.goodsReturnId === b.goodsReturnId && a.receiptId === b.receiptId;
 const makeSourceId = () => globalThis.crypto?.randomUUID
   ? globalThis.crypto.randomUUID()
   : `wallet-refund-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -99,8 +100,16 @@ export default function AccountingWalletRefunds({ companies, defaultCompanyId, c
     amount: normalizeAccountingDigits(draft.amount.trim()),
     entryDate: draft.entryDate,
     channel: draft.channel,
+    ...(draft.goodsReturnId.trim() || draft.receiptId.trim() ? {
+      goodsReturnId: Number(normalizeAccountingDigits(draft.goodsReturnId.trim())),
+      receiptId: Number(normalizeAccountingDigits(draft.receiptId.trim())),
+    } : {}),
   });
-  const currentPlan = plan && !companyScopeSyncing && planLanguage === language && quoteResult.success && sameQuote(plan.input, quoteResult.data)
+  const linkageEmpty = !draft.goodsReturnId.trim() && !draft.receiptId.trim();
+  const linkageComplete = Boolean(draft.goodsReturnId.trim() && draft.receiptId.trim());
+  const linkageValid = linkageEmpty || (linkageComplete && /^\d+$/.test(normalizeAccountingDigits(draft.goodsReturnId.trim()))
+    && /^\d+$/.test(normalizeAccountingDigits(draft.receiptId.trim())));
+  const currentPlan = plan && linkageValid && !companyScopeSyncing && planLanguage === language && quoteResult.success && sameQuote(plan.input, quoteResult.data)
     && plan.valuation.amount === quoteResult.data.amount && plan.valuation.walletId === quoteResult.data.walletId ? plan : undefined;
   const valuation = currentPlan?.valuation;
   const completeValuation = Boolean(valuation && valuation.available && !valuation.blockingReason
@@ -137,8 +146,12 @@ export default function AccountingWalletRefunds({ companies, defaultCompanyId, c
       amount: normalizeAccountingDigits(draft.amount.trim()),
       entryDate: draft.entryDate,
       channel: draft.channel,
+      ...(draft.goodsReturnId.trim() || draft.receiptId.trim() ? {
+        goodsReturnId: Number(normalizeAccountingDigits(draft.goodsReturnId.trim())),
+        receiptId: Number(normalizeAccountingDigits(draft.receiptId.trim())),
+      } : {}),
     });
-    if (!selectedCompany || companyScopeSyncing || !parsed.success) {
+    if (!selectedCompany || companyScopeSyncing || !linkageValid || !parsed.success) {
       setPreviewError(t(language, "validation"));
       return;
     }
@@ -178,7 +191,7 @@ export default function AccountingWalletRefunds({ companies, defaultCompanyId, c
     if (postLock.current) return;
     setActionError("");
     const quote = quoteResult.success ? quoteResult.data : undefined;
-    if (!canManage || !currentPlan || !quote || !sameQuote(currentPlan.input, quote)
+    if (!canManage || !currentPlan || !quote || !linkageValid || !sameQuote(currentPlan.input, quote)
       || !eligiblePlan || !payoutReferenceValid || !referenceValid || !reasonValid || !confirmed || !selectedCompany || postBusy) {
       setActionError(!canManage ? t(language, "permission") : t(language, "gateRequirement"));
       return;
@@ -249,6 +262,12 @@ export default function AccountingWalletRefunds({ companies, defaultCompanyId, c
       <Field label={t(language, "channel")}><select aria-label={t(language, "channel")} value={draft.channel} onChange={event => edit({ channel: event.target.value as Channel })} disabled={postBusy} className={inputClass} data-testid="wallet-refund-channel">
         <option value="BANK">{t(language, "bank")}</option><option value="CASH">{t(language, "cash")}</option>
       </select></Field>
+      <div className="grid gap-3 rounded-xl border border-[#d8c9ac] bg-[#faf5e9] p-3 sm:grid-cols-2 md:col-span-2 xl:col-span-4">
+        <p className="text-xs leading-5 text-[#705638] sm:col-span-2">{t(language, "returnLinkHelp")}</p>
+        <Field label={t(language, "goodsReturnId")}><input inputMode="numeric" autoComplete="off" value={draft.goodsReturnId} onChange={event => edit({ goodsReturnId: normalizeAccountingDigits(event.target.value) })} disabled={postBusy} className={inputClass} data-testid="wallet-refund-goods-return-id"/></Field>
+        <Field label={t(language, "receiptId")}><input inputMode="numeric" autoComplete="off" value={draft.receiptId} onChange={event => edit({ receiptId: normalizeAccountingDigits(event.target.value) })} disabled={postBusy} className={inputClass} data-testid="wallet-refund-receipt-id"/></Field>
+        <p className="text-[11px] leading-5 text-[#806844] sm:col-span-2">{t(language, "returnCreditLimitation")}</p>
+      </div>
       <Field label={t(language, "payoutReference")}><input required minLength={5} maxLength={150} autoComplete="off" value={draft.payoutReference} onChange={event => edit({ payoutReference: event.target.value })} disabled={postBusy} className={inputClass} data-testid="wallet-refund-payout-reference"/><span className="block text-[10px] font-normal leading-4 text-[#77867e]">{t(language, "payoutReferenceHelp")}</span></Field>
       <Field label={t(language, "evidenceReference")}><input required minLength={5} maxLength={500} value={draft.evidenceReference} onChange={event => edit({ evidenceReference: event.target.value })} disabled={postBusy} className={inputClass} data-testid="wallet-refund-evidence"/></Field>
       <Field label={t(language, "reason")}><textarea required minLength={5} maxLength={500} value={draft.reason} onChange={event => edit({ reason: event.target.value })} disabled={postBusy} className={`${inputClass} min-h-20 py-2`} data-testid="wallet-refund-reason"/></Field>
@@ -312,6 +331,17 @@ export function WalletRefundPlanCard({ plan, language }: { plan: WalletRefundPla
         <Fact label={t(language, "channelQuoted")} value={plan.input.channel}/>
         <Fact label={t(language, "available")} value={value.available ? money(value.availableNative, currency) : unavailable} mono/>
       </div>
+      {value.returnCredit && <section className="rounded-xl border border-[#d8c9ac] bg-[#faf5e9] p-3" data-testid="wallet-refund-return-credit">
+        <h4 className="mb-3 text-xs font-bold text-[#705638]">{t(language, "returnCreditTitle")}</h4>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Fact label={t(language, "goodsReturnId")} value={`#${value.returnCredit.goodsReturnId}`} mono/>
+          <Fact label={t(language, "receiptId")} value={`#${value.returnCredit.receiptId}`} mono/>
+          <Fact label={t(language, "originalCredit")} value={money(value.returnCredit.originalCredit, currency)} mono/>
+          <Fact label={t(language, "availableCredit")} value={money(value.returnCredit.availableCredit, currency)} mono/>
+          <Fact label={t(language, "receiptAvailable")} value={money(value.returnCredit.receiptAvailable, currency)} mono/>
+        </div>
+        <p className="mt-3 text-[11px] leading-5 text-[#705638]">{t(language, "returnCreditLimitation")}</p>
+      </section>}
       <div className="rounded-xl border border-[#dce7dc] bg-[#f3f7f0] p-3">
         <h4 className="mb-3 text-xs font-bold text-[#294540]">{t(language, "policy")}</h4>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -337,7 +367,7 @@ export function WalletRefundPlanCard({ plan, language }: { plan: WalletRefundPla
       {!complete && <p role="alert" className="rounded-lg border border-[#e6d9c4] bg-[#f8f1e5] px-3 py-2 text-xs text-[#806844]">{t(language, "valuationIncomplete")}</p>}
       {!value.available && <p role="alert" className="rounded-lg border border-[#e6d9c4] bg-[#f8f1e5] px-3 py-2 text-xs text-[#806844]">{t(language, "unavailable")}</p>}
       {!plan.financialGateOpen && <p role="alert" className="rounded-lg border border-[#e6d9c4] bg-[#f8f1e5] px-3 py-2 text-xs text-[#806844]">{t(language, "gateClosed")}</p>}
-      {plan.blockers.length > 0 && <div><h4 className="mb-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#829087]">{t(language, "blockers")}</h4><ul className="space-y-1">{plan.blockers.map((blocker, index) => <li key={`${blocker}-${index}`} className="rounded-lg border border-[#e6d9c4] bg-[#f8f1e5] px-3 py-2 text-xs text-[#806844]">{blocker.replaceAll("_", " ")}</li>)}</ul></div>}
+       {plan.blockers.length > 0 && <div><h4 className="mb-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#829087]">{t(language, "blockers")}</h4><ul className="space-y-1">{plan.blockers.map((blocker, index) => { const key = `blocker_${blocker}`; const text = t(language, key); return <li key={`${blocker}-${index}`} className="rounded-lg border border-[#e6d9c4] bg-[#f8f1e5] px-3 py-2 text-xs text-[#806844]">{text === key ? blocker.replaceAll("_", " ") : text}</li>; })}</ul></div>}
       <div>
         <h4 className="mb-2 text-xs font-bold text-[#294540]">{t(language, "linesTitle")}</h4>
         {value.lines.length ? <div className="overflow-x-auto rounded-xl border border-[#e1e7df]"><table className="w-full min-w-[800px] text-start text-xs">
@@ -432,6 +462,8 @@ export function WalletRefundHistoryTable({ rows, language }: { rows: WalletRefun
     ["reason", (row: WalletRefundHistory["rows"][number]) => row.reason],
     ["journalId", (row: WalletRefundHistory["rows"][number]) => `#${row.journalId}`],
     ["movementId", (row: WalletRefundHistory["rows"][number]) => `#${row.movementId}`],
+    ["goodsReturnId", (row: WalletRefundHistory["rows"][number]) => row.goodsReturnId ? `#${row.goodsReturnId}` : "—"],
+    ["receiptId", (row: WalletRefundHistory["rows"][number]) => row.receiptId ? `#${row.receiptId}` : "—"],
   ] as const;
   return <div className="overflow-x-auto rounded-xl border border-[#e1e7df]">
     <table className="w-full min-w-[1700px] text-start text-xs">

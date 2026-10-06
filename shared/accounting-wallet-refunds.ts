@@ -3,6 +3,7 @@ import {dateString,positiveDecimal} from "./accounting-api";
 const id=z.number().int().positive().max(2147483647);
 export const walletRefundQuoteSchema=z.object({
   companyId:id,walletId:id,amount:positiveDecimal,entryDate:dateString,channel:z.enum(["BANK","CASH"]),
+  goodsReturnId:id.optional(),receiptId:id.optional(),
 }).strict();
 export const walletRefundCommandSchema=walletRefundQuoteSchema.extend({
   sourceId:z.string().trim().min(3).max(150),expectedPlanHash:z.string().regex(/^[a-f0-9]{64}$/),
@@ -25,6 +26,7 @@ export interface WalletRefundValuation {
   fundingNativeBefore:string|null;fundingBaseBefore:string|null;
   liabilityBase:string|null;fundingBase:string|null;fxGain:string|null;fxLoss:string|null;
   historicalRateEvidence?:{liabilitySourceLineId:number|null;fundingSourceLineId:number|null};
+  returnCredit?:{goodsReturnId:number;receiptId:number;originalCredit:string;availableCredit:string;receiptAvailable:string};
   lines:RefundBookLine[];
 }
 export interface WalletRefundPlan {
@@ -34,6 +36,7 @@ export interface WalletRefundPlan {
 export interface WalletRefundHistory {
   rows:{id:number;walletId:number;entryDate:string;channel:"BANK"|"CASH";currency:string;baseCurrency:string;
     amount:string;payoutReference:string;evidenceReference:string;reason:string;sourceId:string;
-    liabilityBase:string;fundingBase:string;fxGain:string;fxLoss:string;journalId:number;movementId:number}[];
+    liabilityBase:string;fundingBase:string;fxGain:string;fxLoss:string;journalId:number;movementId:number;
+    goodsReturnId?:number|null;receiptId?:number|null}[];
   pagination:{page:number;pageSize:number;totalRows:number};
 }

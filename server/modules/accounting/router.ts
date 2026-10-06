@@ -28,6 +28,9 @@ import {readShipmentCosts,postShipmentCost,captureShipmentCost} from "./shipment
 import {readLoadingReturns,returnLoadingInvoice} from "./loading-returns";
 import {readWalletRefundPlan,recordDocumentedWalletRefund,readDocumentedWalletRefunds} from "./wallet-refunds";
 import {readPartialReturnPlan,postPartialReturn,readPartialReturnHistory,readPartialReturnTargets} from "./partial-returns";
+import {readPostingQueue,previewQueuedPosting,enqueueReviewedPosting,processReviewedPostingBatch} from "./posting-queue";
+import {postingQueueScopeSchema} from "@shared/accounting-posting-queue";
+import {assertPipelineManager} from "./loading-invoice-stock";
 import {readCapitalizationWorkbench,capitalizeInventoryDocument} from "./inventory-capitalization";
 import {stockBookMetadata,registerStockBook} from "./loading-invoice-stock";
 import {approveLoadingShipping} from "./loading-shipping";
@@ -310,6 +313,23 @@ export function createAccountingRouter() {
   });
   router.get("/v2/wallet-refunds/history",async(req,res,next)=>{
     try{res.set("Cache-Control","private, no-store");res.json(await readDocumentedWalletRefunds(req.query));}catch(e){next(e);}
+  });
+  router.get("/v2/processing",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readPostingQueue(req.query));}catch(e){next(e);}
+  });
+  router.post("/v2/processing/preview",async(req,res,next)=>{
+    try{assertAccountingOrigin(req);res.set("Cache-Control","private, no-store");res.json(await previewQueuedPosting(req.body));}catch(e){next(e);}
+  });
+  router.post("/v2/processing",async(req,res,next)=>{
+    try{assertAccountingOrigin(req);res.set("Cache-Control","private, no-store");
+      res.json(await enqueueReviewedPosting(req.body,res.locals.accountingAccess));}catch(e){next(e);}
+  });
+  router.post("/v2/processing/run",async(req,res,next)=>{
+    try{assertAccountingOrigin(req);res.set("Cache-Control","private, no-store");
+      const scope=postingQueueScopeSchema.parse(req.body);
+      await accountingDb.transaction(tx=>assertPipelineManager(tx,res.locals.accountingAccess));
+      res.json(await processReviewedPostingBatch(scope.companyId));
+    }catch(e){next(e);}
   });
   router.get("/v2/shipment-costs",async(req,res,next)=>{
     try{res.set("Cache-Control","private, no-store");res.json(await readShipmentCosts(req.query));}catch(e){next(e);}

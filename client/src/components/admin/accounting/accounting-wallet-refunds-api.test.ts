@@ -33,6 +33,14 @@ test("quote and command schemas preserve exact decimals and require full documen
   assert.equal(walletRefundCommandSchema.safeParse({ ...command, payoutReference: "   " }).success, false);
   assert.equal(walletRefundCommandSchema.safeParse({ ...command, reason: "no" }).success, false);
   assert.equal(walletRefundCommandSchema.safeParse({ ...command, expectedPlanHash: "stale" }).success, false);
+  const linked = { ...quote, goodsReturnId: 65, receiptId: 22 };
+  assert.equal(walletRefundQuoteSchema.safeParse(linked).success, true);
+  assert.equal(walletRefundQuoteSchema.safeParse({ ...quote, goodsReturnId: 65 }).success, true);
+  assert.equal(walletRefundQuoteSchema.safeParse({ ...quote, receiptId: 22 }).success, true);
+  assert.throws(() => previewWalletRefund({ ...quote, goodsReturnId: 65 }), /RETURN_CREDIT_LINK_REQUIRED/);
+  assert.throws(() => previewWalletRefund({ ...quote, receiptId: 22 }), /RETURN_CREDIT_LINK_REQUIRED/);
+  assert.equal(walletRefundQuoteSchema.safeParse({ ...linked, goodsReturnId: 0 }).success, false);
+  assert.deepEqual(walletRefundCommandSchema.parse({ ...command, goodsReturnId: 65, receiptId: 22 }).goodsReturnId, 65);
 });
 
 test("preview sends validated exact quote with session credentials and no-store, consuming direct plan", async () => {
@@ -49,6 +57,26 @@ test("preview sends validated exact quote with session credentials and no-store,
   assert.equal(requestedInit?.credentials, "include");
   assert.equal(requestedInit?.cache, "no-store");
   assert.deepEqual(JSON.parse(String(requestedInit?.body)), quote);
+});
+
+test("linked return attribution is transmitted intact in preview and payout command", async () => {
+  const linked = { ...quote, goodsReturnId: 65, receiptId: 22 };
+  let sent: unknown;
+  globalThis.fetch = (async (_url, init) => {
+    sent = JSON.parse(String(init?.body));
+    return new Response(JSON.stringify({ ...plan, input: linked }), { status: 200 });
+  }) as typeof fetch;
+  assert.deepEqual((await previewWalletRefund(linked)).input, linked);
+  assert.deepEqual(sent, linked);
+  const command = { ...linked, sourceId: "stable-linked-source", expectedPlanHash: "a".repeat(64), payoutReference: "BANK-12345",
+    evidenceReference: "BANK-DOC-123", reason: "Linked payout after return credit", payoutDocumentConfirmed: true as const };
+  globalThis.fetch = (async (_url, init) => {
+    sent = JSON.parse(String(init?.body));
+    return new Response(JSON.stringify({ id: 1, journalId: 2, movementId: 3, duplicate: false }), { status: 201 });
+  }) as typeof fetch;
+  await postWalletRefund(command);
+  assert.equal((sent as typeof command).goodsReturnId, 65);
+  assert.equal((sent as typeof command).receiptId, 22);
 });
 
 test("post sends one strict confirmed command without retry and returns the direct receipt", async () => {

@@ -14,7 +14,7 @@ const en: Copy = {
   choose: "Choose a company and enter a linked wallet, exact amount, Gregorian date, and channel to request a fresh quote.",
   previewError: "The payout preview could not be loaded", actionError: "Payout was not posted",
   duplicateReference: "This actual payout reference is already recorded on another payout. Verify the original transaction/voucher; do not change it to bypass the duplicate check.",
-  validation: "Enter a valid wallet ID, positive exact amount, Gregorian date, channel, and a documentary reference and reason of at least five characters.",
+  validation: "Enter a valid wallet ID, positive exact amount, Gregorian date, channel, and a documentary reference and reason of at least five characters. Linked return and original receipt IDs must be entered together.",
   quoteMismatch: "The server returned a quote for different inputs. No payout can be posted from this result; preview again.",
   quoteInvalidated: "Inputs or language changed. The previous quote has been discarded; preview again before posting.",
   available: "Available customer funds · native",
@@ -48,6 +48,13 @@ const en: Copy = {
   account: "Account", nativeCurrency: "Native currency", debit: "Debit", credit: "Credit", baseDebit: "Base debit", baseCredit: "Base credit",
   valuationIncomplete: "The quote valuation is incomplete. Missing amounts remain unavailable and are never treated as zero; posting is blocked.",
   linesTitle: "Accounting posting evidence · preview only", description: "Line description",
+  returnLinkHelp:"Optional coordinated payout linkage. Enter both IDs only after the partial goods return has already credited this wallet; the original receipt is documentary attribution, not a second receipt reversal and does not reopen receivables.",
+  goodsReturnId:"Completed goods-return ID (optional)", receiptId:"Original receipt ID (optional)", returnCreditTitle:"Server-valued linked return credit",
+  originalCredit:"Original wallet credit", availableCredit:"Attributable credit remaining", receiptAvailable:"Receipt amount still available",
+  returnCreditLimitation:"Conservative attribution: any wallet withdrawal or settlement after the goods credit reduces the remaining credit available to link. This is a documentary payout against the credited wallet liability; it never returns or reverses the receipt.",
+  blocker_RETURN_CREDIT_LINK_REQUIRED:"A goods-return and original-receipt linkage must be supplied together.",
+  blocker_RETURN_CREDIT_LINK_INVALID:"The linked goods return, receipt, or wallet attribution is invalid.",
+  blocker_RETURN_CREDIT_EXHAUSTED:"No attributable return credit remains available for this payout.",
 };
 
 const fa: Copy = {
@@ -64,7 +71,7 @@ const fa: Copy = {
   choose: "شرکت را انتخاب کنید و شناسه کیف پول، مبلغ دقیق، تاریخ میلادی و روش پرداخت را برای دریافت پیش‌نمایش تازه وارد کنید.",
   previewError: "پیش‌نمایش پرداخت دریافت نشد", actionError: "پرداخت ثبت نشد",
   duplicateReference: "این مرجع پرداخت واقعی قبلاً برای پرداخت دیگری ثبت شده است. تراکنش/سند اصلی را بررسی کنید؛ برای دور زدن بررسی مرجع را تغییر ندهید.",
-  validation: "شناسه کیف پول، مبلغ دقیق مثبت، تاریخ میلادی، روش پرداخت و شماره مدرک و دلیل مستند دست‌کم پنج‌نویسه‌ای وارد کنید.",
+  validation: "شناسه کیف پول، مبلغ دقیق مثبت، تاریخ میلادی، روش پرداخت و شماره مدرک و دلیل مستند دست‌کم پنج‌نویسه‌ای وارد کنید. شناسه مرجوعی مرتبط و رسید اصلی باید با هم وارد شوند.",
   quoteMismatch: "سرور پیش‌نمایش ورودی‌های دیگری را برگرداند. این نتیجه قابل ثبت نیست؛ دوباره پیش‌نمایش بگیرید.",
   quoteInvalidated: "ورودی‌ها یا زبان تغییر کرده است. پیش‌نمایش قبلی حذف شد؛ پیش از ثبت دوباره پیش‌نمایش بگیرید.",
   available: "وجوه قابل‌استفاده مشتری · بومی",
@@ -98,6 +105,13 @@ const fa: Copy = {
   account: "حساب", nativeCurrency: "ارز بومی", debit: "بدهکار", credit: "بستانکار", baseDebit: "بدهکار پایه", baseCredit: "بستانکار پایه",
   valuationIncomplete: "ارزش‌گذاری پیش‌نمایش کامل نیست. مبالغ مفقود در دسترس نیستند و هرگز صفر فرض نمی‌شوند؛ ثبت مسدود است.",
   linesTitle: "مدرک ثبت حسابداری · فقط پیش‌نمایش", description: "شرح ردیف",
+  returnLinkHelp:"پیوند پرداخت هماهنگ اختیاری است. فقط پس از آنکه مرجوعی جزئی کالا قبلاً به این کیف پول اعتبار داده، هر دو شناسه را وارد کنید؛ رسید اصلی فقط مرجع مستند است، نه معکوس‌سازی دوباره رسید و نه بازگشایی دریافتنی.",
+  goodsReturnId:"شناسه مرجوعی تکمیل‌شده کالا (اختیاری)", receiptId:"شناسه رسید اصلی (اختیاری)", returnCreditTitle:"اعتبار مرجوعی پیوندشده با ارزش سرور",
+  originalCredit:"اعتبار اولیه کیف پول", availableCredit:"اعتبار باقیمانده قابل انتساب", receiptAvailable:"مبلغ باقیمانده قابل استفاده رسید",
+  returnCreditLimitation:"انتساب محافظه‌کارانه است: هر برداشت یا تسویه کیف پول پس از اعتبار کالا، اعتبار باقیمانده قابل پیوند را کاهش می‌دهد. این پرداخت مستند از بدهی کیف پول است و هرگز رسید را مرجوع یا معکوس نمی‌کند.",
+  blocker_RETURN_CREDIT_LINK_REQUIRED:"شناسه مرجوعی کالا و رسید اصلی باید با هم ارائه شوند.",
+  blocker_RETURN_CREDIT_LINK_INVALID:"مرجوعی، رسید یا انتساب کیف پول پیوندشده معتبر نیست.",
+  blocker_RETURN_CREDIT_EXHAUSTED:"اعتبار مرجوعی قابل انتسابی برای این پرداخت باقی نمانده است.",
 };
 
 const ar: Copy = {
@@ -114,7 +128,7 @@ const ar: Copy = {
   choose: "اختر شركة وأدخل المحفظة المرتبطة والمبلغ الدقيق والتاريخ الميلادي والقناة لطلب معاينة جديدة.",
   previewError: "تعذرت معاينة الدفع", actionError: "لم يتم ترحيل الدفع",
   duplicateReference: "مرجع الدفع الفعلي مسجل مسبقاً لدفعة أخرى. تحقق من المعاملة/السند الأصلي؛ لا تغيّر المرجع لتجاوز فحص التكرار.",
-  validation: "أدخل معرّف محفظة ومبلغاً دقيقاً موجباً وتاريخاً ميلادياً وقناة ومرجع مستند وسبباً من خمسة أحرف على الأقل.",
+  validation: "أدخل معرّف محفظة ومبلغاً دقيقاً موجباً وتاريخاً ميلادياً وقناة ومرجع مستند وسبباً من خمسة أحرف على الأقل. يجب إدخال معرّف الإرجاع والإيصال الأصلي معاً.",
   quoteMismatch: "أعاد الخادم معاينة لمدخلات مختلفة. لا يمكن الترحيل منها؛ اطلب معاينة جديدة.",
   quoteInvalidated: "تغيرت المدخلات أو اللغة. أُلغيت المعاينة السابقة؛ اطلب معاينة جديدة قبل الترحيل.",
   available: "الأموال المتاحة للعميل · أصلية",
@@ -148,6 +162,13 @@ const ar: Copy = {
   account: "الحساب", nativeCurrency: "العملة الأصلية", debit: "مدين", credit: "دائن", baseDebit: "مدين أساسي", baseCredit: "دائن أساسي",
   valuationIncomplete: "تقييم المعاينة غير مكتمل. تبقى المبالغ المفقودة غير متاحة ولا تُعامل كصفر؛ الترحيل محظور.",
   linesTitle: "دليل القيد المحاسبي · معاينة فقط", description: "وصف السطر",
+  returnLinkHelp:"ربط الدفع المنسق اختياري. أدخل المعرّفين معاً فقط بعد إضافة رصيد إرجاع البضائع الجزئي إلى هذه المحفظة؛ الإيصال الأصلي للإسناد المستندي فقط، وليس عكساً ثانياً للإيصال ولا يعيد فتح الذمم.",
+  goodsReturnId:"معرّف إرجاع البضائع المكتمل (اختياري)", receiptId:"معرّف الإيصال الأصلي (اختياري)", returnCreditTitle:"رصيد الإرجاع المرتبط وفق تقييم الخادم",
+  originalCredit:"رصيد المحفظة الأصلي", availableCredit:"الرصيد المتبقي القابل للإسناد", receiptAvailable:"المبلغ المتاح المتبقي للإيصال",
+  returnCreditLimitation:"إسناد تحفظي: أي سحب أو تسوية للمحفظة بعد إضافة رصيد البضائع يقلل الرصيد المتبقي المتاح للربط. هذا دفع مستندي مقابل التزام المحفظة ولا يعيد الإيصال أو يعكسه.",
+  blocker_RETURN_CREDIT_LINK_REQUIRED:"يجب تقديم معرّفي إرجاع البضائع والإيصال الأصلي معاً.",
+  blocker_RETURN_CREDIT_LINK_INVALID:"إرجاع البضائع أو الإيصال المرتبط أو إسناد المحفظة غير صالح.",
+  blocker_RETURN_CREDIT_EXHAUSTED:"لا يوجد رصيد إرجاع قابل للإسناد متبقٍ لهذا الدفع.",
 };
 
 const tr: Copy = {
@@ -164,7 +185,7 @@ const tr: Copy = {
   choose: "Yeni bir teklif istemek için şirket, bağlı cüzdan, kesin tutar, Miladi tarih ve kanal girin.",
   previewError: "Ödeme önizlemesi alınamadı", actionError: "Ödeme kaydedilmedi",
   duplicateReference: "Bu gerçek ödeme referansı başka bir ödeme için zaten kayıtlı. Özgün işlemi/makbuzu doğrulayın; yinelenen kontrolünü aşmak için referansı değiştirmeyin.",
-  validation: "Geçerli cüzdan kimliği, pozitif kesin tutar, Miladi tarih, kanal ve en az beş karakterlik belge referansı ve gerekçe girin.",
+  validation: "Geçerli cüzdan kimliği, pozitif kesin tutar, Miladi tarih, kanal ve en az beş karakterlik belge referansı ve gerekçe girin. Bağlı iade ve orijinal makbuz kimlikleri birlikte girilmelidir.",
   quoteMismatch: "Sunucu farklı girdiler için teklif döndürdü. Bu sonuç kaydedilemez; yeniden önizleme alın.",
   quoteInvalidated: "Girdiler veya dil değişti. Önceki teklif geçersiz; kayıttan önce yeniden önizleme alın.",
   available: "Kullanılabilir müşteri fonu · yerel",
@@ -198,6 +219,13 @@ const tr: Copy = {
   account: "Hesap", nativeCurrency: "Yerel para birimi", debit: "Borç", credit: "Alacak", baseDebit: "Baz borç", baseCredit: "Baz alacak",
   valuationIncomplete: "Teklif değerlemesi eksik. Eksik tutarlar kullanılamaz kalır ve asla sıfır sayılmaz; kayıt engellenir.",
   linesTitle: "Muhasebe kayıt kanıtı · yalnızca önizleme", description: "Satır açıklaması",
+  returnLinkHelp:"İsteğe bağlı koordineli ödeme bağlantısıdır. Her iki kimliği de yalnızca kısmi mal iadesi bu cüzdana zaten kredi ekledikten sonra girin; orijinal makbuz belgesel atıftır, ikinci bir makbuz ters kaydı değildir ve alacağı yeniden açmaz.",
+  goodsReturnId:"Tamamlanmış mal iade kimliği (isteğe bağlı)", receiptId:"Orijinal makbuz kimliği (isteğe bağlı)", returnCreditTitle:"Sunucu değerlemeli bağlı iade kredisi",
+  originalCredit:"Orijinal cüzdan kredisi", availableCredit:"Atfedilebilir kalan kredi", receiptAvailable:"Makbuzda kalan kullanılabilir tutar",
+  returnCreditLimitation:"Temkinli atıf: mal kredisi sonrasındaki her cüzdan çekimi veya mahsup, bağlanabilir kalan krediyi azaltır. Bu, cüzdan yükümlülüğüne karşı belgesel ödemedir; makbuzu iade veya ters kayıt etmez.",
+  blocker_RETURN_CREDIT_LINK_REQUIRED:"Mal iadesi ve orijinal makbuz kimlikleri birlikte sağlanmalıdır.",
+  blocker_RETURN_CREDIT_LINK_INVALID:"Bağlı mal iadesi, makbuz veya cüzdan atfı geçersiz.",
+  blocker_RETURN_CREDIT_EXHAUSTED:"Bu ödeme için atfedilebilir iade kredisi kalmadı.",
 };
 
 const translations: Record<string, Copy> = { en, fa, ar, tr };

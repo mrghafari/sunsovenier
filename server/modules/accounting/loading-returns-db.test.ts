@@ -21,6 +21,7 @@ import {readCreditExposure} from "./credit-exposure";
 import {readReceiptOpenItems} from "./receipt-workbench";
 import {recordCustomerReceipt,returnCustomerReceipt} from "./receipts";
 import {exercisePartialReturns} from "./partial-returns-db-cases";
+import {exercisePostingQueue} from "./posting-queue-db-cases";
 async function settleWalletReceivable(...args:Parameters<typeof settleOriginal>){
   try{return await settleOriginal(...args);}catch(error){
     console.error("Settlement SQL cause:",(error as {cause?:{message?:string}}).cause?.message);throw error;
@@ -40,6 +41,11 @@ test("full unsettled loading returns preserve original books and never change na
     const rollback=new Error("ROLLBACK_LOADING_RETURNS");let finished=false;
     try{await accountingDb.transaction(async tx=>{
       await tx.execute(sql`select pg_advisory_xact_lock(718392,0)`);
+      if(process.env.ACCOUNTING_COMPLETION_MIGRATION_DRY_RUN==="1"){
+        if(process.env.NODE_ENV==="production")throw new Error("No production migration dry run");
+        for(const f of ["0055_linked_return_payouts.sql","0056_reviewed_posting_queue.sql"])
+          await tx.execute(sql.raw(await readFile("server/modules/accounting/"+f,"utf8")));
+      }
       if(process.env.ACCOUNTING_PARTIAL_RETURN_DRY_RUN==="1"){
         if(process.env.NODE_ENV==="production")throw new Error("No production migration dry run");
         await tx.execute(sql.raw(await readFile("server/modules/accounting/0051_partial_return_evidence.sql","utf8")));
@@ -127,6 +133,8 @@ test("full unsettled loading returns preserve original books and never change na
       if(currency==="USD")await tx.execute(sql`insert into accounting_foreign_invoice_cutovers(company_id,processing_ready,reviewed_by,evidence_reference)
         values(${companyId},true,${actorId},'Rollback reviewed foreign valuation')`);
       const invoices:Awaited<ReturnType<typeof issueLoadingInvoice>>[]=[];
+      if(process.env.ACCOUNTING_COMPLETION_TEST==="1")
+        await exercisePostingQueue(t,tx,{actor,companyId,factId:facts[0],currency});
       for(const factId of facts){
         const plan=(await readLoadingInvoiceWorkbench({companyId,orderId},tx)).rows.find(p=>p.factId===factId)!;
         assert.deepEqual(plan.blockers,[]);

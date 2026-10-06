@@ -11,6 +11,12 @@ export const walletRefundsEndpoint = "/api/accounting/v2/wallet-refunds";
 export const walletRefundPreviewEndpoint = `${walletRefundsEndpoint}/preview`;
 export const walletRefundHistoryEndpoint = `${walletRefundsEndpoint}/history`;
 
+function assertReturnCreditLink(value: { goodsReturnId?: number; receiptId?: number }) {
+  if ((value.goodsReturnId === undefined) !== (value.receiptId === undefined)) {
+    throw new Error("RETURN_CREDIT_LINK_REQUIRED");
+  }
+}
+
 export type WalletRefundHistoryQuery = {
   companyId: number;
   walletId?: number;
@@ -54,6 +60,9 @@ function validateWalletRefundHistory(payload: unknown, query: Required<Pick<Wall
       || !isNonEmptyString(row.sourceId) || !isNonEmptyString(row.liabilityBase)
       || !isNonEmptyString(row.fundingBase) || !isNonEmptyString(row.fxGain) || !isNonEmptyString(row.fxLoss)
       || !isPositiveInteger(row.journalId) || !isPositiveInteger(row.movementId)
+      || (row.goodsReturnId != null && !isPositiveInteger(row.goodsReturnId))
+      || (row.receiptId != null && !isPositiveInteger(row.receiptId))
+      || ((row.goodsReturnId == null) !== (row.receiptId == null))
       || (query.walletId !== undefined && row.walletId !== query.walletId)) {
       throw new Error("Wallet payout history contains an invalid or out-of-scope row");
     }
@@ -78,6 +87,7 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
 
 export function previewWalletRefund(quote: WalletRefundQuote, signal?: AbortSignal) {
   const data = walletRefundQuoteSchema.parse(quote);
+  assertReturnCreditLink(data);
   return request<WalletRefundPlan>(walletRefundPreviewEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -88,6 +98,7 @@ export function previewWalletRefund(quote: WalletRefundQuote, signal?: AbortSign
 
 export function postWalletRefund(command: WalletRefundCommand) {
   const data = walletRefundCommandSchema.parse(command);
+  assertReturnCreditLink(data);
   return request<{ id: number; journalId: number; movementId: number; duplicate: boolean; payoutReference?: string }>(walletRefundsEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

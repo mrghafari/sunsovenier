@@ -55,7 +55,9 @@ export async function readDocumentedWalletRefunds(input:unknown,callerTx?:Accoun
       input->>'amount' amount,input->>'payoutReference' as "payoutReference",input->>'evidenceReference' as "evidenceReference",
       input->>'reason' reason,source_id as "sourceId",valuation->>'liabilityBase' as "liabilityBase",
       valuation->>'fundingBase' as "fundingBase",valuation->>'fxGain' as "fxGain",valuation->>'fxLoss' as "fxLoss",
-      journal_id as "journalId",movement_id as "movementId" from accounting_wallet_refund_books where ${scope}
+       journal_id as "journalId",movement_id as "movementId",
+       (input->>'goodsReturnId')::integer as "goodsReturnId",(input->>'receiptId')::integer as "receiptId"
+       from accounting_wallet_refund_books where ${scope}
       order by id desc limit ${d.pageSize} offset ${(d.page-1)*d.pageSize}`)).rows as unknown as WalletRefundHistory["rows"];
     return {rows,pagination:{page:d.page,pageSize:d.pageSize,totalRows:Number(total.n)}};
   };
@@ -89,7 +91,8 @@ export async function recordDocumentedWalletRefund(input:unknown,actor:Accountin
     if((await tx.execute(sql`select 1 from accounting_wallet_refund_books where company_id=${d.companyId}
       and input->>'channel'=${d.channel} and upper(btrim(input->>'payoutReference'))=${normalized.payoutReference}`)).rows.length)
       throw new AccountingError("This actual bank transaction or cash voucher was already recorded",409,"PAYOUT_REFERENCE_USED");
-    const plan=await planWithin(tx,{companyId:d.companyId,walletId:d.walletId,amount:normalized.amount,entryDate:d.entryDate,channel:d.channel});
+    const plan=await planWithin(tx,{companyId:d.companyId,walletId:d.walletId,amount:normalized.amount,entryDate:d.entryDate,channel:d.channel,
+      ...(d.goodsReturnId!==undefined?{goodsReturnId:d.goodsReturnId}:{}),...(d.receiptId!==undefined?{receiptId:d.receiptId}:{})});
     if(!plan.postingAllowed)throw new AccountingError(`Payout blocked: ${plan.blockers.join(", ")}`,409,"REFUND_BLOCKED");
     if(d.expectedPlanHash!==plan.planHash)throw new AccountingError("Payout balances changed; reload and review",409,"STALE_REFUND_PLAN");
     await reconciled(tx,w,d.companyId,await account(tx,d.companyId,"WALLET_LIABILITY"));

@@ -30,6 +30,8 @@ const en = {
   historyCheckFailed: "History could not be checked. The original command remains saved; retry only sends that exact payload.",
   alreadyPosted: "This exact reviewed plan was already posted. Review again for the cumulative valuation; a fresh server plan may be eligible.",
   originalCommand: "Immutable original command payload",
+  linkedPayoutPath:"This partial receipt return is already the wallet-credit step. For a blocked coordinated cash payout, continue in the linked wallet-credit payout workbench; it does not return this receipt again.",
+  openWalletPayout:"Open wallet-credit payout workbench",
 };
 const fa: Record<keyof typeof en, string> = {
   title:"مرجوعی جزئی کالا و رسید",intro:"مرجوعی را مستند به منبع حسابداری اصلی ثبت کنید. هر پیش‌نمایش بر پایه سوابق تاریخی ارزش‌گذاری می‌شود و تاریخچه حفظ خواهد شد.",
@@ -51,6 +53,8 @@ const fa: Record<keyof typeof en, string> = {
   historyCheckFailed:"بررسی تاریخچه ناموفق بود. فرمان اصلی حفظ شده است؛ تلاش مجدد فقط همان داده را ارسال می‌کند.",
   alreadyPosted:"این پیش‌نمایش دقیق قبلاً ثبت شده است. برای ارزش‌گذاری تجمعی دوباره بازبینی کنید؛ پیش‌نمایش تازه سرور ممکن است مجاز باشد.",
   originalCommand:"محتوای تغییرناپذیر فرمان اصلی",
+  linkedPayoutPath:"این مرجوعی جزئی رسید، مرحله ایجاد اعتبار کیف پول است. برای پرداخت نقدی هماهنگِ مسدودشده، به میزکار پرداخت اعتبار پیوندشده بروید؛ این کار رسید را دوباره مرجوع نمی‌کند.",
+  openWalletPayout:"رفتن به میزکار پرداخت اعتبار کیف پول",
 };
 const ar: Record<keyof typeof en, string> = {
   title:"مرتجعات جزئية للبضائع والإيصالات",intro:"وثّق المرتجع الجزئي مقابل مصدره المحاسبي الأصلي. تُقيّم كل معاينة من السجلات التاريخية ويُحفظ سجل الأوامر.",
@@ -72,6 +76,8 @@ const ar: Record<keyof typeof en, string> = {
   historyCheckFailed:"تعذر فحص السجل. الأمر الأصلي محفوظ؛ إعادة المحاولة ترسل الحمولة نفسها فقط.",
   alreadyPosted:"تم ترحيل هذه المعاينة المطابقة. أعد المراجعة للتقييم التراكمي؛ فقد تسمح معاينة جديدة من الخادم بمرتجع آخر.",
   originalCommand:"حمولة الأمر الأصلي غير القابلة للتغيير",
+  linkedPayoutPath:"هذا المرتجع الجزئي للإيصال هو خطوة إضافة رصيد المحفظة بالفعل. عند حظر الدفع النقدي المنسق، انتقل إلى مساحة دفع رصيد المحفظة المرتبط؛ فهي لا تعيد الإيصال مرة أخرى.",
+  openWalletPayout:"فتح مساحة دفع رصيد المحفظة",
 };
 const tr: Record<keyof typeof en, string> = {
   title:"Kısmi mal ve tahsilat iadeleri",intro:"Kısmi iadeyi özgün muhasebe kaynağına belgeleyin. Her önizleme tarihsel kayıtlardan değerlenir ve geçmiş korunur.",
@@ -93,6 +99,8 @@ const tr: Record<keyof typeof en, string> = {
   historyCheckFailed:"Geçmiş kontrol edilemedi. Özgün komut saklandı; tekrar deneme yalnızca aynı yükü gönderir.",
   alreadyPosted:"Bu incelenmiş plan zaten kaydedildi. Birikimli değerleme için yeniden inceleyin; sunucudan gelen yeni plan uygun olabilir.",
   originalCommand:"Değiştirilemez özgün komut içeriği",
+  linkedPayoutPath:"Bu kısmi tahsilat iadesi zaten cüzdan kredisi adımıdır. Koordineli nakit ödeme engelliyse bağlı cüzdan kredisi ödeme çalışma alanına geçin; bu işlem tahsilatı yeniden iade etmez.",
+  openWalletPayout:"Cüzdan kredisi ödeme alanını aç",
 };
 export type PartialReturnCopyKey = keyof typeof en;
 export function partialReturnText(language: string, key: PartialReturnCopyKey): string {

@@ -19,7 +19,7 @@ const inputClass = "h-10 w-full rounded-lg border border-[#d4ddd4] bg-[#f7f9f5] 
 const rtlLanguages = ["fa", "ar"];
 const normalized = (v: string) => normalizeAccountingDigits(v.trim());
 
-export default function AccountingLoadingReturns({ companies, canManage = false }: { companies: Company[]; canManage?: boolean }) {
+export default function AccountingLoadingReturns({ companies, canManage = false, onWalletPayout }: { companies: Company[]; canManage?: boolean; onWalletPayout?: () => void }) {
   const { language } = useLanguage();
   const rtl = rtlLanguages.includes(language);
   const [draft, setDraft] = useState<Draft>({ companyId: "", orderId: "", pageSize: "20" });
@@ -144,7 +144,7 @@ export default function AccountingLoadingReturns({ companies, canManage = false 
         onRefresh={()=>void refresh().catch(()=>setActionError(t(language,"failed")))} canManage={canManage} receipt={receipt} reason={reason} returnDate={returnDate}
         physicalConfirmed={physicalConfirmed} creditConfirmed={creditConfirmed} refreshedHash={refreshedHash} setReceipt={setReceipt} setReason={setReason} setReturnDate={setReturnDate}
         setPhysicalConfirmed={setPhysicalConfirmed} setCreditConfirmed={setCreditConfirmed} setRefreshedHash={setRefreshedHash} onPost={post} busy={busy}/>}
-    <AccountingPartialReturns companies={companies} canManage={canManage} language={language}/>
+    <AccountingPartialReturns companies={companies} canManage={canManage} language={language} onWalletPayout={onWalletPayout}/>
   </section>;
 }
 

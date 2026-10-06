@@ -12,6 +12,7 @@ import {readCustomerReport} from "./customer-reports";
 import {readCarryingLayers} from "./loading-invoice-stock";
 import {postJournalEntry,reverseJournalEntry} from "./postJournalEntry";
 import {decimal} from "./money";
+import {exerciseLinkedReturnPayouts} from "./linked-return-payout-db-cases";
 export async function exercisePartialReturns(t:TestContext,tx:AccountingTransaction,scope:{
   actor:AccountingAccess;companyId:number;customerId:number;orderItemId:number;invoiceId:number;receivableId:number;currency:string;
 }){
@@ -35,6 +36,7 @@ export async function exercisePartialReturns(t:TestContext,tx:AccountingTransact
   });
   await tx.execute(sql`insert into accounting_partial_return_cutovers(company_id,processing_ready,starts_on,reviewed_by,evidence_reference)
     values(${companyId},true,'2026-06-01',${actor.actorId},'Rollback actual reconciled opening and cutover')`);
+  if(process.env.ACCOUNTING_COMPLETION_TEST==="1")await exerciseLinkedReturnPayouts(t,tx,scope);
   await isolated("cleared cheque bounce after a partial goods return preserves history and permits correct subsequent collection",async()=>{
     const receipt=await recordCustomerReceipt({companyId,customerId,currency,sourceId:randomUUID(),entryDate:"2026-06-03",
       method:"CHEQUE",chequeNumber:randomUUID(),amount:"60",allocations:[{receivableId,amount:"60"}],

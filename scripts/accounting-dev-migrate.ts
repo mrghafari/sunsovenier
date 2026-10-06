@@ -67,6 +67,8 @@ try {
     "server/modules/accounting/0052_partial_return_connections.sql",
     "server/modules/accounting/0053_partial_return_ar_parity.sql",
     "server/modules/accounting/0054_partial_return_cheque_history.sql",
+    "server/modules/accounting/0055_linked_return_payouts.sql",
+    "server/modules/accounting/0056_reviewed_posting_queue.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

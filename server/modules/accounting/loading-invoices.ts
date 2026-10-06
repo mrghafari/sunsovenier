@@ -174,6 +174,9 @@ export async function readLoadingInvoiceWorkbench(input:unknown,callerTx?:Accoun
   };
   return callerTx?run(callerTx):accountingDb.transaction(run,{isolationLevel:"repeatable read",accessMode:"read only"});
 }
+export async function readLoadingPostingPlan(companyId:number,factId:number,tx:AccountingTransaction){
+  return planWithin(tx,companyId,factId);
+}
 export async function issueLoadingInvoice(input:unknown,actor:AccountingAccess,callerTx?:AccountingTransaction){
   const parsed=loadingInvoiceCommandSchema.safeParse(input);if(!parsed.success)throw new AccountingError(parsed.error.issues[0].message);
   const d=parsed.data,run=async(tx:AccountingTransaction)=>{

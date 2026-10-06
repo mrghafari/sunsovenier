@@ -112,6 +112,9 @@ export async function readShipmentCosts(input:unknown,callerTx?:AccountingTransa
   };
   return callerTx?run(callerTx):accountingDb.transaction(run,{isolationLevel:"repeatable read",accessMode:"read only"});
 }
+export async function readShipmentPostingPlan(companyId:number,factId:number,tx:AccountingTransaction){
+  return planWithin(tx,companyId,factId);
+}
 export async function postShipmentCost(input:unknown,actor:AccountingAccess,callerTx?:AccountingTransaction){
   const parsed=shipmentCostCommandSchema.safeParse(input);
   if(!parsed.success)throw new AccountingError(parsed.error.issues[0].message);
