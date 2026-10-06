@@ -12,6 +12,7 @@ import puppeteer from "puppeteer";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { customerOrderErrorResponse } from "./customer-order-errors";
+import { settleLegacyWalletCheckout } from "./legacy-wallet-checkout";
 import { emailService } from "./email-service";
 import { storage } from "./storage";
 import { insertLeadSchema, insertLeadActivitySchema } from "@shared/schema";
@@ -19983,6 +19984,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     let contractHoldId: string | null = null;
     let contractOrderId: number | null = null;
     const orderRequestId = crypto.randomUUID();
+    let committedLegacyWalletOrder: {
+      id: number; orderNumber: string; totalAmount: string; paymentStatus: string;
+      paymentMethod: string; status: string;
+    } | null = null;
     console.log('🚀 [ENDPOINT] /api/customers/orders called with timestamp:', req.query.t);
     console.log('🚀 [ENDPOINT] Request method:', req.method);
     console.log('🚀 [ENDPOINT] Request URL:', req.url);
@@ -20197,6 +20202,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       // Handle payment method processing
       let finalPaymentStatus = "pending";
       let walletAmountUsed = 0;
+      let pendingLegacyWalletDebit = 0;
       let remainingAmount = totalAmount;
       let finalPaymentMethod = orderData.paymentMethod || "traditional";
 
@@ -20255,17 +20261,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
                 finalPaymentStatus = "pending";
                 finalPaymentMethod = "wallet_full";
               } else {
-              // Full wallet payment - deduct immediately
-              const transaction = await walletStorage.debitWallet(
-                finalCustomerId,
-                walletAmountUsed,
-                `پرداخت سفارش ${orderNumber}`,
-                'order',
-                undefined, // reference ID will be set after order creation
-                undefined  // no admin processing this
-              );
-              
-              console.log(`✅ [PERMANENT ORDER] Wallet payment processed: ${walletAmountUsed} IQD deducted for order ${orderNumber}`);
+              // Debit only when the order/items exist, in the same transaction
+              // as payment_status=paid. A database guard failure rolls it back.
+              pendingLegacyWalletDebit = walletAmountUsed;
               finalPaymentStatus = "paid"; // Fully paid by wallet
               finalPaymentMethod = "wallet_full"; // Ensure correct method
               console.log(`🏪 [WAREHOUSE DIRECT] Order ${orderNumber} fully paid by wallet - direct to warehouse`);
@@ -20579,10 +20577,21 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         await attachContractHold(contractHoldId, order.id);
       }
       if (finalPaymentStatus === "paid") {
-        await db
-          .update(customerOrders)
-          .set({ paymentStatus: "paid", updatedAt: new Date() })
-          .where(eq(customerOrders.id, order.id));
+        if (pendingLegacyWalletDebit > 0) {
+          await settleLegacyWalletCheckout({
+            customerId: finalCustomerId, orderId: order.id,
+            orderNumber: orderNumber!, amount: pendingLegacyWalletDebit,
+          });
+          committedLegacyWalletOrder = {
+            id: order.id, orderNumber: orderNumber!, totalAmount: order.totalAmount,
+            paymentStatus: "paid", paymentMethod: "wallet_full", status: order.status,
+          };
+          console.log(`✅ [PERMANENT ORDER] Wallet debit and paid status committed together for ${orderNumber}`);
+        } else {
+          await db.update(customerOrders)
+            .set({ paymentStatus: "paid", updatedAt: new Date() })
+            .where(eq(customerOrders.id, order.id));
+        }
       }
 
       // Auto-capture customer data in CRM system
@@ -21347,6 +21356,21 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       console.error(`❌ [ORDER CREATION ERROR] Reference: ${orderRequestId}; code: ${failure.body.code}`);
       console.error("Error message:", error instanceof Error ? error.message : "Unknown order error");
       console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+      if (error instanceof Error && error.cause instanceof Error) {
+        const cause = error.cause as Error & { code?: string };
+        console.error(`Database cause [${orderRequestId}]:`, cause.code || "unknown", cause.message);
+      }
+      // Payment and an order already exist. A later processing failure is not
+      // a failed payment: acknowledge the saved order rather than invite retry.
+      if (committedLegacyWalletOrder) {
+        return res.json({
+          success: true, requiresBankPayment: false, paymentMethod: "wallet_full",
+          order: committedLegacyWalletOrder, orderId: committedLegacyWalletOrder.id,
+          orderNumber: committedLegacyWalletOrder.orderNumber,
+          processingPending: true, requestId: orderRequestId,
+          message: "Order and payment are recorded. Further processing is pending; do not submit again.",
+        });
+      }
       res.status(failure.status).json(failure.body);
     } finally {
       if (contractOrderId !== null && (res.statusCode < 200 || res.statusCode >= 300)) {

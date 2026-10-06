@@ -1,5 +1,5 @@
 import { customerDb } from "./customer-db";
-type WalletTransactionDb = Parameters<Parameters<typeof customerDb.transaction>[0]>[0];
+export type WalletTransactionDb = Parameters<Parameters<typeof customerDb.transaction>[0]>[0];
 import { 
   customers,
   customerWallets, 
@@ -29,7 +29,7 @@ export interface IWalletStorage {
   
   // Credit/Debit operations
   creditWallet(customerId: number, amount: number, description: string, referenceType?: string, referenceId?: number, processedBy?: number): Promise<WalletTransaction>;
-  debitWallet(customerId: number, amount: number, description: string, referenceType?: string, referenceId?: number, processedBy?: number): Promise<WalletTransaction>;
+  debitWallet(customerId: number, amount: number, description: string, referenceType?: string, referenceId?: number, processedBy?: number, callerTx?: WalletTransactionDb): Promise<WalletTransaction>;
   
   // Recharge requests
   createRechargeRequest(requestData: InsertWalletRechargeRequest): Promise<WalletRechargeRequest>;
@@ -226,9 +226,14 @@ export class WalletStorage implements IWalletStorage {
     description: string, 
     referenceType?: string, 
     referenceId?: number,
-    processedBy?: number
+    processedBy?: number,
+    callerTx?: WalletTransactionDb
   ): Promise<WalletTransaction> {
-    const wallet = await this.getWalletByCustomerId(customerId);
+    const run = async (tx: WalletTransactionDb) => {
+    // Read and lock inside the same transaction as the debit and caller's
+    // paid-order update. Concurrent checkouts cannot overwrite this balance.
+    const [wallet] = await tx.select().from(customerWallets)
+      .where(eq(customerWallets.customerId, customerId)).limit(1).for("update");
     if (!wallet) {
       throw new Error("Customer wallet not found");
     }
@@ -250,8 +255,6 @@ export class WalletStorage implements IWalletStorage {
       throw new Error(`Operation would result in negative balance. Current: ${currentBalance}, Debit: ${amount}, Result: ${newBalance}`);
     }
 
-    // Couple the existing debit record and balance write; do not move the debit in the workflow.
-    return customerDb.transaction(async tx => {
     // Create transaction record
     const transaction = await this.createTransaction({
       walletId: wallet.id,
@@ -272,7 +275,8 @@ export class WalletStorage implements IWalletStorage {
     await this.updateWalletBalance(wallet.id, newBalance, tx);
 
     return transaction;
-    });
+    };
+    return callerTx ? run(callerTx) : customerDb.transaction(run);
   }
 
   // رزرو مبلغ برای سفارش در انتظار

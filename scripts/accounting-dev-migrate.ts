@@ -72,6 +72,7 @@ try {
      "server/modules/accounting/0057_prospective_zero_start.sql",
       "server/modules/accounting/0058_legacy_cheques_mapping.sql",
       "server/modules/accounting/0059_company_logical_deletion.sql",
+      "server/modules/accounting/0060_legacy_wallet_checkout_boundary.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

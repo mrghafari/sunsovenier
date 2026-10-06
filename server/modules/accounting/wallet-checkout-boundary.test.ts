@@ -93,7 +93,7 @@ test("customer checkout validates the boundary before numbers, holds or debits",
   assert.ok(preflight > 0);
   for (const marker of [
     "reconcileCartReservations(", "claimContractCart(", "generateOrderNumberInTransaction(",
-    "walletStorage.debitWallet(",
+    "settleLegacyWalletCheckout(",
   ]) assert.ok(preflight < route.indexOf(marker), `${marker} must follow validation`);
   assert.doesNotMatch(route.slice(0, route.indexOf("try {")), /JSON.stringify\(req.headers/);
 });
