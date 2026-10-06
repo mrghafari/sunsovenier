@@ -49,7 +49,8 @@ export async function settleWalletReceivable(input:z.input<typeof walletSettleme
     if(!r||r.customer_id!==w.customer_id||r.currency!==w.currency)
       throw new AccountingError("A posted, unreversed, same-company/CRM/currency receivable is required",409,"RECEIVABLE_MISMATCH");
     if(d.entryDate<String(r.issued_on))throw new AccountingError("Settlement cannot precede invoice date");
-    const open=decimal(String(r.amount)).minus(String(r.settled_amount));
+    const effective=(await tx.execute(sql`select accounting_receivable_open_native(${r.id},${d.entryDate}::date)::text amount`)).rows[0];
+    const open=decimal(String(effective.amount));
     if(decimal(d.amount).gt(open))throw new AccountingError("Settlement exceeds the open receivable",409,"OVER_SETTLEMENT");
     const liability=await account(tx,d.companyId,"WALLET_LIABILITY");
     const ar=await account(tx,d.companyId,"ACCOUNTS_RECEIVABLE");
@@ -105,7 +106,8 @@ export async function settleWalletReceivable(input:z.input<typeof walletSettleme
         'accounting_journal',${entry.id},'completed',${actor.actorId},
         ${JSON.stringify({settlementId:saved.id,receivableId:r.id,holdId:d.holdId??null,holdConsumed:consumed.toFixed()})}::json)`);
     await tx.execute(sql`update customer_wallets set balance=${after},last_activity_date=now(),updated_at=now() where id=${w.id}`);
-    await tx.execute(sql`update accounting_receivable_items set settled_amount=settled_amount+${d.amount}::numeric where id=${r.id}`);
+    await tx.execute(sql`update accounting_receivable_items set settled_amount=settled_amount+${d.amount}::numeric
+      where id=${r.id} and not accounting_receivable_has_partial_return(id)`);
     await reconciled(tx,{...w,balance:after},d.companyId,liability);
     const payload={...d,settlementId:saved.id,journalId:entry.id,currency:w.currency,holdConsumed:consumed.toFixed(),
       remainingHeld:remaining.minus(consumed).toFixed(),remainingReceivable:open.minus(d.amount).toFixed(),

@@ -115,17 +115,26 @@ export async function readCarryingLayers(tx:AccountingTransaction,companyId:numb
   return (await tx.execute(sql`select b.id,b.document_id as "documentId",b.line_index as "lineIndex",b.product_id as "productId",
     d.lines->b.line_index->>'batchReference' as "batchReference",d.document_date::text as date,b.quantity_tons::text as "quantityTons",
     b.base_cost::text as "baseCost",
-    exists(select 1 from accounting_stock_consumptions s join accounting_loading_returns r
+    (exists(select 1 from accounting_stock_consumptions s join accounting_loading_returns r
       on r.invoice_id=s.invoice_id and r.invoice_reversal_id is not null
-      where s.layer_id=b.id ${asOf?sql`and r.return_date<=${asOf}::date`:sql``}) as "hasReturns",
+      where s.layer_id=b.id ${asOf?sql`and r.return_date<=${asOf}::date`:sql``}) or exists(
+       select 1 from accounting_partial_return_books p cross join lateral jsonb_array_elements(p.valuation->'recoveries') x
+       where p.kind='GOODS' and p.journal_id is not null and (x->>'layerId')::integer=b.id
+         ${asOf?sql`and (p.input->>'entryDate')::date<=${asOf}::date`:sql``})) as "hasReturns",
     ((select coalesce(sum(quantity_tons),0) from accounting_stock_consumptions where layer_id=b.id)-
       (select coalesce(sum(s.quantity_tons),0) from accounting_stock_consumptions s
         join accounting_loading_returns r on r.invoice_id=s.invoice_id and r.invoice_reversal_id is not null
-        where s.layer_id=b.id ${asOf?sql`and r.return_date<=${asOf}::date`:sql``}))::text as "usedTons",
+        where s.layer_id=b.id ${asOf?sql`and r.return_date<=${asOf}::date`:sql``})-
+       (select coalesce(sum((x->>'quantityTons')::numeric),0) from accounting_partial_return_books p
+        cross join lateral jsonb_array_elements(p.valuation->'recoveries') x where p.kind='GOODS' and p.journal_id is not null
+        and (x->>'layerId')::integer=b.id ${asOf?sql`and (p.input->>'entryDate')::date<=${asOf}::date`:sql``}))::text as "usedTons",
     ((select coalesce(sum(base_cost),0) from accounting_stock_consumptions where layer_id=b.id)-
       (select coalesce(sum(s.base_cost),0) from accounting_stock_consumptions s
         join accounting_loading_returns r on r.invoice_id=s.invoice_id and r.invoice_reversal_id is not null
-        where s.layer_id=b.id ${asOf?sql`and r.return_date<=${asOf}::date`:sql``}))::text as "usedCost"
+        where s.layer_id=b.id ${asOf?sql`and r.return_date<=${asOf}::date`:sql``})-
+       (select coalesce(sum((x->>'baseCost')::numeric),0) from accounting_partial_return_books p
+        cross join lateral jsonb_array_elements(p.valuation->'recoveries') x where p.kind='GOODS' and p.journal_id is not null
+        and (x->>'layerId')::integer=b.id ${asOf?sql`and (p.input->>'entryDate')::date<=${asOf}::date`:sql``}))::text as "usedCost"
     from accounting_stock_books b join accounting_inventory_documents d on d.id=b.document_id and d.status='approved'
     join accounting_journal_entries e on e.id=b.journal_id and e.status='posted'
     where b.company_id=${companyId} and not exists(select 1 from accounting_journal_entries r where r.reversal_of_id=e.id)

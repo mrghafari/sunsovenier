@@ -27,6 +27,7 @@ import {readLoadingInvoiceWorkbench,issueLoadingInvoice} from "./loading-invoice
 import {readShipmentCosts,postShipmentCost,captureShipmentCost} from "./shipment-costs";
 import {readLoadingReturns,returnLoadingInvoice} from "./loading-returns";
 import {readWalletRefundPlan,recordDocumentedWalletRefund,readDocumentedWalletRefunds} from "./wallet-refunds";
+import {readPartialReturnPlan,postPartialReturn,readPartialReturnHistory,readPartialReturnTargets} from "./partial-returns";
 import {readCapitalizationWorkbench,capitalizeInventoryDocument} from "./inventory-capitalization";
 import {stockBookMetadata,registerStockBook} from "./loading-invoice-stock";
 import {approveLoadingShipping} from "./loading-shipping";
@@ -285,6 +286,18 @@ export function createAccountingRouter() {
   });
   router.get("/v2/loading-returns",async(req,res,next)=>{
     try{res.set("Cache-Control","private, no-store");res.json(await readLoadingReturns(req.query));}catch(e){next(e);}
+  });
+  router.get("/v2/partial-returns/targets",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readPartialReturnTargets(req.query));}catch(e){next(e);}
+  });
+  router.get("/v2/partial-returns/history",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readPartialReturnHistory(req.query));}catch(e){next(e);}
+  });
+  router.post("/v2/partial-returns/preview",async(req,res,next)=>{
+    try{assertAccountingOrigin(req);res.set("Cache-Control","private, no-store");res.json(await readPartialReturnPlan(req.body));}catch(e){next(e);}
+  });
+  router.post("/v2/partial-returns",async(req,res,next)=>{
+    try{assertAccountingOrigin(req);res.set("Cache-Control","private, no-store");res.json(await postPartialReturn(req.body,res.locals.accountingAccess));}catch(e){next(e);}
   });
   router.post("/v2/loading-returns",async(req,res,next)=>{
     try{assertAccountingOrigin(req);res.json(await returnLoadingInvoice(req.body,res.locals.accountingAccess));}catch(e){next(e);}

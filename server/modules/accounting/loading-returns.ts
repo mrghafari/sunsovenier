@@ -36,6 +36,8 @@ async function planWithin(tx:AccountingTransaction,companyId:number,invoiceId:nu
        customerCreditAmount:(done.plan as ReviewedPlan).customerCredit?.amount??"0"}};
   }
   const blockers=new Set<LoadingReturnBlocker>();
+  if((await tx.execute(sql`select 1 where accounting_receivable_has_partial_return(${Number(e.receivableId)})`)).rows.length)
+    blockers.add("EVIDENCE_MISMATCH");
   const currencyRow=(await tx.execute(sql`select decimals from accounting_currencies where code=${String(e.currency)} and is_active`)).rows[0];
   let settlementPolicy:LoadingReturnSettlementPolicy|undefined;
   if(currencyRow){

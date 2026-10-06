@@ -63,6 +63,9 @@ try {
     "server/modules/accounting/0048_refund_pool_column_qualification.sql",
     "server/modules/accounting/0049_refund_zero_rate_provenance.sql",
     "server/modules/accounting/0050_documented_payout_source_guard.sql",
+    "server/modules/accounting/0051_partial_return_evidence.sql",
+    "server/modules/accounting/0052_partial_return_connections.sql",
+    "server/modules/accounting/0053_partial_return_ar_parity.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

@@ -57,11 +57,12 @@ export function agingScope(f:CustomerReportFilters):SQL{
     group by w.receivable_id
   ), items as (
     select ri.*,coalesce(p.paid,0)+coalesce(w.paid,0) as historical_paid,
-      ri.amount-coalesce(p.paid,0)-coalesce(w.paid,0) as outstanding,
+       ri.amount-coalesce(p.paid,0)-coalesce(w.paid,0)-adjusted.debt_reduction+adjusted.restored as outstanding,
       ${date}::date-ri.due_on as overdue_days
     from accounting_receivable_items ri
     join accounting_journal_entries e on e.id=ri.invoice_journal_id
     left join receipt_paid p on p.receivable_id=ri.id left join wallet_paid w on w.receivable_id=ri.id
+     cross join lateral accounting_receivable_return_adjustment(ri.id,${date}::date) adjusted
     where ri.company_id=${f.companyId} and e.company_id=ri.company_id and e.status='posted'
       and e.entry_date<=${date}::date and ri.issued_on=e.entry_date and ri.due_on>=ri.issued_on
       ${f.customerId?sql`and ri.customer_id=${f.customerId}`:sql``}

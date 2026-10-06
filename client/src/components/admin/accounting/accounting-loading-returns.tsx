@@ -6,6 +6,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { normalizeAccountingDigits } from "./accounting-logic";
 import { loadingReturnText as t, accountingProgressCopy } from "./accounting-loading-returns-copy";
 import { useLoadingReturns, usePostLoadingReturn } from "./accounting-loading-returns-api";
+import AccountingPartialReturns from "./accounting-partial-returns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -143,6 +144,7 @@ export default function AccountingLoadingReturns({ companies, canManage = false 
         onRefresh={()=>void refresh().catch(()=>setActionError(t(language,"failed")))} canManage={canManage} receipt={receipt} reason={reason} returnDate={returnDate}
         physicalConfirmed={physicalConfirmed} creditConfirmed={creditConfirmed} refreshedHash={refreshedHash} setReceipt={setReceipt} setReason={setReason} setReturnDate={setReturnDate}
         setPhysicalConfirmed={setPhysicalConfirmed} setCreditConfirmed={setCreditConfirmed} setRefreshedHash={setRefreshedHash} onPost={post} busy={busy}/>}
+    <AccountingPartialReturns companies={companies} canManage={canManage} language={language}/>
   </section>;
 }
 

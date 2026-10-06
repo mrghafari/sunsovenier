@@ -57,7 +57,7 @@ export async function readCreditExposure(companyId: number, walletId: number,
           and l.debit=r.amount and l.credit=0
       )
       select
-        (select coalesce(sum(amount-settled_amount),0)::text from items) as open,
+        (select coalesce(sum(accounting_receivable_open_native(id,'infinity'::date)),0)::text from items) as open,
         (select coalesce(sum(greatest(0,credit.amount-coalesce((
           select sum(r.amount) from accounting_receivable_items r
           join accounting_journal_entries e on e.id=r.invoice_journal_id and e.status='posted'

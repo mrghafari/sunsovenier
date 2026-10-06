@@ -139,15 +139,21 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
      The user selected unpaid-debt-first settlement for partial goods returns:
      reduce this invoice's unpaid debt first, credit only the excess to the
      customer's account. Do not split proportionally by prior payments.
-     Native-currency arithmetic and the read-only workbench simulator expose
-     debt reduction, remaining debt and excess account credit separately.
-     This simulator uses recorded invoice/settlement counters; it does not verify
-     returned quantities, goods valuation, cleared payments or carrying values,
-     and it cannot authorize or post a partial return. Full-return paid credit
-     additionally checks the same native policy against its existing independent
-     historical credit proof before posting.
-     Partial-goods financial posting remains outstanding; no worker,
-    production migration, real company activation or publication is implied.
+     The legacy read-only arithmetic simulator remains non-authorizing.
+     A separate real partial-return workbench now previews and posts documented
+     quantities using original invoice lines, cleared payment evidence,
+     immutable historical native/base values and original stock consumptions.
+     Partial goods returns reduce this invoice's unpaid debt first and credit
+     only the excess to the customer's wallet. Sales/tax reversal, AR reduction,
+     customer-credit liability and accounting stock/COGS recovery commit together.
+     Cumulative rounding conserves original values and final residuals.
+     Original invoices, allocations and payment counters are retained; subsequent
+     collections use effective debt, not rewritten original counters.
+     Accounting FIFO layers, exposure, receivables and dated customer reports
+     include posted adjustments. Physical stock, pricing, actual freight,
+     carrier payables, order status and remaining loading holds do not change.
+     No worker, production migration, real company activation or publication
+     is implied.
     The additive loading-return migration is applied in development. Return
     cutovers remain closed and no actual return/opening was seeded. Rollback-only
     IQD/USD tests verify exact historical FX reversals, zero-cost rounding,
@@ -168,12 +174,25 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
     but new legacy refund commands cannot bypass this evidence/approval path.
     This is staff-attested recording of an already completed actual payout,
     not a bank API call, invoice/receipt return, stock movement, or activation.
-3. **Complete partial receipt returns.** Independent base/foreign bank/cash
-   customer payouts are implemented above, but they do not return or reallocate
-   a receipt. Partial receipt returns still need reviewed original allocation
-   evidence, precise native/base carrying, correct reopened debt/customer credit,
-   protection of holds/other currencies, and explicit realized FX where incurred.
-   No direct balance/status edits or independent reversal shortcuts.
+3. **Partial receipt returns implemented; activation remains gated.** A separate
+   documented BANK/CASH receipt-return path uses original allocations and prepaid
+   receipt amounts, caps cumulative returns and reopens only the returned debt.
+   Wallet debits respect active holds, native reservations and pending cheques.
+   Historical AR carrying and pooled wallet/funding carrying determine explicit
+   realized FX; neither today's rates nor direct balance/status edits are used.
+   Actual completed payout references cannot be reused between receipt returns
+   and independent wallet payouts. Receipt returns linked to goods returns are
+   explicitly blocked pending a separately designed coordination path.
+   Legacy full-return and independent-reversal shortcuts cannot follow partial
+   adjustments. Company-scoped preview, posting, history and four-language UI
+   are connected; ambiguous UI submissions retain their original immutable
+   command for history resolution and exact retry.
+   Additive partial-return migrations are applied in development only, with
+   no real cutover/opening seeded. Customer AR must also match effective debt;
+   unrelated or unlinked manual AR cannot be silently treated as invoice evidence.
+   Rollback-only base/foreign tests cover debt-first
+   credit, subsequent collection, duplicate evidence, dated reports, historic
+   valuation and conservation of returned accounting stock.
 4. **Credit approval connection is staged, not activated.** New prepaid orders
    and explicitly registered new bank/cash credit orders have a finance approval
    path. Customer/currency policies come from explicitly linked CRM wallets.

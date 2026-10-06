@@ -67,7 +67,7 @@ export async function readReceiptDetail(receiptId:unknown,companyId:unknown,call
     const allocations=(await tx.execute(sql`select a.id,a.receivable_id as "receivableId",a.amount::text as amount,a.status,
       r.invoice_reference as "invoiceReference",r.invoice_journal_id as "invoiceJournalId",r.issued_on::text as "issuedOn",
       r.due_on::text as "dueOn",r.amount::text as "invoiceAmount",r.settled_amount::text as "settledAmount",
-      (r.amount-r.settled_amount)::text as "openAmount"
+      accounting_receivable_open_native(r.id,'infinity'::date)::text as "openAmount"
       from accounting_receipt_allocations a join accounting_receivable_items r on r.id=a.receivable_id
       where a.receipt_id=${id} and r.company_id=${company} order by a.id`)).rows as unknown as ReceiptAllocation[];
     const events=(await tx.execute(sql`select ev.id,ev.action,ev.source_id as "sourceId",e.entry_date::text as "entryDate",
@@ -105,13 +105,13 @@ export async function readReceiptOpenItems(input:unknown,callerTx?:AccountingTra
       throw new AccountingError("Accounting company not found",404,"NOT_FOUND");
     const scope=sql`select r.* from accounting_receivable_items r join accounting_journal_entries e on e.id=r.invoice_journal_id
       where r.company_id=${f.companyId} and r.customer_id=${f.customerId} and r.currency=${f.currency}
-        and r.amount>r.settled_amount and e.company_id=r.company_id and e.status='posted'
+        and accounting_receivable_open_native(r.id,'infinity'::date)>0 and e.company_id=r.company_id and e.status='posted'
         and not exists(select 1 from accounting_journal_entries rev where rev.reversal_of_id=e.id and rev.status='posted')`;
     const totalRows=Number((await tx.execute(sql`with scoped as (${scope}) select count(*)::text as n from scoped`)).rows[0].n);
     const items=(await tx.execute(sql`with scoped as (${scope}) select id,customer_id as "customerId",currency,
       invoice_reference as "invoiceReference",invoice_journal_id as "invoiceJournalId",issued_on::text as "issuedOn",
       due_on::text as "dueOn",amount::text as amount,settled_amount::text as "settledAmount",
-      (amount-settled_amount)::text as "openAmount" from scoped order by due_on,id limit 100 offset ${(f.page-1)*100}`)).rows as unknown as ReceiptOpenItem[];
+      accounting_receivable_open_native(id,'infinity'::date)::text as "openAmount" from scoped order by due_on,id limit 100 offset ${(f.page-1)*100}`)).rows as unknown as ReceiptOpenItem[];
     return {items,totalRows,page:f.page,pageSize:100};
   },callerTx);
 }

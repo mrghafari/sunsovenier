@@ -101,7 +101,8 @@ export async function recordCustomerReceipt(input:z.input<typeof receiptInputSch
           and not exists(select 1 from accounting_journal_entries rev where rev.reversal_of_id=e.id and rev.status='posted')`);
       if(!issued.rows.length)throw new AccountingError("A posted, unreversed invoice receivable is required",409,"POSTED_INVOICE_REQUIRED");
       if(d.entryDate<String(r.issued_on))throw new AccountingError("Receipt cannot settle an invoice before its issue date");
-      if(decimal(a.amount).gt(decimal(String(r.amount)).minus(String(r.settled_amount))))
+      const effective=(await tx.execute(sql`select accounting_receivable_open_native(${a.receivableId},${d.entryDate}::date)::text amount`)).rows[0];
+      if(decimal(a.amount).gt(String(effective.amount)))
         throw new AccountingError("Allocation exceeds open invoice amount",409,"OVER_SETTLEMENT");
       total=total.plus(a.amount);
     }
@@ -131,7 +132,8 @@ export async function recordCustomerReceipt(input:z.input<typeof receiptInputSch
       sourceId:d.sourceId,description:d.reason,lines},actor,tx);
     for(const a of d.allocations){
       await tx.execute(sql`insert into accounting_receipt_allocations(receipt_id,receivable_id,amount) values(${receipt.id},${a.receivableId},${a.amount})`);
-      await tx.execute(sql`update accounting_receivable_items set settled_amount=settled_amount+${a.amount}::numeric where id=${a.receivableId}`);
+      await tx.execute(sql`update accounting_receivable_items set settled_amount=settled_amount+${a.amount}::numeric
+        where id=${a.receivableId} and not accounting_receivable_has_partial_return(id)`);
     }
     if(wallet)await walletDelta(tx,wallet,d.companyId,entry.id,excess,"credit",actor,d.reason,
       {receiptId:receipt.id,evidenceReference:d.evidenceReference,verification:"staff_attestation",provisional:d.method==="CHEQUE"});
@@ -223,9 +225,10 @@ export async function transitionCheque(receiptId:number,action:"deposited"|"clea
 export async function readReceivables(companyId:number){
   const r=await accountingDb.execute(sql`select r.*,
     case when exists(select 1 from accounting_journal_entries x where x.reversal_of_id=r.invoice_journal_id and x.status='posted')
-      then '0' else (r.amount-r.settled_amount)::text end as open_amount,
+      then '0' else accounting_receivable_open_native(r.id,'infinity'::date)::text end as open_amount,
     case when exists(select 1 from accounting_journal_entries x where x.reversal_of_id=r.invoice_journal_id and x.status='posted')
-      then 'reversed' when r.settled_amount=r.amount then 'settled' when r.settled_amount>0 then 'partial' else 'open' end as status
+      then 'reversed' when accounting_receivable_open_native(r.id,'infinity'::date)=0 then 'settled'
+      when accounting_receivable_open_native(r.id,'infinity'::date)<r.amount then 'partial' else 'open' end as status
     from accounting_receivable_items r where r.company_id=${companyId} order by r.due_on,r.id`);
   return r.rows;
 }

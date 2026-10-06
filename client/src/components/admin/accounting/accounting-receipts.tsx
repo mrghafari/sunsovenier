@@ -6,6 +6,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { normalizeAccountingDigits } from "./accounting-logic";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { receiptCopy, type ReceiptCopyKey } from "./receipt-copy";
+import AccountingPartialReturns from "./accounting-partial-returns";
 import { allocationRemainder, allocationTotal, exactAmount, ReceiptDecimal, receiptLabel, receiptWriteAllowed } from "./receipt-presentation";
 import type { ReceiptRow } from "@shared/accounting-receipts";
 import { AlertCircle, ArrowDownToLine, Banknote, ClipboardList, FileCheck2, Landmark, LoaderCircle, Plus, RefreshCw, Search, ShieldAlert } from "lucide-react";
@@ -247,6 +248,7 @@ export default function AccountingReceipts({ companies, canManage, onReports }: 
       </div>
     </div>
 
+    <AccountingPartialReturns companies={companies} canManage={canManage} language={language}/>
     {formOpen && <Modal title={t("recordTitle")} closeLabel={t("close")} onClose={() => { if (!recordReceipt.isPending) setFormOpen(false); }} direction={direction}>
       <form onSubmit={submitReceipt} className="space-y-4 p-5">
         <fieldset disabled={recordReceipt.isPending} className="contents">

@@ -20,6 +20,7 @@ import {readCustomerReport} from "./customer-reports";
 import {readCreditExposure} from "./credit-exposure";
 import {readReceiptOpenItems} from "./receipt-workbench";
 import {recordCustomerReceipt,returnCustomerReceipt} from "./receipts";
+import {exercisePartialReturns} from "./partial-returns-db-cases";
 async function settleWalletReceivable(...args:Parameters<typeof settleOriginal>){
   try{return await settleOriginal(...args);}catch(error){
     console.error("Settlement SQL cause:",(error as {cause?:{message?:string}}).cause?.message);throw error;
@@ -39,6 +40,15 @@ test("full unsettled loading returns preserve original books and never change na
     const rollback=new Error("ROLLBACK_LOADING_RETURNS");let finished=false;
     try{await accountingDb.transaction(async tx=>{
       await tx.execute(sql`select pg_advisory_xact_lock(718392,0)`);
+      if(process.env.ACCOUNTING_PARTIAL_RETURN_DRY_RUN==="1"){
+        if(process.env.NODE_ENV==="production")throw new Error("No production migration dry run");
+        await tx.execute(sql.raw(await readFile("server/modules/accounting/0051_partial_return_evidence.sql","utf8")));
+        await tx.execute(sql.raw(await readFile("server/modules/accounting/0052_partial_return_connections.sql","utf8")));
+      }
+      if(process.env.ACCOUNTING_PARTIAL_RETURN_AR_DRY_RUN==="1"){
+        if(process.env.NODE_ENV==="production")throw new Error("No production migration dry run");
+        await tx.execute(sql.raw(await readFile("server/modules/accounting/0053_partial_return_ar_parity.sql","utf8")));
+      }
       // Explicit development-only dry run permits reviewing a not-yet-applied
       // migration AND its real triggers before freezing its checksum.
       if(process.env.ACCOUNTING_RETURN_MIGRATION_DRY_RUN==="1"){
@@ -145,6 +155,9 @@ test("full unsettled loading returns preserve original books and never change na
       });
       await tx.execute(sql`insert into accounting_loading_return_cutovers(company_id,processing_ready,starts_on,reviewed_by,evidence_reference)
         values(${companyId},true,'2026-06-01',${actorId},'Rollback actual reviewed return opening')`);
+      await exercisePartialReturns(t,tx,{actor,companyId,customerId,orderItemId:orderId,invoiceId:invoices[1].invoiceId,
+        receivableId:invoices[1].receivableId!,currency});
+      if(process.env.ACCOUNTING_PARTIAL_RETURN_ONLY==="1"){finished=true;throw rollback;}
       await t.test(currency+": stale review, incorrect scope and unsettled/cheque protections cannot be bypassed",async()=>{
         const c=await command(invoices[1].invoiceId);
         await rejected(()=>returnLoadingInvoice({...c,expectedPlanHash:"f".repeat(64)},actor,tx),/changed/);
