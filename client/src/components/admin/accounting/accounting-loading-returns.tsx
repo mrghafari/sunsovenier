@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { loadingReturnCommandSchema, loadingReturnFiltersSchema, type LoadingReturnPlan, type LoadingReturnWorkbench } from "@shared/accounting-loading-returns";
+import { calculateUnpaidFirstReturn } from "@shared/accounting-return-settlement";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { normalizeAccountingDigits } from "./accounting-logic";
 import { loadingReturnText as t, accountingProgressCopy } from "./accounting-loading-returns-copy";
@@ -169,7 +170,7 @@ export function Workbench({workbench,language,page,totalPages,changePage,onRefre
    <div className="flex flex-wrap items-center gap-3"><span className="text-xs text-[#7a766c]">{t(language,"page")} {page} / {totalPages} · {workbench.pagination.totalRows} {t(language,"rows")}</span><Button type="button" variant="outline" size="sm" onClick={onRefresh} disabled={busy} className="border-[#d9cebd] bg-[#fbf8f1] text-[#67573f]"><RefreshCw className="me-2 h-3.5 w-3.5"/>{t(language,"refresh")}</Button></div>
   </div>
   {!workbench.financialGateOpen && <p className="border-b border-[#e8e3da] bg-[#fcfaf5] px-4 py-2 text-[11px] leading-5 text-[#807663]">{t(language,"gateClosed")}</p>}
-   {!workbench.rows.length?<Empty text={t(language,"empty")}/>:<div className="divide-y divide-[#ebe7df]">{workbench.rows.map(plan=><PlanRow key={plan.invoiceId} plan={plan} language={language} canManage={canManage} gateOpen={workbench.financialGateOpen} receipt={receipt[plan.invoiceId]??""} reason={reason[plan.invoiceId]??""}
+   {!workbench.rows.length?<Empty text={t(language,"empty")}/>:<div className="divide-y divide-[#ebe7df]">{workbench.rows.map(plan=><PlanRow key={`${workbench.company.id}:${plan.invoiceId}:${plan.planHash}:${plan.returned?"returned":"open"}`} plan={plan} language={language} canManage={canManage} gateOpen={workbench.financialGateOpen} receipt={receipt[plan.invoiceId]??""} reason={reason[plan.invoiceId]??""}
     returnDate={returnDate[plan.invoiceId]??""} physicalConfirmed={Boolean(physicalConfirmed[plan.invoiceId])}
     creditConfirmed={Boolean(creditConfirmed[plan.invoiceId])}
     onReceipt={v=>setReceipt({...receipt,[plan.invoiceId]:v})} onReason={v=>setReason({...reason,[plan.invoiceId]:v})} onDate={v=>setReturnDate({...returnDate,[plan.invoiceId]:v})}
@@ -183,6 +184,7 @@ function PlanRow({plan,language,canManage,gateOpen,receipt,reason,returnDate,phy
  plan:LoadingReturnPlan;language:string;canManage:boolean;gateOpen:boolean;receipt:string;reason:string;returnDate:string;physicalConfirmed:boolean;creditConfirmed:boolean;refreshedHash:string;
   onReceipt:(v:string)=>void;onReason:(v:string)=>void;onDate:(v:string)=>void;onPhysical:(v:boolean)=>void;onCreditConfirm:(v:boolean)=>void;onFreshConfirm:(confirmed:boolean)=>void;onPost:()=>void;busy:boolean;
 }) {
+  const [simulatorAmount, setSimulatorAmount] = useState("");
  const blockers=plan.blockers.length>0||!plan.postingAllowed||!gateOpen;
   const customerCredit = plan.customerCredit;
   const requiresCreditConfirmation = Boolean(customerCredit && isPositiveAmount(customerCredit.amount));
@@ -199,6 +201,7 @@ function PlanRow({plan,language,canManage,gateOpen,receipt,reason,returnDate,phy
    <Fact label={t(language,"cost")} value={`${plan.baseCost} ${plan.baseCurrency}`} mono/>
    <Fact label={t(language,"receivable")} value={`#${plan.receivableId}`} mono/><Fact label={t(language,"journal")} value={`#${plan.invoiceJournalId}`} mono/><Fact label={t(language,"cogsJournal")} value={plan.cogsJournalId===null?"—":`#${plan.cogsJournalId}`} mono/>
   </div></section>
+   {plan.settlementPolicy&&<LoadingReturnSettlementSimulator plan={plan} language={language} amount={simulatorAmount} onAmountChange={setSimulatorAmount}/>}
    {requiresCreditConfirmation&&<section className="rounded-xl border border-[#d8c9ac] bg-[#f7f0e4] p-3" aria-label={t(language,"paidCreditTitle")}>
     <h4 className="mb-3 text-xs font-bold text-[#705638]">{t(language,"paidCreditTitle")}</h4>
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -228,6 +231,63 @@ function PlanRow({plan,language,canManage,gateOpen,receipt,reason,returnDate,phy
   </>}
   {!canManage&&!plan.returned&&<p className="rounded-lg border border-[#e6d8b7] bg-[#f6f0df] px-3 py-2 text-xs text-[#695638]">{t(language,"permission")}</p>}
  </article>;
+}
+
+export function LoadingReturnSettlementSimulator({plan,language,amount,onAmountChange}:{
+  plan:LoadingReturnPlan;language:string;amount:string;onAmountChange:(amount:string)=>void;
+}) {
+  const policy=plan.settlementPolicy;
+  if(!policy)return null;
+  let result:ReturnType<typeof calculateUnpaidFirstReturn>|undefined;
+  let invalid=false;
+  if(!plan.returned&&amount.trim()) {
+    try {
+      result=calculateUnpaidFirstReturn({
+        invoiceAmount:policy.invoiceAmount,settledAmount:policy.settledAmount,
+        returnAmount:normalizeAccountingDigits(amount.trim()),currencyDecimals:policy.currencyDecimals,
+      });
+    } catch { invalid=true; }
+  }
+  const disabled=Boolean(plan.returned);
+  return <section className="space-y-3 rounded-xl border border-[#d8dfd5] bg-[#f4f7f1] p-3" aria-label={t(language,"settlementTitle")} data-testid={`return-settlement-simulator-${plan.invoiceId}`}>
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h4 className="text-xs font-bold text-[#294540]">{t(language,"settlementTitle")}</h4>
+      <span className="rounded-md border border-[#d8dfd5] bg-[#fbfcf8] px-2 py-1 font-mono text-[10px] font-bold tracking-wide text-[#53665d]">UNPAID_FIRST</span>
+    </div>
+    <p className="text-xs leading-5 text-[#52665c]">{t(language,"settlementNotice")}</p>
+    <p className="text-[11px] leading-5 text-[#746a59]">{t(language,"settlementEvidence")}</p>
+    <div className="rounded-lg border border-[#dce5d9] bg-[#fbfcf8] px-3 py-2">
+      <Fact label={t(language,"settlementRecordedCounter")} value={`${policy.settledAmount} ${plan.currency}`} mono/>
+    </div>
+    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+      <Field label={t(language,"settlementAmount")}>
+        <input type="text" inputMode="decimal" autoComplete="off" maxLength={80}
+          aria-label={t(language,"settlementAmount")} aria-invalid={invalid}
+          aria-describedby={`return-settlement-limit-${plan.invoiceId}`}
+          value={amount} disabled={disabled}
+          onChange={event=>onAmountChange(normalizeAccountingDigits(event.target.value))}
+          className={inputClass}/>
+      </Field>
+      <p id={`return-settlement-limit-${plan.invoiceId}`} className="pb-2 text-xs font-mono tabular-nums text-[#695638]">
+        {t(language,"settlementMaximum")}: <span dir="ltr">{policy.invoiceAmount} {plan.currency}</span>
+      </p>
+    </div>
+    {disabled&&<p role="status" className="text-xs text-[#7b756a]">{t(language,"settlementReturned")}</p>}
+    {!disabled&&!amount.trim()&&<p role="status" className="text-xs text-[#7b756a]">{t(language,"settlementEnterAmount")}</p>}
+    {!disabled&&invalid&&<p role="alert" className="rounded-lg border border-[#e4b9b2] bg-[#f9eae6] px-3 py-2 text-xs text-[#883f37]">{t(language,"settlementInvalid")}</p>}
+    {!disabled&&result&&<div role="status" aria-live="polite" className="grid gap-2 border-t border-[#dce5d9] pt-3 sm:grid-cols-3">
+      <SettlementFact label={t(language,"settlementDebtReduction")} amount={result.debtReduction} currency={plan.currency}/>
+      <SettlementFact label={t(language,"settlementUnpaidAfter")} amount={result.unpaidAfter} currency={plan.currency}/>
+      <SettlementFact label={t(language,"settlementCustomerCredit")} amount={result.customerCredit} currency={plan.currency} emphasis/>
+    </div>}
+  </section>;
+}
+
+function SettlementFact({label,amount,currency,emphasis=false}:{label:string;amount:string;currency:string;emphasis?:boolean}) {
+  return <div className={`rounded-lg border px-3 py-2 ${emphasis?"border-[#d8c9ac] bg-[#fbf4e8]":"border-[#dce5d9] bg-[#fbfcf8]"}`}>
+    <div className="text-[10px] font-semibold leading-4 text-[#6f796e]">{label}</div>
+    <div dir="ltr" className={`mt-1 font-mono text-sm font-semibold tabular-nums ${emphasis?"text-[#705638]":"text-[#294540]"}`}>{amount} {currency}</div>
+  </div>;
 }
 
 export function LoadingReturnValuation({language,originalBaseAmount,quantityTons,baseCurrency}:{

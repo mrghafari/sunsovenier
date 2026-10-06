@@ -58,3 +58,15 @@ face-value-minus-payments no longer describes that returned invoice's debt.
 **How to apply:** Prove returned debt closes in both native and historical base
 values, including customer-credit reclassification. Keep valuation helpers for
 new collections strict so returned invoices cannot receive new allocations.
+
+Finish rollback-only financial integration suites before restarting the app.
+Their long-lived write/schema locks can block startup's trigger installation,
+so a port-opening timeout during a suite does not establish a code crash.
+
+**Why:** The unchanged application timed out during the combined IQD/USD return
+suite, then started successfully once that suite completed and rolled back.
+The combined suite also exceeded the five-minute foreground command limit.
+
+**How to apply:** Run long suites as monitored background commands, collect their
+complete result and release their transactions before restarting the workflow.
+Do not change server ports or bypass financial guards to resolve this contention.

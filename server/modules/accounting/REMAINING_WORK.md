@@ -136,7 +136,17 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
     incomplete commands, duplicate credits and independent credit reversals fail.
     Accounting → Loading returns includes four-language implementation progress,
     explicitly separate from company balances, verified openings or activation.
-    Partial-goods returns and foreign cash refunds remain outstanding; no worker,
+     The user selected unpaid-debt-first settlement for partial goods returns:
+     reduce this invoice's unpaid debt first, credit only the excess to the
+     customer's account. Do not split proportionally by prior payments.
+     Native-currency arithmetic and the read-only workbench simulator expose
+     debt reduction, remaining debt and excess account credit separately.
+     This simulator uses recorded invoice/settlement counters; it does not verify
+     returned quantities, goods valuation, cleared payments or carrying values,
+     and it cannot authorize or post a partial return. Full-return paid credit
+     additionally checks the same native policy against its existing independent
+     historical credit proof before posting.
+     Partial-goods financial posting and foreign cash refunds remain outstanding; no worker,
     production migration, real company activation or publication is implied.
     The additive loading-return migration is applied in development. Return
     cutovers remain closed and no actual return/opening was seeded. Rollback-only

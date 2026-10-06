@@ -1,5 +1,6 @@
 import {z} from "zod";
 import {dateString} from "./accounting-api";
+import type {LoadingReturnSettlementPolicy} from "./accounting-return-settlement";
 const id=z.number().int().positive().max(2147483647);
 export const loadingReturnFiltersSchema=z.object({
   companyId:z.coerce.number().int().positive().max(2147483647),
@@ -23,6 +24,7 @@ export interface LoadingReturnPlan {
   originalDate:string;minReturnDate:string;currency:string;baseCurrency:string;
   originalAmount:string;originalBaseAmount:string|null;baseCost:string;quantityTons:string|null;
   planHash:string;blockers:LoadingReturnBlocker[];postingAllowed:boolean;
+  settlementPolicy?:LoadingReturnSettlementPolicy;
   customerCredit?:{walletId:number;amount:string;baseAmount:string;baseCurrency:string};
   returned:{id:number;invoiceReversalId:number;cogsReversalId:number|null;returnDate:string;
     goodsReceiptReference:string;reason:string;customerCreditJournalId?:number|null;customerCreditAmount?:string}|null;

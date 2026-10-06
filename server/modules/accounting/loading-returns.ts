@@ -10,6 +10,7 @@ import {assertLedgerReady} from "./readiness";
 import {reverseJournalEntry,postJournalEntry} from "./postJournalEntry";
 import {lockedWallet,account,reconciled,nativeMoney} from "./wallet";
 import {decimal} from "./money";
+import {calculateUnpaidFirstReturn,type LoadingReturnSettlementPolicy} from "@shared/accounting-return-settlement";
 type CreditEvidence={amount:string;baseAmount:string;baseCurrency:string;walletId:number|null;
   walletBalance:string|null;minDate:string;valid:boolean;walletAvailable:boolean;receivableAccountId:number;liabilityAccountId:number};
 type ReviewedPlan=LoadingReturnPlan&{evidence:Record<string,unknown>;creditEvidence?:CreditEvidence};
@@ -35,6 +36,18 @@ async function planWithin(tx:AccountingTransaction,companyId:number,invoiceId:nu
        customerCreditAmount:(done.plan as ReviewedPlan).customerCredit?.amount??"0"}};
   }
   const blockers=new Set<LoadingReturnBlocker>();
+  const currencyRow=(await tx.execute(sql`select decimals from accounting_currencies where code=${String(e.currency)} and is_active`)).rows[0];
+  let settlementPolicy:LoadingReturnSettlementPolicy|undefined;
+  if(currencyRow){
+    try{
+      const split=calculateUnpaidFirstReturn({invoiceAmount:String(e.originalAmount),
+        settledAmount:String(e.settledAmount),returnAmount:String(e.originalAmount),currencyDecimals:Number(currencyRow.decimals)});
+      settlementPolicy={kind:"UNPAID_FIRST",invoiceAmount:split.invoiceAmount,
+        settledAmount:split.settledAmount,currencyDecimals:Number(currencyRow.decimals)};
+    }catch{
+      blockers.add("EVIDENCE_MISMATCH");
+    }
+  }else blockers.add("EVIDENCE_MISMATCH");
   if(!row.is_active)blockers.add("COMPANY_INACTIVE");
   if(e.evidenceValid!==true||e.originalBaseAmount==null||e.quantityTons==null)blockers.add("EVIDENCE_MISMATCH");
    const gate=(await tx.execute(sql`select processing_ready,allow_paid_returns,starts_on::text from accounting_loading_return_cutovers
@@ -55,6 +68,10 @@ async function planWithin(tx:AccountingTransaction,companyId:number,invoiceId:nu
      }else{
        creditEvidence=(await tx.execute(sql`select accounting_loading_return_credit_evidence(${invoiceId}) e`)).rows[0]?.e as CreditEvidence;
        if(!creditEvidence?.valid)blockers.add("CREDIT_EVIDENCE_MISMATCH");
+        if(creditEvidence?.valid&&settlementPolicy){
+          const split=calculateUnpaidFirstReturn({...settlementPolicy,returnAmount:settlementPolicy.invoiceAmount});
+          if(!decimal(split.customerCredit).eq(creditEvidence.amount))blockers.add("CREDIT_EVIDENCE_MISMATCH");
+        }
        if(!creditEvidence?.walletAvailable)blockers.add("CREDIT_WALLET_UNAVAILABLE");
        if(!(await tx.execute(sql`select 1 from accounting_wallet_cutovers w
          join accounting_receipt_cutovers r on r.company_id=w.company_id and r.processing_ready
@@ -77,7 +94,8 @@ async function planWithin(tx:AccountingTransaction,companyId:number,invoiceId:nu
     currency:String(e.currency),baseCurrency:String(e.baseCurrency),originalAmount:String(e.originalAmount),
     originalBaseAmount:e.originalBaseAmount==null?null:String(e.originalBaseAmount),
     baseCost:String(e.baseCost),quantityTons:e.quantityTons==null?null:String(e.quantityTons),
-    planHash:"",blockers:[...blockers].sort(),postingAllowed:!blockers.size,returned:null,evidence:e,
+     planHash:"",blockers:[...blockers].sort(),postingAllowed:!blockers.size,returned:null,evidence:e,
+     ...(settlementPolicy?{settlementPolicy}:{}),
      ...(creditEvidence?{creditEvidence,customerCredit:creditEvidence.walletId?{
        walletId:creditEvidence.walletId,amount:creditEvidence.amount,baseAmount:creditEvidence.baseAmount,
        baseCurrency:creditEvidence.baseCurrency}:undefined}:{}),
