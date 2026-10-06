@@ -98,9 +98,10 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    trucks/layers cannot rewrite booked FIFO, and independent reversals/voids
    of financially attached evidence are blocked. Closed-gate purchase/opening
    capitalization and foreign invoices with original base-stock costs now have
-   transactional handlers. Remaining: actual documentary openings and reconciliation,
-     partial-goods invoice/AR/stock returns and external cash payouts,
-    coordinated shipment-cost returns, and separately approved worker retry/backoff and
+   transactional handlers. Partial-goods invoice/AR/stock returns and documented
+   external cash payouts also have transactional handlers and workbenches.
+   Remaining: actual documentary openings and reconciliation,
+   coordinated shipment-cost/linked-receipt returns, and separately approved worker retry/backoff and
    error provenance. Real opening evidence and activation are still outstanding.
    Never flip event eligibility or start a consumer merely because arithmetic
    succeeds.
@@ -193,6 +194,10 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    Rollback-only base/foreign tests cover debt-first
    credit, subsequent collection, duplicate evidence, dated reports, historic
    valuation and conservation of returned accounting stock.
+   A later bounce of a previously cleared cheque also preserves the frozen
+   payment counter, reopens debt from actual payment evidence and retains dated
+   reporting. New returns/collections cannot predate that posted bank event.
+   The exception does not permit legacy full receipt reversals after adjustments.
 4. **Credit approval connection is staged, not activated.** New prepaid orders
    and explicitly registered new bank/cash credit orders have a finance approval
    path. Customer/currency policies come from explicitly linked CRM wallets.

@@ -18,6 +18,16 @@ receivables and customer reports. Preserve the user's unpaid-debt-first policy.
 Block legacy full reversals after partial adjustments; otherwise historical
 counter-based paths can credit already refunded money a second time.
 
+The preserved counter is not a lower bound on currently active payments.
+
+**Why:** A previously cleared cheque can bounce after a partial goods return.
+The historical counter stays fixed while active payment evidence decreases.
+
+**How to apply:** For cheque bounces, retain the frozen counter and derive debt
+from posted cheque events and payment evidence. Include the latest linked cheque
+event in chronology checks so later returns and collections cannot predate it.
+Do not extend this exception to legacy full receipt reversals.
+
 Check customer/currency AR ledger parity as well as the original invoice proof.
 
 **Why:** A valid original invoice can coexist with an unlinked manual AR entry;

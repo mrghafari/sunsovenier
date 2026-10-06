@@ -7,7 +7,7 @@ import type {AccountingAccess} from "@shared/accounting-api";
 import type {PartialReturnQuote} from "@shared/accounting-partial-returns";
 import {readPartialReturnPlan,postPartialReturn,readPartialReturnHistory,readPartialReturnTargets} from "./partial-returns";
 import {settleWalletReceivable} from "./wallet-settlement";
-import {recordCustomerReceipt} from "./receipts";
+import {recordCustomerReceipt,transitionCheque} from "./receipts";
 import {readCustomerReport} from "./customer-reports";
 import {readCarryingLayers} from "./loading-invoice-stock";
 import {postJournalEntry,reverseJournalEntry} from "./postJournalEntry";
@@ -29,12 +29,42 @@ export async function exercisePartialReturns(t:TestContext,tx:AccountingTransact
   const command=async(q:PartialReturnQuote)=>({...q,sourceId:randomUUID(),expectedPlanHash:(await plan(q)).planHash,
     evidenceReference:"Rollback documented partial return "+randomUUID(),reason:"Rollback reviewed actual partial return",
     evidenceConfirmed:true as const,payoutReference:q.kind==="RECEIPT"?randomUUID():""});
-  await isolated("partial return gates are independent and stay closed",async()=>{
+  if(process.env.ACCOUNTING_PARTIAL_RETURN_CHEQUE_ONLY!=="1")await isolated("partial return gates are independent and stay closed",async()=>{
     const p=await plan(goods("0.4"));assert.ok(p.blockers.includes("PARTIAL_RETURN_GATE_CLOSED"));
     await assert.rejects(postPartialReturn(await command(goods("0.4")),actor,tx),/blocked/);
   });
   await tx.execute(sql`insert into accounting_partial_return_cutovers(company_id,processing_ready,starts_on,reviewed_by,evidence_reference)
     values(${companyId},true,'2026-06-01',${actor.actorId},'Rollback actual reconciled opening and cutover')`);
+  await isolated("cleared cheque bounce after a partial goods return preserves history and permits correct subsequent collection",async()=>{
+    const receipt=await recordCustomerReceipt({companyId,customerId,currency,sourceId:randomUUID(),entryDate:"2026-06-03",
+      method:"CHEQUE",chequeNumber:randomUUID(),amount:"60",allocations:[{receivableId,amount:"60"}],
+      evidenceReference:"Rollback actual received cheque",reason:"Rollback cheque before goods return"},actor,tx);
+    const receiptId=Number(receipt.receipt.id);
+    const evidence=(entryDate:string)=>({sourceId:randomUUID(),entryDate,
+      evidenceReference:"Rollback actual cheque lifecycle evidence",reason:"Rollback confirmed cheque bank event"});
+    await transitionCheque(receiptId,"deposited",evidence("2026-06-03"),actor,tx);
+    await transitionCheque(receiptId,"cleared",evidence("2026-06-03"),actor,tx);
+    await postPartialReturn(await command(goods("0.4")),actor,tx);
+    assert.equal(decimal(await open()).toFixed(),"0");
+    await transitionCheque(receiptId,"bounced",evidence("2026-06-05"),actor,tx);
+    assert.equal(decimal(await open()).toFixed(),"60");
+    assert.equal(decimal(String((await tx.execute(sql`select settled_amount from accounting_receivable_items
+      where id=${receivableId}`)).rows[0].settled_amount)).toFixed(),"60");
+    const earlier=await readCustomerReport("receivables-aging",{companyId,customerId,currency,asOf:"2026-06-04"},tx);
+    const later=await readCustomerReport("receivables-aging",{companyId,customerId,currency,asOf:"2026-06-05"},tx);
+    assert.ok(!earlier.rows.some(x=>x.receivableId===String(receivableId)));
+    assert.ok(later.rows.some(x=>x.receivableId===String(receivableId)&&decimal(String(x.outstanding)).eq(60)));
+    const backdated=await plan(goods("0.1"));
+    assert.equal(backdated.postingAllowed,false,"New returns must not predate the posted cheque bounce");
+    const next={...goods("0.1"),entryDate:"2026-06-05"};
+    assert.equal((await plan(next)).postingAllowed,true);
+    await postPartialReturn(await command(next),actor,tx);
+    assert.equal(decimal(await open()).toFixed(),"50");
+    await settleWalletReceivable({companyId,walletId:customerId,receivableId,sourceId:randomUUID(),entryDate:"2026-06-05",
+      amount:"50",reason:"Rollback genuine recollection after bounced cheque"},actor,tx);
+    assert.equal(decimal(await open()).toFixed(),"0");
+  });
+  if(process.env.ACCOUNTING_PARTIAL_RETURN_CHEQUE_ONLY==="1")return;
   if(currency==="IQD")await isolated("unlinked manual AR cannot be mistaken for verified invoice debt",async()=>{
     const accounts=(await tx.execute(sql`select key,account_id from accounting_posting_rules
       where company_id=${companyId} and key in ('ACCOUNTS_RECEIVABLE','BANK')`)).rows;

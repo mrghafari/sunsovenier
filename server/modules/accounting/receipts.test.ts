@@ -9,6 +9,7 @@ import {postJournalEntry,reverseJournalEntry} from "./postJournalEntry";
 import {linkWallet,recordWalletMovement} from "./wallet";
 import {receiptInputSchema,recordCustomerReceipt,registerInvoiceReceivable,transitionCheque} from "./receipts";
 import {settleWalletReceivable,walletSettlementSchema} from "./wallet-settlement";
+import {readWalletRefundPlan,recordDocumentedWalletRefund} from "./wallet-refunds";
 test("receipts use exact money, unique allocations and cheque identity",()=>{
   const d={companyId:1,customerId:1,currency:"IQD",sourceId:"test-1",entryDate:"2026-06-01",amount:"100",
     method:"BANK",reason:"Actual receipt",evidenceReference:"statement-1",allocations:[]};
@@ -23,7 +24,8 @@ test("receipts use exact money, unique allocations and cheque identity",()=>{
 });
 test("receipt/cheque integration remains rollback-only",{skip:process.env.ACCOUNTING_DB_TEST!=="1"},async context=>{
   const t={test:(name:string,fn:()=>Promise<void>)=>context.test(name,{
-    skip:process.env.ACCOUNTING_FX_ONLY==="1"&&!name.startsWith("foreign wallet"),
+    skip:(process.env.ACCOUNTING_FX_ONLY==="1"&&!name.startsWith("foreign wallet"))||
+      (process.env.ACCOUNTING_RECEIPTS_BASE_ONLY==="1"&&name.startsWith("foreign wallet")),
   },fn)};
   const end=new Error("ROLLBACK_RECEIPTS");let done=false;
   try{await accountingDb.transaction(async tx=>{
@@ -128,17 +130,25 @@ test("receipt/cheque integration remains rollback-only",{skip:process.env.ACCOUN
     await t.test("spent cleared-cheque excess becomes an explicit receivable, not negative wallet money",async()=>{
       await tx.execute(sql`savepoint spent_cheque_case`);
       try{
-        const r=await recordCustomerReceipt({...input,sourceId:"cheque-spent",amount:"20",method:"CHEQUE",
+        const r=await recordCustomerReceipt({...input,entryDate:"2026-06-06",sourceId:"cheque-spent",amount:"20",method:"CHEQUE",
           chequeNumber:"fixture-spent"},actor,tx);
         const id=r.receipt.id as number;
-        await transitionCheque(id,"deposited",{...event,sourceId:"deposit-spent"},actor,tx);
-        await transitionCheque(id,"cleared",{...event,sourceId:"clear-spent",entryDate:"2026-06-04"},actor,tx);
-        await recordWalletMovement("refund",{companyId:company,walletId:customer,sourceId:"spent-cheque-funds",
-          entryDate:"2026-06-04",amount:"50",channel:"BANK",evidenceReference:"Actual payout reference",
-          reason:"Customer funds paid out"},actor,tx);
+        await transitionCheque(id,"deposited",{...event,sourceId:"deposit-spent",entryDate:"2026-06-06"},actor,tx);
+        await transitionCheque(id,"cleared",{...event,sourceId:"clear-spent",entryDate:"2026-06-07"},actor,tx);
+        const quote={companyId:company,walletId:customer,entryDate:"2026-06-07",amount:"50",channel:"BANK" as const};
+        await assert.rejects(recordWalletMovement("refund",{...quote,sourceId:"spent-cheque-funds",
+          evidenceReference:"Actual payout reference",reason:"Customer funds paid out"},actor,tx),
+          (e:unknown)=>(e as {code?:string}).code==="DOCUMENTED_PAYOUT_REQUIRED");
+        await tx.execute(sql`insert into accounting_wallet_refund_cutovers(company_id,processing_ready,starts_on,reviewed_by,evidence_reference)
+          values(${company},true,'2026-06-01',${actor.actorId},'Rollback reviewed actual payout opening')`);
+        const plan=await readWalletRefundPlan(quote,tx);
+        assert.equal(plan.postingAllowed,true,JSON.stringify(plan.blockers));
+        await recordDocumentedWalletRefund({...quote,sourceId:"spent-cheque-funds",expectedPlanHash:plan.planHash,
+          payoutReference:"Rollback executed bank payout",evidenceReference:"Rollback completed bank payout document",
+          reason:"Customer funds paid out",payoutDocumentConfirmed:true},actor,tx);
         assert.equal(await balance(),"0.00");
         const returned=await transitionCheque(id,"bounced",{...event,sourceId:"return-spent",
-          entryDate:"2026-06-05",reason:"Bank returned cleared cheque"},actor,tx);
+          entryDate:"2026-06-08",reason:"Bank returned cleared cheque"},actor,tx);
         assert.equal(returned.recoveredWalletAmount,"0");assert.equal(returned.newReceivable,"20");
         assert.equal(await balance(),"0.00");
         const totals=(await tx.execute(sql`select

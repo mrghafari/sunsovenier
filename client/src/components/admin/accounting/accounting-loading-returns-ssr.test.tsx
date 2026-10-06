@@ -29,7 +29,9 @@ test("loading-return SSR shows correctly bounded implementation progress and vie
   assert.match(html, /IMPLEMENTATION status/);
   assert.match(html, /not company balances or financial activation/);
   assert.match(html, /full-goods returns of unpaid and fully\/partly paid loading invoices/);
-  assert.match(html, /Partial-goods returns and foreign-currency payouts/);
+  assert.match(html, /partial goods\/receipt returns and documented foreign-currency payouts/);
+  assert.match(html, /Coordinated linked returns and separately approved automatic processing/);
+  assert.doesNotMatch(html, /Partial-goods returns and foreign-currency payouts/);
   assert.match(html, /read-only/i);
   assert.doesNotMatch(html, /Confirm and post full return/);
 });

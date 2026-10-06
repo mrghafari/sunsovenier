@@ -29,7 +29,8 @@ export async function transitionForeignCheque(tx:AccountingTransaction,receiptId
     const allocations=(await tx.execute(sql`select * from accounting_receipt_allocations
       where receipt_id=${receiptId} order by receivable_id`)).rows;
     for(const a of allocations){
-      await tx.execute(sql`update accounting_receivable_items set settled_amount=settled_amount-${a.amount}::numeric where id=${a.receivable_id}`);
+      await tx.execute(sql`update accounting_receivable_items set settled_amount=settled_amount-${a.amount}::numeric
+        where id=${a.receivable_id} and (not ${action==="bounced"} or not accounting_receivable_has_partial_return(id))`);
       await tx.execute(sql`update accounting_receipt_allocations set status='bounced' where id=${a.id}`);
     }
     if(decimal(recover).gt(0)){

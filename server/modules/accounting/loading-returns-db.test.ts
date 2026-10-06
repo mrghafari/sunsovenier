@@ -49,6 +49,10 @@ test("full unsettled loading returns preserve original books and never change na
         if(process.env.NODE_ENV==="production")throw new Error("No production migration dry run");
         await tx.execute(sql.raw(await readFile("server/modules/accounting/0053_partial_return_ar_parity.sql","utf8")));
       }
+       if(process.env.ACCOUNTING_PARTIAL_RETURN_CHEQUE_DRY_RUN==="1"){
+         if(process.env.NODE_ENV==="production")throw new Error("No production migration dry run");
+         await tx.execute(sql.raw(await readFile("server/modules/accounting/0054_partial_return_cheque_history.sql","utf8")));
+       }
       // Explicit development-only dry run permits reviewing a not-yet-applied
       // migration AND its real triggers before freezing its checksum.
       if(process.env.ACCOUNTING_RETURN_MIGRATION_DRY_RUN==="1"){
@@ -71,7 +75,8 @@ test("full unsettled loading returns preserve original books and never change na
         values(${companyId},'Fixture period','2026-01-01','2026-12-31')`);
       const accounts=new Map<string,number>();
       for(const key of ["BANK","WALLET_LIABILITY","ACCOUNTS_RECEIVABLE","SALES_REVENUE","TAX_PAYABLE","SHIPPING_REVENUE",
-        "COGS","INVENTORY","OPENING_BALANCE_EQUITY","FX_GAIN","FX_LOSS","SHIPPING_EXPENSE","CARRIER_PAYABLE"]){
+         "COGS","INVENTORY","OPENING_BALANCE_EQUITY","FX_GAIN","FX_LOSS","SHIPPING_EXPENSE","CARRIER_PAYABLE",
+         "CHEQUES_ON_HAND","CHEQUE_CLEARING"]){
         const a=iraqChart.find(x=>x.key===key)!;assert.ok(a,key);
         const id=Number((await tx.execute(sql`insert into accounting_accounts(company_id,code,name_ar,name_en,type)
           values(${companyId},${a.code},${a.nameAr},${a.nameEn},${a.type}) returning id`)).rows[0].id);
