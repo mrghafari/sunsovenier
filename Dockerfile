@@ -7,6 +7,9 @@ RUN npm ci --legacy-peer-deps
 
 # ??? ???? ? build
 COPY . .
+
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 RUN npm run build
 
 # ????? runtime
