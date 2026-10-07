@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { SimpleBankReceiptUploader } from "@/components/SimpleBankReceiptUploader";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { Language } from "@/lib/i18n";
+import { submitBankReceipt, type UploadedBankReceipt } from "@/lib/bank-receipt-upload";
 
 interface BankReceiptUploadModalProps {
   open: boolean;
@@ -156,10 +157,19 @@ export function BankReceiptUploadModal({
   const bt = RECEIPT_T[language];
   const queryClient = useQueryClient();
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [uploadedReceipt, setUploadedReceipt] = useState<UploadedBankReceipt | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [notes, setNotes] = useState("");
   const [receiptAmount, setReceiptAmount] = useState("");
   const [securityValidated, setSecurityValidated] = useState(false);
+  useEffect(() => {
+    setUploadedFileUrl(null);
+    setUploadedReceipt(null);
+    setUploadProgress(0);
+    setNotes("");
+    setReceiptAmount("");
+    setSecurityValidated(false);
+  }, [open, orderNumber]);
 
   // Fetch order details
   const { data: fetchedOrder, isLoading: isLoadingOrder } = useQuery({
@@ -196,14 +206,12 @@ export function BankReceiptUploadModal({
   // Upload mutation
   const uploadMutation = useMutation({
     mutationFn: async ({ receiptUrl, orderId, notes }: { receiptUrl: string; orderId: string; notes: string }) => {
-      const response = await apiRequest('/api/payment/upload-receipt', {
-        method: 'POST',
-        body: {
+      if (!uploadedReceipt) throw new Error(bt.fileRequiredDesc);
+      const response = await submitBankReceipt({
           receiptUrl,
           orderId,
           notes,
-          securityValidated: true
-        }
+          uploadToken: uploadedReceipt.uploadToken,
       });
       return response;
     },
@@ -215,6 +223,7 @@ export function BankReceiptUploadModal({
       
       // Reset form
       setUploadedFileUrl(null);
+      setUploadedReceipt(null);
       setUploadProgress(0);
       setNotes("");
       setReceiptAmount("");
@@ -227,10 +236,10 @@ export function BankReceiptUploadModal({
       onSuccess?.();
       onOpenChange(false);
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: bt.submitError,
-        description: bt.submitErrorDesc,
+        description: error.message || bt.submitErrorDesc,
         variant: "destructive",
       });
       setUploadProgress(0);
@@ -238,8 +247,9 @@ export function BankReceiptUploadModal({
   });
 
   // Handle upload completion
-  const handleUploadComplete = (fileUrl: string) => {
+  const handleUploadComplete = (fileUrl: string, receipt: UploadedBankReceipt) => {
     setUploadedFileUrl(fileUrl);
+    setUploadedReceipt(receipt);
     setUploadProgress(100);
     setSecurityValidated(true);
   };
@@ -301,7 +311,7 @@ export function BankReceiptUploadModal({
   // Helper function to render existing receipt
   const renderExistingReceipt = (receiptPath: string) => {
     const fileType = getFileType(receiptPath);
-    const fullPath = receiptPath.startsWith('http') ? receiptPath : `/${receiptPath}`;
+    const fullPath = receiptPath.startsWith('http') || receiptPath.startsWith('/') ? receiptPath : `/${receiptPath}`;
     
     return (
       <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-900/20">
@@ -458,6 +468,8 @@ export function BankReceiptUploadModal({
           {!order?.receiptPath && (
             <div className="border rounded-lg p-4">
               <SimpleBankReceiptUploader
+                key={orderNumber}
+                onUploadStart={() => { setUploadedFileUrl(null); setUploadedReceipt(null); setSecurityValidated(false); }}
                 onUploadComplete={handleUploadComplete}
                 maxFileSize={5 * 1024 * 1024}
                 className="border-0 shadow-none"

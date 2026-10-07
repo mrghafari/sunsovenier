@@ -3249,22 +3249,6 @@
       "count": 2
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'receiptNotes' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 41 more ...; additionalDocumentsNote: string | null; }'.\",\"receiptNotes: order.receiptNotes,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2339,\"Property 'receiptUploadDate' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 41 more ...; additionalDocumentsNote: string | null; }'.\",\"receiptUploadDate: order.receiptUploadDate,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2339,\"Property 'receiptUrl' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 41 more ...; additionalDocumentsNote: string | null; }'.\",\"if (!order.receiptUrl) {\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2339,\"Property 'receiptUrl' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 41 more ...; additionalDocumentsNote: string | null; }'.\",\"receiptUrl: order.receiptUrl,\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",2339,\"Property 'receivedDate' does not exist on type 'PgTableWithColumns<{ name: \\\"incoming_correspondence\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"incoming_correspondence\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; ... 8 more ...; generated: undefined; }, {}, {}>; ... 18 more ...; updatedAt: PgColumn<.....'.\",\".orderBy(desc(incomingCorrespondence.receivedDate));\"]",
       "count": 1
     },
@@ -3637,10 +3621,6 @@
       "count": 2
     },
     {
-      "key": "[\"server/routes.ts\",2345,\"Argument of type 'string | null' is not assignable to parameter of type 'string'.\\n  Type 'null' is not assignable to type 'string'.\",\"if (!['bank_transfer', 'bank_transfer_grace'].includes(order.paymentMethod)) {\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",2345,\"Argument of type 'string | number' is not assignable to parameter of type 'string'.\\n  Type 'number' is not assignable to type 'string'.\",\"const tickets = await ticketingStorage.getTicketsByCustomUser(customUserId, filters.limit, filters.offset);\"]",
       "count": 1
     },
@@ -3709,10 +3689,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'currentDepartment' does not exist in type '{ customerOrderId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; id?: number | SQL<...> | PgColumn<...> | undefined; ... 65 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }'.\",\"currentDepartment: 'finance',\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'customerId' does not exist in type '{ customerOrderId: number; weightUnit?: string | null | undefined; actualDeliveryDate?: Date | null | undefined; trackingNumber?: string | null | undefined; isVerified?: boolean | null | undefined; ... 59 more ...; carrierLocationSource?: string | ... 1 more ... | undefined; }'.\",\"customerId: finalCrmCustomerId || customerId,\"]",
       "count": 1
     },
@@ -3747,10 +3723,6 @@
     {
       "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'paymentReference' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 40 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"paymentReference: reference,\"]",
       "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'receiptUrl' does not exist in type '{ customerId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; orderNumber?: string | SQL<...> | PgColumn<...> | undefined; ... 48 more ...; additionalDocumentsNote?: string | ... 3 more ... | undefined; }'.\",\"receiptUrl: normalizedPath,\"]",
-      "count": 1
     },
     {
       "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'refundAmount' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 40 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"refundAmount: refundAmount.toString(),\"]",

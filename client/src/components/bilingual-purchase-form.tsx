@@ -1,3 +1,4 @@
+import { uploadBankReceiptFile, submitBankReceipt } from "@/lib/bank-receipt-upload";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
@@ -2123,35 +2124,24 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       
       // Handle bank receipt upload separately if file is selected
       if (paymentMethod === 'bank_receipt' && selectedReceiptFile) {
+        // Fail before creating an order when the file cannot be uploaded.
+        const receipt = await uploadBankReceiptFile(selectedReceiptFile);
         // First create the order
         const orderResponse = await apiRequest("/api/customers/orders", {
           method: "POST",
           body: { ...orderData, language }
         });
         
-        // Then upload the receipt file
-        if (orderResponse.orderId) {
-          const formData = new FormData();
-          formData.append('receipt', selectedReceiptFile);
-          formData.append('orderId', orderResponse.orderId.toString());
-          formData.append('notes', orderData.notes || '');
-          
-          try {
-            const uploadResponse = await fetch('/api/payment/upload-receipt', {
-              method: 'POST',
-              body: formData,
-              credentials: 'include'
-            });
-            
-            if (uploadResponse.ok) {
-              const uploadResult = await uploadResponse.json();
-              console.log('Receipt uploaded successfully:', uploadResult);
-            } else {
-              console.error('Failed to upload receipt');
-            }
-          } catch (error) {
-            console.error('Error uploading receipt:', error);
-          }
+        // An existing order must not be created again if receipt registration fails.
+        try {
+          const orderId = orderResponse.orderId ?? orderResponse.order?.id;
+          if (!orderId) throw new Error(t.pleaseUploadReceipt);
+          await submitBankReceipt({
+            receiptUrl: receipt.receiptUrl, uploadToken: receipt.uploadToken,
+            orderId, notes: orderData.notes || "",
+          });
+        } catch (error) {
+          return { ...orderResponse, receiptUploadError: error instanceof Error ? error.message : t.pleaseUploadReceipt };
         }
         
         return orderResponse;
@@ -2266,7 +2256,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       } 
       // Check if bank receipt upload is needed
       else if (paymentMethod === 'bank_receipt') {
-        if (selectedReceiptFile) {
+        if (selectedReceiptFile && !response.receiptUploadError) {
           toast({
             title: t.orderAndReceiptRegistered,
             description: t.orderReceiptSuccess
@@ -2274,12 +2264,13 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         } else {
           toast({
             title: t.orderRegistered,
-            description: t.pleaseUploadReceipt
+            description: response.receiptUploadError || t.pleaseUploadReceipt,
+            ...(response.receiptUploadError ? { variant: "destructive" as const } : {}),
           });
           
           // Redirect to bank receipt upload page only if no file was uploaded
           setTimeout(() => {
-            window.location.href = `/bank-receipt-upload/${response.orderId}`;
+            window.location.href = `/bank-receipt-upload/${response.orderId ?? response.order?.id}`;
           }, 1500);
           return; // Don't call onOrderComplete if redirecting
         }

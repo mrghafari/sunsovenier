@@ -11,12 +11,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, CheckCircle, AlertCircle, ArrowLeft, CreditCard, Building2, Shield } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { SimpleBankReceiptUploader } from "@/components/SimpleBankReceiptUploader";
+import { submitBankReceipt, type UploadedBankReceipt } from "@/lib/bank-receipt-upload";
 
 export default function BankReceiptUpload() {
   const { orderId: paramOrderId } = useParams();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [uploadedReceipt, setUploadedReceipt] = useState<UploadedBankReceipt | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [notes, setNotes] = useState("");
   const [receiptAmount, setReceiptAmount] = useState("");
@@ -86,14 +88,12 @@ export default function BankReceiptUpload() {
   // Upload mutation - Uses Secure Object Storage
   const uploadMutation = useMutation({
     mutationFn: async ({ receiptUrl, orderId, notes }: { receiptUrl: string; orderId: string; notes: string }) => {
-      const response = await apiRequest('/api/payment/upload-receipt', {
-        method: 'POST',
-        body: {
+      if (!uploadedReceipt) throw new Error("لطفاً فایل فیش بانکی را دوباره آپلود کنید");
+      const response = await submitBankReceipt({
           receiptUrl,
           orderId,
           notes,
-          securityValidated: true // Mark as security validated
-        }
+          uploadToken: uploadedReceipt.uploadToken,
       });
       return response;
     },
@@ -105,6 +105,7 @@ export default function BankReceiptUpload() {
       
       // Reset form
       setUploadedFileUrl(null);
+      setUploadedReceipt(null);
       setUploadProgress(0);
       setNotes("");
       setReceiptAmount("");
@@ -126,8 +127,9 @@ export default function BankReceiptUpload() {
   });
 
   // Handle simple upload completion
-  const handleUploadComplete = (fileUrl: string) => {
+  const handleUploadComplete = (fileUrl: string, receipt: UploadedBankReceipt) => {
     setUploadedFileUrl(fileUrl);
+    setUploadedReceipt(receipt);
     setUploadProgress(100);
     setSecurityStatus("✅ فایل با موفقیت آپلود و اعتبارسنجی شد");
     
@@ -166,7 +168,8 @@ export default function BankReceiptUpload() {
       return;
     }
 
-    if (!orderId || orderId.trim() === '') {
+    const targetOrderId = order?.orderNumber || orderId;
+    if (!targetOrderId || targetOrderId.trim() === '') {
       toast({
         title: "شماره سفارش الزامی است",
         description: "لطفاً شماره سفارش را وارد کنید",
@@ -182,7 +185,7 @@ export default function BankReceiptUpload() {
       // Save receipt to database with secure file URL
       await uploadMutation.mutateAsync({
         receiptUrl: secureObjectPath,
-        orderId,
+        orderId: targetOrderId,
         notes: notes + (receiptAmount ? ` | مبلغ: ${receiptAmount} دینار` : ''),
       });
       
@@ -366,6 +369,7 @@ export default function BankReceiptUpload() {
         <CardContent className="space-y-4">
           {/* Simple File Upload */}
           <SimpleBankReceiptUploader
+            onUploadStart={() => { setUploadedFileUrl(null); setUploadedReceipt(null); setSecurityStatus(""); }}
             onUploadComplete={handleUploadComplete}
             maxFileSize={5 * 1024 * 1024} // 5MB for faster processing
             className="border-0 shadow-none"

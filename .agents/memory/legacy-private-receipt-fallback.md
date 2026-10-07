@@ -8,3 +8,9 @@ Keep legacy `/objects/uploads/<uuid>` receipt URLs stable. Migrate a file to a d
 **Why:** Development can still read historical Object Storage files while production may fail against the same bucket. Rewriting shared database paths before the new application version is published creates an avoidable outage, and making receipts public would expose financial documents. Assuming every legacy receipt is a PDF can serve an image with the wrong media type and leave image viewers unable to display it.
 
 **How to apply:** For legacy receipt recovery, copy the verified file to private S3 without changing database references. Preserve GET and HEAD behavior on the stable application endpoint, return the original content type, and let viewers use the response media type instead of guessing from a UUID URL. Add ownership/role authorization separately rather than relying on UUID secrecy.
+
+New bank receipts should go through an authenticated, same-origin application upload into private S3, rather than anonymous Object Storage upload links or browser-to-storage PUT requests.
+
+**Why:** The older receipt uploader depended on the storage sidecar and a separate browser upload/validation sequence that could fail on the published site. Private S3 itself was verified to accept and return a synthetic receipt through the backend.
+
+**How to apply:** Keep persisted receipt links stable and enforce ownership. Preserve the original document bytes, verify file metadata on the server, and bind attachment evidence to the uploading customer. Uploading proof does not authorize financial approval or wallet adjustments.

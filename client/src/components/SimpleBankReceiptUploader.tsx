@@ -7,6 +7,7 @@ import { Upload, FileText, CheckCircle, AlertCircle, Shield } from 'lucide-react
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { Language } from '@/lib/i18n';
+import { uploadBankReceiptFile, type UploadedBankReceipt } from '@/lib/bank-receipt-upload';
 
 const UPLOADER_T = {
   en: {
@@ -96,13 +97,15 @@ const UPLOADER_T = {
 } satisfies Record<Language, object>;
 
 interface SimpleBankReceiptUploaderProps {
-  onUploadComplete?: (fileUrl: string) => void;
+  onUploadComplete?: (fileUrl: string, receipt: UploadedBankReceipt) => void;
+  onUploadStart?: () => void;
   maxFileSize?: number;
   className?: string;
 }
 
 export function SimpleBankReceiptUploader({ 
   onUploadComplete, 
+  onUploadStart,
   maxFileSize = 5 * 1024 * 1024, // 5MB
   className 
 }: SimpleBankReceiptUploaderProps) {
@@ -119,6 +122,7 @@ export function SimpleBankReceiptUploader({
     if (!file) return;
 
     try {
+      onUploadStart?.();
       setUploading(true);
       setUploadStatus('uploading');
       setProgress(10);
@@ -129,72 +133,17 @@ export function SimpleBankReceiptUploader({
       }
 
       const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
-      if (!allowedTypes.includes(file.type)) {
+      if (file.type && !allowedTypes.includes(file.type)) {
         throw new Error(t.typeError);
       }
 
       setProgress(30);
 
-      // Get upload URL
-      const uploadResponse = await fetch('/api/secure-upload/generate-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileSize: file.size,
-          mimeType: file.type,
-          userId: 'anonymous'
-        })
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error(t.urlError);
-      }
-
-      const uploadData = await uploadResponse.json();
-      if (!uploadData.success || !uploadData.uploadUrl || !uploadData.objectPath) {
-        throw new Error(t.invalidUrl);
-      }
-      setProgress(50);
-
-      // Upload file
-      const fileUploadResponse = await fetch(uploadData.uploadUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type }
-      });
-
-      if (!fileUploadResponse.ok) {
-        throw new Error(t.uploadError);
-      }
-
-      setProgress(80);
-
-      // Validate uploaded file
-      const validationResponse = await fetch('/api/secure-upload/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileUrl: uploadData.objectPath,
-          fileName: file.name,
-          userId: 'anonymous',
-          uploadType: 'bank-receipt'
-        })
-      });
-
-      const validationResult = await validationResponse.json();
+      const receipt = await uploadBankReceiptFile(file);
       setProgress(100);
-
-      if (validationResult.success) {
-        setUploadStatus('success');
-        toast({
-          title: t.successTitle,
-          description: t.successDescription,
-        });
-        onUploadComplete?.(uploadData.objectPath);
-      } else {
-        throw new Error(t.validationError);
-      }
+      setUploadStatus('success');
+      toast({ title: t.successTitle, description: t.successDescription });
+      onUploadComplete?.(receipt.receiptUrl, receipt);
 
     } catch (error) {
       setUploadStatus('error');
@@ -207,7 +156,6 @@ export function SimpleBankReceiptUploader({
       setUploading(false);
       setTimeout(() => {
         setProgress(0);
-        setUploadStatus('idle');
       }, 3000);
       
       // Reset file input
