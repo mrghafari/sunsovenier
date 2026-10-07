@@ -2,6 +2,7 @@ import type {Express,RequestHandler} from "express";
 import {z} from "zod";
 import {pool} from "./db";
 import type {PoolClient} from "@neondatabase/serverless";
+import {CRM_BUYER_TYPES} from "@shared/crm-customer-types";
 const rowSchema=z.object({customerType:z.string().trim().min(1).max(100),digit:z.string().regex(/^[0-9]$/).nullable()}).strict();
 export const customerCodeSettingsSchema=z.object({rows:z.array(rowSchema).min(1).max(100)}).strict()
   .superRefine((data,ctx)=>{
@@ -15,10 +16,12 @@ export class CustomerCodeError extends Error {
 }
 export async function readCustomerCodeSettings(db:Pick<PoolClient,"query">=pool){
   const rows=await db.query(`WITH types AS(
-    SELECT customer_type FROM customer_type_code_settings UNION SELECT DISTINCT customer_type FROM crm_customers)
+    SELECT unnest($1::text[]) AS customer_type
+    UNION SELECT customer_type FROM customer_type_code_settings
+    UNION SELECT DISTINCT customer_type FROM crm_customers)
     SELECT t.customer_type AS "customerType",s.digit,coalesce(s.next_number,1) AS "nextNumber",
       (SELECT count(*)::int FROM crm_customers c WHERE s.digit IS NOT NULL AND c.customer_code LIKE '9'||s.digit||'%') AS "issuedCount"
-    FROM types t LEFT JOIN customer_type_code_settings s USING(customer_type) ORDER BY t.customer_type`);
+    FROM types t LEFT JOIN customer_type_code_settings s USING(customer_type) ORDER BY t.customer_type`,[[...CRM_BUYER_TYPES]]);
   const missing=await db.query("SELECT count(*)::int AS n FROM crm_customers WHERE customer_code IS NULL");
   return {rows:rows.rows,unassignedCount:missing.rows[0].n};
 }

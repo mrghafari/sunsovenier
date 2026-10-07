@@ -227,8 +227,9 @@ export function crmCurrency(value: number | string, language: Language, currency
 export function crmEnum(value: string | undefined | null, language: Language) {
   if (!value) return crmText(language, "unknown");
   const labels: Record<string, Record<Language, string>> = {
-    retail: { en: "Retail", fa: "خرده‌فروشی", ar: "تجزئة", tr: "Perakende" },
-    wholesale: { en: "Wholesale", fa: "عمده‌فروشی", ar: "جملة", tr: "Toptan" },
+    retail: { en: "Retail buyers", fa: "خریداران خرد", ar: "مشترو التجزئة", tr: "Perakende alıcılar" },
+    wholesale: { en: "Wholesale buyers", fa: "خریداران عمده", ar: "مشترو الجملة", tr: "Toptan alıcılar" },
+    foreign: { en: "Foreign buyers", fa: "خریداران خارجی", ar: "المشترون الأجانب", tr: "Yabancı alıcılar" },
     b2b: { en: "B2B", fa: "B2B", ar: "B2B", tr: "B2B" },
     distributor: { en: "Distributor", fa: "توزیع‌کننده", ar: "موزع", tr: "Distribütör" },
     end_user: { en: "End User", fa: "مصرف‌کننده نهایی", ar: "مستخدم نهائي", tr: "Son Kullanıcı" },

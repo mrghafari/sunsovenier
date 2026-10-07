@@ -22,6 +22,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { crmCurrency, crmDate, crmEnum, crmText } from "@/lib/crm-localization";
 import { CustomerCodeSettings, CustomerCodeValue, customerCodeText } from "@/components/crm/customer-code-settings";
+import { CRM_BUYER_TYPES } from "@shared/crm-customer-types";
 
 // Province and City components for Iraq geographical data
 
@@ -997,6 +998,7 @@ export default function CRM() {
     switch (type) {
       case 'retail': return 'bg-blue-100 text-blue-800';
       case 'wholesale': return 'bg-orange-100 text-orange-800';
+      case 'foreign': return 'bg-cyan-100 text-cyan-800';
       case 'b2b': return 'bg-green-100 text-green-800';
       case 'distributor': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -1488,7 +1490,7 @@ export default function CRM() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {["retail", "wholesale", "b2b", "distributor"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
+                    {[...CRM_BUYER_TYPES, "b2b", "distributor"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -2052,7 +2054,7 @@ export default function CRM() {
                         <SelectValue placeholder={crmText(language, "selectCustomerType")} />
                       </SelectTrigger>
                       <SelectContent>
-                        {["regular", "vip", "wholesale", "retail", "industrial"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
+                        {[...CRM_BUYER_TYPES, "regular", "vip", "industrial", "b2b", "distributor"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>

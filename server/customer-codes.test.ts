@@ -2,11 +2,35 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {randomInt,randomUUID} from "node:crypto";
 import {pool} from "./db";
-import {saveCustomerCodeSettings,customerCodeSettingsSchema,assignExistingCustomerCodes} from "./customer-codes";
+import {saveCustomerCodeSettings,customerCodeSettingsSchema,assignExistingCustomerCodes,readCustomerCodeSettings} from "./customer-codes";
+import {CRM_BUYER_TYPES} from "@shared/crm-customer-types";
+import {crmEnum} from "../client/src/lib/crm-localization";
 test("type digits have no numeric defaults and duplicates are rejected",()=>{
   assert.equal(customerCodeSettingsSchema.safeParse({rows:[{customerType:"retail",digit:null}]}).success,true);
   assert.equal(customerCodeSettingsSchema.safeParse({rows:[{customerType:"retail",digit:"1"},{customerType:"b2b",digit:"1"}]}).success,false);
   for(const digit of ["12","a","۱",1]) assert.equal(customerCodeSettingsSchema.safeParse({rows:[{customerType:"retail",digit}]}).success,false);
+});
+test("all three buyer categories have multilingual labels and allow unset digits",()=>{
+  assert.deepEqual([...CRM_BUYER_TYPES],["retail","wholesale","foreign"]);
+  assert.equal(customerCodeSettingsSchema.safeParse({
+    rows:CRM_BUYER_TYPES.map(customerType=>({customerType,digit:null})),
+  }).success,true);
+  assert.deepEqual(CRM_BUYER_TYPES.map(type=>crmEnum(type,"fa")),["خریداران خرد","خریداران عمده","خریداران خارجی"]);
+  for(const language of ["en","fa","ar","tr"] as const)
+    for(const type of CRM_BUYER_TYPES) assert.notEqual(crmEnum(type,language),type);
+});
+test("numbering settings include buyer categories without requiring customer records",async()=>{
+  const calls:{sql:string;parameters?:unknown[]}[]=[];
+  const database={query:async(sql:string,parameters?:unknown[])=>{
+    calls.push({sql,parameters});
+    return calls.length===1
+      ? {rows:CRM_BUYER_TYPES.map(customerType=>({customerType,digit:null,nextNumber:1,issuedCount:0}))}
+      : {rows:[{n:0}]};
+  }} as unknown as Parameters<typeof readCustomerCodeSettings>[0];
+  const settings=await readCustomerCodeSettings(database);
+  assert.match(calls[0].sql,/unnest\(\$1::text\[\]\)/);
+  assert.deepEqual(calls[0].parameters,[[...CRM_BUYER_TYPES]]);
+  assert.ok(settings.rows.every(row=>row.digit===null));
 });
 test("customer identifier assignment is transactional and preserves native IDs",{skip:process.env.CUSTOMER_CODE_DB_TEST!=="1"},async()=>{
   const c=await pool.connect();
