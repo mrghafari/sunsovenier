@@ -4,6 +4,7 @@
 - [PDFKit RTL text](pdfkit-rtl-text.md) — pass Persian and Arabic in logical Unicode order; manual word or character reversal renders invoices backwards.
 - [Certificate storage](certificate-storage.md) — store new certificate files privately in Amazon S3 and expose only stable app URLs backed by short-lived signed downloads.
 - [Drizzle schema push](drizzle-schema-push.md) — schema introspection can fail on a legacy expression index; keep schema source authoritative and apply additive dev DDL safely.
+- [Nested database errors](nested-database-errors.md) — inspect Drizzle error causes for SQLSTATE; distinguish constraint conflicts without exposing SQL or row data.
 - [Optional blog languages](strict-blog-localization.md) — retain any one to four languages per article; missing site languages fall back to available content, not “not found.”
 - [Sales analytics order status](sales-analytics-order-status.md) — geographic and product sales reports must exclude cancelled, failed, and deleted orders consistently.
 - [Type-check baseline fingerprints](typecheck-baseline-fingerprints.md) — Drizzle schema growth can reword existing diagnostics; review new/resolved pairs before refreshing the baseline.

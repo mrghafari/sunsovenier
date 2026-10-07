@@ -928,7 +928,7 @@ const LogisticsManagement = () => {
     onError: (error: any) => {
       toast({ 
         title: t('error'),
-        description: error?.response?.data?.message || t('readyVehicleError'),
+        description: error?.response?.data?.message || error?.message || t('readyVehicleError'),
         variant: "destructive" 
       });
     }
@@ -946,7 +946,7 @@ const LogisticsManagement = () => {
     onError: (error: any) => {
       toast({ 
         title: t('error'),
-        description: error?.response?.data?.message || t('readyVehicleError'),
+        description: error?.response?.data?.message || error?.message || t('readyVehicleError'),
         variant: "destructive" 
       });
     }
@@ -5481,6 +5481,14 @@ const LogisticsManagement = () => {
       // Find the selected vehicle template
       const vehicleTemplates = (vehicleTemplatesData as any)?.data || [];
       const selectedTemplate = vehicleTemplates.find((template: any) => template.name === selectedVehicleType);
+      if (!selectedTemplate) {
+        toast({ title: t('error'), variant: "destructive",
+          description: language === "fa" ? "یک قالب از فهرست قالب‌های مشترک خودرو انتخاب کنید؛ نوع دلخواه را ابتدا در بخش قالب‌ها تعریف کنید."
+            : language === "ar" ? "اختر قالباً من قوالب المركبات المشتركة؛ عرّف الأنواع الجديدة في قسم القوالب أولاً."
+            : language === "tr" ? "Ortak araç şablonlarından birini seçin; yeni türleri önce şablonlar bölümünde tanımlayın."
+            : "Select a shared vehicle template. Define new types in Vehicle Templates first." });
+        return;
+      }
       
       const vehicleData = {
         vehicleTemplateId: selectedTemplate?.id || null,

@@ -3,6 +3,7 @@ import { siteManagementModuleIds } from "@shared/site-management-modules";
 import { loadingPermissionDefinition } from "./modules/loading/registration";
 import { fleetCategoryForContract, parseFleetCategory } from "@shared/fleet-category";
 import { getOrderFleetCategory, validateFleetAssignment, validateReadyFleetCategoryChange } from "./fleet-policy";
+import { readyVehicleDatabaseError } from "./ready-vehicle-errors";
 import { registerFibRoutes } from "./fib-routes";
 import { createServer, type Server } from "http";
 import { logBuffer } from "./log-buffer";
@@ -41434,18 +41435,33 @@ momtazchem.com
   // Create new ready vehicle
   app.post('/api/logistics/ready-vehicles', requireAuth, async (req, res) => {
     try {
-      const { readyVehicles } = await import('../shared/schema');
+      const { readyVehicles, vehicleTemplates } = await import('../shared/schema');
       let fleetCategory;
       try { fleetCategory = parseFleetCategory(req.body.fleetCategory); }
       catch { return res.status(400).json({ success: false, message: "Invalid fleet category." }); }
+      const templateId = Number(req.body.vehicleTemplateId);
+      if (!Number.isSafeInteger(templateId) || templateId <= 0) {
+        return res.status(422).json({ success: false, message: "یک قالب خودرو از فهرست قالب‌های مشترک انتخاب کنید." });
+      }
+      const [template] = await db.select({ id: vehicleTemplates.id }).from(vehicleTemplates)
+        .where(eq(vehicleTemplates.id, templateId)).limit(1);
+      if (!template) return res.status(422).json({ success: false, message: "قالب انتخاب‌شده موجود نیست؛ فهرست قالب‌ها را تازه‌سازی کنید." });
+      const capacity = Number(req.body.loadCapacity);
+      if (req.body.loadCapacity == null || req.body.loadCapacity === "" || !Number.isFinite(capacity) || capacity <= 0) {
+        return res.status(422).json({ success: false, message: "ظرفیت بار باید عددی بزرگ‌تر از صفر باشد." });
+      }
+      if (["licensePlate", "driverName", "driverMobile"].some(field =>
+        typeof req.body[field] !== "string" || !req.body[field].trim())) {
+        return res.status(422).json({ success: false, message: "پلاک، نام راننده و تلفن راننده را تکمیل کنید." });
+      }
       
       const vehicleData = {
-        vehicleTemplateId: req.body.vehicleTemplateId,
+        vehicleTemplateId: templateId,
         fleetCategory,
-        licensePlate: req.body.licensePlate,
-        driverName: req.body.driverName,
-        driverMobile: req.body.driverMobile,
-        loadCapacity: req.body.loadCapacity.toString(),
+        licensePlate: req.body.licensePlate.trim(),
+        driverName: req.body.driverName.trim(),
+        driverMobile: req.body.driverMobile.trim(),
+        loadCapacity: capacity.toString(),
         isAvailable: req.body.isAvailable !== false,
         currentLocation: req.body.currentLocation || null,
         notes: req.body.notes || null,
@@ -41482,14 +41498,8 @@ momtazchem.com
     } catch (error) {
       console.error('Error creating ready vehicle:', error);
       
-      if (error.code === '23505') { // Unique constraint violation
-        return res.status(400).json({ 
-          success: false, 
-          message: 'شماره پلاک قبلاً ثبت شده است' 
-        });
-      }
-      
-      res.status(500).json({ success: false, message: 'Failed to create ready vehicle' });
+      const failure = readyVehicleDatabaseError(error);
+      res.status(failure.status).json({ success: false, message: failure.message });
     }
   });
 
