@@ -1,5 +1,6 @@
 import type { ShopContractDraftData, ContractDraftLanguage } from "@shared/contract-draft";
 import type { IncotermCode } from "@shared/incoterms";
+import { packagingTermsText, type ContractPackaging } from "./contract-packaging";
 
 export type ContractDocumentItem = {
   productId: number | string;
@@ -13,6 +14,7 @@ export type ContractDocumentContext = {
   contractNumber: string;
   deliveryTerm: IncotermCode | null;
   items: ContractDocumentItem[];
+  packaging?: ContractPackaging | null;
 };
 
 const filled = (text: string | number | undefined | null) => String(text ?? "").trim() || "[—]";
@@ -306,7 +308,7 @@ export function buildContractDraftText(draft: ShopContractDraftData, context: Co
   ].filter(Boolean).join(" · ");
   const buyerLine = `${labels.buyer}: ${filled(context.customerName)} (${labels.country}: ${filled(buyer.country)}؛ ${labels.registration}: ${filled(buyer.registration)}؛ ${labels.address}: ${filled(buyer.address)}؛ ${labels.representative}: ${filled(buyer.representative)}؛ ${labels.contact}: ${filled(buyer.contact)})`;
   const sellerLine = `${labels.seller}: ${filled(seller.name)} (${labels.registration}: ${filled(seller.registration)}؛ ${labels.address}: ${filled(seller.address)}؛ ${labels.representative}: ${filled(seller.representative)}؛ ${labels.contact}: ${sellerContact}${sellerExtra ? `؛ ${sellerExtra}` : ""})`;
-  const clauseLines = clauses.map((clause, index) => `${index + 1}. ${labels.terms[index]}: ${clause}`);
+  const clauseLines = clauses.map((clause, index) => `${index + 1}. ${labels.terms[index]}: ${clause}${index === 3 && context.packaging ? `\n${packagingTermsText(context.packaging, language)}` : ""}`);
   const signLines = `${labels.sellerSignature}: ${filled(seller.representative)}          ${labels.buyerSignature}: ${filled(buyer.representative)}`;
 
   return `${labels.title}

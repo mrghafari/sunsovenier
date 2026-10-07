@@ -142,6 +142,7 @@ export const customerOrders = pgTable("customer_orders", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").notNull(),
   contractId: integer("contract_id").references(() => shopContracts.id, { onDelete: "set null" }),
+  packagingDetails: jsonb("packaging_details").$type<import("./contract-packaging").ContractPackagingCharge | null>(),
   orderNumber: text("order_number").notNull().unique(),
   status: text("status").notNull().default("pending"), // pending, confirmed, processing, shipped, delivered, cancelled
   priority: text("priority").notNull().default("normal"), // low, normal, high, urgent
@@ -216,7 +217,10 @@ export const shopContractOrderSnapshots = pgTable("shop_contract_order_snapshots
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const insertCustomerOrderSchema = createInsertSchema(customerOrders).omit({
+export const insertCustomerOrderSchema = createInsertSchema(customerOrders).extend({
+  // Preserve the structured type through drizzle-zod's generic JSON inference.
+  packagingDetails: z.custom<import("./contract-packaging").ContractPackagingCharge>().nullable().optional(),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,

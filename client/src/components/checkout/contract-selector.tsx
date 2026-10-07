@@ -5,6 +5,7 @@ import type { IncotermCode } from '@shared/incoterms';
 import { contractTheme } from '@/lib/contract-theme';
 
 export type ShopContract = {
+  packaging?: import("@shared/contract-packaging").ContractPackaging | null;
   id: number;
   number: string;
   deliveryTerm?: IncotermCode | null;
@@ -20,6 +21,8 @@ export type ShopContract = {
     usedQuantity: number;
     remainingQuantity: number;
     unitPrice: number;
+    netWeight?: string | number | null;
+    weightUnit?: string;
   }[];
 };
 

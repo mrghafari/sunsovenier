@@ -677,7 +677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     shippingQuoteToken?: unknown;
     contractId?: unknown;
     customerId?: unknown;
-  }): Promise<{ shippingCost: number; itemSubtotal: number; totalWeight: number; productFacts: Map<number, any>; shippingQuoteVehicle?: any; destinationCityId?: number }> {
+  }): Promise<{ shippingCost: number; itemSubtotal: number; totalWeight: number; productFacts: Map<number, any>; packagingDetails: import("../shared/contract-packaging").ContractPackagingCharge | null; shippingQuoteVehicle?: any; destinationCityId?: number }> {
     const productIds = Object.keys(input.cart || {}).map((id) => Number(id));
     if (!productIds.length || productIds.some((id) => !Number.isSafeInteger(id) || id <= 0)) {
       throw new ShippingConfigurationError("Order must contain valid products.", 422);
@@ -805,7 +805,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       throw new ShippingConfigurationError("Only active standard delivery methods can be quoted.", 422);
     }
     if (isPickupMethod) {
-      return { shippingCost: 0, itemSubtotal, totalWeight, productFacts };
+      return { shippingCost: 0, itemSubtotal, totalWeight, productFacts, packagingDetails: contractPricing?.packagingDetails ?? null };
     }
 
     const countryName = String(input.destinationCountry ?? "").trim();
@@ -860,7 +860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       throw new ShippingConfigurationError("Hazardous products require smart-vehicle delivery.", 422);
     }
     const needsVehicleQuote = hasHazardousProducts || canonicalMethod === "smart_vehicle";
-    const bulkContract=requiresBulkContractTransport(input.contractId,[...productFacts.values()]);
+    const bulkContract=requiresBulkContractTransport(input.contractId,[...productFacts.values()],contractPricing?.packaging?.type);
     if(bulkContract&&!isPickupMethod&&canonicalMethod!=="smart_vehicle")
       throw new ShippingConfigurationError("Bulk contract products require a bulk-category vehicle delivery method.",422);
     if (needsVehicleQuote) {
@@ -884,6 +884,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })).sort((a, b) => a.id - b.id);
       const currentFlammable = currentCart.some((item) => item.isFlammable);
       const currentHazardous = currentCart.some((item) => item.isHazardous);
+      if (contractPricing?.packaging && quote.selectedVehicles.some(v => v.transportCategory !== (bulkContract ? "bulk" : "standard"))) {
+        throw new ShippingConfigurationError("Contract packaging changed. Recalculate the shipping quote.", 422);
+      }
       if(bulkContract){
         const ids=quote.selectedVehicles.map(v=>Number(v.id));
         if(ids.some(id=>!Number.isSafeInteger(id)||id<=0))
@@ -929,6 +932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return {
         shippingCost: quote.shippingCost,
         itemSubtotal,
+        packagingDetails: contractPricing?.packagingDetails ?? null,
         totalWeight,
         productFacts,
         shippingQuoteVehicle: quote.selectedVehicles,
@@ -977,6 +981,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return {
       shippingCost,
       itemSubtotal,
+      packagingDetails: contractPricing?.packagingDetails ?? null,
       totalWeight,
       productFacts,
       ...(input.standardMethodsOnly ? { destinationCityId: route.destinationCityId } : {}),
@@ -1529,6 +1534,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           status: customerOrders.status,
           createdAt: customerOrders.createdAt,
           vatAmount: customerOrders.vatAmount, // Frozen VAT amount from order creation
+          packagingDetails: customerOrders.packagingDetails,
           surchargeAmount: customerOrders.surchargeAmount, // Frozen surcharge amount from order creation
           customerName: sql<string>`CONCAT(${crmCustomers.firstName}, ' ', ${crmCustomers.lastName})`,
           customerEmail: crmCustomers.email,
@@ -1627,9 +1633,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         })),
         subtotal: subtotal,
         vatAmount: storedVatAmount, // Use frozen amount from order creation
+        packagingDetails: order.packagingDetails,
         dutiesAmount: storedSurchargeAmount, // Use frozen amount from order creation
         shippingCost: Math.round(parseFloat(order.shippingCost || '0')),
-        total: Math.round(subtotal + storedVatAmount + storedSurchargeAmount + parseFloat(order.shippingCost || '0')),
+        total: Math.round(subtotal + (order.packagingDetails?.costAmount ?? 0) + storedVatAmount + storedSurchargeAmount + parseFloat(order.shippingCost || '0')),
         currency: order.currency || 'IQD',
          paymentMethod: order.paymentMethod,
          paymentStatus: order.paymentStatus,
@@ -1712,6 +1719,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           status: customerOrders.status,
           createdAt: customerOrders.createdAt,
           vatAmount: customerOrders.vatAmount, // Frozen VAT amount from order creation
+          packagingDetails: customerOrders.packagingDetails,
           surchargeAmount: customerOrders.surchargeAmount, // Frozen surcharge amount from order creation
           invoiceType: customerOrders.invoiceType, // 🧾 اضافه کردن نوع فاکتور
           customerName: sql<string>`CONCAT(${crmCustomers.firstName}, ' ', ${crmCustomers.lastName})`,
@@ -1821,9 +1829,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         })),
         subtotal: subtotal,
         vatAmount: storedVatAmount, // Use frozen amount from order creation
+        packagingDetails: order.packagingDetails,
         dutiesAmount: storedSurchargeAmount, // Use frozen amount from order creation
         shippingCost: Math.round(parseFloat(order.shippingCost || '0')),
-        total: Math.round(subtotal + storedVatAmount + storedSurchargeAmount + parseFloat(order.shippingCost || '0')),
+        total: Math.round(subtotal + (order.packagingDetails?.costAmount ?? 0) + storedVatAmount + storedSurchargeAmount + parseFloat(order.shippingCost || '0')),
         currency: order.currency || 'IQD',
          paymentMethod: order.paymentMethod,
          paymentStatus: order.paymentStatus,
@@ -12200,6 +12209,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           customerNotes: order.notes,
           vatRate: order.vat_rate,
           vatAmount: order.vat_amount,
+          packagingDetails: order.packaging_details ?? null,
           surchargeAmount: order.surcharge_amount,
           customer,
           items: itemsResult
@@ -19334,9 +19344,12 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const serverVehicleType = shippingFacts.shippingQuoteVehicle?.[0]?.type ?? vehicleType ?? null;
       const shopTax = await calculateOrderTaxes(shippingFacts.itemSubtotal);
       const serverShippingCost = shippingFacts.shippingCost;
-      const serverVatAmount = Math.round(shopTax.vatAmount || 0);
+      const serverVatAmount = Math.round(shopTax.vatAmount || 0) + (shippingFacts.packagingDetails?.vatAmount ?? 0);
       const serverDutiesAmount = Math.round(shopTax.dutiesAmount || 0);
-      const serverTotalAmount = Math.round(shippingFacts.itemSubtotal + serverShippingCost + serverVatAmount + serverDutiesAmount);
+      const serverTotalAmount = Math.round(shippingFacts.itemSubtotal + (shippingFacts.packagingDetails?.costAmount ?? 0) + serverShippingCost + serverVatAmount + serverDutiesAmount);
+      if (req.body.contractId != null && JSON.stringify(req.body.packagingDetails ?? null) !== JSON.stringify(shippingFacts.packagingDetails)) {
+        return res.status(409).json({ success: false, message: "Packaging terms or net weights changed. Refresh the cart before placing the order.", code: "PACKAGING_CHANGED" });
+      }
       const reservationCart = reservationItems.reduce((cart: Record<number, number>, item: any) => {
         const productId = Number(item.productId);
         const quantity = Math.floor(Number(item.quantity));
@@ -19373,6 +19386,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           contractHoldId = await claimContractCart(
             Number(req.body.contractId), Number(crmCustomerId ?? customerId), reservationCart,
             new Map([...shippingFacts.productFacts].map(([id, product]) => [id, product.unitPrice])),
+            shippingFacts.packagingDetails,
           );
         } catch (error) {
           return res.status(409).json({ success: false, message: error instanceof Error ? error.message : "Contract allocation failed." });
@@ -19615,7 +19629,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const orderData = {
         orderNumber, // Will be null for bank payments initially
         customerId: customerId || null,
-        transportCategory:requiresBulkContractTransport(req.body.contractId,[...shippingFacts.productFacts.values()])?"bulk":"standard",
+        transportCategory:requiresBulkContractTransport(req.body.contractId,[...shippingFacts.productFacts.values()],shippingFacts.packagingDetails?.type)?"bulk":"standard",
+        packagingDetails: shippingFacts.packagingDetails,
         bulkVehicleTemplateId:selectedBulkVehicleTemplateId??(shippingFacts.shippingQuoteVehicle?.[0]?.transportCategory==="bulk"?Number(shippingFacts.shippingQuoteVehicle[0].id):null),
         ...(contractHoldId !== null || accountingWalletDeferred ? { currency: "IQD" } : {}),
         totalAmount: Math.round(serverTotalAmount).toString(),
@@ -20133,9 +20148,12 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       
       // Get current tax rates from tax_settings table and freeze them for this order
       const taxCalculation = await calculateOrderTaxes(itemsSubtotal);
-      taxCalculation.vatAmount = Math.round(taxCalculation.vatAmount);
+      taxCalculation.vatAmount = Math.round(taxCalculation.vatAmount) + (shippingFacts.packagingDetails?.vatAmount ?? 0);
       taxCalculation.dutiesAmount = Math.round(taxCalculation.dutiesAmount);
-      const totalAmount = Math.round(itemsSubtotal + shippingAmount + taxCalculation.vatAmount + taxCalculation.dutiesAmount);
+      const totalAmount = Math.round(itemsSubtotal + (shippingFacts.packagingDetails?.costAmount ?? 0) + shippingAmount + taxCalculation.vatAmount + taxCalculation.dutiesAmount);
+      if (orderData.contractId != null && JSON.stringify(orderData.packagingDetails ?? null) !== JSON.stringify(shippingFacts.packagingDetails)) {
+        return res.status(409).json({ success: false, message: "Packaging terms or net weights changed. Refresh the cart before placing the order.", code: "PACKAGING_CHANGED" });
+      }
       
       console.log('💰 [ORDER TAX] Tax calculation for order:', {
         itemsSubtotal,
@@ -20204,6 +20222,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           contractHoldId = await claimContractCart(
             Number(orderData.contractId), Number(crmCustomerId ?? customerId), reservationCart,
             new Map([...shippingFacts.productFacts].map(([id, product]) => [id, product.unitPrice])),
+            shippingFacts.packagingDetails,
           );
         } catch (error) {
           return res.status(409).json({ success: false, message: error instanceof Error ? error.message : "Contract allocation failed." });
@@ -20330,7 +20349,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
       const order = await customerStorage.createOrder({
         customerId: finalCustomerId,
-        transportCategory:requiresBulkContractTransport(orderData.contractId,[...shippingFacts.productFacts.values()])?"bulk":"standard",
+        transportCategory:requiresBulkContractTransport(orderData.contractId,[...shippingFacts.productFacts.values()],shippingFacts.packagingDetails?.type)?"bulk":"standard",
+        packagingDetails: shippingFacts.packagingDetails,
         bulkVehicleTemplateId:selectedBulkVehicleTemplateId??(shippingFacts.shippingQuoteVehicle?.[0]?.transportCategory==="bulk"?Number(shippingFacts.shippingQuoteVehicle[0].id):null),
         ...(orderData.contractId != null ? { contractId: Number(orderData.contractId) } : {}),
         orderNumber,
@@ -21470,6 +21490,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           co.total_amount,
           co.shipping_cost,
           co.vat_amount,
+          co.packaging_details,
           co.surcharge_amount,
           co.vat_rate,
           co.surcharge_rate,
@@ -21579,6 +21600,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           totalAmount: row.total_amount,
           shippingCost: row.shipping_cost,
           vatAmount: row.vat_amount,
+          packagingDetails: row.packaging_details ?? null,
           surchargeAmount: row.surcharge_amount,
           vatRate: row.vat_rate,
           surchargeRate: row.surcharge_rate,
@@ -26045,7 +26067,7 @@ ${procedure.content}
       const query = `
         SELECT co.id, co.order_number, co.customer_id, co.total_amount, co.status, 
                co.payment_method, co.currency, co.created_at, co.updated_at,
-               co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
+               co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate, co.packaging_details,
                c.first_name as customer_first_name, c.last_name as customer_last_name, 
                COALESCE(NULLIF(TRIM(c.email), ''), NULLIF(TRIM(co.guest_email), '')) as customer_email,
                c.phone as customer_phone,
@@ -26124,6 +26146,7 @@ ${procedure.content}
             status: order.status,
             shippingCost: order.shipping_cost || '0',
             vatAmount: order.vat_amount || '0',
+            packagingDetails: order.packaging_details ?? null,
             surchargeAmount: order.surcharge_amount || '0',
             vatRate: order.vat_rate || '0',
             items: items
@@ -26151,6 +26174,7 @@ ${procedure.content}
             status: order.status,
             shippingCost: order.shipping_cost || '0',
             vatAmount: order.vat_amount || '0',
+            packagingDetails: order.packaging_details ?? null,
             surchargeAmount: order.surcharge_amount || '0',
             vatRate: order.vat_rate || '0',
             items: []
@@ -33549,17 +33573,18 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         ? await getCanonicalCheckoutCartFacts(cart)
         : null;
       let verifiedContractId:number|null=null;
+      let verifiedPackagingType:string|undefined;
       if(contractId!=null){
         const customerSession=req.session as any;
         const customerId=Number(customerSession?.crmCustomerId??customerSession?.customerId);
         if(!checkoutCartFacts||!Number.isSafeInteger(Number(contractId))||Number(contractId)<=0||!customerId)
           return res.status(422).json({success:false,message:"A customer login and valid contract are required."});
         const {loadContractPricing}=await import("./shop-contracts");
-        try{await loadContractPricing(Number(contractId),customerId,cart);}
+        try{verifiedPackagingType=(await loadContractPricing(Number(contractId),customerId,cart)).packaging?.type;}
         catch(error){return res.status(422).json({success:false,message:error instanceof Error?error.message:"Contract unavailable"});}
         verifiedContractId=Number(contractId);
       }
-      const bulkTransport=requiresBulkContractTransport(verifiedContractId,checkoutCartFacts?.cart??[]);
+      const bulkTransport=requiresBulkContractTransport(verifiedContractId,checkoutCartFacts?.cart??[],verifiedPackagingType);
       const templateId=selectedVehicleTemplateId==null?null:Number(selectedVehicleTemplateId);
       if (verifiedContractId !== null && templateId !== null) {
         return res.status(422).json({ success: false, message: "Contract vehicle templates are selected automatically by the system." });
@@ -52230,6 +52255,7 @@ momtazchem.com
         : null;
       // Checkout weight and hazardous flags come exclusively from shop catalog facts.
       let verifiedContractId: number | null = null;
+      let verifiedPackagingType: string | undefined;
       if (req.body.contractId != null) {
         const session = req.session as any;
         const customerId = Number(session?.crmCustomerId ?? session?.customerId);
@@ -52239,13 +52265,14 @@ momtazchem.com
         const { loadContractPricing, assertContractShippingMode } = await import("./shop-contracts");
         try {
           const pricing = await loadContractPricing(Number(req.body.contractId), customerId, cart);
+          verifiedPackagingType = pricing.packaging?.type;
           if (pricing.shippingMode) assertContractShippingMode(pricing.shippingMode, "smart_vehicle");
         } catch (error) {
           throw new ShippingConfigurationError(error instanceof Error ? error.message : "Contract unavailable.", 422);
         }
         verifiedContractId = Number(req.body.contractId);
       }
-      const bulkTransport = requiresBulkContractTransport(verifiedContractId, checkoutCartFacts?.cart ?? []);
+      const bulkTransport = requiresBulkContractTransport(verifiedContractId, checkoutCartFacts?.cart ?? [], verifiedPackagingType);
       const finalWeightKg = checkoutCartFacts?.totalWeightKg ?? Number(weightKg || orderWeightKg);
 
       let distance: number;

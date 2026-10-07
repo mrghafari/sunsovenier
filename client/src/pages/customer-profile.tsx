@@ -769,7 +769,7 @@ const CustomerProfile = () => {
   );
   const getOrderTotal = (order: any) => {
     const subtotal = (order.items || []).reduce((sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0);
-    return subtotal + parseFloat(order.vatAmount || "0") + parseFloat(order.shippingCost || "0") + parseFloat(order.surchargeAmount || "0");
+    return subtotal + Number(order.packagingDetails?.costAmount || 0) + parseFloat(order.vatAmount || "0") + parseFloat(order.shippingCost || "0") + parseFloat(order.surchargeAmount || "0");
   };
   const isUnpaidGraceOrder = (order: any) => {
     const isGracePeriod =
@@ -1683,7 +1683,8 @@ const CustomerProfile = () => {
                                   (sum: number, item: any) => sum + item.totalPrice, 0,
                                 );
                                 const shippingCost = parseFloat(order.shippingCost || "0");
-                                const vatAmount = parseFloat(order.vatAmount || "0");
+                                const packaging = order.packagingDetails;
+                                const vatAmount = parseFloat(order.vatAmount || "0") - Number(packaging?.vatAmount || 0);
                                 const surchargeAmount = parseFloat(order.surchargeAmount || "0");
                                 return (
                                   <div className={`overflow-x-auto border ${isContractOrder(order) ? contractTheme.panel : "border-slate-300"}`}>
@@ -1713,10 +1714,18 @@ const CustomerProfile = () => {
                                           <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{pt.shippingCost}</th>
                                           <td className="border border-slate-300 px-3 py-2">{Math.floor(shippingCost)} IQD</td>
                                         </tr>
+                                        {packaging && <tr className="bg-white">
+                                          <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{language === "fa" ? "هزینهٔ بسته‌بندی" : language === "ar" ? "رسوم التعبئة" : language === "tr" ? "Paketleme ücreti" : "Packaging fee"}</th>
+                                          <td className="border border-slate-300 px-3 py-2">{packaging.costAmount} IQD</td>
+                                        </tr>}
                                         <tr className="bg-slate-100">
                                           <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{pt.vat}</th>
                                           <td className="border border-slate-300 px-3 py-2">{Math.floor(vatAmount)} IQD</td>
                                         </tr>
+                                        {packaging && <tr className="bg-slate-100">
+                                          <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{language === "fa" ? "ارزش افزودهٔ بسته‌بندی" : language === "ar" ? "ضريبة التعبئة" : language === "tr" ? "Paketleme KDV" : "Packaging VAT"} ({packaging.vatRatePercent}%)</th>
+                                          <td className="border border-slate-300 px-3 py-2">{packaging.vatAmount} IQD</td>
+                                        </tr>}
                                         <tr className="bg-white">
                                           <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{pt.surcharge}</th>
                                           <td className="border border-slate-300 px-3 py-2">{Math.floor(surchargeAmount)} IQD</td>

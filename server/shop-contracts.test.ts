@@ -5,6 +5,8 @@ import {
   assertContractShippingMode,
   applyAuthoritativeContractSeller,
   attachContractHold,
+  claimContractCart,
+  loadContractPricing,
   companyProfileToContractSeller,
   formatContractNumber,
   formatContractAddendumNumber,
@@ -17,6 +19,7 @@ import {
 import { pool } from "./db";
 import { isValidIsoDate, shopContractDraftSchema } from "@shared/contract-draft";
 import { buildContractDraftText } from "@shared/contract-document";
+import { calculateContractPackaging } from "@shared/contract-packaging";
 
 const validDraft = () => ({
   version: 1 as const,
@@ -73,6 +76,55 @@ test("contract requires a customer, number, terms, delivery term, status, and pr
     delete input[key];
     assert.throws(() => validateContractDefinition(input), { name: "Error" });
   }
+});
+
+test("contract packaging validates create/edit/addendum without adding fees to legacy contracts", () => {
+  const packaging = {type:"drum",customName:"",costPerTonne:20000,vatRatePercent:4.5};
+  assert.deepEqual(validateContractDefinition({...validContract(),packaging}).packaging,packaging);
+  assert.equal(validateContractDefinition({...validContract(),packaging:null}).packaging,null);
+  assert.equal(validateContractDefinition(validContract()).packaging,undefined);
+  assert.deepEqual(validateContractAddendumDefinition({...validContract(),packaging}).packaging,packaging);
+  assert.throws(()=>validateContractDefinition({...validContract(),packaging:{...packaging,costPerTonne:-1}}));
+});
+
+test("database pricing computes packaging from net weight and rejects stale terms before holding capacity", async () => {
+  const packaging = {type:"drum",customName:"",costPerTonne:20000,vatRatePercent:4.5};
+  const expected = calculateContractPackaging(packaging,[{productId:11,quantity:2,netWeight:500}]);
+  const statements:string[] = [];
+  let currentPackaging = packaging;
+  let currentNetWeight = "500";
+  const originalConnect = pool.connect;
+  (pool as any).connect = async () => ({
+    query:async(sql:string)=>{
+      statements.push(sql);
+      if(sql.startsWith("SELECT id, number, shipping_mode, packaging") || sql.startsWith("SELECT id, packaging"))
+        return {rowCount:1,rows:[{id:1,number:"C2609999",shipping_mode:"self_transport",packaging:currentPackaging}]};
+      if(sql.startsWith("SELECT ci.product_id"))
+        return {rowCount:1,rows:[{product_id:11,max_quantity:10,used_quantity:0,unit_price:10000,net_weight:currentNetWeight,weight_unit:"kg"}]};
+      return {rowCount:0,rows:[]};
+    }, release(){},
+  });
+  try {
+    const pricing = await loadContractPricing(1,7,{11:2});
+    assert.deepEqual(pricing.packagingDetails,expected);
+    currentPackaging = {...packaging,costPerTonne:30000};
+    await assert.rejects(()=>claimContractCart(1,7,{11:2},{11:10000},expected),/Packaging terms or net weights changed/);
+    currentPackaging = packaging; currentNetWeight = "600";
+    await assert.rejects(()=>claimContractCart(1,7,{11:2},{11:10000},expected),/Packaging terms or net weights changed/);
+    currentNetWeight = "500";
+    await assert.rejects(()=>claimContractCart(1,7,{11:2},{11:10000},{...expected!,costAmount:0}),/Packaging terms or net weights changed/);
+    assert.equal(statements.some(s=>s.startsWith("UPDATE shop_contract_items SET used_quantity")),false);
+    assert.ok(statements.includes("ROLLBACK"));
+  }finally{(pool as any).connect=originalConnect;}
+});
+
+test("packaging changes in addenda do not mutate a claimed historical snapshot",()=>{
+  const packaging = {type:"bulk",customName:"",costPerTonne:0,vatRatePercent:0};
+  const contract = {...validContract(),packaging};
+  const original = snapshotContractAtClaim(contract);
+  contract.packaging.costPerTonne=5000;
+  assert.equal(original.packaging.costPerTonne,0);
+  assert.equal(snapshotContractAddendum(contract,"C2609999-1").packaging.costPerTonne,5000);
 });
 
 test("delivery term accepts only the eleven Incoterms 2020 codes", () => {

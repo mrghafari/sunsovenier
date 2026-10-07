@@ -5,6 +5,7 @@ import PDFDocument from 'pdfkit';
 import { vazirRegular, vazirBold } from './vazir-base64';
 import fs from 'fs';
 import { CompanyStorage } from './company-storage';
+import { packagingTypeLabel } from "../shared/contract-packaging";
 
 // Get company logo from database
 async function getCompanyLogo(companyInfo?: any): Promise<Buffer | null> {
@@ -746,13 +747,27 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
       y += rowHeight;
     });
     const subtotal = Number(data.subtotal ?? items.reduce((s: number, i: any) => s + Number(i.total || i.totalPrice || Number(i.quantity || 0) * Number(i.unitPrice || 0)), 0)); const discount = Number(data.discountAmount || 0), vat = Number(data.vatAmount || 0), duties = Number(data.dutiesAmount || 0), shipping = Number(data.shippingCost || 0);
+    const packaging = data.packagingDetails ?? data.packaging_details;
+    const packagingCost = Number(packaging?.costAmount || 0);
+    const packagingVat = Number(packaging?.vatAmount || 0);
     const grandTotal = data.total !== undefined && data.total !== null
       ? Number(data.total)
-      : subtotal + vat + duties + shipping;
+      : subtotal + packagingCost + vat + duties + shipping;
     const totals: Array<[string, number]> = [[L[17], subtotal]];
     if (discount > 0) totals.push([L[18], -discount]);
-    totals.push([L[19], vat], [L[20], duties], [L[21], shipping], [L[22], grandTotal]);
-    if (y > 650) { doc.addPage(); y = 42; }
+    if (packaging) {
+      const packageLabels: Record<string, [string, string]> = {
+        fa: ["هزینهٔ بسته‌بندی", "ارزش افزودهٔ بسته‌بندی"],
+        ar: ["رسوم التعبئة", "ضريبة التعبئة"],
+        tr: ["Paketleme ücreti", "Paketleme KDV"],
+        en: ["Packaging fee", "Packaging VAT"],
+      };
+      const labels = packageLabels[data.language] || packageLabels.en;
+      totals.push([`${labels[0]} (${packagingTypeLabel(packaging, data.language)})`, packagingCost]);
+      totals.push([L[19], vat - packagingVat], [`${labels[1]} (${packaging.vatRatePercent}%)`, packagingVat]);
+    } else totals.push([L[19], vat]);
+    totals.push([L[20], duties], [L[21], shipping], [L[22], grandTotal]);
+    if (y + 14 + totals.length * 19 > 720) { doc.addPage(); y = 42; }
     y += 14;
     totals.forEach((r: any, i: number) => { const isGrandTotal = i === totals.length - 1; doc.font(isGrandTotal ? 'VazirBold' : 'VazirRegular').fontSize(isGrandTotal ? 11 : 9); pair(r[0], `${fmt(r[1])} ${str(data.currency || 'IQD')}`, 42, y, 510); y += 19; });
     doc.font('VazirRegular').fontSize(9);

@@ -2059,6 +2059,7 @@ export const shopContracts = pgTable("shop_contracts", {
   originalContractSnapshot: jsonb("original_contract_snapshot").$type<Record<string, unknown> | null>(),
   originalSnapshotAt: timestamp("original_snapshot_at", { withTimezone: true }),
   shippingMode: text("shipping_mode").$type<ShopContractShippingMode | null>(),
+  packaging: jsonb("packaging").$type<import("./contract-packaging").ContractPackaging | null>(),
   isActive: boolean("is_active").notNull().default(true),
   endedAt: timestamp("ended_at", { withTimezone: true }),
   createdAt: timestamp("created_at").notNull().defaultNow(),

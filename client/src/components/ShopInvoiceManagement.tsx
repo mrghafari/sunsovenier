@@ -101,6 +101,7 @@ interface PaidOrder {
   shippingCost: string;
   vatAmount: string;
   surchargeAmount: string;
+  packagingDetails?: import("@shared/contract-packaging").ContractPackagingCharge | null;
   discountAmount?: string;
   vatRate: string;
   currency: string;
@@ -390,6 +391,8 @@ export default function ShopInvoiceManagement() {
     const orderDate = formatGregorianDate(order.createdAt);
     const paymentDate = formatGregorianDate(order.paymentDate);
     const customerName = getCustomerDisplayName(order);
+    const packaging = order.packagingDetails;
+    const goodsVat = Number(order.vatAmount || 0) - Number(packaging?.vatAmount || 0);
 
     return `
       <!DOCTYPE html>
@@ -679,14 +682,16 @@ export default function ShopInvoiceManagement() {
                 <tr>
                   <td class="label-col">جمع اقلام:</td>
                   <td class="value-col">${formatCurrency(
-                    Math.round(parseFloat(order.totalAmount || '0') - parseFloat(order.shippingCost || '0') - parseFloat(order.vatAmount || '0') - parseFloat(order.surchargeAmount || '0'))
+                    Math.round(parseFloat(order.totalAmount || '0') - Number(packaging?.costAmount || 0) - parseFloat(order.shippingCost || '0') - parseFloat(order.vatAmount || '0') - parseFloat(order.surchargeAmount || '0'))
                   )}</td>
                 </tr>
-                ${parseFloat(order.vatAmount || '0') > 0 ? `
+                ${packaging ? `<tr><td class="label-col">هزینهٔ بسته‌بندی:</td><td class="value-col">${formatCurrency(packaging.costAmount)}</td></tr>` : ''}
+                ${goodsVat > 0 ? `
                 <tr>
                   <td class="label-col">مالیات بر ارزش افزوده (${order.vatRate || '0'}%):</td>
-                  <td class="value-col">${formatCurrency(order.vatAmount)}</td>
+                  <td class="value-col">${formatCurrency(goodsVat.toString())}</td>
                 </tr>` : ''}
+                ${packaging ? `<tr><td class="label-col">ارزش افزودهٔ بسته‌بندی (${Number(packaging.vatRatePercent)}%):</td><td class="value-col">${formatCurrency(packaging.vatAmount)}</td></tr>` : ''}
                 ${parseFloat(order.surchargeAmount || '0') > 0 ? `
                 <tr>
                   <td class="label-col">عوارض:</td>

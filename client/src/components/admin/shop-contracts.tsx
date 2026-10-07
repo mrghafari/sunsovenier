@@ -22,16 +22,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { contractTheme } from "@/lib/contract-theme";
+import type { ContractPackaging } from "@shared/contract-packaging";
+import { parseContractPackaging, packagingTypeLabel } from "@shared/contract-packaging";
+import { ContractPackagingFields } from "@/components/contract-packaging-fields";
 
-type ContractItem = { productId: number | string; productName: string; maxQuantity: number; usedQuantity: number; remainingQuantity: number; unitPrice: number };
+type ContractItem = { productId: number | string; productName: string; maxQuantity: number; usedQuantity: number; remainingQuantity: number; unitPrice: number; netWeight?: string | number | null; weightUnit?: string };
 type ShippingMode = "automatic_vehicle" | "self_transport";
-type Contract = { id: number | string; number: string; addendumCount?: number; terms: string; draftData: ShopContractDraftData | null; shippingMode: ShippingMode | null; isActive: boolean; endedAt: string | null; customerId: number | string; customerName: string; deliveryTerm: IncotermCode | null; items: ContractItem[] };
+type Contract = { id: number | string; number: string; addendumCount?: number; terms: string; draftData: ShopContractDraftData | null; shippingMode: ShippingMode | null; isActive: boolean; endedAt: string | null; customerId: number | string; customerName: string; deliveryTerm: IncotermCode | null; packaging?: ContractPackaging | null; items: ContractItem[] };
 type Customer = { id: number | string; firstName?: string; lastName?: string; name?: string; company?: string; email?: string };
 type Product = { id: number | string; name: string };
 type FormItem = { productId: number | string; productName: string; maxQuantity: string; unitPrice: string; usedQuantity: number };
-type ContractForm = { number: string; customerId: number | string | null; customerName: string; deliveryTerm: IncotermCode | null; shippingMode: ShippingMode | null; terms: string; isActive: boolean; items: FormItem[] };
+type ContractForm = { number: string; customerId: number | string | null; customerName: string; deliveryTerm: IncotermCode | null; shippingMode: ShippingMode | null; terms: string; isActive: boolean; packaging: ContractPackaging | null; items: FormItem[] };
 
-const emptyForm = (): ContractForm => ({ number: "", customerId: null, customerName: "", deliveryTerm: null, shippingMode: "self_transport", terms: "", isActive: true, items: [] });
+const emptyForm = (): ContractForm => ({ number: "", customerId: null, customerName: "", deliveryTerm: null, shippingMode: "self_transport", terms: "", isActive: true, packaging: null, items: [] });
 
 const copy = {
   en: { title: "Sales contracts", subtitle: "Scan purchase caps, agreed prices, and delivery terms.", current: "Current contracts", ended: "Ended contracts", endedStatus: "Ended", noCurrent: "No current contracts have been recorded.", noEnded: "No ended contracts.", new: "New contract", loading: "Loading contracts…", empty: "No contracts have been recorded yet.", error: "Unexpected error.", number: "Contract number", autoNumber: "Generated automatically when this contract is created", customer: "Customer", customerSearch: "Search name or company (at least 2 characters)", selected: "Selected:", status: "Status", active: "Active", inactive: "Inactive", delivery: "Delivery term", chooseDelivery: "Choose an Incoterm", noDelivery: "Not specified", terms: "Contract terms", products: "Contract products", productsHint: "Set the maximum quantity and agreed unit price.", productSearch: "Search products (at least 2 characters)", searchingCustomers: "Searching customers…", searchingProducts: "Searching products…", noProducts: "No products added to this contract.", max: "Maximum quantity", used: "Used", remaining: "Remaining", unitPrice: "Unit price", currency: "IQD", remove: "Remove", removeHint: "Removing an unused item deletes it. Removing a used item archives it so historical orders remain safe.", activeHint: "An active contract can be used for sales.", createTitle: "Create sales contract", editTitle: "Edit sales contract", dialogHint: "Record the contract, customer, delivery term, and product caps.", cancel: "Cancel", saving: "Saving…", create: "Create contract", save: "Save changes", contract: "Contract", summary: "Product summary", actions: "Actions", edit: "Edit", end: "End contract", endTitle: "End contract?", endDescription: (number: string) => `Ending contract ${number} will stop future purchases under it. Previous orders and contract history will be preserved.`, endConfirm: "End contract", ending: "Ending…", endFailed: "Could not end the contract.", termsLabel: "Terms", requiredNumber: "Enter a contract number.", requiredCustomer: "Select a customer.", requiredDelivery: "Select a delivery term for a new contract.", requiredProduct: "Add at least one product to the contract.", invalidMax: (p: string) => `Maximum quantity for “${p}” must be a positive whole number.`, belowUsed: (p: string, n: number) => `Maximum quantity for “${p}” cannot be below used quantity (${n}).`, invalidPrice: (p: string) => `IQD price for “${p}” must be a non-negative whole number.`, saveFailed: "Could not save the contract." },
@@ -48,6 +51,17 @@ async function readJson<T>(url: string): Promise<T> {
 }
 function customerLabel(customer: Customer) { return [customer.firstName, customer.lastName].filter(Boolean).join(" ") || customer.name || customer.company || customer.email || String(customer.id); }
 function errorMessage(error: unknown) { return error instanceof Error ? error.message : "Unexpected error."; }
+function packagingErrorMessage(error: unknown, language: string) {
+  const message = errorMessage(error);
+  if (language === "en") return message;
+  const messages: Record<string, Record<string, string>> = {
+    "Choose a valid packaging type.": { fa: "نوع بسته‌بندی معتبر را انتخاب کنید.", ar: "اختر نوع تعبئة صالحاً.", tr: "Geçerli bir paketleme türü seçin." },
+    "Enter the other packaging type (up to 100 characters).": { fa: "نوع بسته‌بندی دیگر را تا ۱۰۰ نویسه وارد کنید.", ar: "أدخل نوع التعبئة الأخرى (حتى 100 حرف).", tr: "Diğer paketleme türünü girin (en fazla 100 karakter)." },
+    "Packaging cost per net tonne must be a nonnegative whole IQD amount.": { fa: "هزینهٔ بسته‌بندی برای هر تن خالص باید عدد صحیح نامنفی دینار باشد.", ar: "يجب أن يكون رسم التعبئة لكل طن صافٍ مبلغاً صحيحاً غير سالب بالدينار.", tr: "Net ton başına paketleme ücreti negatif olmayan tam IQD olmalıdır." },
+    "Packaging VAT must be a percentage between 0 and 100 with at most two decimal places.": { fa: "مالیات بسته‌بندی باید درصدی بین ۰ تا ۱۰۰ و حداکثر با دو رقم اعشار باشد.", ar: "يجب أن تكون ضريبة التعبئة بين 0 و100 وبحد أقصى منزلتين عشريتين.", tr: "Paketleme KDV oranı 0–100 arasında ve en fazla iki ondalık basamaklı olmalıdır." },
+  };
+  return messages[message]?.[language] || message;
+}
 
 export default function ShopContracts() {
   const { language, direction } = useLanguage();
@@ -110,11 +124,12 @@ export default function ShopContracts() {
   const endedContracts = useMemo(() => contracts.filter((contract) => Boolean(contract.endedAt)), [contracts]);
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const draftContext = { customerName: form.customerName, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items };
+      const draftContext = { customerName: form.customerName, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items, packaging: form.packaging };
       const payload = {
         ...(editingId !== null && !creatingAddendumFor ? { number: form.number.trim() } : {}),
         customerId: form.customerId, deliveryTerm: form.deliveryTerm,
         ...(form.shippingMode !== null ? { shippingMode: form.shippingMode } : {}),
+        packaging: form.packaging,
         terms: draftData ? buildContractDraftText(draftData, draftContext) : form.terms.trim(),
         ...(draftData ? { draftData } : {}),
         ...(editingId !== null && refreshSeller ? { refreshSeller: true } : {}),
@@ -158,7 +173,7 @@ export default function ShopContracts() {
     if (contract.endedAt) return;
     setCreatingAddendumFor(null);
     setEditingId(contract.id);
-    setForm({ number: contract.number || "", customerId: contract.customerId, customerName: contract.customerName || "", deliveryTerm: contract.deliveryTerm || null, shippingMode: contract.shippingMode ?? null, terms: contract.terms || "", isActive: Boolean(contract.isActive), items: (contract.items || []).map((item) => ({ productId: item.productId, productName: item.productName, maxQuantity: String(item.maxQuantity), unitPrice: String(item.unitPrice), usedQuantity: Number(item.usedQuantity) || 0 })) });
+    setForm({ number: contract.number || "", customerId: contract.customerId, customerName: contract.customerName || "", deliveryTerm: contract.deliveryTerm || null, shippingMode: contract.shippingMode ?? null, terms: contract.terms || "", isActive: Boolean(contract.isActive), packaging: contract.packaging ? { ...contract.packaging } : null, items: (contract.items || []).map((item) => ({ productId: item.productId, productName: item.productName, maxQuantity: String(item.maxQuantity), unitPrice: String(item.unitPrice), usedQuantity: Number(item.usedQuantity) || 0 })) });
     setDraftData(contract.draftData || null);
     setRefreshSeller(false);
     setCustomerSearch(""); setProductSearch(""); setFormError(""); setDialogOpen(true);
@@ -177,6 +192,8 @@ export default function ShopContracts() {
   });
   const submit = () => {
     setFormError("");
+    try { if (form.packaging) parseContractPackaging(form.packaging); }
+    catch (error) { return setFormError(packagingErrorMessage(error, language)); }
     if (editingId === null && draftData && (sellerQuery.isLoading || sellerQuery.isError || !sellerQuery.data?.seller)) {
       return setFormError(language === "fa" ? "اطلاعات فروشنده از مدیریت اطلاعات شرکت بارگذاری نشده است." : language === "ar" ? "لم يتم تحميل بيانات البائع من إدارة معلومات الشركة." : language === "tr" ? "Satıcı bilgileri Şirket Bilgilerinden yüklenemedi." : "Seller details have not loaded from Company Information.");
     }
@@ -280,10 +297,20 @@ export default function ShopContracts() {
                             <span>{tx.max}</span><span className="text-end text-foreground">{item.maxQuantity}</span>
                             <span>{tx.used}</span><span className="text-end text-foreground">{item.usedQuantity}</span>
                             <span>{tx.remaining}</span><span className="text-end text-foreground">{item.remainingQuantity}</span>
+                            {item.netWeight != null && <><span>{language === "fa" ? "وزن خالص هر واحد" : language === "ar" ? "الوزن الصافي لكل وحدة" : language === "tr" ? "Birim net ağırlık" : "Net weight per unit"}</span><span className="text-end text-foreground">{item.netWeight} {item.weightUnit || "kg"}</span></>}
                             <span>{tx.unitPrice}</span><span className="text-end text-foreground">{Number(item.unitPrice).toLocaleString(language)} {tx.currency}</span>
                           </div>
                         </div>
                       ))}</div>
+                      {contract.packaging && <div className="mt-4 rounded-md border border-teal-200 bg-white/70 p-3 dark:bg-teal-950/30">
+                        <p className="font-medium">{language === "fa" ? "هزینهٔ بسته‌بندی" : language === "ar" ? "رسوم التعبئة" : language === "tr" ? "Paketleme ücreti" : "Packaging charge"}</p>
+                        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                          <span>{language === "fa" ? "نوع" : language === "ar" ? "النوع" : language === "tr" ? "Tür" : "Type"}</span><span className="text-end">{packagingTypeLabel(contract.packaging, language)}</span>
+                          <span>{language === "fa" ? "هزینه برای هر تن خالص" : language === "ar" ? "الرسم لكل طن صافٍ" : language === "tr" ? "Net ton başına ücret" : "Fee per net tonne"}</span><span className="text-end">{Number(contract.packaging.costPerTonne).toLocaleString(language)} {tx.currency}</span>
+                          <span>{language === "fa" ? "مالیات بسته‌بندی" : language === "ar" ? "ضريبة التعبئة" : language === "tr" ? "Paketleme KDV" : "Packaging VAT"}</span><span className="text-end">{Number(contract.packaging.vatRatePercent).toLocaleString(language)}%</span>
+                        </div>
+                      </div>}
+                      {!contract.packaging && <p className="mt-4 rounded-md border border-dashed p-3 text-sm text-muted-foreground">{language === "fa" ? "برای این قرارداد هزینهٔ جداگانهٔ بسته‌بندی ثبت نشده است." : language === "ar" ? "لا توجد رسوم تعبئة منفصلة مسجلة لهذا العقد." : language === "tr" ? "Bu sözleşme için ayrı paketleme ücreti kaydedilmemiş." : "No separate packaging charge is recorded for this contract."}</p>}
                       {contract.terms && <div className="mt-4 border-t pt-3"><p className="text-sm font-medium">{tx.termsLabel}</p><p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{contract.terms}</p></div>}
                     </div>
                     <ContractAddenda contractId={contract.id} count={Number(contract.addendumCount) || 0} ended={ended} onCreate={() => openAddendum(contract)} />
@@ -337,6 +364,7 @@ export default function ShopContracts() {
             </div>
             <div className="flex items-center justify-between rounded-md border p-3"><div><Label htmlFor="contract-active">{tx.status}</Label><p className="text-xs text-muted-foreground">{tx.activeHint}</p></div><Switch id="contract-active" checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} /></div>
           </div>
+          <ContractPackagingFields value={form.packaging} onChange={(packaging) => setForm((current) => ({ ...current, packaging }))} language={language} />
           <div className="space-y-3"><div><h3 className="font-semibold">{tx.products}</h3><p className="text-xs text-muted-foreground">{tx.productsHint}</p><p className="text-xs text-muted-foreground">{tx.removeHint}</p></div><div className="relative"><Search className={`absolute ${direction === "rtl" ? "right-3" : "left-3"} top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground`} /><Input className={direction === "rtl" ? "pr-9" : "pl-9"} aria-label={tx.productSearch} value={productSearch} placeholder={tx.productSearch} onChange={(e) => setProductSearch(e.target.value)} /></div>{productQuery.isLoading && <p className="text-xs text-muted-foreground">{tx.searchingProducts}</p>}{productQuery.isError && <p className="text-xs text-destructive">{errorMessage(productQuery.error)}</p>}{products.length > 0 && <div className="max-h-36 overflow-auto rounded-md border">{products.map((product) => <button type="button" key={product.id} disabled={form.items.some((item) => String(item.productId) === String(product.id))} className="flex w-full items-center justify-between px-3 py-2 text-start text-sm hover:bg-accent disabled:opacity-50" onClick={() => addProduct(product)}><span>{product.name}</span><Plus className="h-4 w-4" /></button>)}</div>}{form.items.length === 0 && <p className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">{tx.noProducts}</p>}{form.items.map((item, index) => <div key={item.productId} className="grid gap-3 rounded-md border p-3 sm:grid-cols-[minmax(0,1fr)_130px_150px_auto] sm:items-end"><div className="min-w-0"><p className="truncate font-medium">{item.productName}</p>{item.usedQuantity > 0 && <p className="text-xs text-muted-foreground">{tx.used}: {item.usedQuantity}</p>}</div><div className="space-y-1"><Label htmlFor={`max-${index}`}>{tx.max}</Label><Input id={`max-${index}`} type="number" min={item.usedQuantity} step="1" value={item.maxQuantity} onChange={(e) => updateItem(index, "maxQuantity", e.target.value)} /></div><div className="space-y-1"><Label htmlFor={`price-${index}`}>{tx.unitPrice} ({tx.currency})</Label><Input id={`price-${index}`} type="number" min="0" step="1" value={item.unitPrice} onChange={(e) => updateItem(index, "unitPrice", e.target.value)} /></div><Button type="button" variant="ghost" size="icon" aria-label={`${tx.remove} ${item.productName}`} title={tx.removeHint} onClick={() => removeItem(index)}><Trash2 className="h-4 w-4" /></Button></div>)}</div>
            {draftData
              ? <ContractDraftBuilder
@@ -347,7 +375,7 @@ export default function ShopContracts() {
                      if (editingId !== null) setRefreshSeller(true);
                    } else setDraftData(next);
                  }}
-                  context={{ customerName: form.customerName, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items }}
+                  context={{ customerName: form.customerName, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items, packaging: form.packaging }}
                  language={language}
                   logoUrl={companyQuery.data?.data?.logoUrl}
                  sellerLoading={sellerQuery.isLoading || sellerQuery.isFetching}

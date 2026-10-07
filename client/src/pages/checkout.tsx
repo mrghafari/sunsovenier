@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {requiresBulkContractTransport} from "@shared/bulk-transport";
+import { calculateContractPackaging, packagingTypeLabel } from "@shared/contract-packaging";
 import BulkVehicleSelector from "@/components/checkout/bulk-vehicle-selector";
 import { isContractShippingMethodAllowed, preferredContractShippingMethod } from "@shared/contract-shipping-policy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -582,8 +583,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     ? undefined
     : contracts.find(contract => Number(contract.id) === Number(selectedContractId));
   const selectedContract = selectedContractFromQuery || (selectedContractId === null ? undefined : selectedContractSnapshot);
+  const contractPackaging = (selectedContract as (ShopContract & { packaging?: any }) | undefined)?.packaging || null;
   const hasBulkContractProducts=requiresBulkContractTransport(selectedContractId,Object.keys(cart)
-    .map(id=>products.find((product:any)=>Number(product.id)===Number(id))).filter(Boolean) as any[]);
+    .map(id=>products.find((product:any)=>Number(product.id)===Number(id))).filter(Boolean) as any[], contractPackaging?.type);
   const selectedContractShippingMode = (selectedContract as (ShopContract & { shippingMode?: ContractShippingMode | null }) | undefined)?.shippingMode ||
     null;
   const requiredContractShippingMethodId = getContractShippingMethodId(selectedContractShippingMode, deliveryMethods);
@@ -683,6 +685,20 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   );
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
+  const packagingCalculation = useMemo(() => {
+    try {
+      const items = (selectedContract as (ShopContract & { items: Array<any> }) | undefined)?.items || [];
+      return { charge: contractPackaging ? calculateContractPackaging(contractPackaging, Object.entries(cart)
+        .filter(([, quantity]) => Number(quantity) > 0)
+        .map(([productId, quantity]) => {
+          const item = items.find((entry) => Number(entry.productId) === Number(productId));
+          return { productId: Number(productId), quantity: Number(quantity), netWeight: item?.netWeight, weightUnit: item?.weightUnit };
+        })) : null, error: "" };
+    } catch {
+      return { charge: null, error: language === "fa" ? "وزن خالص کالا برای محاسبهٔ هزینهٔ بسته‌بندی مشخص نشده است." : language === "ar" ? "تعذر حساب رسوم التعبئة لعدم توفر الوزن الصافي للمنتج." : language === "tr" ? "Net ürün ağırlığı bilinmediği için paketleme ücreti hesaplanamıyor." : "Packaging cannot be calculated because a product's net weight is missing or invalid." };
+    }
+  }, [contractPackaging, selectedContract, cart, language]);
+  const packagingCharge = packagingCalculation.charge;
 
   // Check if cart contains flammable materials
   const containsFlammableProducts = cartItems.some(item => item?.isFlammable === true);
@@ -1162,12 +1178,14 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   );
   const dutiesSetting = taxSettings?.find((setting: any) => setting.type === 'duties' && setting.isEnabled);
   
-  const vatRate = vatSetting ? parseFloat(vatSetting.rate) / 100 : 0; // Convert percentage to decimal
-  const dutiesRate = dutiesSetting ? parseFloat(dutiesSetting.rate) / 100 : 0;
+  // Database rates are stored as decimal fractions (e.g. 0.06 means 6%).
+  const vatRate = vatSetting ? parseFloat(vatSetting.rate) : 0;
+  const dutiesRate = dutiesSetting ? parseFloat(dutiesSetting.rate) : 0;
   
   const vatAmount = subtotal * vatRate;
   const dutiesAmount = subtotal * dutiesRate;
   const totalTaxAmount = vatAmount + dutiesAmount;
+  const packagingVatAmount = packagingCharge?.vatAmount || 0;
   
   // Debug logging for tax calculations
   console.log('🧮 Tax Debug:', {
@@ -1184,7 +1202,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   
   // Item subtotal can be shown immediately, but no payable total exists
   // until the selected delivery address has a valid shipping price.
-  const beforeWalletTotal = finalPriceReady ? subtotal + shippingCost + totalTaxAmount : 0;
+  const beforeWalletTotal = finalPriceReady ? subtotal + shippingCost + totalTaxAmount + (packagingCharge?.totalAmount || 0) : 0;
   
   // Auto-enable wallet usage when wallet payment method is selected
   useEffect(() => {
@@ -1313,6 +1331,10 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   });
 
   const onSubmit = async (data: CheckoutFormData) => {
+    if (packagingCalculation.error) {
+      toast({ title: packagingCalculation.error, variant: "destructive" });
+      return;
+    }
     const isFinalConfirmation = confirmingOrderRef.current;
     confirmingOrderRef.current = false;
     if (createOrderMutation.isPending || orderSubmissionLockRef.current) return;
@@ -1383,12 +1405,18 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         const oldPrice = previousContract?.items?.find(item => Number(item.productId) === Number(productId))?.unitPrice;
         const newPrice = freshContract?.items?.find(item => Number(item.productId) === Number(productId))?.unitPrice;
         return Number(oldPrice) !== Number(newPrice);
-      });
+      }) || JSON.stringify((previousContract as any)?.packaging ?? null) !== JSON.stringify((freshContract as any)?.packaging ?? null) ||
+        Object.entries(cart).some(([productId]) => {
+          const oldItem = (previousContract as any)?.items?.find((item: any) => Number(item.productId) === Number(productId));
+          const newItem = (freshContract as any)?.items?.find((item: any) => Number(item.productId) === Number(productId));
+          return String(oldItem?.netWeight ?? "") !== String(newItem?.netWeight ?? "") ||
+            String(oldItem?.weightUnit ?? "") !== String(newItem?.weightUnit ?? "");
+        });
       if (contractPricesChanged) {
         setPendingReview(null);
         toast({
           title: 'Contract terms changed',
-          description: 'The contract price was updated. Review the new order total before submitting.',
+          description: language === 'fa' ? 'قیمت، وزن خالص یا هزینهٔ بسته‌بندی قرارداد تغییر کرده است. مبلغ تازه را بررسی کنید.' : language === 'ar' ? 'تغير السعر أو الوزن الصافي أو رسوم التعبئة في العقد. راجع الإجمالي الجديد.' : language === 'tr' ? 'Sözleşme fiyatı, net ağırlığı veya paketleme ücreti değişti. Yeni toplamı inceleyin.' : 'Contract prices, net weights, or packaging changed. Review the updated total before submitting.',
           variant: 'destructive',
         });
         return;
@@ -1771,6 +1799,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       })),
       totalAmount: beforeWalletTotal,
       shippingCost: shippingCost,
+      packagingDetails: packagingCharge,
       notes: data.notes || '',
       shippingMethod: data.shippingMethod,
       paymentMethod: (() => {
@@ -3029,7 +3058,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   <Button 
                     type="submit" 
                     className="w-full"
-                    disabled={createOrderMutation.isPending || shippingSelectionUnavailable}
+                    disabled={createOrderMutation.isPending || shippingSelectionUnavailable || !!packagingCalculation.error}
                   >
                     {createOrderMutation.isPending ? t.checkout_page.processingOrder : t.checkout_page.placeOrder}
                   </Button>
@@ -3989,12 +4018,20 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                         : (shippingCost === 0 ? t.checkout_page.free : `${shippingCost.toLocaleString()} ${t.checkout_page.iqd}`)}
                     </span>
                   </div>
+                  {packagingCharge && <div className="flex justify-between">
+                    <span>{packagingTypeLabel(packagingCharge, language)} · {packagingCharge.netTonnes == null ? "—" : packagingCharge.netTonnes.toLocaleString(language, { maximumFractionDigits: 4 })} {language === "fa" ? "تن خالص" : language === "ar" ? "طن صافٍ" : language === "tr" ? "net ton" : "net tonnes"} · {packagingCharge.costPerTonne.toLocaleString(language)} IQD / {language === "fa" ? "تن" : language === "ar" ? "طن" : language === "tr" ? "ton" : "tonne"}</span>
+                    <span>{packagingCharge.costAmount.toLocaleString(language)} IQD</span>
+                  </div>}
                   {vatAmount > 0 && (
                     <div className="flex justify-between">
                       <span>{t.checkout_page.valueAddedTax} ({(vatRate * 100).toFixed(0)}%):</span>
                       <span>{vatAmount.toLocaleString()} IQD</span>
                     </div>
                   )}
+                  {packagingCharge && <div className="flex justify-between">
+                    <span>{language === "fa" ? "مالیات بسته‌بندی" : language === "ar" ? "ضريبة التعبئة" : language === "tr" ? "Paketleme KDV" : "Packaging VAT"} ({packagingCharge.vatRatePercent}%)</span>
+                    <span>{packagingVatAmount.toLocaleString(language)} IQD</span>
+                  </div>}
                   {dutiesAmount > 0 && (
                     <div className="flex justify-between">
                       <span>{t.checkout_page.valueAddedDuty} ({(dutiesRate * 100).toFixed(0)}%):</span>
@@ -4013,6 +4050,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                     <span>{finalPriceReady ? `${totalAmount.toLocaleString()} IQD` : '—'}</span>
                   </div>
                 </div>
+                {packagingCalculation.error && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">{packagingCalculation.error}</p>}
 
                 {finalPriceReady && !shippingSelectionUnavailable && shippingCost === 0 && (
                   <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
@@ -4089,18 +4127,23 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
           confirmingOrderRef.current = false;
           void form.handleSubmit(onSubmit)();
         }}
-        confirmDisabled={isConfirmingOrder || createOrderMutation.isPending || !pendingReview || !!contractValidationError}
+        confirmDisabled={isConfirmingOrder || createOrderMutation.isPending || !pendingReview || !!contractValidationError || !!packagingCalculation.error}
         confirming={isConfirmingOrder || createOrderMutation.isPending}
         needsRefresh={!pendingReview || shippingCalculationPending || shippingSelectionUnavailable}
         refreshPending={shippingCalculationPending}
-        items={cartItems.map(item => ({
+        items={[...cartItems.map(item => ({
           id: item.id, name: item.name, quantity: item.quantity,
           unitPrice: item.discountedUnitPrice ?? Number(item.price || 0),
-        }))}
+        })), ...(packagingCharge ? [{
+          id: "contract-packaging-charge",
+          name: `${packagingTypeLabel(packagingCharge, language)} · ${packagingCharge.netTonnes == null ? "—" : packagingCharge.netTonnes.toLocaleString(language, { maximumFractionDigits: 4 })} ${language === "fa" ? "تن خالص" : language === "ar" ? "طن صافٍ" : language === "tr" ? "net ton" : "net tonnes"}`,
+          quantity: 1,
+          unitPrice: packagingCharge.costAmount,
+        }] : [])]}
         shippingMethod={currentShippingMethod?.name || currentShippingMethod?.title || currentMethodValue}
         shippingCost={shippingCost}
-        subtotal={subtotal}
-        tax={totalTaxAmount}
+        subtotal={subtotal + (packagingCharge?.costAmount || 0)}
+        tax={totalTaxAmount + packagingVatAmount}
         total={beforeWalletTotal}
         paymentMethod={form.getValues('paymentMethod') || ''}
         language={language as 'en' | 'fa' | 'ar' | 'tr'}

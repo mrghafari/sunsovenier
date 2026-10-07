@@ -1837,7 +1837,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/customer-storage.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { customerId: number | SQL<unknown> | Placeholder<string, any>; orderNumber: string | SQL<unknown> | Placeholder<string, any>; totalAmount: string | SQL<...> | Placeholder<...>; ... 46 more ...; additionalDocumentsNote?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Type 'string | null' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any>'.\\n      Type 'null' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any>'.\\n  Overload 2 of 2, '(values: { customerId: number | SQL<unknown> | Placeholder<string, any>; orderNumber: string | SQL<unknown> | Placeholder<string, any>; totalAmount: string | SQL<...> | Placeholder<...>; ... 46 more ...; additionalDocumentsNote?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'orderNumber' does not exist in type '{ customerId: number | SQL<unknown> | Placeholder<string, any>; orderNumber: string | SQL<unknown> | Placeholder<string, any>; totalAmount: string | SQL<...> | Placeholder<...>; ... 46 more ...; additionalDocumentsNote?: string | ... 3 more ... | undefined; }[]'.\",\"orderNumber,\"]",
+      "key": "[\"server/customer-storage.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { customerId: number | SQL<unknown> | Placeholder<string, any>; orderNumber: string | SQL<unknown> | Placeholder<string, any>; totalAmount: string | SQL<...> | Placeholder<...>; ... 47 more ...; additionalDocumentsNote?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Type 'string | null' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any>'.\\n      Type 'null' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any>'.\\n  Overload 2 of 2, '(values: { customerId: number | SQL<unknown> | Placeholder<string, any>; orderNumber: string | SQL<unknown> | Placeholder<string, any>; totalAmount: string | SQL<...> | Placeholder<...>; ... 47 more ...; additionalDocumentsNote?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'orderNumber' does not exist in type '{ customerId: number | SQL<unknown> | Placeholder<string, any>; orderNumber: string | SQL<unknown> | Placeholder<string, any>; totalAmount: string | SQL<...> | Placeholder<...>; ... 47 more ...; additionalDocumentsNote?: string | ... 3 more ... | undefined; }[]'.\",\"orderNumber,\"]",
       "count": 1
     },
     {
@@ -2133,7 +2133,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/order-management-storage.ts\",2339,\"Property 'customerName' does not exist on type '{ id: number; customerId: number; contractId: number | null; orderNumber: string; status: string; priority: string; totalAmount: string; shippingCost: string | null; currency: string; paymentStatus: string; ... 39 more ...; updatedAt: Date; }'.\",\"customerName: customerOrder.customerName,\"]",
+      "key": "[\"server/order-management-storage.ts\",2339,\"Property 'customerName' does not exist on type '{ id: number; customerId: number; contractId: number | null; packagingDetails: ContractPackagingCharge | null; orderNumber: string; status: string; priority: string; ... 43 more ...; updatedAt: Date; }'.\",\"customerName: customerOrder.customerName,\"]",
       "count": 1
     },
     {
@@ -2141,7 +2141,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/order-management-storage.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; customerId: number; contractId: number | null; orderNumber: string; status: string; priority: string; totalAmount: string; shippingCost: string | null; currency: string; paymentStatus: string; ... 39 more ...; updatedAt: Date; }'.\",\"customerPhone: customerOrder.customerPhone,\"]",
+      "key": "[\"server/order-management-storage.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; customerId: number; contractId: number | null; packagingDetails: ContractPackagingCharge | null; orderNumber: string; status: string; priority: string; ... 43 more ...; updatedAt: Date; }'.\",\"customerPhone: customerOrder.customerPhone,\"]",
       "count": 1
     },
     {
@@ -2173,7 +2173,7 @@
       "count": 2
     },
     {
-      "key": "[\"server/order-management-storage.ts\",2551,\"Property 'customerEmail' does not exist on type '{ id: number; customerId: number; contractId: number | null; orderNumber: string; status: string; priority: string; totalAmount: string; shippingCost: string | null; currency: string; paymentStatus: string; ... 39 more ...; updatedAt: Date; }'. Did you mean 'customerId'?\",\"customerEmail: customerOrder.customerEmail,\"]",
+      "key": "[\"server/order-management-storage.ts\",2551,\"Property 'customerEmail' does not exist on type '{ id: number; customerId: number; contractId: number | null; packagingDetails: ContractPackagingCharge | null; orderNumber: string; status: string; priority: string; ... 43 more ...; updatedAt: Date; }'. Did you mean 'customerId'?\",\"customerEmail: customerOrder.customerEmail,\"]",
       "count": 1
     },
     {
@@ -2897,7 +2897,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'customerName' does not exist on type '{ id: number; customerId: number; contractId: number | null; orderNumber: string; status: string; priority: string; totalAmount: string; shippingCost: string | null; currency: string; paymentStatus: string; ... 39 more ...; updatedAt: Date; }'.\",\"customerName: order.customerName || 'مشتری گرامی'\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'customerName' does not exist on type '{ id: number; customerId: number; contractId: number | null; packagingDetails: ContractPackagingCharge | null; orderNumber: string; status: string; priority: string; ... 43 more ...; updatedAt: Date; }'.\",\"customerName: order.customerName || 'مشتری گرامی'\"]",
       "count": 2
     },
     {
@@ -2989,7 +2989,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'filter' does not exist on type '{ displayOrders: { currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; ... 41 more ...; additionalDocumentsNote: string | null; }[]; ... 5 more ...; hasAbandonedCarts: boolean; }'.\",\"const completedOrders = allOrders.filter(order =>\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'filter' does not exist on type '{ displayOrders: { currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; ... 42 more ...; additionalDocumentsNote: string | null; }[]; ... 5 more ...; hasAbandonedCarts: boolean; }'.\",\"const completedOrders = allOrders.filter(order =>\"]",
       "count": 2
     },
     {
@@ -3249,19 +3249,19 @@
       "count": 2
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'receiptNotes' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 40 more ...; additionalDocumentsNote: string | null; }'.\",\"receiptNotes: order.receiptNotes,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'receiptNotes' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 41 more ...; additionalDocumentsNote: string | null; }'.\",\"receiptNotes: order.receiptNotes,\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'receiptUploadDate' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 40 more ...; additionalDocumentsNote: string | null; }'.\",\"receiptUploadDate: order.receiptUploadDate,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'receiptUploadDate' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 41 more ...; additionalDocumentsNote: string | null; }'.\",\"receiptUploadDate: order.receiptUploadDate,\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'receiptUrl' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 40 more ...; additionalDocumentsNote: string | null; }'.\",\"if (!order.receiptUrl) {\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'receiptUrl' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 41 more ...; additionalDocumentsNote: string | null; }'.\",\"if (!order.receiptUrl) {\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'receiptUrl' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 40 more ...; additionalDocumentsNote: string | null; }'.\",\"receiptUrl: order.receiptUrl,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'receiptUrl' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 41 more ...; additionalDocumentsNote: string | null; }'.\",\"receiptUrl: order.receiptUrl,\"]",
       "count": 1
     },
     {
@@ -3345,7 +3345,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'shippingAmount' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 40 more ...; additionalDocumentsNote: string | null; }'.\",\"shippingAmount: parseFloat(order.shippingAmount || '0'),\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'shippingAmount' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 41 more ...; additionalDocumentsNote: string | null; }'.\",\"shippingAmount: parseFloat(order.shippingAmount || '0'),\"]",
       "count": 1
     },
     {
@@ -3373,7 +3373,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'subtotal' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 40 more ...; additionalDocumentsNote: string | null; }'.\",\"subtotal: parseFloat(order.subtotal || '0'),\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'subtotal' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 41 more ...; additionalDocumentsNote: string | null; }'.\",\"subtotal: parseFloat(order.subtotal || '0'),\"]",
       "count": 1
     },
     {
@@ -3381,7 +3381,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'taxAmount' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 40 more ...; additionalDocumentsNote: string | null; }'.\",\"taxAmount: parseFloat(order.taxAmount || '0'),\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'taxAmount' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 41 more ...; additionalDocumentsNote: string | null; }'.\",\"taxAmount: parseFloat(order.taxAmount || '0'),\"]",
       "count": 1
     },
     {
@@ -3429,7 +3429,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'total' does not exist on type 'PgTableWithColumns<{ name: \\\"customer_orders\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"customer_orders\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 48 more ...; updatedAt: PgColumn<......'.\",\"orderTotal: customerOrders.total,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'total' does not exist on type 'PgTableWithColumns<{ name: \\\"customer_orders\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"customer_orders\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 49 more ...; updatedAt: PgColumn<......'.\",\"orderTotal: customerOrders.total,\"]",
       "count": 1
     },
     {
@@ -3521,7 +3521,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2345,\"Argument of type '{ contractId?: number | undefined; carrier: string; recipientName: any; recipientPhone: any; recipientAddress: any; vehicleType: any; guestEmail?: any; guestName?: string | undefined; totalAmount: string; ... 13 more ...; bulkVehicleTemplateId: number | null; }' is not assignable to parameter of type '{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 39 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }'.\\n  Types of property 'orderNumber' are incompatible.\\n    Type 'string | null' is not assignable to type 'string'.\\n      Type 'null' is not assignable to type 'string'.\",\"const order = await customerStorage.createOrder(orderData);\"]",
+      "key": "[\"server/routes.ts\",2345,\"Argument of type '{ contractId?: number | undefined; carrier: string; recipientName: any; recipientPhone: any; recipientAddress: any; vehicleType: any; guestEmail?: any; guestName?: string | undefined; totalAmount: string; ... 14 more ...; bulkVehicleTemplateId: number | null; }' is not assignable to parameter of type '{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 40 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }'.\\n  Types of property 'orderNumber' are incompatible.\\n    Type 'string | null' is not assignable to type 'string'.\\n      Type 'null' is not assignable to type 'string'.\",\"const order = await customerStorage.createOrder(orderData);\"]",
       "count": 1
     },
     {
@@ -3729,7 +3729,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'orderStatus' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 39 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"orderStatus: 'confirmed',\"]",
+      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'orderStatus' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 40 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"orderStatus: 'confirmed',\"]",
       "count": 1
     },
     {
@@ -3737,23 +3737,23 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'paymentGatewayId' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 39 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"paymentGatewayId: gatewayId\"]",
+      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'paymentGatewayId' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 40 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"paymentGatewayId: gatewayId\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'paymentReference' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 39 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"paymentReference: paymentReference\"]",
+      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'paymentReference' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 40 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"paymentReference: paymentReference\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'paymentReference' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 39 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"paymentReference: reference,\"]",
+      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'paymentReference' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 40 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"paymentReference: reference,\"]",
       "count": 2
     },
     {
-      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'receiptUrl' does not exist in type '{ customerId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; orderNumber?: string | SQL<...> | PgColumn<...> | undefined; ... 47 more ...; additionalDocumentsNote?: string | ... 3 more ... | undefined; }'.\",\"receiptUrl: normalizedPath,\"]",
+      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'receiptUrl' does not exist in type '{ customerId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; orderNumber?: string | SQL<...> | PgColumn<...> | undefined; ... 48 more ...; additionalDocumentsNote?: string | ... 3 more ... | undefined; }'.\",\"receiptUrl: normalizedPath,\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'refundAmount' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 39 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"refundAmount: refundAmount.toString(),\"]",
+      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'refundAmount' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 40 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"refundAmount: refundAmount.toString(),\"]",
       "count": 1
     },
     {
@@ -3853,7 +3853,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'customerEmail' does not exist on type '{ id: number; customerId: number; contractId: number | null; orderNumber: string; status: string; priority: string; totalAmount: string; shippingCost: string | null; currency: string; paymentStatus: string; ... 39 more ...; updatedAt: Date; }'. Did you mean 'customerId'?\",\"order.customerEmail || 'info@momtazchem.com',\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'customerEmail' does not exist on type '{ id: number; customerId: number; contractId: number | null; packagingDetails: ContractPackagingCharge | null; orderNumber: string; status: string; priority: string; ... 43 more ...; updatedAt: Date; }'. Did you mean 'customerId'?\",\"order.customerEmail || 'info@momtazchem.com',\"]",
       "count": 2
     },
     {

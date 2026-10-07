@@ -12,6 +12,7 @@ import { buildContractDraftText } from "@shared/contract-document";
 import { buildShopContractSummary, type ShopContractSummary } from "@shared/shop-contract-summary";
 import { registerSignedContractDocuments } from "./signed-contract-documents";
 import { isContractShippingMethodAllowed } from "../shared/contract-shipping-policy";
+import { calculateContractPackaging, parseContractPackaging, type ContractPackaging, type ContractPackagingCharge } from "../shared/contract-packaging";
 
 const HOLD_TTL_MINUTES = 5;
 
@@ -26,6 +27,8 @@ export type LoadedContractPricing = {
   id: number;
   number: string;
   shippingMode: ContractShippingMode | null;
+  packaging: ContractPackaging | null;
+  packagingDetails: ContractPackagingCharge | null;
   items: Map<number, ContractPricingItem>;
 };
 export type ContractDefinition = {
@@ -34,6 +37,7 @@ export type ContractDefinition = {
   terms: string;
   deliveryTerm: IncotermCode | null;
   shippingMode?: ContractShippingMode | null;
+  packaging?: ContractPackaging | null;
   isActive: boolean;
   items: Array<{ productId: number; maxQuantity: number; unitPrice: number }>;
   draftData?: ShopContractDraftData | null;
@@ -50,6 +54,11 @@ function parsePositiveId(value: unknown, label: string): number {
   const id = Number(value);
   if (!Number.isSafeInteger(id) || id <= 0) throw new ContractError(`${label} must be a positive integer.`);
   return id;
+}
+
+function packagingDefinition(value: unknown) {
+  try { return parseContractPackaging(value); }
+  catch (error) { throw new ContractError(error instanceof Error ? error.message : "Invalid packaging."); }
 }
 
 export type ContractSellerSnapshot = NonNullable<ShopContractDraftData["seller"]>;
@@ -201,6 +210,7 @@ export function validateContractDefinition(body: any, generatingNumber = false):
     terms: structuredDraft ? "" : body.terms,
     deliveryTerm: body.deliveryTerm as IncotermCode | null,
     ...(hasShippingMode ? { shippingMode: body.shippingMode as ContractShippingMode | null } : {}),
+    ...(Object.prototype.hasOwnProperty.call(body, "packaging") ? { packaging: packagingDefinition(body.packaging) } : {}),
     isActive: body.isActive,
     items,
     ...(body.refreshSeller === undefined ? {} : { refreshSeller: body.refreshSeller }),
@@ -460,6 +470,7 @@ function contractResponse(row: any, itemRows: any[]) {
     draftData: row.draft_data ?? null,
     deliveryTerm: row.delivery_term,
     shippingMode: row.shipping_mode ?? null,
+    packaging: parseContractPackaging(row.packaging),
     isActive: row.is_active,
     endedAt: row.ended_at ? new Date(row.ended_at).toISOString() : null,
     customerId: Number(row.customer_id),
@@ -471,13 +482,15 @@ function contractResponse(row: any, itemRows: any[]) {
       usedQuantity: Number(item.used_quantity),
       remainingQuantity: Math.max(0, Number(item.max_quantity) - Number(item.used_quantity)),
       unitPrice: Number(item.unit_price),
+      netWeight: item.net_weight ?? null,
+      weightUnit: item.weight_unit || "kg",
     })),
   };
 }
 
 async function loadContractRows(client: import("pg").PoolClient, contractId?: number) {
   const contracts = await client.query(
-    `SELECT c.id, c.number, c.terms, c.draft_data, c.delivery_term, c.shipping_mode, c.is_active, c.ended_at, c.customer_id,
+    `SELECT c.id, c.number, c.terms, c.draft_data, c.delivery_term, c.shipping_mode, c.packaging, c.is_active, c.ended_at, c.customer_id,
             COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name,
             (SELECT count(*)::integer FROM shop_contract_addenda a WHERE a.parent_contract_id = c.id) AS addendum_count
        FROM shop_contracts c
@@ -489,7 +502,7 @@ async function loadContractRows(client: import("pg").PoolClient, contractId?: nu
   if (contracts.rows.length === 0) return [];
   const ids = contracts.rows.map((row: any) => Number(row.id));
   const items = await client.query(
-    `SELECT ci.contract_id, ci.product_id, sp.name AS product_name,
+    `SELECT ci.contract_id, ci.product_id, sp.name AS product_name, sp.net_weight, sp.weight_unit,
             ci.max_quantity, ci.used_quantity, ci.unit_price
        FROM shop_contract_items ci
        JOIN shop_products sp ON sp.id = ci.product_id
@@ -541,7 +554,9 @@ async function canonicalTermsForContract(
       ORDER BY ci.id`,
     [contractId],
   );
+  const packaging = await client.query("SELECT packaging FROM shop_contracts WHERE id=$1", [contractId]);
   return buildContractDraftText(draft, {
+    packaging: parseContractPackaging(packaging.rows[0]?.packaging),
     customerName: customer.rows[0].customer_name,
     contractNumber,
     deliveryTerm,
@@ -632,9 +647,9 @@ async function saveContractInTransaction(
       await ensureCustomerAndProducts(client, definition);
       const number = await nextContractNumber(client);
       const result = await client.query(
-        `INSERT INTO shop_contracts (number, customer_id, terms, draft_data, delivery_term, shipping_mode, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-        [number, definition.customerId, definition.terms, effectiveDraft, definition.deliveryTerm, definition.shippingMode, definition.isActive],
+        `INSERT INTO shop_contracts (number, customer_id, terms, draft_data, delivery_term, shipping_mode, is_active, packaging)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+        [number, definition.customerId, definition.terms, effectiveDraft, definition.deliveryTerm, definition.shippingMode, definition.isActive, definition.packaging ?? null],
       );
       const id = Number(result.rows[0].id);
       for (const item of definition.items) {
@@ -736,6 +751,9 @@ async function saveContractInTransaction(
          delivery_term = $3, shipping_mode = $4, is_active = $5, updated_at = now() WHERE id = $1`,
         [contractId, definition.customerId, definition.deliveryTerm, effectiveShippingMode, definition.isActive],
       );
+    }
+    if (definition.packaging !== undefined) {
+      await client.query("UPDATE shop_contracts SET packaging=$2 WHERE id=$1", [contractId, definition.packaging]);
     }
     const retained = definition.items.map((item) => item.productId);
     await client.query(
@@ -923,7 +941,7 @@ export function registerShopContractRoutes(app: Express): void {
     try {
       await reconcileShopContractHolds();
       const result = await pool.query(
-        `SELECT c.id, c.number, c.terms, c.draft_data, c.delivery_term, c.shipping_mode, c.is_active, c.ended_at, c.customer_id,
+        `SELECT c.id, c.number, c.terms, c.draft_data, c.delivery_term, c.shipping_mode, c.packaging, c.is_active, c.ended_at, c.customer_id,
                 COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name,
                 (SELECT count(*)::integer FROM shop_contract_addenda a WHERE a.parent_contract_id = c.id) AS addendum_count
            FROM shop_contracts c JOIN crm_customers cc ON cc.id = c.customer_id
@@ -932,7 +950,7 @@ export function registerShopContractRoutes(app: Express): void {
       );
       const ids = result.rows.map((row: any) => Number(row.id));
       const itemRows = ids.length ? await pool.query(
-        `SELECT ci.contract_id, ci.product_id, sp.name AS product_name,
+        `SELECT ci.contract_id, ci.product_id, sp.name AS product_name, sp.net_weight, sp.weight_unit,
                 ci.max_quantity, ci.used_quantity, ci.unit_price
            FROM shop_contract_items ci JOIN shop_products sp ON sp.id = ci.product_id
            WHERE ci.contract_id = ANY($1::integer[]) AND ci.is_active = true ORDER BY ci.id`,
@@ -1097,13 +1115,13 @@ export async function loadContractPricing(
   return inTransaction(async (client) => {
     await reconcileContractHolds(client);
     const contractResult = await client.query(
-      `SELECT id, number, shipping_mode FROM shop_contracts
+      `SELECT id, number, shipping_mode, packaging FROM shop_contracts
         WHERE id = $1 AND customer_id = $2 AND is_active = true`,
       [parsePositiveId(contractId, "Contract id"), parsePositiveId(customerId, "Customer id")],
     );
     if (!contractResult.rowCount) throw new ContractError("Active contract not found for this customer.", 404);
     const result = await client.query(
-      `SELECT ci.product_id, ci.max_quantity, ci.used_quantity, ci.unit_price
+      `SELECT ci.product_id, ci.max_quantity, ci.used_quantity, ci.unit_price, sp.net_weight, sp.weight_unit
          FROM shop_contract_items ci JOIN shop_products sp ON sp.id = ci.product_id
         WHERE ci.contract_id = $1 AND ci.is_active = true AND ci.product_id = ANY($2::integer[])
           AND sp.is_active = true AND sp.visible_in_shop = true`,
@@ -1128,6 +1146,11 @@ export async function loadContractPricing(
       id: Number(contractResult.rows[0].id),
       number: contractResult.rows[0].number,
       shippingMode: contractResult.rows[0].shipping_mode ?? null,
+      packaging: parseContractPackaging(contractResult.rows[0].packaging),
+      packagingDetails: calculateContractPackaging(contractResult.rows[0].packaging, requested.map(([productId, quantity]) => {
+        const row = result.rows.find((r: any) => Number(r.product_id) === productId);
+        return { productId, quantity, netWeight: row.net_weight, weightUnit: row.weight_unit };
+      })),
       items: byId,
     };
   });
@@ -1138,18 +1161,19 @@ export async function claimContractCart(
   customerId: number,
   cart: ContractCart,
   expectedPriceById: Map<number, number> | Record<number | string, number>,
+  expectedPackaging?: ContractPackagingCharge | null,
 ): Promise<string> {
   const requested = rowsFromCart(cart);
   return inTransaction(async (client) => {
     await reconcileContractHolds(client);
     const contract = await client.query(
-      `SELECT id FROM shop_contracts
+      `SELECT id, packaging FROM shop_contracts
         WHERE id = $1 AND customer_id = $2 AND is_active = true FOR UPDATE`,
       [parsePositiveId(contractId, "Contract id"), parsePositiveId(customerId, "Customer id")],
     );
     if (!contract.rowCount) throw new ContractError("Active contract not found for this customer.", 404);
     const products = await client.query(
-      `SELECT ci.product_id, ci.max_quantity, ci.used_quantity, ci.unit_price
+      `SELECT ci.product_id, ci.max_quantity, ci.used_quantity, ci.unit_price, sp.net_weight, sp.weight_unit
          FROM shop_contract_items ci JOIN shop_products sp ON sp.id = ci.product_id
         WHERE ci.contract_id = $1 AND ci.is_active = true AND ci.product_id = ANY($2::integer[])
           AND sp.is_active = true AND sp.visible_in_shop = true
@@ -1157,6 +1181,15 @@ export async function claimContractCart(
       [contractId, requested.map(([productId]) => productId)],
     );
     const byId = new Map<number, any>(products.rows.map((row: any) => [Number(row.product_id), row] as [number, any]));
+    if (contract.rows[0].packaging != null || expectedPackaging != null) {
+      const currentPackaging = calculateContractPackaging(contract.rows[0].packaging, requested.map(([productId, quantity]) => {
+        const row = byId.get(productId);
+        return { productId, quantity, netWeight: row?.net_weight, weightUnit: row?.weight_unit };
+      }));
+      if (JSON.stringify(currentPackaging) !== JSON.stringify(expectedPackaging ?? null)) {
+        throw new ContractError("Packaging terms or net weights changed. Refresh the cart before placing the order.", 409);
+      }
+    }
     for (const [productId, quantity] of requested) {
       const row = byId.get(productId);
       if (!row) throw new ContractError(`Product ${productId} is not available on this contract.`, 422);

@@ -6,7 +6,7 @@ export type PaidInvoiceLanguage = "en" | "ar" | "tr" | "fa";
 export async function loadPaidInvoice(orderId: number) {
   const { rows } = await pool.query(`
     SELECT co.id, co.order_number, co.created_at, co.total_amount, co.currency,
-      co.shipping_cost, co.vat_amount, co.surcharge_amount, co.payment_method,
+      co.shipping_cost, co.vat_amount, co.surcharge_amount, co.payment_method, co.packaging_details,
       co.status, c.first_name, c.last_name,
       COALESCE(NULLIF(TRIM(c.email), ''), NULLIF(TRIM(co.guest_email), '')) AS email,
       c.phone, c.address,
@@ -53,7 +53,8 @@ export async function createPaidInvoicePdf(
       unitPrice: item.unit_price,
       total: item.total_price,
     })),
-    subtotal: Number(order.total_amount || 0) - shipping - vat - surcharge,
+    subtotal: Number(order.total_amount || 0) - shipping - vat - surcharge - Number(order.packaging_details?.costAmount || 0),
+    packagingDetails: order.packaging_details ?? null,
     vatAmount: order.vat_amount || 0,
     dutiesAmount: order.surcharge_amount || 0,
     shippingCost: order.shipping_cost || 0,

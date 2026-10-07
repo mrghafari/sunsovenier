@@ -25,6 +25,7 @@ import { shippingWeightKg } from "@/lib/shipping-weight";
 import { isContractShippingMethodAllowed, preferredContractShippingMethod } from "@shared/contract-shipping-policy";
 import { contractQuantityLimit } from "@/lib/contract-cart";
 import { contractTheme } from "@/lib/contract-theme";
+import { calculateContractPackaging, packagingTypeLabel } from "@shared/contract-packaging";
 
 // Language types
 type Language = 'en' | 'ar' | 'fa' | 'tr';
@@ -1191,6 +1192,22 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const selectedContract = selectedContractId === null
     ? null
     : customerContracts.find(contract => contract.id === selectedContractId && contract.isActive) || null;
+  const selectedPackaging = (selectedContract as (ShopContract & { packaging?: any }) | null)?.packaging || null;
+  const packagingCalculation = useMemo(() => {
+    try {
+      const contractItems = (selectedContract as (ShopContract & { items: Array<any> }) | null)?.items || [];
+      const charge = selectedPackaging ? calculateContractPackaging(selectedPackaging, Object.entries(cart)
+        .filter(([, quantity]) => Number(quantity) > 0)
+        .map(([productId, quantity]) => {
+          const item = contractItems.find((entry) => Number(entry.productId) === Number(productId));
+          return { productId: Number(productId), quantity: Number(quantity), netWeight: item?.netWeight, weightUnit: item?.weightUnit };
+        })) : null;
+      return { charge, error: "" };
+    } catch {
+      return { charge: null, error: language === "fa" ? "وزن خالص کالا برای محاسبهٔ هزینهٔ بسته‌بندی مشخص نشده است." : language === "ar" ? "تعذر حساب رسوم التعبئة لعدم توفر الوزن الصافي للمنتج." : language === "tr" ? "Net ürün ağırlığı bilinmediği için paketleme ücreti hesaplanamıyor." : "Packaging cannot be calculated because a product's net weight is missing or invalid." };
+    }
+  }, [selectedPackaging, selectedContract, cart, language]);
+  const packagingCharge = packagingCalculation.charge;
   const selectedContractShippingMode = selectedContract?.shippingMode || null;
   const hasEnforcedContractShippingMode = selectedContractShippingMode === "automatic_vehicle" || selectedContractShippingMode === "self_transport";
   const contractItemForProduct = (productId: number) =>
@@ -1342,6 +1359,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const vatAmount = vatData?.vatEnabled ? Math.round(subtotalAmount * vatRate) : 0;
   const dutiesAmount = vatData?.dutiesEnabled ? Math.round(subtotalAmount * dutiesRate) : 0;
   const totalTaxAmount = vatAmount + dutiesAmount;
+  const packagingVatAmount = packagingCharge?.vatAmount || 0;
   
   // Smart delivery cost calculation state
   const [smartDeliveryCost, setSmartDeliveryCost] = useState<number>(0);
@@ -1525,7 +1543,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   
   // Calculate total amount (subtotal + VAT + duties + final shipping cost - no double counting) - IQD whole numbers
   const totalAmount = hasCurrentShippingPrice
-    ? Math.round(subtotalAmount + totalTaxAmount + finalShippingCost)
+    ? Math.round(subtotalAmount + totalTaxAmount + (packagingCharge?.totalAmount || 0) + finalShippingCost)
     : 0;
   
   // Debug total calculation
@@ -2350,6 +2368,10 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   });
 
   const onSubmit = async (data: any) => {
+    if (packagingCalculation.error) {
+      toast({ title: packagingCalculation.error, variant: "destructive" });
+      return;
+    }
     const isFinalConfirmation = confirmingOrderRef.current;
     confirmingOrderRef.current = false;
     if (submitOrderMutation.isPending || orderSubmissionLockRef.current) return;
@@ -2561,6 +2583,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       country: activeDeliveryInfo.activeCountry,
       cart: shippingQuoteCart,
       contractId: selectedContractId,
+      packagingDetails: packagingCharge,
       totalAmount,
       subtotalAmount,
       shippingCost: finalShippingCost,
@@ -2731,6 +2754,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
             usedQuantity: Number(item.usedQuantity),
             remainingQuantity: Number(item.remainingQuantity),
             unitPrice: Number(item.unitPrice),
+            netWeight: (item as any).netWeight ?? null,
+            weightUnit: (item as any).weightUnit || "kg",
           }));
         const contractChanged = !contractAsPresented ||
           !freshContract ||
@@ -2741,6 +2766,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           freshContract.terms !== contractAsPresented.terms ||
           freshContract.customerName !== contractAsPresented.customerName ||
           JSON.stringify(normalizeItems(freshContract.items)) !== JSON.stringify(normalizeItems(contractAsPresented.items)) ||
+          JSON.stringify((freshContract as any).packaging ?? null) !== JSON.stringify((contractAsPresented as any).packaging ?? null) ||
           Object.entries(cart).some(([productId, quantity]) => {
             const item = freshContract.items.find(candidate => Number(candidate.productId) === Number(productId));
             return !item ||
@@ -3036,6 +3062,12 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
             
             {/* Cart Summary */}
             <div className="border-t mt-3 pt-3 space-y-2">
+              {packagingCharge && (
+                <div className="flex justify-between text-sm">
+                  <span>{packagingTypeLabel(packagingCharge, language)} · {packagingCharge.netTonnes == null ? "—" : packagingCharge.netTonnes.toLocaleString(language, { maximumFractionDigits: 4 })} {language === "fa" ? "تن خالص" : language === "ar" ? "طن صافٍ" : language === "tr" ? "net ton" : "net tonnes"} · {formatCurrency(packagingCharge.costPerTonne)} / {language === "fa" ? "تن" : language === "ar" ? "طن" : language === "tr" ? "ton" : "tonne"}
+                  </span><span>{formatCurrency(packagingCharge.costAmount)}</span>
+                </div>
+              )}
               {/* VAT */}
               {vatData?.vatEnabled && vatAmount > 0 && (
                 <div className="flex justify-between text-sm">
@@ -3043,6 +3075,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                   <span>{formatCurrency(vatAmount)}</span>
                 </div>
               )}
+              {packagingCalculation.error && <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-sm text-destructive">{packagingCalculation.error}</p>}
+              {packagingCharge && <div className="flex justify-between text-sm">
+                <span>{language === "fa" ? "مالیات بسته‌بندی" : language === "ar" ? "ضريبة التعبئة" : language === "tr" ? "Paketleme KDV" : "Packaging VAT"} ({packagingCharge.vatRatePercent}%)
+                </span><span>{formatCurrency(packagingVatAmount)}</span>
+              </div>}
               
               {/* Duties */}
               {vatData?.dutiesEnabled && dutiesAmount > 0 && (
@@ -3055,7 +3092,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               {/* Total (without shipping) */}
               <div className="flex justify-between font-semibold text-base border-t pt-2">
                 <span>{t.subtotalWithoutShipping}</span>
-                <span className="text-primary">{formatCurrency(subtotalAmount + totalTaxAmount)}</span>
+                <span className="text-primary">{formatCurrency(subtotalAmount + totalTaxAmount + (packagingCharge?.totalAmount || 0))}</span>
               </div>
               
               {/* Delivery Method Selection */}
@@ -4018,6 +4055,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                     type="submit"
                     disabled={
                       Object.keys(cart).length === 0 ||
+                      !!packagingCalculation.error ||
                       unavailableCartProductIds.length > 0 ||
                       hasContractCartError ||
                       (selectedContractId !== null && !supportedNonWalletPaymentMethod) ||
@@ -4078,18 +4116,23 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           confirmingOrderRef.current = false;
           void form.handleSubmit(onSubmit)();
         }}
-        confirmDisabled={isConfirmingOrder || submitOrderMutation.isPending || !pendingReview}
+        confirmDisabled={isConfirmingOrder || submitOrderMutation.isPending || !pendingReview || !!packagingCalculation.error}
         confirming={isConfirmingOrder || submitOrderMutation.isPending}
         needsRefresh={!pendingReview || smartDeliveryLoading || standardShippingLoading}
         refreshPending={smartDeliveryLoading || standardShippingLoading}
-        items={Object.entries(cart).map(([id, quantity]) => {
+        items={[...Object.entries(cart).map(([id, quantity]) => {
           const product = products.find(item => item.id === Number(id));
           return { id, name: product?.name || id, quantity, unitPrice: product ? getCartUnitPrice(product, quantity) : 0 };
-        })}
+        }), ...(packagingCharge ? [{
+          id: "contract-packaging-charge",
+          name: `${packagingTypeLabel(packagingCharge, language)} · ${packagingCharge.netTonnes == null ? "—" : packagingCharge.netTonnes.toLocaleString(language, { maximumFractionDigits: 4 })} ${language === "fa" ? "تن خالص" : language === "ar" ? "طن صافٍ" : language === "tr" ? "net ton" : "net tonnes"}`,
+          quantity: 1,
+          unitPrice: packagingCharge.costAmount,
+        }] : [])]}
         shippingMethod={selectedShippingRate?.name || selectedShippingRate?.description || selectedShippingRate?.deliveryMethod || ''}
         shippingCost={finalShippingCost}
-        subtotal={subtotalAmount}
-        tax={totalTaxAmount}
+        subtotal={subtotalAmount + (packagingCharge?.costAmount || 0)}
+        tax={totalTaxAmount + packagingVatAmount}
         total={totalAmount}
         paymentMethod={paymentMethod}
         language={language as 'en' | 'fa' | 'ar' | 'tr'}

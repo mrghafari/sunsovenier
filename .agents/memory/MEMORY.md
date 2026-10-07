@@ -87,3 +87,4 @@
 - [Company deletion policy](company-deletion-policy.md) — super-admin-only logical removal with warning; retain evidence and block companies in use.
 - [Cart purchase mode](cart-purchase-mode.md) — choose ordinary or one contract before adding goods; no mode selector or unnecessary contract information in checkout.
 - [Browser component probes](browser-component-probes.md) — isolate synthetic UI checks from app startup; resolve Vite module instances and use real Radix interactions.
+- [Contract packaging billing](contract-packaging-billing.md) — per net tonne, separate VAT, and frozen order evidence; never substitute gross shipping weight.
