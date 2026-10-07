@@ -1,0 +1,42 @@
+ 
+ 
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+index-SgV1gwUg.js:9 CI_CD_TEST_2026
+index-SgV1gwUg.js:9 [PWA] Service Worker registered, scope: https://momtazchem.com/
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+App-DRT1GlEu.js:1604 📥 Loading Tawk.to widget at bottom-left position...
+App-DRT1GlEu.js:1604 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+App-DRT1GlEu.js:50 Auth check result: Object
+App-DRT1GlEu.js:731 The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page. https://developer.chrome.com/blog/autoplay/#web_audio
+t @ App-DRT1GlEu.js:731
+App-DRT1GlEu.js:731 🔔 [FINANCIAL] نوتیفیکیشن: 3 سفارش جدید دریافت شد
+App-DRT1GlEu.js:731 🔍 [WALLET DEBUG] Starting wallet fetch for order: M2601315
+App-DRT1GlEu.js:731 🔍 [WALLET DEBUG] Order details response status: 200
+App-DRT1GlEu.js:731 🔍 [WALLET DEBUG] Order data received: Object
+App-DRT1GlEu.js:731 🔍 [WALLET DEBUG] Order object: Object
+App-DRT1GlEu.js:731 🔍 [WALLET DEBUG] customerId value: 8
+App-DRT1GlEu.js:731 🔍 [WALLET DEBUG] Found customer ID: 8
+App-DRT1GlEu.js:731 🔍 [FINANCE] Approving order - Management ID: 1223, Customer Order ID: 747
+App-DRT1GlEu.js:731 💰 [FINANCE] Approving order 1223 with notes: 
+App-DRT1GlEu.js:731 🔍 [WALLET DEBUG] Wallet response status: 200
+App-DRT1GlEu.js:731 🔍 [WALLET DEBUG] Wallet result: Object
+App-DRT1GlEu.js:731 🔍 [WALLET DEBUG] Final balance: 43714296734
+/api/finance/orders/1223/approve:1  Failed to load resource: the server responded with a status of 422 ()
+App-DRT1GlEu.js:731 ❌ [FINANCE] Approval error: Error: Valid order and financial approval reason required
+    at Me (label-BNwcjxDo.js:1:33716)
+    at async Ne (label-BNwcjxDo.js:1:34022)
+onError @ App-DRT1GlEu.js:731
+App-DRT1GlEu.js:731 🔍 [FINANCE] Approving order - Management ID: 1223, Customer Order ID: 747
+App-DRT1GlEu.js:731 💰 [FINANCE] Approving order 1223 with notes: 
+/api/finance/orders/1223/approve:1  Failed to load resource: the server responded with a status of 422 ()
+App-DRT1GlEu.js:731 ❌ [FINANCE] Approval error: Error: Valid order and financial approval reason required
+    at Me (label-BNwcjxDo.js:1:33716)
+    at async Ne (label-BNwcjxDo.js:1:34022)
+onError @ App-DRT1GlEu.js:731

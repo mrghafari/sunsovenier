@@ -7,6 +7,7 @@ import {readCreditExposure} from "./credit-exposure";
 import {decimal,exactMoney} from "./money";
 import type {AccountingAccess} from "@shared/accounting-api";
 import {assertLedgerReady} from "./readiness";
+import {isValidFinancialApprovalReason} from "@shared/financial-approval";
 
 const id=z.number().int().positive();
 export const creditOrderSchema=z.object({
@@ -64,8 +65,10 @@ export async function registerCreditOrder(input:unknown,actor:AccountingAccess,c
 }
 export async function approveCreditOrder(orderId:number,notes:string,actor:AccountingAccess,callerTx?:AccountingTransaction){
   manager(actor);
-  if(!Number.isSafeInteger(orderId)||orderId<=0||typeof notes!=="string"||notes.trim().length<5||notes.length>500)
-    throw new AccountingError("Valid order and financial approval reason required");
+  if(!Number.isSafeInteger(orderId)||orderId<=0)
+    throw new AccountingError("Valid order required");
+  if(!isValidFinancialApprovalReason(notes))
+    throw new AccountingError("Financial approval reason must contain 5 to 500 characters",422,"FINANCIAL_APPROVAL_REASON_REQUIRED");
   const run=async(tx:AccountingTransaction)=>{
     await tx.execute(sql`select pg_advisory_xact_lock(718392,0)`);
     const credit=(await tx.execute(sql`select * from accounting_credit_orders where order_id=${orderId} for update`)).rows[0];

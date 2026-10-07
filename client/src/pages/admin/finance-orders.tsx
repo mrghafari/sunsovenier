@@ -15,6 +15,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { localizeFinanceNote } from "@/lib/localize-wallet-text";
 import { getOrderStatusLabel, resolveOrderStatus } from "@shared/order-status";
+import { FINANCIAL_APPROVAL_REASON_MAX, isValidFinancialApprovalReason } from "@shared/financial-approval";
 import DatePickerModule, { type DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persianFa from "react-date-object/locales/persian_fa";
@@ -164,6 +165,8 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   paymentConfirmedInfo: { en: 'Payment amount has already been confirmed', fa: 'مبلغ پرداخت قبلاً تأیید شده است', ar: 'تم تأكيد مبلغ الدفع مسبقاً', tr: 'Ödeme tutarı zaten onaylandı' },
   notes: { en: 'Notes', fa: 'یادداشت‌ها', ar: 'الملاحظات', tr: 'Notlar' },
   notesPlaceholder: { en: 'Enter your notes...', fa: 'یادداشت‌های خود را وارد کنید...', ar: 'أدخل ملاحظاتك...', tr: 'Notlarınızı girin...' },
+  approvalReason: { en: 'Financial approval reason (required to approve)', fa: 'توضیح تأیید مالی (برای تأیید الزامی است)', ar: 'سبب الموافقة المالية (مطلوب للموافقة)', tr: 'Finansal onay gerekçesi (onay için zorunlu)' },
+  approvalReasonRequired: { en: 'Enter a financial approval reason of 5 to 500 characters.', fa: 'توضیح تأیید مالی را بین ۵ تا ۵۰۰ نویسه وارد کنید.', ar: 'أدخل سبب الموافقة المالية من 5 إلى 500 حرف.', tr: '5 ile 500 karakter arasında finansal onay gerekçesi girin.' },
   cancel: { en: 'Cancel', fa: 'انصراف', ar: 'إلغاء', tr: 'İptal' },
   reject: { en: 'Reject', fa: 'رد', ar: 'رفض', tr: 'Reddet' },
   approve: { en: 'Approve', fa: 'تأیید', ar: 'اعتماد', tr: 'Onayla' },
@@ -520,6 +523,7 @@ function FinanceOrders() {
   // Approve order mutation - MOVED to top
   const approveMutation = useMutation({
     mutationFn: async ({ orderId, notes, receiptAmount }: { orderId: number; notes: string; receiptAmount?: string }) => {
+      if (!isValidFinancialApprovalReason(notes)) throw new Error(t('approvalReasonRequired'));
       console.log(`💰 [FINANCE] Approving order ${orderId} with notes: ${notes}`);
       return apiRequest(`/api/finance/orders/${orderId}/approve`, {
         method: 'POST',
@@ -549,7 +553,8 @@ function FinanceOrders() {
       console.error(`❌ [FINANCE] Approval error:`, error);
       toast({
         title: t('approvalError'),
-        description: error.message || t('approvalErrorDescription'),
+        description: /financial approval reason/i.test(error.message || "")
+          ? t('approvalReasonRequired') : error.message || t('approvalErrorDescription'),
         variant: "destructive"
       });
     }
@@ -830,14 +835,19 @@ function FinanceOrders() {
 
   const handleApprove = useCallback(() => {
     if (!selectedOrder) return;
+    if (!isValidFinancialApprovalReason(reviewNotes)) {
+      toast({ title: t('approvalError'), description: t('approvalReasonRequired'), variant: "destructive" });
+      document.getElementById("notes")?.focus();
+      return;
+    }
     // Use order_management.id (selectedOrder.id) NOT customerOrderId to avoid ID collisions
     console.log(`🔍 [FINANCE] Approving order - Management ID: ${selectedOrder.id}, Customer Order ID: ${selectedOrder.customerOrderId}`);
     approveMutation.mutate({ 
       orderId: selectedOrder.id, // Use order_management.id 
-      notes: reviewNotes,
+      notes: reviewNotes.trim(),
       receiptAmount: receiptAmount 
     });
-  }, [selectedOrder, approveMutation, reviewNotes, receiptAmount]);
+  }, [selectedOrder, approveMutation, reviewNotes, receiptAmount, toast, t]);
 
   const handleReject = useCallback(() => {
     if (!selectedOrder) return;
@@ -1139,13 +1149,10 @@ function FinanceOrders() {
     
     // Use order_management.id (correspondingOrder.id) NOT customerOrderId to avoid ID collisions
     console.log('🔄 [FINANCE] Accepting order from modal - Management ID:', correspondingOrder.id, 'Customer Order ID:', correspondingOrder.customerOrderId);
-    approveMutation.mutate({ 
-      orderId: correspondingOrder.id, // Use order_management.id to avoid ID collisions
-      notes: `${t('orderApproved')} - ${formatDate(new Date())}`,
-      receiptAmount: receiptAmount 
-    });
-    // Don't close modal here - let the mutation success handler close it
-  }, [orderDetails, allOrders, approveMutation, receiptAmount, t, formatDate]);
+    // Collect the reviewer's reason instead of inventing an approval note.
+    setOrderDetailsModalOpen(false);
+    void handleOrderReview(correspondingOrder);
+  }, [orderDetails, allOrders, handleOrderReview]);
 
   const handleRejectOrder = useCallback(() => {
     if (!orderDetails) return;
@@ -2040,13 +2047,18 @@ function FinanceOrders() {
             )}
             
             <div>
-              <Label htmlFor="notes">{t('notes')}</Label>
+              <Label htmlFor="notes">{t('approvalReason')}</Label>
               <Textarea 
                 id="notes"
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
-                placeholder={t('notesPlaceholder')}
+                placeholder={t('approvalReasonRequired')}
+                maxLength={FINANCIAL_APPROVAL_REASON_MAX}
+                aria-describedby="approval-reason-help"
               />
+              <p id="approval-reason-help" className="mt-1 text-sm text-muted-foreground">
+                {t('approvalReasonRequired')}
+              </p>
             </div>
           </div>
 
@@ -2060,7 +2072,7 @@ function FinanceOrders() {
             <Button 
               onClick={handleApprove}
               disabled={(() => {
-                if (!selectedOrder) return true;
+                if (!selectedOrder || approveMutation.isPending) return true;
 
                 // Must view receipt before approving if one exists
                 if (selectedOrder.paymentReceiptUrl && !hasViewedReceipt) return true;

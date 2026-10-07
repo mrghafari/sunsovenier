@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {creditExposureAmounts,readCreditExposure} from "./credit-exposure";
-import {creditOrderSchema} from "./credit-orders";
+import {creditOrderSchema,approveCreditOrder} from "./credit-orders";
 import {assertAccountingOrigin} from "./access";
 import type {Request} from "express";
 
@@ -23,6 +23,20 @@ test("credit registration requires explicit, finite identities and an evidence r
 });
 test("invalid credit report scope fails before any database operation",async()=>{
   await assert.rejects(()=>readCreditExposure(0,1),{code:"ACCOUNTING_VALIDATION"});
+});
+test("empty financial approval reasons are rejected before any financial writes",async()=>{
+  const actor={actorId:1,actorType:"admin" as const,canManage:true};
+  for(const reason of ["","    ","abcd","a".repeat(501)]) {
+    await assert.rejects(()=>approveCreditOrder(747,reason,actor),{
+      status:422,code:"FINANCIAL_APPROVAL_REASON_REQUIRED",
+    });
+  }
+});
+test("invalid order identity remains blocked independently of the approval reason",async()=>{
+  const actor={actorId:1,actorType:"admin" as const,canManage:true};
+  await assert.rejects(()=>approveCreditOrder(0,"Receipt reviewed",actor),{
+    status:422,code:"ACCOUNTING_VALIDATION",
+  });
 });
 test("new native finance paths require the same origin as accounting mutations",()=>{
   const request=(origin?:string,host="app.example",forwarded?:string)=>({
