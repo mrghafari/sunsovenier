@@ -21,9 +21,12 @@ export function fleetCategoryLabel(category: FleetCategory, language: string): s
 }
 
 export function assertFleetCategory(contractId: unknown, category: unknown): void {
-  if (parseFleetCategory(category) !== fleetCategoryForContract(contractId)) {
-    throw new Error(fleetCategoryForContract(contractId) === "contract"
-      ? "برای این سفارش باید خودرو از ناوگان خریدهای قراردادی انتخاب شود."
-      : "برای این سفارش باید خودرو از ناوگان عمومی انتخاب شود.");
+  if (!eligibleFleetCategories(fleetCategoryForContract(contractId)).includes(parseFleetCategory(category))) {
+    throw new Error("برای این سفارش باید خودرو از ناوگان خریدهای قراردادی انتخاب شود.");
   }
+}
+
+/** Contract vehicles may serve ordinary orders, never the reverse. Availability is checked separately. */
+export function eligibleFleetCategories(orderCategory: FleetCategory): FleetCategory[] {
+  return orderCategory === "contract" ? ["contract"] : ["standard", "contract"];
 }

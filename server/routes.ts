@@ -1,8 +1,8 @@
 import express, { type Express, type RequestHandler, Request, Response, NextFunction } from "express";
 import { siteManagementModuleIds } from "@shared/site-management-modules";
 import { loadingPermissionDefinition } from "./modules/loading/registration";
-import { fleetCategoryForContract, parseFleetCategory } from "@shared/fleet-category";
-import { getOrderFleetCategory, validateFleetAssignment, validateReadyFleetCategoryChange } from "./fleet-policy";
+import { fleetCategoryForContract, parseFleetCategory, eligibleFleetCategories } from "@shared/fleet-category";
+import { getOrderFleetCategory, validateFleetAssignment, validateReadyFleetCategoryChange, noActiveFleetAssignment } from "./fleet-policy";
 import { readyVehicleDatabaseError } from "./ready-vehicle-errors";
 import { registerFibRoutes } from "./fib-routes";
 import { createServer, type Server } from "http";
@@ -14540,7 +14540,14 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         })
         .from(readyVehicles)
         .leftJoin(vehicleTemplates, eq(readyVehicles.vehicleTemplateId, vehicleTemplates.id))
-        .where(and(eq(readyVehicles.isAvailable, true), eq(readyVehicles.fleetCategory, requiredFleetCategory)));
+        .where(and(
+          eq(readyVehicles.isAvailable, true),
+          inArray(readyVehicles.fleetCategory, eligibleFleetCategories(requiredFleetCategory)),
+          or(
+            eq(readyVehicles.fleetCategory, "standard"),
+            noActiveFleetAssignment(readyVehicles.licensePlate),
+          ),
+        ));
       
       // Filter ready vehicles based on customer's EXACT vehicle template selection
       // Only show vehicles that match the customer's chosen type (no suggestions for other types)
@@ -41376,6 +41383,8 @@ momtazchem.com
       const fleetCategory = req.query.orderId != null
         ? await getOrderFleetCategory(req.query.orderId)
         : req.query.fleetCategory != null ? parseFleetCategory(req.query.fleetCategory) : null;
+      const allowedCategories = fleetCategory
+        ? req.query.orderId != null ? eligibleFleetCategories(fleetCategory) : [fleetCategory] : null;
       
       const vehicles = await db
         .select({
@@ -41400,7 +41409,13 @@ momtazchem.com
         })
         .from(readyVehicles)
         .innerJoin(vehicleTemplates, eq(readyVehicles.vehicleTemplateId, vehicleTemplates.id))
-        .where(fleetCategory ? eq(readyVehicles.fleetCategory, fleetCategory) : undefined)
+        .where(and(
+          allowedCategories ? inArray(readyVehicles.fleetCategory, allowedCategories) : undefined,
+          req.query.orderId != null ? or(
+            eq(readyVehicles.fleetCategory, "standard"),
+            and(eq(readyVehicles.isAvailable, true), noActiveFleetAssignment(readyVehicles.licensePlate)),
+          ) : undefined,
+        ))
         .orderBy(readyVehicles.createdAt);
 
       // Map database fields to frontend expected format
@@ -56152,17 +56167,17 @@ momtazchem.com
       const existingAssignment = await db.execute(sql`
         SELECT id, customer_order_id, current_status 
         FROM order_management 
-        WHERE vehicle_plate = ${truckNumber}
-        AND current_status NOT IN ('delivered', 'cancelled')
+        WHERE BTRIM(vehicle_plate) = ${String(truckNumber ?? "").trim()}
+        AND COALESCE(current_status,'') NOT IN ('delivered','cancelled','completed','returned','failed','deleted')
         AND id != ${orderManagementId}
         LIMIT 1
       `);
       
-      if (existingAssignment.length > 0) {
+      if (existingAssignment.rows.length > 0) {
         return res.status(409).json({
           success: false,
           message: "این خودرو قبلاً به سفارش دیگری تخصیص یافته و هنوز تحویل نشده است",
-          conflictingOrderId: existingAssignment[0].customer_order_id
+          conflictingOrderId: existingAssignment.rows[0].customer_order_id
         });
       }
 
@@ -56177,7 +56192,7 @@ momtazchem.com
       const updateResult = await db
         .update(orderManagement)
         .set({
-          vehiclePlate: truckNumber,
+            vehiclePlate: String(truckNumber).trim(),
           driverName: driverName,
           driverPhone: driverPhone,
           currentStatus: 'logistics_assigned',
@@ -56376,18 +56391,18 @@ momtazchem.com
       const existingAssignment = await db.execute(sql`
         SELECT id, customer_order_id, order_number, current_status 
         FROM order_management 
-        WHERE vehicle_plate = ${truckNumber}
-        AND current_status NOT IN ('delivered', 'cancelled')
+        WHERE BTRIM(vehicle_plate) = ${String(truckNumber ?? "").trim()}
+        AND COALESCE(current_status,'') NOT IN ('delivered','cancelled','completed','returned','failed','deleted')
         AND id != ${orderManagementId}
         LIMIT 1
       `);
       
-      if (existingAssignment.length > 0) {
-        console.log('🚫 [ASSIGN VEHICLE] Vehicle already assigned to undelivered order:', existingAssignment[0].order_number);
+      if (existingAssignment.rows.length > 0) {
+        console.log('🚫 [ASSIGN VEHICLE] Vehicle already assigned to undelivered order:', existingAssignment.rows[0].order_number);
         return res.status(409).json({
           success: false,
           message: "این خودرو قبلاً به سفارش دیگری تخصیص یافته و هنوز تحویل نشده است",
-          conflictingOrderNumber: existingAssignment[0].order_number
+          conflictingOrderNumber: existingAssignment.rows[0].order_number
         });
       }
 
@@ -56397,7 +56412,7 @@ momtazchem.com
         UPDATE order_management 
         SET 
           vehicle_type = (SELECT vehicle_type FROM ready_vehicles WHERE id = ${vehicleId}),
-          vehicle_plate = ${truckNumber},
+          vehicle_plate = ${String(truckNumber).trim()},
           driver_name = ${driverName},
           driver_phone = ${driverPhone},
           current_status = 'logistics_assigned',
@@ -60732,7 +60747,18 @@ momtazchem.com
       const vehicles = await query;
       
       let filteredVehicles = vehicles;
-      if (requiredCategory) filteredVehicles = filteredVehicles.filter(v => v.fleetCategory === requiredCategory);
+      if (requiredCategory) {
+        const allowed = req.query.orderId != null ? eligibleFleetCategories(requiredCategory) : [requiredCategory];
+        filteredVehicles = filteredVehicles.filter(v => allowed.includes(v.fleetCategory));
+      }
+      if (req.query.orderId != null) {
+        const freeContractVehicles = await db.select({ id: deliveryVehicles.id }).from(deliveryVehicles).where(and(
+          eq(deliveryVehicles.fleetCategory, "contract"), eq(deliveryVehicles.isActive, true),
+          eq(deliveryVehicles.currentStatus, "available"), noActiveFleetAssignment(deliveryVehicles.plateNumber),
+        ));
+        const freeIds = new Set(freeContractVehicles.map(v => v.id));
+        filteredVehicles = filteredVehicles.filter(v => v.fleetCategory !== "contract" || freeIds.has(v.id));
+      }
       if (vehicleType) {
         filteredVehicles = filteredVehicles.filter(v => v.vehicleType === vehicleType);
       }
