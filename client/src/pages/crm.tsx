@@ -1225,7 +1225,7 @@ export default function CRM() {
                           {getSortIcon("email")}
                         </div>
                       </TableHead>
-                      <TableHead className="py-2 px-3">{customerCodeText(language, "code")}</TableHead>
+                      <TableHead className="py-2 px-3">{customerCodeText(language, "number")}</TableHead>
                       <TableHead 
                         className="cursor-pointer hover:bg-gray-50 select-none py-2 px-3"
                         onClick={() => handleSort("company")}
