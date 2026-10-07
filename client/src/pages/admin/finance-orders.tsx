@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useOrderNotifications } from "@/hooks/useOrderNotifications";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PrivateReceiptPdf } from "@/components/private-receipt-pdf";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -2226,16 +2227,8 @@ function FinanceOrders() {
                   </div>
                 ) : getFileType(selectedImageUrl, selectedFileMimeType) === 'pdf' ? (
                   <div className="w-full h-full">
-                    <iframe
-                      src={selectedImageUrl}
-                      className="w-full h-full border-0"
-                       title={`${t('paymentReceipt')} PDF`}
-                      style={{
-                        transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
-                        transformOrigin: 'center center',
-                        transition: 'transform 0.2s ease'
-                      }}
-                    />
+                    <PrivateReceiptPdf src={selectedImageUrl} language={language}
+                      title={t('paymentReceipt')} zoom={zoomLevel} rotation={rotation} />
                   </div>
                 ) : (
                   // If it's a PDF file but not handled above, open directly in new tab

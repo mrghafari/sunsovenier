@@ -4,6 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PrivateReceiptPdf } from "@/components/private-receipt-pdf";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
@@ -906,16 +907,8 @@ export default function FinancialDepartment() {
                     </div>
                   ) : getFileType(selectedImageUrl, selectedFileMimeType) === 'pdf' ? (
                     <div className="w-full h-full">
-                      <iframe
-                        src={selectedImageUrl}
-                        className="w-full h-full border-0"
-                        title={`${t("paymentReceipt")} PDF`}
-                        style={{
-                          transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
-                          transformOrigin: 'center center',
-                          transition: 'transform 0.2s ease'
-                        }}
-                      />
+                      <PrivateReceiptPdf src={selectedImageUrl} language={language}
+                        title={t("paymentReceipt")} zoom={zoomLevel} rotation={rotation} />
                     </div>
                   ) : (
                     // If it's a PDF file but not handled above, open directly in new tab

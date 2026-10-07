@@ -20,3 +20,9 @@ Credentialed receipt GET/HEAD requests must stay on the application's origin; se
 **Why:** A real, readable PDF failed in the finance viewer because its credentialed HEAD request followed a redirect to S3, whose wildcard CORS origin is invalid when credentials are included. This was a browser transport failure, not a missing receipt or payment failure.
 
 **How to apply:** Preserve customer ownership and staff authorization, actual media type, private/no-store caching, and HEAD metadata without a body. Do not make receipts public, weaken authentication, or change shared bucket CORS merely to hide this error.
+
+In-app PDF previews should not depend on Chrome's embedded PDF plugin. Render authenticated receipt bytes locally, with a compatible PDF engine and its matching same-origin worker, rather than relaxing frame security or sending documents to an external viewer.
+
+**Why:** A successful file GET/HEAD does not prove the browser can display a PDF in an embedded frame. The reported blocked-page error remained after fixing transport. Also, a modern PDF engine failed on the installed Chromium 125 because Promise.try was unavailable; the compatibility build rendered successfully in a sandboxed browser frame.
+
+**How to apply:** Verify actual rendered pixels and page navigation in a browser, not just HTTP success. Cover zoom, rotation, expired-session errors and retry. Retain the authenticated same-origin boundary and keep the compatibility engine and worker versions aligned.
