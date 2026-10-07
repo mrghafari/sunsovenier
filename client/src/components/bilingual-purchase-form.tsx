@@ -22,6 +22,7 @@ import type { ShopContract } from "@/components/checkout/contract-selector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount, displayCurrencyAmountWithSymbol } from "@/lib/currency-utils";
 import { shippingWeightKg } from "@/lib/shipping-weight";
+import { isContractShippingMethodAllowed, preferredContractShippingMethod } from "@shared/contract-shipping-policy";
 import { contractQuantityLimit } from "@/lib/contract-cart";
 import { contractTheme } from "@/lib/contract-theme";
 
@@ -1300,9 +1301,14 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     });
     
     if (hasEnforcedContractShippingMode) {
-      const requiredValue = selectedContractShippingMode === "self_transport" ? "self_pickup" : "smart_vehicle";
+      const currentRate = shippingRatesData?.find((rate: any) => rate.id === selectedShippingMethod);
+      const currentValue = currentRate?.deliveryMethod || currentRate?.delivery_method;
+      if (currentRate && isContractShippingMethodAllowed(selectedContractShippingMode, currentValue)) return;
+      const requiredValue = preferredContractShippingMethod(selectedContractShippingMode, currentValue);
       const requiredRate = shippingRatesData?.find((rate: any) =>
-        String(rate.deliveryMethod || rate.delivery_method || "").toLowerCase() === requiredValue);
+        String(rate.deliveryMethod || rate.delivery_method || "").toLowerCase() === requiredValue)
+        || (selectedContractShippingMode === "automatic_vehicle" ? shippingRatesData?.find((rate: any) =>
+          String(rate.deliveryMethod || rate.delivery_method || "").toLowerCase() === "self_pickup") : null);
       setSelectedShippingMethod(requiredRate?.id ?? null);
       return;
     }
@@ -3076,13 +3082,20 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                   <div className="space-y-2">
                     <select
                       value={selectedShippingMethod || ''}
-                      disabled={hasEnforcedContractShippingMode}
-                      onChange={(e) => setSelectedShippingMethod(parseInt(e.target.value) || null)}
+                      disabled={selectedContractShippingMode === "self_transport"}
+                      onChange={(e) => {
+                        const id = parseInt(e.target.value) || null;
+                        const rate = shippingRatesData.find((item: any) => item.id === id);
+                        if (rate && isContractShippingMethodAllowed(selectedContractShippingMode, rate.deliveryMethod || rate.delivery_method)) {
+                          setSelectedShippingMethod(id);
+                        }
+                      }}
                       className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
                       required
                     >
                       <option value="">{t.selectDeliveryMethod}</option>
                       {shippingRatesData.map((rate: any) => {
+                        if (!isContractShippingMethodAllowed(selectedContractShippingMode, rate.deliveryMethod || rate.delivery_method)) return null;
                         // Handle smart_vehicle option specially
                         if (rate.deliveryMethod === 'smart_vehicle' || rate.delivery_method === 'smart_vehicle') {
                           return (
@@ -3138,16 +3151,16 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                     {hasEnforcedContractShippingMode && <p className="text-xs text-muted-foreground" role="status">
                       {language === "fa" ? (selectedContractShippingMode === "self_transport"
                         ? "طبق قرارداد، خودرو را مشتری تأمین می‌کند؛ کرایهٔ حمل شرکت محاسبه نمی‌شود."
-                        : "طبق قرارداد، حمل با خودروی شرکت انجام می‌شود.")
+                        : "حمل شرکت با انتخاب خودکار قالب، یا حمل توسط مشتری به انتخاب شماست.")
                         : language === "ar" ? (selectedContractShippingMode === "self_transport"
                           ? "حسب العقد، يوفر العميل المركبة؛ لا تُحسب أجرة نقل الشركة."
-                          : "حسب العقد، يتم النقل بمركبة الشركة.")
+                          : "يمكنك اختيار نقل الشركة بقالب تلقائي أو النقل على العميل.")
                         : language === "tr" ? (selectedContractShippingMode === "self_transport"
                           ? "Sözleşmeye göre aracı müşteri sağlar; şirket taşıma ücreti hesaplanmaz."
-                          : "Sözleşmeye göre taşıma şirket aracıyla yapılır.")
+                          : "Otomatik şablonla şirket taşımasını veya kendi taşımanızı seçebilirsiniz.")
                         : selectedContractShippingMode === "self_transport"
                           ? "The contract requires customer-arranged transport; no company freight is charged."
-                          : "The contract requires company-arranged vehicle delivery."}
+                          : "Choose company delivery with an automatic template, or customer-arranged transport."}
                     </p>}
                     
                     {/* Show shipping cost details */}

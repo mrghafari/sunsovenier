@@ -61,8 +61,9 @@ test("bilingual contract checkout sends contract quote context and enforces cust
   const form = readFileSync(new URL("../client/src/components/bilingual-purchase-form.tsx", import.meta.url), "utf8");
   const request = form.slice(form.indexOf("fetch('/api/logistics/select-optimal-vehicle'"), form.indexOf("const data = await response.json()", form.indexOf("fetch('/api/logistics/select-optimal-vehicle'")));
   assert.match(request, /contractId: selectedContractId/);
-  assert.match(form, /selectedContractShippingMode === "self_transport" \? "self_pickup" : "smart_vehicle"/);
-  assert.match(form, /disabled=\{hasEnforcedContractShippingMode\}/);
+  assert.match(form, /preferredContractShippingMethod\(selectedContractShippingMode, currentValue\)/);
+  assert.match(form, /disabled=\{selectedContractShippingMode === "self_transport"\}/);
+  assert.match(form, /isContractShippingMethodAllowed\(selectedContractShippingMode, currentValue\)/);
   assert.match(form, /freshContract\.shippingMode !== contractAsPresented\.shippingMode/);
   assert.match(form, /contract:\$\{selectedContractId/);
   const routes = readFileSync(new URL("./routes.ts", import.meta.url), "utf8");

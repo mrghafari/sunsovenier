@@ -258,7 +258,7 @@ test("new contracts require an explicit shipping mode while legacy edits preserv
 test("contract shipping mode requires its canonical delivery method and leaves legacy modes unrestricted", () => {
   assert.doesNotThrow(() => assertContractShippingMode("automatic_vehicle", "smart_vehicle"));
   assert.throws(() => assertContractShippingMode("automatic_vehicle", "courier"), /requires automatic vehicle/);
-  assert.throws(() => assertContractShippingMode("automatic_vehicle", "self_pickup"), /requires automatic vehicle/);
+  assert.doesNotThrow(() => assertContractShippingMode("automatic_vehicle", "self_pickup"));
   assert.doesNotThrow(() => assertContractShippingMode("self_transport", "self_pickup"));
   assert.throws(() => assertContractShippingMode("self_transport", "pickup"), /requires customer-arranged/);
   assert.throws(() => assertContractShippingMode("self_transport", "smart_vehicle"), /requires customer-arranged/);

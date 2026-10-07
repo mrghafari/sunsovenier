@@ -11,6 +11,7 @@ import {
 import { buildContractDraftText } from "@shared/contract-document";
 import { buildShopContractSummary, type ShopContractSummary } from "@shared/shop-contract-summary";
 import { registerSignedContractDocuments } from "./signed-contract-documents";
+import { isContractShippingMethodAllowed } from "../shared/contract-shipping-policy";
 
 const HOLD_TTL_MINUTES = 5;
 
@@ -221,8 +222,8 @@ export function validateContractAddendumDefinition(body: any): ContractDefinitio
 export function assertContractShippingMode(mode: ContractShippingMode | null, canonicalMethod: unknown): void {
   if (mode === null) return; // Existing contracts retain their previous shipping choices.
   const method = String(canonicalMethod ?? "").trim().toLowerCase();
-  if (mode === "automatic_vehicle" && method !== "smart_vehicle") {
-    throw new ContractError("This contract requires automatic vehicle delivery.");
+  if (mode === "automatic_vehicle" && !isContractShippingMethodAllowed(mode, method)) {
+    throw new ContractError("This contract requires automatic vehicle delivery or customer-arranged self transport.");
   }
   if (mode === "self_transport" && method !== "self_pickup") {
     throw new ContractError("This contract requires customer-arranged self transport.");

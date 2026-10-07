@@ -24,6 +24,16 @@ uses the server's quote-exempt zero-freight path; company-arranged bulk transpor
 uses bulk-category templates in both issuance and validation. Do not silently
 change contractual shipping terms to make an order succeed.
 
+For automatic-delivery contracts, customer-arranged self transport is always an
+allowed customer choice, even when a company template is available.
+
+**Why:** The user explicitly chose “always, at the customer's choice”; automatic
+template selection does not make company transport mandatory.
+
+**How to apply:** Accept the active canonical self-pickup method without a vehicle
+quote and charge no company freight. Keep ordinary vehicle-quote checks for
+company delivery, and retain customer-only restrictions on self-transport contracts.
+
 An ordinary delivery quote requires an active rate that covers the selected destination. Do not interpret a delivery method's zero default cost as free shipping when no rate matches.
 
 **Why:** A zero default on a method can otherwise present an unsupported destination as free delivery, even though no actual rate was configured for it.

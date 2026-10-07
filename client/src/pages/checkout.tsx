@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {requiresBulkContractTransport} from "@shared/bulk-transport";
 import BulkVehicleSelector from "@/components/checkout/bulk-vehicle-selector";
+import { isContractShippingMethodAllowed, preferredContractShippingMethod } from "@shared/contract-shipping-policy";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -589,19 +590,23 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   const hasEnforcedContractShippingMode = selectedContractShippingMode === 'automatic_vehicle' || selectedContractShippingMode === 'self_transport';
   const contractShippingMethodNotice = !hasEnforcedContractShippingMode
     ? ''
-    : requiredContractShippingMethodId
+    : requiredContractShippingMethodId || (selectedContractShippingMode === 'automatic_vehicle' && getContractShippingMethodId("self_transport", deliveryMethods))
       ? selectedContractShippingMode === 'automatic_vehicle'
-        ? language === 'fa' ? 'طبق قرارداد، خودرو به‌صورت خودکار توسط سیستم انتخاب می‌شود.' : language === 'ar' ? 'وفقاً للعقد، يختار النظام المركبة تلقائياً.' : language === 'tr' ? 'Sözleşmeye göre araç sistem tarafından otomatik seçilir.' : 'Per the contract, the system automatically selects the vehicle.'
+        ? language === 'fa' ? 'حمل شرکت با انتخاب خودکار قالب، یا حمل توسط مشتری به انتخاب شماست.' : language === 'ar' ? 'يمكنك اختيار نقل الشركة بقالب تلقائي أو النقل على العميل.' : language === 'tr' ? 'Otomatik şablonla şirket taşımasını veya kendi taşımanızı seçebilirsiniz.' : 'Choose company delivery with an automatic template, or customer-arranged transport.'
         : language === 'fa' ? 'طبق قرارداد، روش تحویل «حمل توسط خودم» است و هزینهٔ حمل خودرو محاسبه نمی‌شود.' : language === 'ar' ? 'وفقاً للعقد، طريقة التسليم هي «النقل الذاتي» ولا تُحسب أجرة مركبة.' : language === 'tr' ? 'Sözleşmeye göre teslimat «Kendi taşımanız»dır; araç ücreti hesaplanmaz.' : 'Per the contract, delivery is “Self transport”; vehicle shipping is not charged.'
       : language === 'fa' ? 'روش حمل تعیین‌شده در قرارداد در حال حاضر در دسترس نیست. برای ادامه با مدیر فروش تماس بگیرید.' : language === 'ar' ? 'طريقة النقل المحددة في العقد غير متاحة حالياً. يرجى التواصل مع مدير المبيعات.' : language === 'tr' ? 'Sözleşmedeki taşıma yöntemi şu anda kullanılamıyor. Lütfen satış yöneticisiyle iletişime geçin.' : 'The shipping method required by this contract is unavailable. Please contact sales.';
   useEffect(() => {
     if (hasEnforcedContractShippingMode) {
       if (deliveryMethods.length === 0) return;
       const currentShippingMethod = form.getValues('shippingMethod');
+      const currentMethod = deliveryMethods.find((method: any) => String(method.id) === currentShippingMethod);
+      const preferredValue = preferredContractShippingMethod(selectedContractShippingMode, currentMethod?.value);
+      if (currentMethod && isContractShippingMethodAllowed(selectedContractShippingMode, currentMethod.value)) return;
       if (shippingMethodBeforeContractPolicyRef.current === undefined) {
         shippingMethodBeforeContractPolicyRef.current = currentShippingMethod;
       }
-      const nextMethod = requiredContractShippingMethodId || '';
+      const nextMethod = getContractShippingMethodId(preferredValue === "self_pickup" ? "self_transport" : "automatic_vehicle", deliveryMethods)
+        || (selectedContractShippingMode === "automatic_vehicle" ? getContractShippingMethodId("self_transport", deliveryMethods) : null) || '';
       if (currentShippingMethod !== nextMethod) {
         form.setValue('shippingMethod', nextMethod, { shouldDirty: true, shouldValidate: true });
       }
@@ -611,7 +616,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       form.setValue('shippingMethod', shippingMethodBeforeContractPolicyRef.current, { shouldDirty: true, shouldValidate: true });
       shippingMethodBeforeContractPolicyRef.current = undefined;
     }
-  }, [deliveryMethods, form, hasEnforcedContractShippingMode, requiredContractShippingMethodId, selectedContractId]);
+  }, [deliveryMethods, form, hasEnforcedContractShippingMode, requiredContractShippingMethodId, selectedContractId, selectedContractShippingMode]);
 
   useEffect(() => {
     if (selectedContractFromQuery) setSelectedContractSnapshot(selectedContractFromQuery);
@@ -1363,9 +1368,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         });
         return;
       }
-      const freshRequiredShippingMethodId = getContractShippingMethodId(freshShippingMode, deliveryMethods);
+      const freshSelectedMethod = deliveryMethods.find((method: any) => String(method.id) === data.shippingMethod);
       if ((freshShippingMode === 'automatic_vehicle' || freshShippingMode === 'self_transport') &&
-        (!freshRequiredShippingMethodId || data.shippingMethod !== freshRequiredShippingMethodId)) {
+        (!freshSelectedMethod || !isContractShippingMethodAllowed(freshShippingMode, freshSelectedMethod.value))) {
         setPendingReview(null);
         toast({
           title: language === 'fa' ? 'روش حمل قرارداد در دسترس نیست' : language === 'ar' ? 'طريقة النقل المطلوبة غير متاحة' : language === 'tr' ? 'Sözleşmenin taşıma yöntemi kullanılamıyor' : 'Contract shipping method unavailable',
@@ -2588,9 +2593,10 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                           <FormControl>
                             <Select
                               value={field.value}
-                              disabled={hasEnforcedContractShippingMode}
+                              disabled={selectedContractShippingMode === "self_transport"}
                               onValueChange={(methodId) => {
-                                if (!hasEnforcedContractShippingMode || methodId === requiredContractShippingMethodId) {
+                                const method = deliveryMethods.find((item: any) => String(item.id) === methodId);
+                                if (method && isContractShippingMethodAllowed(selectedContractShippingMode, method.value)) {
                                   field.onChange(methodId);
                                 }
                               }}
@@ -2607,6 +2613,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                               <SelectContent>
                                 {/* Display all delivery methods including smart_vehicle */}
                                 {(deliveryMethods as any[])?.map((method: any) => {
+                                  if (!isContractShippingMethodAllowed(selectedContractShippingMode, method.value)) return null;
                                   // Handle smart_vehicle specially
                                   if (method.value === 'smart_vehicle') {
                                     if (selectedVehicle && destinationCity && totalWeight > 0 && shippingQuoteReady) {
