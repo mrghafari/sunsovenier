@@ -618,3 +618,17 @@ test("legacy terms remain authoritative when structured draft data is absent or 
   assert.equal(cleared.terms, "Agreed fixed prices");
   assert.equal(cleared.draftData, null);
 });
+
+test("generated contracts include the CRM name and business customer number in every document language", () => {
+  for (const language of ["fa", "ar", "en", "tr"] as const) {
+    const draft = shopContractDraftSchema.parse(validV2Draft({ language }));
+    const context = { customerName: "Synthetic Buyer", customerCode: "9123456", contractNumber: "C2601111", deliveryTerm: "FCA" as const, items: [] };
+    const document = buildContractDraftText(draft, context);
+    assert.match(document, /Synthetic Buyer/);
+    assert.match(document, /9123456/);
+    assert.match(document, /شماره مشتری|رقم العميل|Customer number|Müşteri numarası/);
+    const legacy = buildContractDraftText(draft, { ...context, customerCode: null });
+    assert.doesNotMatch(legacy, /9123456/);
+    assert.doesNotMatch(legacy, /شماره مشتری|رقم العميل|Customer number|Müşteri numarası/);
+  }
+});

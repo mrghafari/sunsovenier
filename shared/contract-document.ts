@@ -11,6 +11,7 @@ export type ContractDocumentItem = {
 
 export type ContractDocumentContext = {
   customerName: string;
+  customerCode?: string | null;
   contractNumber: string;
   deliveryTerm: IncotermCode | null;
   items: ContractDocumentItem[];
@@ -306,7 +307,9 @@ export function buildContractDraftText(draft: ShopContractDraftData, context: Co
     seller.city ? `${labels.city}: ${filled(seller.city)}` : "",
     seller.postalCode ? `${labels.postal}: ${filled(seller.postalCode)}` : "",
   ].filter(Boolean).join(" · ");
-  const buyerLine = `${labels.buyer}: ${filled(context.customerName)} (${labels.country}: ${filled(buyer.country)}؛ ${labels.registration}: ${filled(buyer.registration)}؛ ${labels.address}: ${filled(buyer.address)}؛ ${labels.representative}: ${filled(buyer.representative)}؛ ${labels.contact}: ${filled(buyer.contact)})`;
+  const customerNumberLabel = text(language, { fa: "شماره مشتری", en: "Customer number", ar: "رقم العميل", tr: "Müşteri numarası" });
+  const customerIdentity = context.customerCode ? ` · ${customerNumberLabel}: ${context.customerCode}` : "";
+  const buyerLine = `${labels.buyer}: ${filled(context.customerName)}${customerIdentity} (${labels.country}: ${filled(buyer.country)}؛ ${labels.registration}: ${filled(buyer.registration)}؛ ${labels.address}: ${filled(buyer.address)}؛ ${labels.representative}: ${filled(buyer.representative)}؛ ${labels.contact}: ${filled(buyer.contact)})`;
   const sellerLine = `${labels.seller}: ${filled(seller.name)} (${labels.registration}: ${filled(seller.registration)}؛ ${labels.address}: ${filled(seller.address)}؛ ${labels.representative}: ${filled(seller.representative)}؛ ${labels.contact}: ${sellerContact}${sellerExtra ? `؛ ${sellerExtra}` : ""})`;
   const clauseLines = clauses.map((clause, index) => `${index + 1}. ${labels.terms[index]}: ${clause}${index === 3 && context.packaging ? `\n${packagingTermsText(context.packaging, language)}` : ""}`);
   const signLines = `${labels.sellerSignature}: ${filled(seller.representative)}          ${labels.buyerSignature}: ${filled(buyer.representative)}`;

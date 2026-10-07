@@ -475,6 +475,7 @@ function contractResponse(row: any, itemRows: any[]) {
     endedAt: row.ended_at ? new Date(row.ended_at).toISOString() : null,
     customerId: Number(row.customer_id),
     customerName: row.customer_name,
+    customerCode: row.customer_code ?? null,
     items: itemRows.map((item) => ({
       productId: Number(item.product_id),
       productName: item.product_name,
@@ -491,7 +492,7 @@ function contractResponse(row: any, itemRows: any[]) {
 async function loadContractRows(client: import("pg").PoolClient, contractId?: number) {
   const contracts = await client.query(
     `SELECT c.id, c.number, c.terms, c.draft_data, c.delivery_term, c.shipping_mode, c.packaging, c.is_active, c.ended_at, c.customer_id,
-            COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name,
+            COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name, cc.customer_code,
             (SELECT count(*)::integer FROM shop_contract_addenda a WHERE a.parent_contract_id = c.id) AS addendum_count
        FROM shop_contracts c
        JOIN crm_customers cc ON cc.id = c.customer_id
@@ -541,7 +542,7 @@ async function canonicalTermsForContract(
   draft: ShopContractDraftData,
 ): Promise<string> {
   const customer = await client.query(
-    `SELECT COALESCE(NULLIF(concat_ws(' ', first_name, last_name), ''), company, '') AS customer_name
+    `SELECT COALESCE(NULLIF(concat_ws(' ', first_name, last_name), ''), company, '') AS customer_name, customer_code
        FROM crm_customers WHERE id = $1`,
     [customerId],
   );
@@ -558,6 +559,7 @@ async function canonicalTermsForContract(
   return buildContractDraftText(draft, {
     packaging: parseContractPackaging(packaging.rows[0]?.packaging),
     customerName: customer.rows[0].customer_name,
+    customerCode: customer.rows[0].customer_code ?? null,
     contractNumber,
     deliveryTerm,
     items: products.rows.map((row: any) => ({

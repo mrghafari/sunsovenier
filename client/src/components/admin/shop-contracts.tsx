@@ -25,14 +25,15 @@ import { contractTheme } from "@/lib/contract-theme";
 import type { ContractPackaging } from "@shared/contract-packaging";
 import { parseContractPackaging, packagingTypeLabel } from "@shared/contract-packaging";
 import { ContractPackagingFields } from "@/components/contract-packaging-fields";
+import { normalizeCustomerSearch } from "@shared/customer-search";
 
 type ContractItem = { productId: number | string; productName: string; maxQuantity: number; usedQuantity: number; remainingQuantity: number; unitPrice: number; netWeight?: string | number | null; weightUnit?: string };
 type ShippingMode = "automatic_vehicle" | "self_transport";
-type Contract = { id: number | string; number: string; addendumCount?: number; terms: string; draftData: ShopContractDraftData | null; shippingMode: ShippingMode | null; isActive: boolean; endedAt: string | null; customerId: number | string; customerName: string; deliveryTerm: IncotermCode | null; packaging?: ContractPackaging | null; items: ContractItem[] };
-type Customer = { id: number | string; firstName?: string; lastName?: string; name?: string; company?: string; email?: string };
+type Contract = { id: number | string; number: string; addendumCount?: number; terms: string; draftData: ShopContractDraftData | null; shippingMode: ShippingMode | null; isActive: boolean; endedAt: string | null; customerId: number | string; customerName: string; customerCode?: string | null; deliveryTerm: IncotermCode | null; packaging?: ContractPackaging | null; items: ContractItem[] };
+type Customer = { id: number | string; firstName?: string; lastName?: string; name?: string; company?: string; email?: string; customerCode?: string | null };
 type Product = { id: number | string; name: string };
 type FormItem = { productId: number | string; productName: string; maxQuantity: string; unitPrice: string; usedQuantity: number };
-type ContractForm = { number: string; customerId: number | string | null; customerName: string; deliveryTerm: IncotermCode | null; shippingMode: ShippingMode | null; terms: string; isActive: boolean; packaging: ContractPackaging | null; items: FormItem[] };
+type ContractForm = { number: string; customerId: number | string | null; customerName: string; customerCode?: string | null; deliveryTerm: IncotermCode | null; shippingMode: ShippingMode | null; terms: string; isActive: boolean; packaging: ContractPackaging | null; items: FormItem[] };
 
 const emptyForm = (): ContractForm => ({ number: "", customerId: null, customerName: "", deliveryTerm: null, shippingMode: "self_transport", terms: "", isActive: true, packaging: null, items: [] });
 
@@ -49,7 +50,7 @@ async function readJson<T>(url: string): Promise<T> {
   if (!response.ok || result.success === false) throw new Error(result.message || result.error || `Request failed (${response.status})`);
   return result as T;
 }
-function customerLabel(customer: Customer) { return [customer.firstName, customer.lastName].filter(Boolean).join(" ") || customer.name || customer.company || customer.email || String(customer.id); }
+function customerLabel(customer: Customer) { return [customer.firstName, customer.lastName].filter(Boolean).join(" ") || customer.name || customer.company || customer.email || "—"; }
 function errorMessage(error: unknown) { return error instanceof Error ? error.message : "Unexpected error."; }
 function packagingErrorMessage(error: unknown, language: string) {
   const message = errorMessage(error);
@@ -118,13 +119,23 @@ export default function ShopContracts() {
       ? { ...current, seller: sellerQuery.data.seller } : current);
   }, [sellerQuery.data?.seller, documentLanguage, editingId, refreshSeller]);
   const customers = useMemo(() => { const payload = customerQuery.data?.data; return Array.isArray(payload) ? payload : ((payload as { customers?: Customer[] } | undefined)?.customers || customerQuery.data?.customers || []); }, [customerQuery.data]);
+  const selectCustomer = (customer: Customer) => {
+    setForm(current => ({ ...current, customerId: customer.id, customerName: customerLabel(customer), customerCode: customer.customerCode ?? null }));
+    setCustomerSearch("");
+  };
+  useEffect(() => {
+    const code = normalizeCustomerSearch(customerSearch);
+    if (!/^9\d{6}$/.test(code)) return;
+    const matches = customers.filter(customer => customer.customerCode === code);
+    if (matches.length === 1) selectCustomer(matches[0]);
+  }, [customerSearch, customers]);
   const products = productQuery.data?.products || [];
   const contracts = contractsQuery.data?.contracts || [];
   const currentContracts = useMemo(() => contracts.filter((contract) => !contract.endedAt), [contracts]);
   const endedContracts = useMemo(() => contracts.filter((contract) => Boolean(contract.endedAt)), [contracts]);
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const draftContext = { customerName: form.customerName, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items, packaging: form.packaging };
+      const draftContext = { customerName: form.customerName, customerCode: form.customerCode, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items, packaging: form.packaging };
       const payload = {
         ...(editingId !== null && !creatingAddendumFor ? { number: form.number.trim() } : {}),
         customerId: form.customerId, deliveryTerm: form.deliveryTerm,
@@ -173,7 +184,7 @@ export default function ShopContracts() {
     if (contract.endedAt) return;
     setCreatingAddendumFor(null);
     setEditingId(contract.id);
-    setForm({ number: contract.number || "", customerId: contract.customerId, customerName: contract.customerName || "", deliveryTerm: contract.deliveryTerm || null, shippingMode: contract.shippingMode ?? null, terms: contract.terms || "", isActive: Boolean(contract.isActive), packaging: contract.packaging ? { ...contract.packaging } : null, items: (contract.items || []).map((item) => ({ productId: item.productId, productName: item.productName, maxQuantity: String(item.maxQuantity), unitPrice: String(item.unitPrice), usedQuantity: Number(item.usedQuantity) || 0 })) });
+    setForm({ number: contract.number || "", customerId: contract.customerId, customerName: contract.customerName || "", customerCode: contract.customerCode ?? null, deliveryTerm: contract.deliveryTerm || null, shippingMode: contract.shippingMode ?? null, terms: contract.terms || "", isActive: Boolean(contract.isActive), packaging: contract.packaging ? { ...contract.packaging } : null, items: (contract.items || []).map((item) => ({ productId: item.productId, productName: item.productName, maxQuantity: String(item.maxQuantity), unitPrice: String(item.unitPrice), usedQuantity: Number(item.usedQuantity) || 0 })) });
     setDraftData(contract.draftData || null);
     setRefreshSeller(false);
     setCustomerSearch(""); setProductSearch(""); setFormError(""); setDialogOpen(true);
@@ -351,7 +362,20 @@ export default function ShopContracts() {
           tr: "Bu ek kaydedildiğinde asıl sözleşmenin satış koşulları güncellenir; eski siparişler değişmez.",
         }[language] : tx.dialogHint}</DialogDescription></DialogHeader>
         <div className="space-y-5">{formError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{formError}</AlertDescription></Alert>}
-           <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="contract-number">{tx.number}</Label><Input id="contract-number" value={creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number} readOnly={editingId !== null} placeholder={editingId === null ? tx.autoNumber : undefined} className={editingId === null ? "text-muted-foreground" : undefined} /><p className="text-xs text-muted-foreground">{editingId === null ? tx.autoNumber : ""}</p></div><div className="space-y-2"><Label htmlFor="customer-search">{tx.customer}</Label><Input id="customer-search" value={customerSearch} disabled={!!creatingAddendumFor} placeholder={form.customerName || tx.customerSearch} onChange={(e) => { setCustomerSearch(e.target.value); setForm({ ...form, customerId: null, customerName: "" }); }} />{customerQuery.isLoading && <p className="text-xs text-muted-foreground">{tx.searchingCustomers}</p>}{customerQuery.isError && <p className="text-xs text-destructive">{errorMessage(customerQuery.error)}</p>}{customers.length > 0 && <div className="max-h-36 overflow-auto rounded-md border" role="listbox">{customers.map((customer) => <button type="button" key={customer.id} role="option" className="block w-full px-3 py-2 text-start text-sm hover:bg-accent" onClick={() => { setForm({ ...form, customerId: customer.id, customerName: customerLabel(customer) }); setCustomerSearch(""); }}><span className="block font-medium">{customerLabel(customer)}</span>{customer.email && <span className="text-xs text-muted-foreground">{customer.email}</span>}</button>)}</div>}{form.customerId && <p className="text-sm text-primary">{tx.selected} {form.customerName}</p>}</div></div>
+           <div className="grid gap-4 sm:grid-cols-2">
+             <div className="space-y-2"><Label htmlFor="contract-number">{tx.number}</Label><Input id="contract-number" value={creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number} readOnly={editingId !== null} placeholder={editingId === null ? tx.autoNumber : undefined} className={editingId === null ? "text-muted-foreground" : undefined} /><p className="text-xs text-muted-foreground">{editingId === null ? tx.autoNumber : ""}</p></div>
+             <div className="space-y-2">
+               <Label htmlFor="customer-search">{tx.customer}</Label>
+               <Input id="customer-search" value={customerSearch} disabled={!!creatingAddendumFor}
+                 placeholder={form.customerName ? `${form.customerName}${form.customerCode ? ` · ${form.customerCode}` : ""}` : ({ fa: "شماره مشتری، نام یا شرکت", en: "Customer number, name or company", ar: "رقم العميل أو الاسم أو الشركة", tr: "Müşteri numarası, ad veya şirket" }[language])}
+                 onChange={e => { setCustomerSearch(e.target.value); setForm(current => ({ ...current, customerId: null, customerName: "", customerCode: null })); }} />
+               {customerQuery.isLoading && <p className="text-xs text-muted-foreground">{tx.searchingCustomers}</p>}
+               {customerQuery.isError && <p className="text-xs text-destructive">{errorMessage(customerQuery.error)}</p>}
+               {customerSearch.trim().length >= 2 && customerQuery.isSuccess && customers.length === 0 && <p role="status" className="text-xs text-muted-foreground">{{ fa: "مشتری مطابق این جست‌وجو پیدا نشد.", en: "No matching customer found.", ar: "لم يتم العثور على عميل مطابق.", tr: "Eşleşen müşteri bulunamadı." }[language]}</p>}
+               {customers.length > 0 && <div className="max-h-36 overflow-auto rounded-md border" role="listbox">{customers.map(customer => <button type="button" key={customer.id} role="option" className="block w-full px-3 py-2 text-start text-sm hover:bg-accent" onClick={() => selectCustomer(customer)}><span className="block font-medium">{customerLabel(customer)}{customer.customerCode && <> · <span dir="ltr">{customer.customerCode}</span></>}</span>{customer.email && <span className="text-xs text-muted-foreground">{customer.email}</span>}</button>)}</div>}
+               {form.customerId && <p className="text-sm text-primary">{tx.selected} {form.customerName}{form.customerCode && <> · <span dir="ltr">{form.customerCode}</span></>}</p>}
+             </div>
+           </div>
           <div className="grid gap-4 sm:grid-cols-[minmax(155px,200px)_minmax(0,1fr)_minmax(0,1fr)]">
             <div className="space-y-2"><Label htmlFor="contract-delivery-term">{tx.delivery}{editingId === null ? " *" : ""}</Label><Select value={form.deliveryTerm || undefined} onValueChange={(value) => setForm({ ...form, deliveryTerm: value as IncotermCode })}><SelectTrigger id="contract-delivery-term" aria-label={tx.delivery}><SelectValue placeholder={tx.chooseDelivery} /></SelectTrigger><SelectContent>{INCOTERMS_2020.map((term) => <SelectItem key={term.code} value={term.code}>{term.code} — {term.name}</SelectItem>)}</SelectContent></Select></div>
             <div className="flex items-center gap-3 rounded-md border p-3">
@@ -375,7 +399,7 @@ export default function ShopContracts() {
                      if (editingId !== null) setRefreshSeller(true);
                    } else setDraftData(next);
                  }}
-                  context={{ customerName: form.customerName, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items, packaging: form.packaging }}
+                   context={{ customerName: form.customerName, customerCode: form.customerCode, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items, packaging: form.packaging }}
                  language={language}
                   logoUrl={companyQuery.data?.data?.logoUrl}
                  sellerLoading={sellerQuery.isLoading || sellerQuery.isFetching}

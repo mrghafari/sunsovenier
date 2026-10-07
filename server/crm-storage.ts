@@ -1,6 +1,7 @@
 import { eq, desc, and, or, sql, count, sum, avg } from "drizzle-orm";
 import { customerDb } from "./customer-db";
 import { crmDb } from "./crm-db";
+import { normalizeCustomerSearch } from "../shared/customer-search";
 import { 
   customers, 
   customerOrders,
@@ -256,7 +257,7 @@ export class CrmStorage implements ICrmStorage {
   }
 
   async searchCrmCustomers(query: string): Promise<CrmCustomer[]> {
-    const searchTerm = `%${query}%`;
+    const searchTerm = `%${normalizeCustomerSearch(query)}%`;
     const customerData = await crmDb
       .select()
       .from(crmCustomers)
@@ -268,7 +269,8 @@ export class CrmStorage implements ICrmStorage {
             sql`${crmCustomers.lastName} ILIKE ${searchTerm}`,
             sql`${crmCustomers.email} ILIKE ${searchTerm}`,
             sql`${crmCustomers.company} ILIKE ${searchTerm}`,
-            sql`${crmCustomers.phone} ILIKE ${searchTerm}`
+            sql`${crmCustomers.phone} ILIKE ${searchTerm}`,
+            sql`${crmCustomers.customerCode} ILIKE ${searchTerm}`
           )
         )
       )

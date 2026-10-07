@@ -158,6 +158,7 @@ export default function ContractDraftBuilder({ value, onChange, context, languag
     </div>{onRefreshSeller && <Button type="button" variant="outline" className={`mt-3 ${contractTheme.outline}`} onClick={onRefreshSeller} disabled={sellerLoading}>{tx.refreshSeller}</Button>}</fieldset>
     <fieldset className={`p-4 ${contractTheme.panel}`}><legend className={`px-2 font-semibold ${contractTheme.text}`}>{tx.buyer}</legend><div className="grid gap-4 sm:grid-cols-2">
       <div className="space-y-1.5"><Label>{tx.customer}</Label><p className="rounded-md border bg-muted px-3 py-2 text-sm">{context.customerName || "—"}</p></div>
+      <div className="space-y-1.5"><Label>{{ fa: "شماره مشتری", en: "Customer number", ar: "رقم العميل", tr: "Müşteri numarası" }[language]}</Label><p dir="ltr" className="rounded-md border bg-muted px-3 py-2 text-sm">{context.customerCode || "—"}</p></div>
       {buyerField("country", tx.country)}{buyerField("registration", tx.registration)}{buyerField("address", tx.address)}
       {buyerField("representative", tx.representative)}{buyerField("contact", tx.contact)}
     </div></fieldset>
