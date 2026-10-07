@@ -58,6 +58,8 @@ import PostalServicesTab from '@/components/PostalServicesTab';
 import DeliveryServicesTab from '@/components/DeliveryServicesTab';
 import PostalShippingParamsTab from '@/components/PostalShippingParamsTab';
 import VehicleTemplateEditor from '@/components/admin/VehicleTemplateEditor';
+import FleetCategoryField from '@/components/admin/FleetCategoryField';
+import { fleetCategoryLabel, parseFleetCategory, type FleetCategory } from "@shared/fleet-category";
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Car, Star, TrendingUp, Calendar as CalendarIcon, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
@@ -569,6 +571,7 @@ interface TransportationCompany {
 
 interface ReadyVehicle {
   id: number;
+  fleetCategory?: FleetCategory;
   vehicleTemplateId: number;
   vehicleType: string; // For display compatibility
   vehicleTemplateName?: string;
@@ -755,6 +758,8 @@ const LogisticsManagement = () => {
   const [selectedOrderForVehicle, setSelectedOrderForVehicle] = useState<LogisticsOrder | null>(null);
   const [selectedVehicleDetails, setSelectedVehicleDetails] = useState<any>(null);
   const [availableFleetVehicles, setAvailableFleetVehicles] = useState<any[]>([]);
+  const [fleetCategoryFilter, setFleetCategoryFilter] = useState<FleetCategory>("standard");
+  const fleetCategoryDraftRef = React.useRef<FleetCategory>("standard");
   const [expandedVehicleIds, setExpandedVehicleIds] = useState<Set<number>>(new Set());
   const [expandedOrderVehicleId, setExpandedOrderVehicleId] = useState<number | null>(null);
   const [expandedOrderAddressId, setExpandedOrderAddressId] = useState<number | null>(null);
@@ -899,7 +904,9 @@ const LogisticsManagement = () => {
     if (selectedReadyVehicle && vehicleTemplatesData) {
       // Get current vehicle template names from database
       const templateNames = ((vehicleTemplatesData as any)?.data || []).map((template: any) => template.name);
-      const matchingTemplate = templateNames.find((name: string) => name === selectedReadyVehicle.vehicleType);
+      const matchingTemplate = ((vehicleTemplatesData as any)?.data || [])
+        .find((template: any) => Number(template.id) === Number(selectedReadyVehicle.vehicleTemplateId))?.name
+        || templateNames.find((name: string) => name === selectedReadyVehicle.vehicleType);
       
       if (matchingTemplate) {
         setSelectedEditVehicleType(matchingTemplate);
@@ -1443,7 +1450,7 @@ const LogisticsManagement = () => {
       }
       
       // Get all ready vehicles (آماده به کار)
-      const readyVehiclesResponse = await fetch('/api/logistics/ready-vehicles', {
+      const readyVehiclesResponse = await fetch(`/api/logistics/ready-vehicles?orderId=${order.customerOrderId}`, {
         credentials: 'include'
       });
       
@@ -1564,7 +1571,7 @@ const LogisticsManagement = () => {
         // If no ready vehicles found, fallback to fleet vehicles from delivery_vehicles table
         if (availableVehicles.length === 0) {
           console.log('⚠️ [FALLBACK] No ready vehicles, fetching from fleet vehicles API...');
-          const fleetVehiclesResponse = await fetch('/api/admin/fleet-vehicles?status=available', {
+          const fleetVehiclesResponse = await fetch(`/api/admin/fleet-vehicles?status=available&orderId=${order.customerOrderId}`, {
             credentials: 'include'
           });
           
@@ -1603,7 +1610,7 @@ const LogisticsManagement = () => {
       } else {
         // If ready-vehicles API failed, try fleet-vehicles as fallback
         console.log('⚠️ [FALLBACK] Ready vehicles API failed, trying fleet vehicles...');
-        const fleetVehiclesResponse = await fetch('/api/admin/fleet-vehicles?status=available', {
+        const fleetVehiclesResponse = await fetch(`/api/admin/fleet-vehicles?status=available&orderId=${order.customerOrderId}`, {
           credentials: 'include'
         });
         
@@ -5395,7 +5402,8 @@ const LogisticsManagement = () => {
   // Fleet Vehicles Tab Component (ناوگان خودروها)
   const FleetVehiclesTab = () => {
     // Use the already defined fleet vehicles data from top level
-    const readyVehicles = fleetVehicles;
+    const readyVehicles = fleetVehicles.filter((vehicle: ReadyVehicle) =>
+      parseFleetCategory(vehicle.fleetCategory) === fleetCategoryFilter);
 
     // Create ready vehicle mutation
     const createReadyVehicleMutation = useMutation({
@@ -5405,14 +5413,18 @@ const LogisticsManagement = () => {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify(data)
-        }).then(res => res.json()),
+        }).then(async res => {
+          const result = await res.json();
+          if (!res.ok || result.success === false) throw new Error(result.message || t('readyVehicleError'));
+          return result;
+        }),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['/api/logistics/ready-vehicles'] });
         setIsCreateReadyVehicleDialogOpen(false);
         toast({ title: t('success'), description: t('readyVehicleCreated') });
       },
-      onError: () => {
-        toast({ title: t('error'), description: t('readyVehicleError'), variant: "destructive" });
+      onError: (error: Error) => {
+        toast({ title: t('error'), description: error.message, variant: "destructive" });
       }
     });
 
@@ -5424,15 +5436,19 @@ const LogisticsManagement = () => {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify(data)
-        }).then(res => res.json()),
+        }).then(async res => {
+          const result = await res.json();
+          if (!res.ok || result.success === false) throw new Error(result.message || t('readyVehicleError'));
+          return result;
+        }),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['/api/logistics/ready-vehicles'] });
         setIsEditReadyVehicleDialogOpen(false);
         setSelectedReadyVehicle(null);
         toast({ title: t('success'), description: t('readyVehicleUpdated') });
       },
-      onError: () => {
-        toast({ title: t('error'), description: t('readyVehicleError'), variant: "destructive" });
+      onError: (error: Error) => {
+        toast({ title: t('error'), description: error.message, variant: "destructive" });
       }
     });
 
@@ -5468,6 +5484,7 @@ const LogisticsManagement = () => {
       
       const vehicleData = {
         vehicleTemplateId: selectedTemplate?.id || null,
+        fleetCategory: parseFleetCategory(formData.get('fleetCategory')),
         vehicleType: finalVehicleType,
         licensePlate: formData.get('licensePlate') as string,
         driverName: formData.get('driverName') as string,
@@ -5506,6 +5523,7 @@ const LogisticsManagement = () => {
       const vehicleData = {
         id: selectedReadyVehicle.id,
         vehicleTemplateId: selectedTemplate?.id || null,
+        fleetCategory: parseFleetCategory(formData.get('fleetCategory')),
         vehicleType: finalVehicleType,
         licensePlate: formData.get('licensePlate') as string,
         driverName: formData.get('driverName') as string,
@@ -5536,7 +5554,10 @@ const LogisticsManagement = () => {
             <p className="text-muted-foreground text-sm">{t('fleetDescription')}</p>
           </div>
           <Button 
-            onClick={() => setIsCreateReadyVehicleDialogOpen(true)}
+            onClick={() => {
+              fleetCategoryDraftRef.current = fleetCategoryFilter;
+              setIsCreateReadyVehicleDialogOpen(true);
+            }}
             className="bg-green-600 hover:bg-green-700"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -5544,6 +5565,15 @@ const LogisticsManagement = () => {
           </Button>
         </div>
 
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label={t('tabFleet')}>
+          {(["standard", "contract"] as const).map(category => <Button key={category} type="button"
+            role="tab" aria-selected={fleetCategoryFilter === category}
+            variant={fleetCategoryFilter === category ? "default" : "outline"}
+            onClick={() => setFleetCategoryFilter(category)}>
+            {fleetCategoryLabel(category, language)} ({fleetVehicles.filter((vehicle: ReadyVehicle) =>
+              parseFleetCategory(vehicle.fleetCategory) === category).length})
+          </Button>)}
+        </div>
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto"><Table className="min-w-[1100px] border border-slate-200">
@@ -5632,6 +5662,7 @@ const LogisticsManagement = () => {
                             variant="outline" 
                             onClick={() => {
                               setSelectedReadyVehicle(vehicle);
+                              fleetCategoryDraftRef.current = parseFleetCategory(vehicle.fleetCategory);
                               setIsEditReadyVehicleDialogOpen(true);
                             }}
                             className="text-blue-600 border-blue-300 hover:bg-blue-50"
@@ -5674,6 +5705,8 @@ const LogisticsManagement = () => {
             
             <form onSubmit={handleCreateReadyVehicle} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
+                <FleetCategoryField language={language} value={fleetCategoryDraftRef.current}
+                  onChange={value => { fleetCategoryDraftRef.current = value; }} />
                 <div className="space-y-2">
                     <Label htmlFor="vehicleType">{t('template')} *</Label>
                   <Select 
@@ -5833,6 +5866,8 @@ const LogisticsManagement = () => {
             {selectedReadyVehicle && (
               <form onSubmit={handleUpdateReadyVehicle} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
+                  <FleetCategoryField language={language} value={fleetCategoryDraftRef.current}
+                    onChange={value => { fleetCategoryDraftRef.current = value; }} />
                   <div className="space-y-2">
                     <Label htmlFor="edit-vehicleType">{t('template')} *</Label>
                     <Select 

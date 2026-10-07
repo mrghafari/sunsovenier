@@ -2049,7 +2049,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/logistics-storage.ts\",2339,\"Property 'where' does not exist on type 'Omit<PgSelectBase<\\\"delivery_vehicles\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"delivery_vehicles\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 17 more ...; updatedAt: PgColumn<...>; }, ... 5 mor...'.\",\"query = query.where(and(...conditions));\"]",
+      "key": "[\"server/logistics-storage.ts\",2339,\"Property 'where' does not exist on type 'Omit<PgSelectBase<\\\"delivery_vehicles\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"delivery_vehicles\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 18 more ...; updatedAt: PgColumn<...>; }, ... 5 mor...'.\",\"query = query.where(and(...conditions));\"]",
       "count": 1
     },
     {
@@ -2061,7 +2061,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/logistics-storage.ts\",2740,\"Type 'Omit<PgSelectBase<\\\"delivery_vehicles\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"delivery_vehicles\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 17 more ...; updatedAt: PgColumn<...>; }, ... 5 mor...' is missing the following properties from type 'PgSelectBase<\\\"delivery_vehicles\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"delivery_vehicles\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: true; ... 5 more ...; generated: undefined; }, {}, {}>; ... 17 more ...; updatedAt: PgColumn<......': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(and(...conditions));\"]",
+      "key": "[\"server/logistics-storage.ts\",2740,\"Type 'Omit<PgSelectBase<\\\"delivery_vehicles\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"delivery_vehicles\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 18 more ...; updatedAt: PgColumn<...>; }, ... 5 mor...' is missing the following properties from type 'PgSelectBase<\\\"delivery_vehicles\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"delivery_vehicles\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: true; ... 5 more ...; generated: undefined; }, {}, {}>; ... 18 more ...; updatedAt: PgColumn<......': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(and(...conditions));\"]",
       "count": 1
     },
     {
@@ -2774,10 +2774,6 @@
     },
     {
       "key": "[\"server/routes.ts\",2339,\"Property 'bankName' does not exist on type '{}'.\",\"bankName: gateway.config?.bankName,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2339,\"Property 'calculatedWeight' does not exist on type 'PgTableWithColumns<{ name: \\\"order_management\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"order_management\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 66 more ...; updatedAt: PgColumn<....'.\",\"storedCalculatedWeight: orderManagement.calculatedWeight\"]",
       "count": 1
     },
     {
@@ -3498,14 +3494,6 @@
     },
     {
       "key": "[\"server/routes.ts\",2339,\"Property 'vehicleTemplates' does not exist on type 'typeof import(\\\"<root>/shared/shop-schema\\\")'.\",\"const { vehicleTemplates } = await import('@shared/shop-schema');\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2339,\"Property 'vehicleType' does not exist on type '{ id: number; notes: string | null; createdAt: Date; updatedAt: Date; driverName: string; supportsFlammable: boolean | null; notAllowedFlammable: boolean | null; vehicleTemplateId: number; ... 4 more ...; currentLocation: string | null; }'.\",\"vehicleType: newVehicle.vehicleType,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2339,\"Property 'vehicleType' does not exist on type '{ id: number; vehicleTemplateId: number; licensePlate: string; driverName: string; driverMobile: string; loadCapacity: string; supportsFlammable: boolean | null; notAllowedFlammable: boolean | null; ... 4 more ...; updatedAt: Date; }'.\",\"vehicleType: updatedVehicle.vehicleType,\"]",
       "count": 1
     },
     {

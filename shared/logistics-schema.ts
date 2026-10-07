@@ -44,6 +44,7 @@ export const transportationCompanies = pgTable("transportation_companies", {
 // Vehicles used for delivery
 export const deliveryVehicles = pgTable("delivery_vehicles", {
   id: serial("id").primaryKey(),
+  fleetCategory: varchar("fleet_category", { length: 20, enum: ["standard", "contract"] }).notNull().default("standard"),
   companyId: integer("company_id").references(() => transportationCompanies.id),
   
   // Vehicle details
@@ -652,6 +653,7 @@ export const freightRates = pgTable("freight_rates", {
 // Ready Vehicles Directory - Track available vehicles and drivers
 export const readyVehicles = pgTable("ready_vehicles", {
   id: serial("id").primaryKey(),
+  fleetCategory: varchar("fleet_category", { length: 20, enum: ["standard", "contract"] }).notNull().default("standard"),
   
   // Vehicle template reference
   vehicleTemplateId: integer("vehicle_template_id").references(() => vehicleTemplates.id).notNull(), // Reference to vehicle template

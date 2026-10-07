@@ -1,6 +1,8 @@
 import express, { type Express, type RequestHandler, Request, Response, NextFunction } from "express";
 import { siteManagementModuleIds } from "@shared/site-management-modules";
 import { loadingPermissionDefinition } from "./modules/loading/registration";
+import { fleetCategoryForContract, parseFleetCategory } from "@shared/fleet-category";
+import { getOrderFleetCategory, validateFleetAssignment, validateReadyFleetCategoryChange } from "./fleet-policy";
 import { registerFibRoutes } from "./fib-routes";
 import { createServer, type Server } from "http";
 import { logBuffer } from "./log-buffer";
@@ -14176,6 +14178,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           id: customerOrders.id,
           orderNumber: customerOrders.orderNumber,
           shippingAddress: customerOrders.shippingAddress,
+          contractId: customerOrders.contractId,
           deliveryMethod: customerOrders.deliveryMethod
         })
         .from(customerOrders)
@@ -14327,7 +14330,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           // Order management data for customer's vehicle selection and calculated weight
           customerVehicleType: orderManagement.vehicleType,
           storedTotalWeight: orderManagement.totalWeight,
-          storedCalculatedWeight: orderManagement.calculatedWeight
+          storedCalculatedWeight: sql<string | null>`NULL`,
+          contractId: customerOrders.contractId
         })
         .from(customerOrders)
         .leftJoin(orderManagement, eq(orderManagement.customerOrderId, customerOrders.id))
@@ -14344,6 +14348,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const order = orderResult[0];
       
       // Get order items to check for flammable materials using order_items table
+      const requiredFleetCategory = fleetCategoryForContract(order.contractId);
       const orderItemsList = await db
         .select({
           productId: orderItems.productId,
@@ -14534,7 +14539,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         })
         .from(readyVehicles)
         .leftJoin(vehicleTemplates, eq(readyVehicles.vehicleTemplateId, vehicleTemplates.id))
-        .where(eq(readyVehicles.isAvailable, true));
+        .where(and(eq(readyVehicles.isAvailable, true), eq(readyVehicles.fleetCategory, requiredFleetCategory)));
       
       // Filter ready vehicles based on customer's EXACT vehicle template selection
       // Only show vehicles that match the customer's chosen type (no suggestions for other types)
@@ -14648,7 +14653,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             flammableProducts: flammableProducts.filter(p => p.isFlammable),
             distance: distance,
             orderItems: orderItemsList,
-            customerVehicleType: customerVehicleType // NEW: Customer's checkout selection
+            customerVehicleType: customerVehicleType, // NEW: Customer's checkout selection
+            fleetCategory: requiredFleetCategory
           },
           suitableVehicles: suitableVehicles,
           optimalVehicle: suitableVehicles.length > 0 ? suitableVehicles[0] : null,
@@ -41360,15 +41366,19 @@ momtazchem.com
   // =============================================================================
 
   // Get all ready vehicles
-  app.get('/api/logistics/ready-vehicles', async (req, res) => {
+  app.get('/api/logistics/ready-vehicles', requireAuth, async (req, res) => {
     try {
       const { readyVehicles, vehicleTemplates } = await import('../shared/schema');
+      const fleetCategory = req.query.orderId != null
+        ? await getOrderFleetCategory(req.query.orderId)
+        : req.query.fleetCategory != null ? parseFleetCategory(req.query.fleetCategory) : null;
       
       const vehicles = await db
         .select({
           id: readyVehicles.id,
           vehicleTemplateId: readyVehicles.vehicleTemplateId,
           licensePlate: readyVehicles.licensePlate,
+          fleetCategory: readyVehicles.fleetCategory,
           driverName: readyVehicles.driverName,
           driverMobile: readyVehicles.driverMobile,
           loadCapacity: readyVehicles.loadCapacity,
@@ -41386,6 +41396,7 @@ momtazchem.com
         })
         .from(readyVehicles)
         .innerJoin(vehicleTemplates, eq(readyVehicles.vehicleTemplateId, vehicleTemplates.id))
+        .where(fleetCategory ? eq(readyVehicles.fleetCategory, fleetCategory) : undefined)
         .orderBy(readyVehicles.createdAt);
 
       // Map database fields to frontend expected format
@@ -41393,6 +41404,7 @@ momtazchem.com
         id: vehicle.id,
         vehicleTemplateId: vehicle.vehicleTemplateId,
         vehicleType: vehicle.vehicleType || vehicle.vehicleTemplateName, // Use actual vehicle type
+        fleetCategory: vehicle.fleetCategory,
         vehicleName: vehicle.vehicleTemplateName, // Display name
         vehicleTemplateName: vehicle.vehicleTemplateName,
         vehicleTemplateNameEn: vehicle.vehicleTemplateNameEn,
@@ -41423,9 +41435,13 @@ momtazchem.com
   app.post('/api/logistics/ready-vehicles', requireAuth, async (req, res) => {
     try {
       const { readyVehicles } = await import('../shared/schema');
+      let fleetCategory;
+      try { fleetCategory = parseFleetCategory(req.body.fleetCategory); }
+      catch { return res.status(400).json({ success: false, message: "Invalid fleet category." }); }
       
       const vehicleData = {
         vehicleTemplateId: req.body.vehicleTemplateId,
+        fleetCategory,
         licensePlate: req.body.licensePlate,
         driverName: req.body.driverName,
         driverMobile: req.body.driverMobile,
@@ -41447,7 +41463,8 @@ momtazchem.com
       // Map response to frontend format
       const mappedVehicle = {
         id: newVehicle.id,
-        vehicleType: newVehicle.vehicleType,
+        fleetCategory: newVehicle.fleetCategory,
+        vehicleTemplateId: newVehicle.vehicleTemplateId,
         licensePlate: newVehicle.licensePlate,
         driverName: newVehicle.driverName,
         driverMobile: newVehicle.driverMobile,
@@ -41485,9 +41502,16 @@ momtazchem.com
       if (isNaN(vehicleId)) {
         return res.status(400).json({ success: false, message: 'Invalid vehicle ID' });
       }
+      let fleetCategory;
+      if (req.body.fleetCategory != null) {
+        try { fleetCategory = parseFleetCategory(req.body.fleetCategory); }
+        catch { return res.status(400).json({ success: false, message: "Invalid fleet category." }); }
+        if (!await validateReadyFleetCategoryChange(res, vehicleId, fleetCategory)) return;
+      }
 
       const updateData = {
-        vehicleType: req.body.vehicleType,
+        ...(req.body.vehicleTemplateId != null ? { vehicleTemplateId: Number(req.body.vehicleTemplateId) } : {}),
+        ...(fleetCategory != null ? { fleetCategory } : {}),
         licensePlate: req.body.licensePlate,
         driverName: req.body.driverName,
         driverMobile: req.body.driverMobile,
@@ -41513,7 +41537,8 @@ momtazchem.com
       // Map response to frontend format
       const mappedVehicle = {
         id: updatedVehicle.id,
-        vehicleType: updatedVehicle.vehicleType,
+        fleetCategory: updatedVehicle.fleetCategory,
+        vehicleTemplateId: updatedVehicle.vehicleTemplateId,
         licensePlate: updatedVehicle.licensePlate,
         driverName: updatedVehicle.driverName,
         driverMobile: updatedVehicle.driverMobile,
@@ -56105,6 +56130,9 @@ momtazchem.com
   app.post("/api/logistics/assign-vehicle", requireAuth, async (req, res) => {
     try {
       const { orderId, orderManagementId, vehicleId, truckNumber, driverName, driverPhone } = req.body;
+      if (!await validateFleetAssignment(res, {
+        customerOrderId: orderId, managementId: orderManagementId, vehicleId, plate: truckNumber,
+      })) return;
       
       
       // Check if vehicle is already assigned to an undelivered order
@@ -56326,6 +56354,9 @@ momtazchem.com
   app.post("/api/logistics/assign-vehicle", requireAuth, async (req, res) => {
     try {
       const { orderId, orderManagementId, vehicleId, truckNumber, driverName, driverPhone } = req.body;
+      if (!await validateFleetAssignment(res, {
+        customerOrderId: orderId, managementId: orderManagementId, vehicleId, plate: truckNumber,
+      })) return;
       console.log('🚛 [ASSIGN VEHICLE] Assigning vehicle to order:', { orderId, vehicleId, truckNumber });
       
       // Check if vehicle is already assigned to an undelivered order
@@ -60680,11 +60711,15 @@ momtazchem.com
   app.get("/api/admin/fleet-vehicles", requireAuth, async (req, res) => {
     try {
       const { vehicleType, status } = req.query;
+      const requiredCategory = req.query.orderId != null
+        ? await getOrderFleetCategory(req.query.orderId)
+        : req.query.fleetCategory != null ? parseFleetCategory(req.query.fleetCategory) : null;
       let query = db.select().from(deliveryVehicles).where(eq(deliveryVehicles.isActive, true));
       
       const vehicles = await query;
       
       let filteredVehicles = vehicles;
+      if (requiredCategory) filteredVehicles = filteredVehicles.filter(v => v.fleetCategory === requiredCategory);
       if (vehicleType) {
         filteredVehicles = filteredVehicles.filter(v => v.vehicleType === vehicleType);
       }
@@ -60723,6 +60758,7 @@ momtazchem.com
       }
       
       // Check vehicle availability status
+      if (!await validateFleetAssignment(res, { managementId: orderId, vehicleId, source: "delivery" })) return;
       const unavailableStatuses = ['assigned', 'in_use', 'maintenance'];
       if (unavailableStatuses.includes(vehicle.currentStatus || '')) {
         const statusMessages: Record<string, string> = {

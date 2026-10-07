@@ -19,3 +19,12 @@ default exports; otherwise a valid React DOM module may appear to lack createRoo
 Use real pointer/keyboard interactions for Radix controls rather than assuming
 programmatic click dispatch exercises their mouse-down handlers. These probes
 verify component behavior, not a real signed-in session.
+
+Puppeteer's installed package does not imply its expected browser is cached.
+
+**Why:** Default launch failed because the requested Chrome build was absent even
+though the environment already had a working system Chromium.
+
+**How to apply:** Resolve the installed Chromium executable with `command -v`
+and supply its path explicitly; do not hardcode a Nix store hash or install a
+second browser just to satisfy Puppeteer's default cache lookup.
