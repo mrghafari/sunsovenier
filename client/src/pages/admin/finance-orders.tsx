@@ -16,6 +16,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { localizeFinanceNote } from "@/lib/localize-wallet-text";
 import { getOrderStatusLabel, resolveOrderStatus } from "@shared/order-status";
 import { FINANCIAL_APPROVAL_REASON_MAX, isValidFinancialApprovalReason } from "@shared/financial-approval";
+import { customerReferenceCode } from "@shared/customer-reference";
+import { CustomerCodeValue, customerCodeText } from "@/components/crm/customer-code-settings";
 import DatePickerModule, { type DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persianFa from "react-date-object/locales/persian_fa";
@@ -35,11 +37,13 @@ interface OrderManagement {
   currentStatus: string;
   createdAt: string;
   customerName?: string;
+  customerCode?: string | null;
   customerFirstName?: string;
   customerLastName?: string;
   customerEmail?: string;
   customerPhone?: string;
   customer?: {
+    customerCode?: string | null;
     firstName: string;
     lastName: string;
     email: string;
@@ -1049,6 +1053,7 @@ function FinanceOrders() {
                 <h3>${escapeHtml(t('customerInfo'))}</h3>
                 <div class="details-grid">
                   <div><strong>${escapeHtml(t('name'))}:</strong> ${escapeHtml(customerName)}</div>
+                  <div><strong>${escapeHtml(customerCodeText(language, 'number'))}:</strong> ${escapeHtml(customerReferenceCode(orderDetails.customerCode || orderDetails.customer?.customerCode) || customerCodeText(language, 'notIssued'))}</div>
                   <div><strong>${escapeHtml(t('email'))}:</strong> ${escapeHtml(customerEmail)}</div>
                   <div><strong>${escapeHtml(t('phone'))}:</strong> ${escapeHtml(customerPhone)}</div>
                   <div><strong>${escapeHtml(t('walletCustomer'))}:</strong> ${escapeHtml(formatCurrency(orderDetailsWalletBalance))}</div>
@@ -1224,6 +1229,8 @@ function FinanceOrders() {
       order.orderNumber?.toString().toLocaleLowerCase().includes(normalizedSearch) ||
       order.customerOrderId?.toString().includes(normalizedSearch) ||
       customerInfo.name?.toLocaleLowerCase().includes(normalizedSearch) ||
+      order.customerCode?.includes(normalizedSearch) ||
+      order.customer?.customerCode?.includes(normalizedSearch) ||
       customerInfo.email?.toLocaleLowerCase().includes(normalizedSearch) ||
       customerInfo.phone?.toLocaleLowerCase().includes(normalizedSearch);
     const resolvedStatus = resolveOrderStatus({
@@ -1362,7 +1369,7 @@ function FinanceOrders() {
           <tr>
             {sortableHeader(t('rowNumber'), 'id', 'text-center')}
             {sortableHeader(t('orderNumber'), 'orderNumber', 'text-start')}
-            {sortableHeader(t('customer'), 'customer', 'text-start')}
+            {sortableHeader(customerCodeText(language, 'number'), 'customer', 'text-start')}
             {sortableHeader(t('contact'), 'contact', 'text-start')}
             {sortableHeader(t('date'), transferred ? 'financialReviewedAt' : 'createdAt', 'text-start')}
             {sortableHeader(t('paymentMethod'), 'paymentMethod', 'text-start')}
@@ -1376,9 +1383,6 @@ function FinanceOrders() {
         <tbody>
           {orders.map((order, index) => {
             const customerInfo = getCustomerInfo(order);
-            const customerName = customerInfo.name ||
-              [customerInfo.firstName, customerInfo.lastName].filter(Boolean).join(' ') ||
-              t('unknown');
             const receiptUrl = order.receipt?.url || order.paymentReceiptUrl;
             const customerNote = (order.customerNotes || order.notes || '').trim();
             const hasCustomerNote = Boolean(customerNote);
@@ -1404,7 +1408,9 @@ function FinanceOrders() {
                   </button>
                 </td>
                 <td className="border border-slate-200 px-3 py-2">
-                  <span className="font-medium text-slate-800">{customerName}</span>
+                  <span className="font-medium text-slate-800">
+                    <CustomerCodeValue code={order.customerCode || order.customer?.customerCode} />
+                  </span>
                 </td>
                 <td className="border border-slate-200 px-3 py-2">
                   <div className="max-w-[220px] space-y-0.5 break-words">
@@ -2288,6 +2294,10 @@ function FinanceOrders() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <strong>{customerCodeText(language, 'number')}:</strong>{' '}
+                      <CustomerCodeValue code={orderDetails.customerCode || orderDetails.customer?.customerCode} />
+                    </div>
                     <div>
                       <strong>{t('name')}:</strong> {orderDetails.customerName || `${orderDetails.customer?.firstName || ''} ${orderDetails.customer?.lastName || ''}`.trim() || t('unknown')}
                     </div>

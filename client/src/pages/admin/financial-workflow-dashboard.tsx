@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { CustomerCodeValue, customerCodeText } from "@/components/crm/customer-code-settings";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { localizeFinanceNote, type WalletTextLanguage } from "@/lib/localize-wallet-text";
@@ -50,6 +51,8 @@ interface FinancialOrder {
   invoiceConvertedAt?: string;
   totalAmount: string;
   customerName: string;
+  customerCode?: string | null;
+  customer?: { firstName?: string; lastName?: string; customerCode?: string | null };
   createdAt: string;
   totalWeight?: string;
   weightUnit?: string;
@@ -96,7 +99,7 @@ const pageTranslations = {
     allProcessed: "All orders have been processed",
     noPending: "There are currently no orders awaiting financial approval",
     order: "Order",
-    customer: "Customer",
+    customer: "Customer number",
     orderDate: "Order date",
     deliveryAddress: "Delivery address",
     totalAmount: "Total amount",
@@ -208,7 +211,7 @@ const pageTranslations = {
     allProcessed: "همه سفارش‌ها پردازش شده‌اند",
     noPending: "در حال حاضر سفارشی در انتظار تأیید مالی نیست",
     order: "سفارش",
-    customer: "مشتری",
+    customer: "شماره مشتری",
     orderDate: "تاریخ سفارش",
     deliveryAddress: "آدرس تحویل",
     totalAmount: "مبلغ کل",
@@ -320,7 +323,7 @@ const pageTranslations = {
     allProcessed: "تمت معالجة جميع الطلبات",
     noPending: "لا توجد حالياً طلبات بانتظار الاعتماد المالي",
     order: "الطلب",
-    customer: "العميل",
+    customer: "رقم العميل",
     orderDate: "تاريخ الطلب",
     deliveryAddress: "عنوان التسليم",
     totalAmount: "المبلغ الإجمالي",
@@ -432,7 +435,7 @@ const pageTranslations = {
     allProcessed: "Tüm siparişler işlendi",
     noPending: "Şu anda mali onay bekleyen sipariş yok",
     order: "Sipariş",
-    customer: "Müşteri",
+    customer: "Müşteri numarası",
     orderDate: "Sipariş tarihi",
     deliveryAddress: "Teslimat adresi",
     totalAmount: "Toplam tutar",
@@ -902,7 +905,7 @@ export default function FinancialWorkflowDashboard() {
                     <tr key={order.id} className={`odd:bg-white even:bg-gray-50 hover:bg-blue-50 ${selectedOrder?.id === order.id ? "bg-blue-100" : ""}`}>
                       <td className="border-b px-3 py-2 font-medium whitespace-nowrap">{t("order")} {order.orderNumber}</td>
                       <td className="border-b px-3 py-2">
-                        <div className="font-medium">{order.customerName}</div>
+                        <div className="font-medium"><CustomerCodeValue code={order.customerCode || order.customer?.customerCode} /></div>
                         <div className="text-xs text-gray-600">{order.customerEmail || "—"}</div>
                         <div className="text-xs text-gray-600">{order.customerPhone || order.shippingAddress?.phone || "—"}</div>
                       </td>
@@ -977,7 +980,7 @@ export default function FinancialWorkflowDashboard() {
                     <tr key={order.id} className="odd:bg-white even:bg-blue-50/50 hover:bg-blue-100">
                       <td className="border-b px-3 py-2 font-medium whitespace-nowrap">{t("order")} {order.orderNumber}</td>
                       <td className="border-b px-3 py-2">
-                        <div className="font-medium">{order.customerName}</div>
+                        <div className="font-medium"><CustomerCodeValue code={order.customerCode || order.customer?.customerCode} /></div>
                         <div className="text-xs text-gray-600">{order.customerEmail || "—"}</div>
                         <div className="text-xs text-gray-600">{order.customerPhone || "—"}</div>
                       </td>
@@ -1019,7 +1022,7 @@ export default function FinancialWorkflowDashboard() {
                       {orders?.filter(order => order.isAutoApprovalEnabled).map((order) => (
                         <tr key={order.id} className="odd:bg-white even:bg-blue-50/50 hover:bg-blue-100">
                           <td className="border-b px-3 py-2 font-medium whitespace-nowrap">{t("order")} {order.orderNumber}</td>
-                          <td className="border-b px-3 py-2"><div className="font-medium">{order.customerName}</div><div className="text-xs text-gray-600">{order.customerEmail || "—"}</div><div className="text-xs text-gray-600">{order.customerPhone || "—"}</div></td>
+                          <td className="border-b px-3 py-2"><div className="font-medium"><CustomerCodeValue code={order.customerCode || order.customer?.customerCode} /></div><div className="text-xs text-gray-600">{order.customerEmail || "—"}</div><div className="text-xs text-gray-600">{order.customerPhone || "—"}</div></td>
                           <td className="border-b px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt, true)}</td>
                           <td className="border-b px-3 py-2"><div>{getStatusBadge(order.currentStatus)}</div><div className="text-xs text-gray-500 mt-1">{order.currentStatus}</div></td>
                           <td className="border-b px-3 py-2"><div>{getPaymentMethodLabel(order.paymentMethod)}</div><div className="text-xs text-gray-500">{order.paymentSourceLabel || "—"}</div></td>
@@ -1061,7 +1064,7 @@ export default function FinancialWorkflowDashboard() {
                       {orders?.filter(order => order.currentStatus === 'payment_grace_period').map((order) => (
                         <tr key={order.id} className="odd:bg-white even:bg-orange-50/50 hover:bg-orange-100">
                           <td className="border-b px-3 py-2 font-medium whitespace-nowrap">{t("order")} {order.orderNumber}</td>
-                          <td className="border-b px-3 py-2"><div className="font-medium">{order.customerName}</div><div className="text-xs text-gray-600">{order.customerEmail || "—"}</div><div className="text-xs text-gray-600">{order.customerPhone || "—"}</div></td>
+                          <td className="border-b px-3 py-2"><div className="font-medium"><CustomerCodeValue code={order.customerCode || order.customer?.customerCode} /></div><div className="text-xs text-gray-600">{order.customerEmail || "—"}</div><div className="text-xs text-gray-600">{order.customerPhone || "—"}</div></td>
                           <td className="border-b px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt, true)}</td>
                           <td className="border-b px-3 py-2"><Badge className="bg-orange-100 text-orange-800">{getStatusLabel(order.currentStatus)}</Badge><div className="text-xs text-gray-600">{t("graceUpload")}</div><div className="text-xs text-gray-500">{order.currentStatus}</div></td>
                           <td className="border-b px-3 py-2"><div>{getPaymentMethodLabel(order.paymentMethod)}</div><div className="text-xs text-gray-500">{order.paymentSourceLabel || "—"}</div></td>
@@ -1119,7 +1122,7 @@ export default function FinancialWorkflowDashboard() {
                   {approvedOrders?.map((order) => (
                     <tr key={order.id} className="odd:bg-white even:bg-green-50/50 hover:bg-green-100">
                       <td className="border-b px-3 py-2 font-medium whitespace-nowrap">{t("order")} {order.orderNumber}</td>
-                      <td className="border-b px-3 py-2"><div className="font-medium">{order.customerName}</div><div className="text-xs text-gray-600">{order.customerEmail || "—"}</div><div className="text-xs text-gray-600">{order.customerPhone || order.shippingAddress?.phone || "—"}</div></td>
+                      <td className="border-b px-3 py-2"><div className="font-medium"><CustomerCodeValue code={order.customerCode || order.customer?.customerCode} /></div><div className="text-xs text-gray-600">{order.customerEmail || "—"}</div><div className="text-xs text-gray-600">{order.customerPhone || order.shippingAddress?.phone || "—"}</div></td>
                       <td className="border-b px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt, true)}</td>
                       <td className="border-b px-3 py-2"><div>{getStatusBadge(order.currentStatus)}</div><div className="text-xs text-gray-500 mt-1">{order.currentStatus}</div></td>
                       <td className="border-b px-3 py-2"><div>{getPaymentMethodLabel(order.paymentMethod)}</div><div className="text-xs text-gray-500">{order.paymentSourceLabel || "—"}</div></td>
@@ -1233,7 +1236,7 @@ export default function FinancialWorkflowDashboard() {
                         {orphanedOrders?.map((order) => (
                           <tr key={order.id} className="odd:bg-white even:bg-orange-50/50 hover:bg-orange-100">
                             <td className="border-b px-3 py-2 font-medium whitespace-nowrap">{t("order")} {order.orderNumber}<div className="text-xs text-red-700"><Badge variant="destructive">{t("orphanBadge")}</Badge></div></td>
-                            <td className="border-b px-3 py-2"><div className="font-medium">{order.customerName}</div><div className="text-xs text-gray-600">{order.customerEmail || "—"}</div><div className="text-xs text-gray-600">{order.customerPhone || "—"}</div></td>
+                            <td className="border-b px-3 py-2"><div className="font-medium"><CustomerCodeValue code={order.customerCode || order.customer?.customerCode} /></div><div className="text-xs text-gray-600">{order.customerEmail || "—"}</div><div className="text-xs text-gray-600">{order.customerPhone || "—"}</div></td>
                             <td className="border-b px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt, true)}</td>
                             <td className="border-b px-3 py-2"><div>{getStatusBadge(order.currentStatus)}</div><div className="text-xs text-gray-500 mt-1">{order.currentStatus || order.status || t("unknown")}</div><div className="text-xs text-yellow-700">{t("orphanInfo")}</div></td>
                             <td className="border-b px-3 py-2"><div>{getPaymentMethodLabel(order.paymentMethod)}</div><div className="text-xs text-gray-500">{order.paymentSourceLabel || "—"}</div></td>
@@ -1264,6 +1267,12 @@ export default function FinancialWorkflowDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-4 rounded-md border bg-slate-50 p-3">
+              <div><strong>{customerCodeText(language, "number")}:</strong>{" "}
+                <CustomerCodeValue code={selectedOrder.customerCode || selectedOrder.customer?.customerCode} />
+              </div>
+              <div>{selectedOrder.customerName || [selectedOrder.customer?.firstName, selectedOrder.customer?.lastName].filter(Boolean).join(" ") || "—"}</div>
+            </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">

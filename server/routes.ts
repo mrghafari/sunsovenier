@@ -11375,8 +11375,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const sortableValues: Record<string, (order: any) => unknown> = {
         id: (order) => order.id,
         orderNumber: (order) => order.orderNumber,
-        customer: (order) => order.customer?.name ||
-          `${order.customerFirstName || ''} ${order.customerLastName || ''}`.trim(),
+        customer: (order) => order.customerCode || order.customer?.customerCode || null,
         contact: (order) => order.customerEmail || order.customerPhone,
         createdAt: (order) => order.createdAt,
         paymentMethod: (order) => order.paymentMethod,
@@ -11927,6 +11926,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       
       // Get customer info separately using direct SQL
       let customer = {
+        customerCode: null as string | null,
         firstName: 'نامشخص',
         lastName: '',
         email: 'نامشخص',
@@ -11950,6 +11950,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           if (customerResult.rows.length > 0) {
             const customerData = customerResult.rows[0];
             customer = {
+              customerCode: customerData.customer_code || null,
               firstName: customerData.first_name || 'نامشخص',
               lastName: customerData.last_name || '',
               email: customerData.email || 'نامشخص',
@@ -12052,6 +12053,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           id: order.id,
           customerOrderId: order.id, // USE SAME ID FOR COMPATIBILITY WITH FRONTEND
           customerId: order.customer_id, // ADD CUSTOMER ID FOR WALLET BALANCE FETCH
+          customerCode: customer.customerCode,
           orderNumber: order.order_number,
           totalAmount: order.total_amount,
           shippingCost: order.shipping_cost,
@@ -31867,8 +31869,8 @@ ${message ? `Additional Requirements:\n${message}` : ''}
 
 
 
-  // Approve financial order with smart wallet management (public access for financial department)
-  app.post('/api/finance/orders/:id/approve', async (req: Request, res: Response) => {
+  // Approve financial orders only from an authenticated staff session.
+  app.post('/api/finance/orders/:id/approve', requireAuth, async (req: Request, res: Response) => {
     // Preserve legacy ID semantics (management ID), but new prepaid orders never enter the old paid/debit branch.
     try {
       const {pool}=await import("./db");
@@ -31884,17 +31886,18 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           const result=await approveWalletOrder(linked.rows[0].order_id,String(req.body.notes||""),actor);
           return res.json({success:true,message:"تأیید مالی انجام شد؛ مبلغ حساب نزد شرکت بلوکه شد و هنوز کسر نشده است.",...result});
         }
+        const {assertLegacyWalletApproval}=await import("./modules/accounting/finance-approval-routing");
+        await assertLegacyWalletApproval(req.params.id);
       }
       const creditInstalled=await pool.query("select to_regclass('public.accounting_credit_cutovers') as relation");
       if(creditInstalled.rows[0].relation) {
-        const candidate=await pool.query(`select o.id from order_management m join customer_orders o on o.id=m.customer_order_id
-          join accounting_credit_cutovers g on g.company_id=o.accounting_company_id and g.processing_ready
-          where m.id=$1 and o.created_at>=g.enabled_at`,[req.params.id]);
-        if(candidate.rows.length) {
+        const {findCreditApprovalCandidate}=await import("./modules/accounting/finance-approval-routing");
+        const candidate=await findCreditApprovalCandidate(req.params.id);
+        if(candidate!==undefined) {
           const {resolveAccountingAccess,assertAccountingOrigin}=await import("./modules/accounting/access");
           assertAccountingOrigin(req);
           const {approveCreditOrder}=await import("./modules/accounting/credit-orders");
-          const result=await approveCreditOrder(candidate.rows[0].id,String(req.body.notes||""),await resolveAccountingAccess(req));
+          const result=await approveCreditOrder(candidate,String(req.body.notes||""),await resolveAccountingAccess(req));
           return res.json({success:true,message:"تأیید اعتباری انجام شد؛ پرداخت همچنان در انتظار است و از حساب مشتری کسر نشده است.",...result});
         }
       }
@@ -31917,7 +31920,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       // Frontend MUST send order_management.id, not customerOrderId
       console.log(`🔍 [FINANCE] Looking up order by order_management.id: ${orderId}`);
       const orderManagementResult = await pool.query(`
-        SELECT om.*, co.payment_method, co.status, co.total_amount, co.currency, co.customer_id, co.order_number
+        SELECT om.*, co.payment_method, co.payment_status, co.status, co.total_amount, co.currency, co.customer_id, co.order_number
         FROM order_management om
         JOIN customer_orders co ON om.customer_order_id = co.id
         WHERE om.id = $1
@@ -31939,7 +31942,11 @@ ${message ? `Additional Requirements:\n${message}` : ''}
 
       // Smart wallet management logic
       let walletTransactionMessage = '';
-      if (receiptAmount && paidAmount !== orderTotalAmount) {
+      // Already-paid wallet orders only need workflow review, never another
+      // receipt-based debit or overpayment credit.
+      const alreadyPaidWallet = orderData.payment_status === 'paid' &&
+        ['wallet_full', 'wallet_partial', 'wallet_combined', 'wallet'].includes(orderData.payment_method);
+      if (!alreadyPaidWallet && receiptAmount && paidAmount !== orderTotalAmount) {
         const difference = paidAmount - orderTotalAmount;
         
         if (difference > 0) {
@@ -35907,7 +35914,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       const sortByMap: Record<string, string> = {
         id: 'om.id',
         orderNumber: 'co.order_number',
-        customer: "COALESCE(CONCAT(crm.first_name, ' ', crm.last_name), co.guest_name, co.guest_email)",
+        customer: 'crm.customer_code',
         contact: 'COALESCE(crm.email, co.guest_email, crm.phone)',
         createdAt: 'om.created_at',
         financialReviewedAt: 'om.financial_reviewed_at',
@@ -35940,6 +35947,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           co.invoice_type,
           co.invoice_converted_at,
           -- Customer info from CRM
+          crm.customer_code,
           CONCAT(crm.first_name, ' ', crm.last_name) as customer_name,
           crm.phone as customer_phone,
           crm.email as customer_email,
@@ -35997,6 +36005,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           paymentSourceLabel: getPaymentSourceLabel(row.payment_method),
           totalAmount: row.total_amount || '0',
           customerName: row.customer_name || row.guest_email || 'مشتری ناشناس',
+          customerCode: row.customer_code || null,
           customerEmail: row.customer_email || row.guest_email,
           customerPhone: row.customer_phone || null,
           createdAt: row.created_at,
@@ -36065,7 +36074,8 @@ ${message ? `Additional Requirements:\n${message}` : ''}
            COUNT(*) OVER()::int as total_count,
           co.id,
           co.order_number as "orderNumber",
-          COALESCE(co.guest_name, 'نامشخص') as "customerName", 
+          crm.customer_code as "customerCode",
+          COALESCE(NULLIF(CONCAT_WS(' ', crm.first_name, crm.last_name), ''), co.guest_name, 'نامشخص') as "customerName",
           co.guest_email as "customerEmail",
           co.recipient_mobile as "customerPhone",
           co.total_amount as "totalAmount",
@@ -36088,6 +36098,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           END as "orphanType"
         FROM customer_orders co
         LEFT JOIN order_management om ON co.id = om.customer_order_id
+        LEFT JOIN crm_customers crm ON crm.id = co.customer_id
         WHERE (
           -- 1. Truly orphaned orders (no order_management)
           om.id IS NULL
@@ -36419,11 +36430,14 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     try {
       const result = await customerPool.query(`
          SELECT om.*, co.order_number, co.total_amount, co.currency,
+               crm.customer_code,
+               NULLIF(CONCAT_WS(' ', crm.first_name, crm.last_name), '') as crm_customer_name,
                co.guest_name, co.guest_email, 
                 co.created_at, co.shipping_address, co.billing_address,
                 COUNT(*) OVER()::int AS total_count
         FROM order_management om
         LEFT JOIN customer_orders co ON om.customer_order_id = co.id
+        LEFT JOIN crm_customers crm ON crm.id = co.customer_id
         WHERE co.order_number LIKE '%TEST%' 
            OR co.order_number LIKE '%DEMO%' 
            OR co.order_number LIKE '%TEMP%'
@@ -36442,7 +36456,8 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         currentStatus: row.current_status,
         totalAmount: row.total_amount,
         currency: row.currency,
-        customerName: row.guest_name || '',
+        customerName: row.crm_customer_name || row.guest_name || '',
+        customerCode: row.customer_code || null,
         customerEmail: row.guest_email,
         createdAt: row.created_at,
         shippingAddress: row.shipping_address,

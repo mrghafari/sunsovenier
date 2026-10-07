@@ -17,6 +17,10 @@ test("isolated bank receipt API: upload, privacy, atomic registration and retry"
   let failValidation = false;
   let uploadedFolder = "";
   let storedKey = "";
+  const pdf = Buffer.from("%PDF-1.4\nfake test receipt");
+  let downloadCount = 0;
+  let failDownload = false;
+  let missingDownload = false;
   let orderWasLocked = false;
   const dialect = new PgDialect();
   const database: any = {
@@ -60,7 +64,10 @@ test("isolated bank receipt API: upload, privacy, atomic registration and retry"
     req.session = { customerId } as any;
     next();
   };
-  const staff: RequestHandler = (_req, res) => { res.status(401).json({ success: false }); };
+  const staff: RequestHandler = (req, res, next) => {
+    if (req.headers["x-test-staff"] === "authorized") return next();
+    res.status(401).json({ success: false });
+  };
   const app = express();
   app.use(express.json());
   // Downloads also need the test identity; the main app uses its real session middleware.
@@ -77,10 +84,15 @@ test("isolated bank receipt API: upload, privacy, atomic registration and retry"
         uploadedFolder = folder || "";
         return failStorage ? { success: false } : { success: true, key: `${folder}/123456789-0123456789abcdef.pdf` };
       },
-      getSignedUrl: async (key, expiresIn) => {
+      getFile: async (key) => {
         storedKey = key;
-        assert.equal(expiresIn, 300);
-        return "https://storage.example.test/private-file";
+        downloadCount++;
+        if (failDownload) throw new Error("Synthetic storage failure");
+        if (missingDownload) return null;
+        if (key.endsWith(".png")) return Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6zcAAAAAASUVORK5CYII=", "base64",
+        );
+        return pdf;
       },
     },
   });
@@ -133,11 +145,54 @@ test("isolated bank receipt API: upload, privacy, atomic registration and retry"
   });
   await t.test("customer download is private and other customers cannot access it", async () => {
     const url = evidence.receiptUrl;
-    assert.equal((await request(url, { redirect: "manual" }, 124)).status, 401);
-    const response = await request(url, { redirect: "manual" });
-    assert.equal(response.status, 302);
+    const readsBefore = downloadCount;
+    assert.equal((await request(url, {}, 124)).status, 401);
+    assert.equal((await request(url, {}, 0)).status, 401);
+    assert.equal(downloadCount, readsBefore);
+    const response = await request(url, { redirect: "error", credentials: "include" });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("location"), null);
+    assert.equal(response.headers.get("content-type"), "application/pdf");
     assert.equal(response.headers.get("cache-control"), "private, no-store");
+    assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+    assert.match(response.headers.get("content-disposition") || "", /^inline;/);
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), pdf);
     assert.equal(storedKey, "receipts/customer-123/123456789-0123456789abcdef.pdf");
+  });
+  await t.test("authenticated HEAD verifies the receipt without a cross-origin redirect", async () => {
+    const response = await request(evidence.receiptUrl, { method: "HEAD", redirect: "error", credentials: "include" });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("Content-Type"), "application/pdf");
+    assert.equal(response.headers.get("Content-Length"), String(pdf.length));
+    assert.equal((await response.arrayBuffer()).byteLength, 0);
+    assert.equal(response.headers.get("Location"), null);
+  });
+  await t.test("authorized staff can inspect private receipts on the app origin", async () => {
+    const response = await fetch(base + evidence.receiptUrl, {
+      redirect: "error", headers: { "x-test-staff": "authorized" },
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), pdf);
+  });
+  await t.test("image receipts preserve their detected media type", async () => {
+    const response = await request(evidence.receiptUrl.replace(/\.pdf$/, ".png"), { redirect: "error" });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("Content-Type"), "image/png");
+  });
+  await t.test("invalid keys and file paths never reach private storage", async () => {
+    const readsBefore = downloadCount;
+    assert.equal((await request("/files/bank-receipts/123/not-a-receipt.pdf")).status, 404);
+    assert.equal(downloadCount, readsBefore);
+  });
+  await t.test("missing files and storage failures report unavailability without leaking a URL", async () => {
+    missingDownload = true;
+    assert.equal((await request(evidence.receiptUrl)).status, 503);
+    missingDownload = false;
+    failDownload = true;
+    const response = await request(evidence.receiptUrl);
+    assert.equal(response.status, 503);
+    assert.doesNotMatch(await response.text(), /storage.example|Synthetic storage failure|X-Amz/i);
+    failDownload = false;
   });
   await t.test("unverified, foreign-owner and wrong-order submissions cannot change orders", async () => {
     assert.equal((await submit({ uploadToken: "" })).status, 400);

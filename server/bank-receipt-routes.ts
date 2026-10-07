@@ -20,7 +20,7 @@ export function registerBankReceiptRoutes(
   app: Express, requireCustomerAuth: RequestHandler, requireStaffAuth: RequestHandler,
   dependencies: {
     database?: typeof db;
-    storage?: Pick<ReturnType<typeof getAwsS3Service>, "uploadPrivateFile" | "getSignedUrl">;
+    storage?: Pick<ReturnType<typeof getAwsS3Service>, "uploadPrivateFile" | "getFile">;
     validateFile?: typeof fileSecurityService.validateFile;
     signingSecret?: string;
   } = {},
@@ -89,12 +89,23 @@ export function registerBankReceiptRoutes(
           !/^\d+-[a-f0-9]{16}\.(?:jpg|jpeg|png|gif|webp|pdf)$/.test(req.params.fileName)) {
         return res.status(404).end();
       }
-      const url = await storage().getSignedUrl(
-        `receipts/customer-${req.params.customerId}/${req.params.fileName}`, 300,
+      // Keep authenticated GET/HEAD on the app's origin. Redirecting a
+      // credentials-included request to S3 makes its wildcard CORS header
+      // invalid, even though the signed object itself is readable.
+      const file = await storage().getFile(
+        `receipts/customer-${req.params.customerId}/${req.params.fileName}`,
       );
-      if (!url) return res.status(503).json({ success: false, message: "فایل فیش بانکی در دسترس نیست" });
+      if (!file?.length) return res.status(503).json({ success: false, message: "فایل فیش بانکی در دسترس نیست" });
+      const detected = await fileTypeFromBuffer(file);
+      if (!detected || !receiptMimeTypes.has(detected.mime)) {
+        return res.status(415).json({ success: false, message: "نوع فایل فیش بانکی معتبر نیست" });
+      }
       res.setHeader("Cache-Control", "private, no-store");
-      res.redirect(url);
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Content-Type", detected.mime);
+      res.setHeader("Content-Disposition", `inline; filename="${req.params.fileName}"`);
+      // Express also handles HEAD here, preserving metadata without a body.
+      res.send(file);
     } catch {
       res.status(503).json({ success: false, message: "دریافت فیش بانکی انجام نشد" });
     }

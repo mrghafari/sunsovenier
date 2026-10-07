@@ -1,0 +1,570 @@
+contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+0pgxgyado1-wl.js:2 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+   ///////////////////////////
+      /////////////////////
+      
+0pgxgyado1-wl.js:2 Download the Apollo DevTools for a better development experience: https://chrome.google.com/webstore/detail/apollo-client-developer-t/jdkknkkbebbapilgoeccciglkfbmbnfm
+0pgxgyado1-wl.js:2   WARN  [Statsig] The user does not have the required id_type "orgID" for Gate "gate_personal_reps_by_org"
+(anonymous) @ 0pgxgyado1-wl.js:2
+0pgxgyado1-wl.js:2   WARN  [Statsig] The user does not have the required id_type "orgID" for Gate "gate_nexus_environments_v1"
+(anonymous) @ 0pgxgyado1-wl.js:2
+fbevents.js:356 Unrecognized feature: 'attribution-reporting'.
+(anonymous) @ fbevents.js:356
+0pgxgyado1-wl.js:2   WARN  [Statsig] The user does not have the required id_type "ownerCustomerID" for Experiment "clerk-whitelabel-auth"
+(anonymous) @ 0pgxgyado1-wl.js:2
+ MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+ MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+MomtazChemWebsite:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+393expnzdwpe8.js:622 Unrecognized feature: 'speaker-selection'.
+attach @ 393expnzdwpe8.js:622
+393expnzdwpe8.js:622 Allow attribute will take precedence over 'allowfullscreen'.
+attach @ 393expnzdwpe8.js:622
+393expnzdwpe8.js:622 Allow attribute will take precedence over 'allowpaymentrequest'.
+attach @ 393expnzdwpe8.js:622
+393expnzdwpe8.js:799 Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev') does not match the recipient window's origin ('https://replit.com').
+(anonymous) @ 393expnzdwpe8.js:799
+393expnzdwpe8.js:799 Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev') does not match the recipient window's origin ('https://replit.com').
+(anonymous) @ 393expnzdwpe8.js:799
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'ambient-light-sensor'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'ambient-light-sensor'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'battery'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'battery'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'execution-while-not-rendered'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'execution-while-not-rendered'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'layout-animations'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'layout-animations'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'legacy-image-formats'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'legacy-image-formats'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'navigation-override'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'navigation-override'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'oversized-images'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'oversized-images'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'publickey-credentials'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'publickey-credentials'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'speaker-selection'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'speaker-selection'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'unoptimized-images'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'unoptimized-images'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'unsized-media'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'unsized-media'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Allow attribute will take precedence over 'allowfullscreen'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Allow attribute will take precedence over 'allowfullscreen'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+7391980a62497e22001f1a007f4e3ab5a16025937eb7884107292d25e429f624:1  Failed to load resource: the server responded with a status of 404 ()
+27b9b72e5dcb6e293616def658313916832d6c4f949485ca36fb0f36b9dabf2b:1  Failed to load resource: the server responded with a status of 404 ()
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+MomtazChemWebsite:1 Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+MomtazChemWebsite:1 Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+0pgxgyado1-wl.js:2 onClick is deprecated, please use onPress
+(anonymous) @ 0pgxgyado1-wl.js:2
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+0pgxgyado1-wl.js:2 onClick is deprecated, please use onPress
+(anonymous) @ 0pgxgyado1-wl.js:2
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+393expnzdwpe8.js:799 Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev:5000') does not match the recipient window's origin ('https://replit.com').
+(anonymous) @ 393expnzdwpe8.js:799
+393expnzdwpe8.js:799 Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev:5000') does not match the recipient window's origin ('https://replit.com').
+(anonymous) @ 393expnzdwpe8.js:799
+VM3743 contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ VM3743 contentscript.js:14083
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+VM3743 contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ VM3743 contentscript.js:14083
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/tawk-support:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/tawk-support:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+ MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+ MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+ MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+ MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+client:883 [vite] connecting...
+ CI_CD_TEST_2026
+registerSW.ts:11 [PWA] Service Worker registered, scope: https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/
+client:996 [vite] connected.
+7391980a62497e22001f1a007f4e3ab5a16025937eb7884107292d25e429f624:1  Failed to load resource: the server responded with a status of 404 ()
+27b9b72e5dcb6e293616def658313916832d6c4f949485ca36fb0f36b9dabf2b:1  Failed to load resource: the server responded with a status of 404 ()
+27b9b72e5dcb6e293616def658313916832d6c4f949485ca36fb0f36b9dabf2b:1  Failed to load resource: the server responded with a status of 404 ()
+7391980a62497e22001f1a007f4e3ab5a16025937eb7884107292d25e429f624:1  Failed to load resource: the server responded with a status of 404 ()
+0pgxgyado1-wl.js:2 onClick is deprecated, please use onPress
+(anonymous) @ 0pgxgyado1-wl.js:2
+0pgxgyado1-wl.js:2 onClick is deprecated, please use onPress
+(anonymous) @ 0pgxgyado1-wl.js:2
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/content-management/items?section=admin_dashboard:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/content-management/items?section=admin_dashboard:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/mrg/login:1 [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/mrg/login:1 [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o
+TawkToChat.tsx:157 📥 Loading Tawk.to widget at bottom-left position...
+TawkToChat.tsx:172 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+VM3743 contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ VM3743 contentscript.js:14083
+27b9b72e5dcb6e293616def658313916832d6c4f949485ca36fb0f36b9dabf2b:1  Failed to load resource: the server responded with a status of 404 ()
+7391980a62497e22001f1a007f4e3ab5a16025937eb7884107292d25e429f624:1  Failed to load resource: the server responded with a status of 404 ()
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+admin-login.tsx:39 Login response: [object Object]
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+useAuth.ts:43 Auth check result: [object Object]
+client:299 Auth check failed: TypeError: Failed to fetch
+(anonymous) @ client:299
+ MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+ MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+VM3743 contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ VM3743 contentscript.js:14083
+client:883 [vite] connecting...
+main.tsx:18 CI_CD_TEST_2026
+registerSW.ts:11 [PWA] Service Worker registered, scope: https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/
+client:996 [vite] connected.
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+TawkToChat.tsx:157 📥 Loading Tawk.to widget at bottom-left position...
+TawkToChat.tsx:172 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+useAuth.ts:43 Auth check result: Object
+site-management-fixed.tsx:337 🔍 [DEBUG] Site Management component initialized
+site-management-fixed.tsx:337 🔍 [DEBUG] Site Management component initialized
+site-management-fixed.tsx:337 🔍 [DEBUG] Site Management component initialized
+site-management-fixed.tsx:736 🔍 [DEBUG] Full userPermissions response: Object
+site-management-fixed.tsx:737 🔍 [DEBUG] userPermissions.modules: Array(38)
+site-management-fixed.tsx:738 🔍 [DEBUG] userPermissions.permissions: Array(38)
+site-management-fixed.tsx:749 🔍 [DEBUG] Total allButtons count: 40
+site-management-fixed.tsx:750 🔍 [DEBUG] AI Settings exists in allButtons: true
+site-management-fixed.tsx:751 🔍 [DEBUG] Content Management exists in allButtons: true
+site-management-fixed.tsx:753 🔍 [DEBUG] allowedModules: Array(38)
+site-management-fixed.tsx:754 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+site-management-fixed.tsx:755 🔍 [DEBUG] management_dashboard in allowedModules? true
+site-management-fixed.tsx:756 🔍 [DEBUG] finance in allowedModules? true
+site-management-fixed.tsx:757 🔍 [DEBUG] geography_analytics in allowedModules? true
+site-management-fixed.tsx:758 🔍 [DEBUG] ai_settings in allowedModules? true
+site-management-fixed.tsx:759 🔍 [DEBUG] content_management in allowedModules? true
+site-management-fixed.tsx:767 🔍 [CRITICAL] Missing button detection:
+site-management-fixed.tsx:771 🔍 [MISSING] legal-affairs Legal Affairs & Contracts moduleId: legal_affairs
+site-management-fixed.tsx:771 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+site-management-fixed.tsx:771 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+site-management-fixed.tsx:771 🔍 [MISSING] loading_management مدیریت بارگیری moduleId: loading_management
+site-management-fixed.tsx:775 🔍 [CRITICAL] Missing buttons count: 4
+site-management-fixed.tsx:777 🔍 [DEBUG] finance button found in allButtons? Object
+site-management-fixed.tsx:778 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+site-management-fixed.tsx:779 🔍 [DEBUG] ai_settings button found in allButtons? Object
+site-management-fixed.tsx:780 🔍 [DEBUG] content_management button found in allButtons? Object
+site-management-fixed.tsx:781 🔍 [DEBUG] finance button in filtered? Object
+site-management-fixed.tsx:782 🔍 [DEBUG] geography_analytics button in filtered? Object
+site-management-fixed.tsx:783 🔍 [DEBUG] ai_settings button in filtered? Object
+site-management-fixed.tsx:784 🔍 [DEBUG] content_management button in filtered? Object
+site-management-fixed.tsx:337 🔍 [DEBUG] Site Management component initialized
+useOrderNotifications.ts:108 🔔 [FINANCIAL] نوتیفیکیشن: 3 سفارش جدید دریافت شد
+finance-orders.tsx:1518 🔍 [WALLET DEBUG] Starting wallet fetch for order: M2601315
+finance-orders.tsx:1521 🔍 [WALLET DEBUG] Order details response status: 200
+finance-orders.tsx:1524 🔍 [WALLET DEBUG] Order data received: Object
+finance-orders.tsx:1525 🔍 [WALLET DEBUG] Order object: Object
+finance-orders.tsx:1526 🔍 [WALLET DEBUG] customerId value: 8
+finance-orders.tsx:1529 🔍 [WALLET DEBUG] Found customer ID: 8
+finance-orders.tsx:1532 🔍 [WALLET DEBUG] Wallet response status: 200
+finance-orders.tsx:1535 🔍 [WALLET DEBUG] Wallet result: Object
+finance-orders.tsx:1537 🔍 [WALLET DEBUG] Final balance: 43714296734
+finance-orders.tsx:1576 🔍 [FINANCE] Approving order - Management ID: 1223, Customer Order ID: 747
+finance-orders.tsx:1286 💰 [FINANCE] Approving order 1223 with notes: این از بخش مالی است
+finance-orders.tsx:1296 ✅ [FINANCE] Order approved successfully: Object
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+VM3743 contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ VM3743 contentscript.js:14083
+VM3743 contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ VM3743 contentscript.js:14083
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+finance-orders.tsx:1448 📋 [ORDER DETAILS] Order fetched: M2601316
+finance-orders.tsx:1449 📋 [ORDER DETAILS] Items count: 1
+finance-orders.tsx:1450 📋 [ORDER DETAILS] Items data: Array(1)
+client:299 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ client:299
+useAuth.ts:43 Auth check result: Object
+finance-orders.tsx:1604 🖼️ [IMAGE MODAL] Opening image modal with URL: /files/bank-receipts/8/1791386015376-60f25564eca21ed9.pdf
+finance-orders:1 Access to fetch at 'https://momtazchem.s3.eu-central-1.amazonaws.com/receipts/customer-8/1791386015376-60f25564eca21ed9.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAYLLSZQTMQSN5OVKC%2F20261007%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20261007T184901Z&X-Amz-Expires=300&X-Amz-Signature=11a6237d5c1eef3819b2fe026c0b3e7d7508081035231a10033b2b50d3f3107f&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject' (redirected from 'https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/files/bank-receipts/8/1791386015376-60f25564eca21ed9.pdf') from origin 'https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev' has been blocked by CORS policy: The value of the 'Access-Control-Allow-Origin' header in the response must not be the wildcard '*' when the request's credentials mode is 'include'.
+finance-orders:1 Access to fetch at 'https://momtazchem.s3.eu-central-1.amazonaws.com/receipts/customer-8/1791386015376-60f25564eca21ed9.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAYLLSZQTMQSN5OVKC%2F20261007%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20261007T184901Z&X-Amz-Expires=300&X-Amz-Signature=11a6237d5c1eef3819b2fe026c0b3e7d7508081035231a10033b2b50d3f3107f&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject' (redirected from 'https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/files/bank-receipts/8/1791386015376-60f25564eca21ed9.pdf') from origin 'https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev' has been blocked by CORS policy: The value of the 'Access-Control-Allow-Origin' header in the response must not be the wildcard '*' when the request's credentials mode is 'include'.
+momtazchem.s3.eu-central-1.amazonaws.com/receipts/customer-8/1791386015376-60f25564eca21ed9.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAYLLSZQTMQSN5OVKC%2F20261007%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20261007T184901Z&X-Amz-Expires=300&X-Amz-Signature=11a6237d5c1eef3819b2fe026c0b3e7d7508081035231a10033b2b50d3f3107f&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject:1  Failed to load resource: net::ERR_FAILED
+momtazchem.s3.eu-central-1.amazonaws.com/receipts/customer-8/1791386015376-60f25564eca21ed9.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAYLLSZQTMQSN5OVKC%2F20261007%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20261007T184901Z&X-Amz-Expires=300&X-Amz-Signature=11a6237d5c1eef3819b2fe026c0b3e7d7508081035231a10033b2b50d3f3107f&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject:1  Failed to load resource: net::ERR_FAILED
+client:299 ❌ [IMAGE MODAL] Failed to verify image: TypeError: Failed to fetch
+    at finance-orders.tsx:1618:27
+    at onClick (finance-orders.tsx:2328:27)
+    at HTMLUnknownElement.callCallback (react-dom-7ZfK04ec.js?v=fd06c271:3143:11)
+    at Object.invokeGuardedCallbackDev (react-dom-7ZfK04ec.js?v=fd06c271:3163:14)
+    at invokeGuardedCallback (react-dom-7ZfK04ec.js?v=fd06c271:3202:32)
+    at invokeGuardedCallbackAndCatchFirstError (react-dom-7ZfK04ec.js?v=fd06c271:3215:26)
+    at executeDispatch (react-dom-7ZfK04ec.js?v=fd06c271:6127:4)
+    at processDispatchQueueItemsInOrder (react-dom-7ZfK04ec.js?v=fd06c271:6141:5)
+    at processDispatchQueue (react-dom-7ZfK04ec.js?v=fd06c271:6149:5)
+    at dispatchEventsForPlugins (react-dom-7ZfK04ec.js?v=fd06c271:6157:4)
+(anonymous) @ client:299
+client:964 [vite] hot updated: /src/index.css
+client:964 [vite] invalidate /src/components/crm/customer-code-settings.tsx: Could not Fast Refresh ("customerCodeText" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+client:964 [vite] hot updated: /src/components/crm/customer-code-settings.tsx
+finance-orders.tsx:1604 🖼️ [IMAGE MODAL] Opening image modal with URL: /files/bank-receipts/8/1791386044326-a8e2e47f1dd21048.pdf
+client:964 [vite] hot updated: /src/pages/crm.tsx
+finance-orders:1 Access to fetch at 'https://momtazchem.s3.eu-central-1.amazonaws.com/receipts/customer-8/1791386044326-a8e2e47f1dd21048.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAYLLSZQTMQSN5OVKC%2F20261007%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20261007T184908Z&X-Amz-Expires=300&X-Amz-Signature=b7929f4d8194186e522e1e90d8262a3b38f3cc885497d39695f363fb8e5c6aeb&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject' (redirected from 'https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/files/bank-receipts/8/1791386044326-a8e2e47f1dd21048.pdf') from origin 'https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev' has been blocked by CORS policy: The value of the 'Access-Control-Allow-Origin' header in the response must not be the wildcard '*' when the request's credentials mode is 'include'.
+finance-orders:1 Access to fetch at 'https://momtazchem.s3.eu-central-1.amazonaws.com/receipts/customer-8/1791386044326-a8e2e47f1dd21048.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAYLLSZQTMQSN5OVKC%2F20261007%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20261007T184908Z&X-Amz-Expires=300&X-Amz-Signature=b7929f4d8194186e522e1e90d8262a3b38f3cc885497d39695f363fb8e5c6aeb&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject' (redirected from 'https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/files/bank-receipts/8/1791386044326-a8e2e47f1dd21048.pdf') from origin 'https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev' has been blocked by CORS policy: The value of the 'Access-Control-Allow-Origin' header in the response must not be the wildcard '*' when the request's credentials mode is 'include'.
+momtazchem.s3.eu-central-1.amazonaws.com/receipts/customer-8/1791386044326-a8e2e47f1dd21048.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAYLLSZQTMQSN5OVKC%2F20261007%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20261007T184908Z&X-Amz-Expires=300&X-Amz-Signature=b7929f4d8194186e522e1e90d8262a3b38f3cc885497d39695f363fb8e5c6aeb&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject:1  Failed to load resource: net::ERR_FAILED
+momtazchem.s3.eu-central-1.amazonaws.com/receipts/customer-8/1791386044326-a8e2e47f1dd21048.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAYLLSZQTMQSN5OVKC%2F20261007%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20261007T184908Z&X-Amz-Expires=300&X-Amz-Signature=b7929f4d8194186e522e1e90d8262a3b38f3cc885497d39695f363fb8e5c6aeb&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject:1  Failed to load resource: net::ERR_FAILED
+client:299 ❌ [IMAGE MODAL] Failed to verify image: TypeError: Failed to fetch
+    at finance-orders.tsx:1618:27
+    at onClick (finance-orders.tsx:2328:27)
+    at HTMLUnknownElement.callCallback (react-dom-7ZfK04ec.js?v=fd06c271:3143:11)
+    at Object.invokeGuardedCallbackDev (react-dom-7ZfK04ec.js?v=fd06c271:3163:14)
+    at invokeGuardedCallback (react-dom-7ZfK04ec.js?v=fd06c271:3202:32)
+    at invokeGuardedCallbackAndCatchFirstError (react-dom-7ZfK04ec.js?v=fd06c271:3215:26)
+    at executeDispatch (react-dom-7ZfK04ec.js?v=fd06c271:6127:4)
+    at processDispatchQueueItemsInOrder (react-dom-7ZfK04ec.js?v=fd06c271:6141:5)
+    at processDispatchQueue (react-dom-7ZfK04ec.js?v=fd06c271:6149:5)
+    at dispatchEventsForPlugins (react-dom-7ZfK04ec.js?v=fd06c271:6157:4)
+(anonymous) @ client:299
+The FetchEvent for "https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2Fmrg&id=wvc1tqelps-1" resulted in a network error response: the promise was rejected.
+sw.js?v=8-20260928:113 Uncaught (in promise) Error: Network failed and no cache available
+    at networkFirstWithCache (sw.js?v=8-20260928:113:11)
+networkFirstWithCache @ sw.js?v=8-20260928:113
+await in networkFirstWithCache
+(anonymous) @ sw.js?v=8-20260928:94
+The FetchEvent for "https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/mrg/finance-orders" resulted in a network error response: the promise was rejected.
+sw.js?v=8-20260928:113 Uncaught (in promise) Error: Network failed and no cache available
+    at networkFirstWithCache (sw.js?v=8-20260928:113:11)
+networkFirstWithCache @ sw.js?v=8-20260928:113
+await in networkFirstWithCache
+(anonymous) @ sw.js?v=8-20260928:94
+useCustomerAuth.ts:18  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me 401 (Unauthorized)
+(anonymous) @ useCustomerAuth.ts:18
+fetchFn @ @tanstack_react-query.js?v=fd06c271:664
+run @ @tanstack_react-query.js?v=fd06c271:370
+start @ @tanstack_react-query.js?v=fd06c271:405
+fetch @ @tanstack_react-query.js?v=fd06c271:730
+#executeFetch @ @tanstack_react-query.js?v=fd06c271:1669
+(anonymous) @ @tanstack_react-query.js?v=fd06c271:1690
+client:964 [vite] hot updated: /src/index.css
+client:964 [vite] hot updated: /src/pages/admin/finance-orders.tsx
+(index):159  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev:5000/ 502 (Bad Gateway)
+(anonymous) @ (index):159
+contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 close listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+u @ contentscript.js:14083
+i.addListener @ contentscript.js:14083
+Z.on @ contentscript.js:14082
+i.once @ contentscript.js:14083
+E.pipe @ contentscript.js:14063
+q @ contentscript.js:14063
+D @ contentscript.js:14063
+P @ contentscript.js:14063
+O @ contentscript.js:14063
+N @ contentscript.js:14063
+(anonymous) @ contentscript.js:14083
+call.__webpack_require__._LM_.__webpack_require__.__webpack_require__ @ contentscript.js:14083
+(anonymous) @ contentscript.js:14083
+(anonymous) @ contentscript.js:14083
+contentscript.js:14083 MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 end listeners added. Use emitter.setMaxListeners() to increase limit
+n @ contentscript.js:14083
+u @ contentscript.js:14083
+i.addListener @ contentscript.js:14083
+Z.on @ contentscript.js:14082
+O @ contentscript.js:14083
+q @ contentscript.js:14063
+D @ contentscript.js:14063
+P @ contentscript.js:14063
+O @ contentscript.js:14063
+N @ contentscript.js:14063
+(anonymous) @ contentscript.js:14083
+call.__webpack_require__._LM_.__webpack_require__.__webpack_require__ @ contentscript.js:14083
+(anonymous) @ contentscript.js:14083
+(anonymous) @ contentscript.js:14083
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+_write @ contentscript.js:14082
+R @ contentscript.js:14063
+A @ contentscript.js:14063
+j.write @ contentscript.js:14063
+m @ contentscript.js:14082
+i.emit @ contentscript.js:14083
+J @ contentscript.js:14082
+K @ contentscript.js:14082
+Z.push @ contentscript.js:14082
+(anonymous) @ contentscript.js:14063
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "app-init-liveness"
+warn @ contentscript.js:14083
+_write @ contentscript.js:14082
+R @ contentscript.js:14063
+A @ contentscript.js:14063
+j.write @ contentscript.js:14063
+m @ contentscript.js:14082
+i.emit @ contentscript.js:14083
+J @ contentscript.js:14082
+K @ contentscript.js:14082
+Z.push @ contentscript.js:14082
+(anonymous) @ contentscript.js:14082
+transform @ contentscript.js:14063
+s._write @ contentscript.js:14082
+I @ contentscript.js:14083
+L @ contentscript.js:14083
+O.write @ contentscript.js:14083
+m @ contentscript.js:14082
+i.emit @ contentscript.js:14083
+J @ contentscript.js:14082
+K @ contentscript.js:14082
+Z.push @ contentscript.js:14082
+(anonymous) @ contentscript.js:14063
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+_write @ contentscript.js:14082
+R @ contentscript.js:14063
+A @ contentscript.js:14063
+j.write @ contentscript.js:14063
+m @ contentscript.js:14082
+i.emit @ contentscript.js:14083
+J @ contentscript.js:14082
+K @ contentscript.js:14082
+Z.push @ contentscript.js:14082
+(anonymous) @ contentscript.js:14063
+contentscript.js:14083 ObjectMultiplex - orphaned data for stream "background-liveness"
+warn @ contentscript.js:14083
+_write @ contentscript.js:14082
+R @ contentscript.js:14063
+A @ contentscript.js:14063
+j.write @ contentscript.js:14063
+m @ contentscript.js:14082
+i.emit @ contentscript.js:14083
+J @ contentscript.js:14082
+K @ contentscript.js:14082
+Z.push @ contentscript.js:14082
+(anonymous) @ contentscript.js:14082
+transform @ contentscript.js:14063
+s._write @ contentscript.js:14082
+I @ contentscript.js:14083
+L @ contentscript.js:14083
+O.write @ contentscript.js:14083
+m @ contentscript.js:14082
+i.emit @ contentscript.js:14083
+J @ contentscript.js:14082
+K @ contentscript.js:14082
+Z.push @ contentscript.js:14082
+(anonymous) @ contentscript.js:14063

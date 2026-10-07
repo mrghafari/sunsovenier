@@ -14,3 +14,9 @@ New bank receipts should go through an authenticated, same-origin application up
 **Why:** The older receipt uploader depended on the storage sidecar and a separate browser upload/validation sequence that could fail on the published site. Private S3 itself was verified to accept and return a synthetic receipt through the backend.
 
 **How to apply:** Keep persisted receipt links stable and enforce ownership. Preserve the original document bytes, verify file metadata on the server, and bind attachment evidence to the uploading customer. Uploading proof does not authorize financial approval or wallet adjustments.
+
+Credentialed receipt GET/HEAD requests must stay on the application's origin; serve private bytes through the authenticated backend rather than redirecting browser fetches to S3.
+
+**Why:** A real, readable PDF failed in the finance viewer because its credentialed HEAD request followed a redirect to S3, whose wildcard CORS origin is invalid when credentials are included. This was a browser transport failure, not a missing receipt or payment failure.
+
+**How to apply:** Preserve customer ownership and staff authorization, actual media type, private/no-store caching, and HEAD metadata without a body. Do not make receipts public, weaken authentication, or change shared bucket CORS merely to hide this error.

@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { crmEnum } from "@/lib/crm-localization";
 import { apiRequest } from "@/lib/queryClient";
+import { customerReferenceCode } from "@shared/customer-reference";
 
 type CustomerCodeRow = {
   customerType: string;
@@ -72,6 +73,7 @@ const copy: Record<Language, Record<string, string>> = {
     saved: "Customer identifier settings saved.",
     assigned: "Customer codes assigned.",
     notConfigured: "Pending configuration",
+    notIssued: "Customer number not issued",
     internalIdNote: "Codes do not replace internal customer IDs.",
   },
   fa: {
@@ -110,6 +112,7 @@ const copy: Record<Language, Record<string, string>> = {
     saved: "تنظیمات شناسه مشتری ذخیره شد.",
     assigned: "کدهای مشتری صادر شدند.",
     notConfigured: "در انتظار تنظیم",
+    notIssued: "شماره مشتری صادر نشده",
     internalIdNote: "کدها جایگزین شناسه داخلی مشتری نیستند.",
   },
   ar: {
@@ -148,6 +151,7 @@ const copy: Record<Language, Record<string, string>> = {
     saved: "تم حفظ إعدادات معرّفات العملاء.",
     assigned: "تم إصدار رموز العملاء.",
     notConfigured: "بانتظار الإعداد",
+    notIssued: "لم يتم إصدار رقم العميل",
     internalIdNote: "الرموز لا تحل محل معرّفات العملاء الداخلية.",
   },
   tr: {
@@ -186,6 +190,7 @@ const copy: Record<Language, Record<string, string>> = {
     saved: "Müşteri tanımlayıcı ayarları kaydedildi.",
     assigned: "Müşteri kodları verildi.",
     notConfigured: "Yapılandırma bekleniyor",
+    notIssued: "Müşteri numarası verilmedi",
     internalIdNote: "Kodlar dahili müşteri kimliklerinin yerine geçmez.",
   },
 };
@@ -201,10 +206,11 @@ function isForbidden(error: unknown) {
 
 export function CustomerCodeValue({ code }: { code?: string | null }) {
   const { language } = useLanguage();
-  return code ? (
-    <span dir="ltr" className="font-mono tabular-nums">{code}</span>
+  const reference = customerReferenceCode(code);
+  return reference ? (
+    <span dir="ltr" className="font-mono tabular-nums">{reference}</span>
   ) : (
-    <span className="text-muted-foreground">{customerCodeText(language, "notConfigured")}</span>
+    <span className="text-muted-foreground">{customerCodeText(language, "notIssued")}</span>
   );
 }
 

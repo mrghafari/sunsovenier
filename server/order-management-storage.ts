@@ -785,6 +785,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       customerOrderWeightUnit: customerOrders.weightUnit, // واحد وزن از جدول سفارشات مشتری
       
       // Customer info
+      customerCode: crmCustomers.customerCode,
       customerFirstName: crmCustomers.firstName,
       customerLastName: crmCustomers.lastName,
       customerEmail: crmCustomers.email,
@@ -929,7 +930,9 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         paymentReceiptUrl: row.paymentReceiptUrl || row.receiptUrl, // Use receipt from payment_receipts if available
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
+        customerCode: row.customerCode,
         customer: {
+          customerCode: row.customerCode,
           firstName: row.customerFirstName,
           lastName: row.customerLastName,
           email: row.customerEmail,
@@ -1199,6 +1202,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       orderNumber: customerOrders.orderNumber,
       
       // Customer info
+      customerCode: crmCustomers.customerCode,
       customerFirstName: crmCustomers.firstName,
       customerLastName: crmCustomers.lastName,
       customerEmail: crmCustomers.email,
@@ -1253,7 +1257,9 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
+      customerCode: row.customerCode,
       customer: {
+        customerCode: row.customerCode,
         firstName: row.customerFirstName,
         lastName: row.customerLastName,
         email: row.customerEmail,
