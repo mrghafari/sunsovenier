@@ -1,7 +1,7 @@
 import express, { type Express, type RequestHandler, Request, Response, NextFunction } from "express";
 import { siteManagementModuleIds } from "@shared/site-management-modules";
 import { loadingPermissionDefinition } from "./modules/loading/registration";
-import { fleetCategoryForContract, parseFleetCategory, eligibleFleetCategories } from "@shared/fleet-category";
+import { fleetCategoryForContract, parseFleetCategory, eligibleFleetCategories, isFleetMember } from "@shared/fleet-category";
 import { getOrderFleetCategory, validateFleetAssignment, validateReadyFleetCategoryChange, noActiveFleetAssignment } from "./fleet-policy";
 import { readyVehicleDatabaseError } from "./ready-vehicle-errors";
 import { registerFibRoutes } from "./fib-routes";
@@ -14543,10 +14543,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         .where(and(
           eq(readyVehicles.isAvailable, true),
           inArray(readyVehicles.fleetCategory, eligibleFleetCategories(requiredFleetCategory)),
-          or(
-            eq(readyVehicles.fleetCategory, "standard"),
-            noActiveFleetAssignment(readyVehicles.licensePlate),
-          ),
+          noActiveFleetAssignment(readyVehicles.licensePlate),
         ));
       
       // Filter ready vehicles based on customer's EXACT vehicle template selection
@@ -41384,7 +41381,7 @@ momtazchem.com
         ? await getOrderFleetCategory(req.query.orderId)
         : req.query.fleetCategory != null ? parseFleetCategory(req.query.fleetCategory) : null;
       const allowedCategories = fleetCategory
-        ? req.query.orderId != null ? eligibleFleetCategories(fleetCategory) : [fleetCategory] : null;
+        ? req.query.orderId != null ? eligibleFleetCategories(fleetCategory) : [fleetCategory, "both" as const] : null;
       
       const vehicles = await db
         .select({
@@ -41411,9 +41408,8 @@ momtazchem.com
         .innerJoin(vehicleTemplates, eq(readyVehicles.vehicleTemplateId, vehicleTemplates.id))
         .where(and(
           allowedCategories ? inArray(readyVehicles.fleetCategory, allowedCategories) : undefined,
-          req.query.orderId != null ? or(
-            eq(readyVehicles.fleetCategory, "standard"),
-            and(eq(readyVehicles.isAvailable, true), noActiveFleetAssignment(readyVehicles.licensePlate)),
+          req.query.orderId != null ? and(
+            eq(readyVehicles.isAvailable, true), noActiveFleetAssignment(readyVehicles.licensePlate),
           ) : undefined,
         ))
         .orderBy(readyVehicles.createdAt);
@@ -60748,16 +60744,21 @@ momtazchem.com
       
       let filteredVehicles = vehicles;
       if (requiredCategory) {
-        const allowed = req.query.orderId != null ? eligibleFleetCategories(requiredCategory) : [requiredCategory];
-        filteredVehicles = filteredVehicles.filter(v => allowed.includes(v.fleetCategory));
+        if (req.query.orderId != null) {
+          const allowed = eligibleFleetCategories(requiredCategory);
+          filteredVehicles = filteredVehicles.filter(v => allowed.includes(v.fleetCategory));
+        } else {
+          filteredVehicles = filteredVehicles.filter(v => requiredCategory === "both"
+            ? v.fleetCategory === "both" : isFleetMember(v.fleetCategory, requiredCategory));
+        }
       }
       if (req.query.orderId != null) {
-        const freeContractVehicles = await db.select({ id: deliveryVehicles.id }).from(deliveryVehicles).where(and(
-          eq(deliveryVehicles.fleetCategory, "contract"), eq(deliveryVehicles.isActive, true),
+        const freeVehicles = await db.select({ id: deliveryVehicles.id }).from(deliveryVehicles).where(and(
+          eq(deliveryVehicles.isActive, true),
           eq(deliveryVehicles.currentStatus, "available"), noActiveFleetAssignment(deliveryVehicles.plateNumber),
         ));
-        const freeIds = new Set(freeContractVehicles.map(v => v.id));
-        filteredVehicles = filteredVehicles.filter(v => v.fleetCategory !== "contract" || freeIds.has(v.id));
+        const freeIds = new Set(freeVehicles.map(v => v.id));
+        filteredVehicles = filteredVehicles.filter(v => freeIds.has(v.id));
       }
       if (vehicleType) {
         filteredVehicles = filteredVehicles.filter(v => v.vehicleType === vehicleType);

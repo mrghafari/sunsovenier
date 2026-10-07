@@ -91,7 +91,7 @@ export async function validateFleetAssignment(res: Response, input: {
     }
     try { assertFleetCategory(order.contract_id, vehicle.fleet_category); }
     catch (error) { throw new FleetPolicyError((error as Error).message); }
-    if (vehicle.fleet_category === "contract") {
+    {
       const missions = await pool.query(
         `SELECT id,customer_order_id FROM order_management WHERE BTRIM(vehicle_plate)=$1
          AND COALESCE(current_status,'') NOT IN ('delivered','cancelled','completed','returned','failed','deleted')`,
@@ -104,7 +104,7 @@ export async function validateFleetAssignment(res: Response, input: {
       const available = vehicle.is_available === true
         || (vehicle.is_active === true && vehicle.current_status === "available");
       if (assignedElsewhere || (!available && !assignedHere)) {
-        throw new FleetPolicyError("خودروی ناوگان قراردادی آزاد نیست و نمی‌توان آن را به این سفارش تخصیص داد.", 409);
+        throw new FleetPolicyError("خودرو آزاد نیست و نمی‌توان آن را به این سفارش تخصیص داد.", 409);
       }
     }
     return true;

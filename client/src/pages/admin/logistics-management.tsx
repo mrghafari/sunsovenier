@@ -59,7 +59,7 @@ import DeliveryServicesTab from '@/components/DeliveryServicesTab';
 import PostalShippingParamsTab from '@/components/PostalShippingParamsTab';
 import VehicleTemplateEditor from '@/components/admin/VehicleTemplateEditor';
 import FleetCategoryField from '@/components/admin/FleetCategoryField';
-import { fleetCategoryLabel, parseFleetCategory, type FleetCategory } from "@shared/fleet-category";
+import { fleetCategoryLabel, isFleetMember, parseFleetCategory, type FleetCategory } from "@shared/fleet-category";
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Car, Star, TrendingUp, Calendar as CalendarIcon, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
@@ -758,7 +758,7 @@ const LogisticsManagement = () => {
   const [selectedOrderForVehicle, setSelectedOrderForVehicle] = useState<LogisticsOrder | null>(null);
   const [selectedVehicleDetails, setSelectedVehicleDetails] = useState<any>(null);
   const [availableFleetVehicles, setAvailableFleetVehicles] = useState<any[]>([]);
-  const [fleetCategoryFilter, setFleetCategoryFilter] = useState<FleetCategory>("standard");
+  const [fleetCategoryFilter, setFleetCategoryFilter] = useState<"standard" | "contract">("standard");
   const fleetCategoryDraftRef = React.useRef<FleetCategory>("standard");
   const [expandedVehicleIds, setExpandedVehicleIds] = useState<Set<number>>(new Set());
   const [expandedOrderVehicleId, setExpandedOrderVehicleId] = useState<number | null>(null);
@@ -5401,9 +5401,23 @@ const LogisticsManagement = () => {
 
   // Fleet Vehicles Tab Component (ناوگان خودروها)
   const FleetVehiclesTab = () => {
+    const validateFleetCategory = (formData: FormData) => {
+      const category = formData.get('fleetCategory');
+      if (category === 'standard' || category === 'contract' || category === 'both') return true;
+      toast({
+        title: t('error'),
+        variant: "destructive",
+        description: language === "fa" ? "حداقل یک عضویت ناوگان را انتخاب کنید."
+          : language === "ar" ? "يرجى اختيار عضوية واحدة على الأقل في الأسطول."
+          : language === "tr" ? "Lütfen en az bir filo üyeliği seçin."
+          : "Choose at least one fleet membership.",
+      });
+      return false;
+    };
+
     // Use the already defined fleet vehicles data from top level
     const readyVehicles = fleetVehicles.filter((vehicle: ReadyVehicle) =>
-      parseFleetCategory(vehicle.fleetCategory) === fleetCategoryFilter);
+      isFleetMember(parseFleetCategory(vehicle.fleetCategory), fleetCategoryFilter));
 
     // Create ready vehicle mutation
     const createReadyVehicleMutation = useMutation({
@@ -5472,6 +5486,7 @@ const LogisticsManagement = () => {
     const handleCreateReadyVehicle = (e: React.FormEvent) => {
       e.preventDefault();
       const formData = new FormData(e.target as HTMLFormElement);
+      if (!validateFleetCategory(formData)) return;
       
       // Determine vehicle template and type based on selection
       const selectedVehicleType = formData.get('vehicleType') as string;
@@ -5518,6 +5533,7 @@ const LogisticsManagement = () => {
       if (!selectedReadyVehicle) return;
       
       const formData = new FormData(e.target as HTMLFormElement);
+      if (!validateFleetCategory(formData)) return;
       
       // Determine vehicle template and type based on selection
       const selectedVehicleType = formData.get('vehicleType') as string;
@@ -5579,7 +5595,7 @@ const LogisticsManagement = () => {
             variant={fleetCategoryFilter === category ? "default" : "outline"}
             onClick={() => setFleetCategoryFilter(category)}>
             {fleetCategoryLabel(category, language)} ({fleetVehicles.filter((vehicle: ReadyVehicle) =>
-              parseFleetCategory(vehicle.fleetCategory) === category).length})
+              isFleetMember(parseFleetCategory(vehicle.fleetCategory), category)).length})
           </Button>)}
         </div>
         <Card>

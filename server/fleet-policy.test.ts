@@ -2,7 +2,7 @@ import { test, mock } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { pool } from "./db";
-import { fleetCategoryForContract, parseFleetCategory, assertFleetCategory, fleetCategoryLabel, eligibleFleetCategories } from "../shared/fleet-category";
+import { fleetCategoryForContract, parseFleetCategory, assertFleetCategory, fleetCategoryLabel, eligibleFleetCategories, isFleetMember } from "../shared/fleet-category";
 import { getOrderFleetCategory, validateFleetAssignment, validateReadyFleetCategoryChange } from "./fleet-policy";
 import type { Response } from "express";
 
@@ -18,13 +18,19 @@ test("fleet ownership follows every contractual purchase, independently of bulk 
   assert.equal(fleetCategoryForContract(17), "contract");
   assert.equal(fleetCategoryForContract("17"), "contract");
   assert.equal(parseFleetCategory(undefined), "standard");
-  for (const invalid of ["bulk", "", "both", {}, 1]) assert.throws(() => parseFleetCategory(invalid));
+  for (const invalid of ["bulk", "", {}, 1]) assert.throws(() => parseFleetCategory(invalid));
+  assert.equal(parseFleetCategory("both"), "both");
+  assert.equal(isFleetMember("both", "standard"), true);
+  assert.equal(isFleetMember("both", "contract"), true);
+  assert.equal(isFleetMember("standard", "contract"), false);
+  assert.equal(isFleetMember("contract", "standard"), false);
   assert.doesNotThrow(() => assertFleetCategory(17, "contract"));
   assert.doesNotThrow(() => assertFleetCategory(null, "standard"));
   assert.throws(() => assertFleetCategory(17, "standard"), /قراردادی/);
   assert.doesNotThrow(() => assertFleetCategory(null, "contract"));
-  assert.deepEqual(eligibleFleetCategories("standard"), ["standard", "contract"]);
-  assert.deepEqual(eligibleFleetCategories("contract"), ["contract"]);
+  assert.doesNotThrow(() => assertFleetCategory(17, "both"));
+  assert.deepEqual(eligibleFleetCategories("standard"), ["standard", "contract", "both"]);
+  assert.deepEqual(eligibleFleetCategories("contract"), ["contract", "both"]);
   for (const language of ["fa", "ar", "tr", "en"]) {
     assert.notEqual(fleetCategoryLabel("standard", language), fleetCategoryLabel("contract", language));
   }
@@ -42,7 +48,7 @@ test("listing uses the persisted order identity, not a client-supplied purchase 
 });
 
 for (const contractId of [null, 17]) {
-  for (const category of ["standard", "contract"] as const) {
+  for (const category of ["standard", "contract", "both"] as const) {
     test(`assignment checks persisted group: contract=${contractId}, vehicle=${category}`, async () => {
       let calls = 0;
       const stub = mock.method(pool as any, "query", async (sql: string, params: unknown[]) => {
@@ -65,7 +71,7 @@ for (const contractId of [null, 17]) {
       try {
         const valid = await validateFleetAssignment(res as unknown as Response,
           { managementId: 101, customerOrderId: 11, vehicleId: 7, plate: "UNIT-1", source: "ready" });
-        assert.equal(valid, contractId === null || category === "contract");
+        assert.equal(valid, contractId === null || category !== "standard");
         assert.equal(res.code, valid ? 200 : 422);
       } finally { stub.mock.restore(); }
     });
@@ -134,12 +140,13 @@ for (const scenario of [
   { name: "legacy vehicle in transit", source: "delivery", vehicle: { is_active: true, current_status: "in_transit" }, missions: [], allowed: false },
   { name: "inactive legacy vehicle", source: "delivery", vehicle: { is_active: false, current_status: "available" }, missions: [], allowed: false },
 ] as const) {
-  test(`ordinary orders borrow contract fleet only when free: ${scenario.name}`, async () => {
+ for (const category of ["standard", "contract", "both"] as const) {
+  test(`all fleet memberships require a free vehicle: ${category}, ${scenario.name}`, async () => {
     let calls = 0;
     const stub = mock.method(pool as any, "query", async () => {
       calls++;
       if (calls === 1) return { rows: [{ id: 11, contract_id: null }], rowCount: 1 };
-      if (calls === 2) return { rows: [{ fleet_category: "contract", plate: "UNIT-1", ...scenario.vehicle }], rowCount: 1 };
+      if (calls === 2) return { rows: [{ fleet_category: category, plate: "UNIT-1", ...scenario.vehicle }], rowCount: 1 };
       return { rows: scenario.missions.map(customer_order_id => ({
         id: customer_order_id === 11 ? 101 : 202, customer_order_id,
       })), rowCount: scenario.missions.length };
@@ -152,6 +159,7 @@ for (const scenario of [
       assert.equal(res.code, scenario.allowed ? 200 : 409);
     } finally { stub.mock.restore(); }
   });
+ }
 }
 
 test("category changes only block removing contract eligibility from a vehicle on a contract mission", async () => {

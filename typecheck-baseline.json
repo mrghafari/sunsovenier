@@ -3125,10 +3125,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'length' does not exist on type 'QueryResult<Record<string, unknown>>'.\",\"if (existingAssignment.length > 0) {\"]",
-      "count": 2
-    },
-    {
       "key": "[\"server/routes.ts\",2339,\"Property 'length' does not exist on type 'QueryResult<Record<string, unknown>>'.\",\"if (vehicleSelectionResult.length === 0) {\"]",
       "count": 3
     },
@@ -4315,18 +4311,6 @@
     {
       "key": "[\"server/routes.ts\",7053,\"Element implicitly has an 'any' type because expression of type '0' can't be used to index type '{}'.\\n  Property '0' does not exist on type '{}'.\",\"imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,\"]",
       "count": 4
-    },
-    {
-      "key": "[\"server/routes.ts\",7053,\"Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'QueryResult<Record<string, unknown>>'.\\n  Property '0' does not exist on type 'QueryResult<Record<string, unknown>>'.\",\"conflictingOrderId: existingAssignment[0].customer_order_id\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",7053,\"Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'QueryResult<Record<string, unknown>>'.\\n  Property '0' does not exist on type 'QueryResult<Record<string, unknown>>'.\",\"conflictingOrderNumber: existingAssignment[0].order_number\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",7053,\"Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'QueryResult<Record<string, unknown>>'.\\n  Property '0' does not exist on type 'QueryResult<Record<string, unknown>>'.\",\"console.log('🚫 [ASSIGN VEHICLE] Vehicle already assigned to undelivered order:', existingAssignment[0].order_number);\"]",
-      "count": 1
     },
     {
       "key": "[\"server/routes.ts\",7053,\"Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'QueryResult<Record<string, unknown>>'.\\n  Property '0' does not exist on type 'QueryResult<Record<string, unknown>>'.\",\"const vehicleData = vehicleSelectionResult[0];\"]",

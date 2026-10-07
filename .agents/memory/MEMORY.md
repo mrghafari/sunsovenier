@@ -74,7 +74,7 @@
 - [Loading price basis](loading-price-basis.md) — weighbridge tons require frozen per-ton price/conversion evidence; correct arithmetic alone is not posting readiness.
 - [Independent loading module](loading-module-boundary.md) — standalone management module, loading_-owned data, only menu/permission/route registration edits; analysis approval precedes coding.
 - [Contract bulk transport](contract-bulk-transport.md) — Kardex bulk-sale flags select bulk-category vehicles for contract sales; goods retain their contract price.
-- [Fleet selection](fleet-selection-policy.md) — physical fleets split into general/contract groups; all contract orders select their group at logistics assignment, with shared templates.
+- [Fleet selection](fleet-selection-policy.md) — one vehicle may belong to both catalogs; every selection requires availability, and contract orders require contract membership.
 - [Manual fixed freight](manual-fixed-freight.md) — fixed order freight is allocated by manually entered, finance-approved shares, capped by the original total.
 - [Contractual aggregate overweight](contract-weight-policy.md) — Commercial reviews cumulative order overweight; the order's own contractual allowance, not a company default, governs.
 - [Freight return independence](freight-return-independence.md) — a sales return does not itself erase incurred freight or the carrier payable; freight corrections need their own evidence.
