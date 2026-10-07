@@ -8,6 +8,7 @@ export type ShopContract = {
   id: number;
   number: string;
   deliveryTerm?: IncotermCode | null;
+  shippingMode?: "automatic_vehicle" | "self_transport" | null;
   terms: string;
   isActive: boolean;
   customerId: number;

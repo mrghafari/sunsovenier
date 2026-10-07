@@ -710,7 +710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!Number.isSafeInteger(quantity) || quantity <= 0) {
         throw new ShippingConfigurationError(`Invalid quantity for product ${id}.`, 422);
       }
-      const weightValue = product.grossWeight || product.weight;
+      const weightValue = product.grossWeight ?? product.weight;
       let weight = weightValue == null || String(weightValue).trim() === "" ? null : Number(weightValue);
       if (weight != null && (!Number.isFinite(weight) || weight < 0)) {
         throw new ShippingConfigurationError(`Product ${id} has an invalid shipping weight.`, 422);
@@ -52180,6 +52180,23 @@ momtazchem.com
         ? await getCanonicalCheckoutCartFacts(cart)
         : null;
       // Checkout weight and hazardous flags come exclusively from shop catalog facts.
+      let verifiedContractId: number | null = null;
+      if (req.body.contractId != null) {
+        const session = req.session as any;
+        const customerId = Number(session?.crmCustomerId ?? session?.customerId);
+        if (!checkoutCartFacts || !Number.isSafeInteger(Number(req.body.contractId)) || Number(req.body.contractId) <= 0 || !customerId) {
+          throw new ShippingConfigurationError("A customer login and valid contract are required.", 422);
+        }
+        const { loadContractPricing, assertContractShippingMode } = await import("./shop-contracts");
+        try {
+          const pricing = await loadContractPricing(Number(req.body.contractId), customerId, cart);
+          if (pricing.shippingMode) assertContractShippingMode(pricing.shippingMode, "smart_vehicle");
+        } catch (error) {
+          throw new ShippingConfigurationError(error instanceof Error ? error.message : "Contract unavailable.", 422);
+        }
+        verifiedContractId = Number(req.body.contractId);
+      }
+      const bulkTransport = requiresBulkContractTransport(verifiedContractId, checkoutCartFacts?.cart ?? []);
       const finalWeightKg = checkoutCartFacts?.totalWeightKg ?? Number(weightKg || orderWeightKg);
 
       let distance: number;
@@ -52227,7 +52244,10 @@ momtazchem.com
           destinationCityId: resolvedDestinationCityId,
           distanceKm: distance,
           method: "smart_vehicle",
-          selectedVehicles,
+          contractId: verifiedContractId,
+          selectedVehicles: selectedVehicles.map(vehicle => ({
+            ...vehicle, transportCategory: bulkTransport ? "bulk" : "standard",
+          })),
           shippingCost,
         })
         : undefined;
@@ -52247,15 +52267,16 @@ momtazchem.com
         });
       }
 
-      // Get all active vehicle templates
+      // Contract bulk goods must be quoted from the same category validated at checkout.
       const vehicles = await db.select().from(vehicleTemplates)
-        .where(eq(vehicleTemplates.isActive, true))
+        .where(and(eq(vehicleTemplates.isActive, true),
+          ...(bulkTransport ? [eq(vehicleTemplates.transportCategory, "bulk")] : [])))
         .orderBy(vehicleTemplates.priority);
 
       if (vehicles.length === 0) {
-        return res.status(404).json({ 
-          success: false, 
-          message: "هیچ الگوی خودروی فعالی یافت نشد" 
+        return res.status(404).json({
+          success: false,
+          message: bulkTransport ? "No active bulk-category vehicle is available." : "هیچ الگوی خودروی فعالی یافت نشد"
         });
       }
 

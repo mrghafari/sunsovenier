@@ -9,6 +9,21 @@ Smart vehicle shipping must use a short-lived server-verifiable quote bound to t
 
 **How to apply:** In future checkout changes, never trust the posted shipping cost or vehicle. Reject stale or mismatched smart quotes before payment or reservation; price ordinary delivery from its server rate after route validation, and validate active pickup methods before applying their route exemption.
 
+Every checkout's quote issuer must carry the authenticated contract identity when
+checkout binds the quote to a contract. Apply the saved contract shipping mode in
+every purchase form, not just one checkout page.
+
+**Why:** The bilingual purchase form requested an ordinary quote for contractual
+goods and ignored the contract's shipping mode, while order validation correctly
+required a matching contract identity. That produced binding failures and could
+send customer-arranged transport through company vehicle pricing.
+
+**How to apply:** Invalidate cached quotes when contract identity or shipping mode
+changes. Customer-arranged transport selects the active self-pickup method and
+uses the server's quote-exempt zero-freight path; company-arranged bulk transport
+uses bulk-category templates in both issuance and validation. Do not silently
+change contractual shipping terms to make an order succeed.
+
 An ordinary delivery quote requires an active rate that covers the selected destination. Do not interpret a delivery method's zero default cost as free shipping when no rate matches.
 
 **Why:** A zero default on a method can otherwise present an unsupported destination as free delivery, even though no actual rate was configured for it.

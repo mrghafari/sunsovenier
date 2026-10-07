@@ -1190,6 +1190,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const selectedContract = selectedContractId === null
     ? null
     : customerContracts.find(contract => contract.id === selectedContractId && contract.isActive) || null;
+  const selectedContractShippingMode = selectedContract?.shippingMode || null;
+  const hasEnforcedContractShippingMode = selectedContractShippingMode === "automatic_vehicle" || selectedContractShippingMode === "self_transport";
   const contractItemForProduct = (productId: number) =>
     selectedContract?.items.find(item => Number(item.productId) === Number(productId));
   const contractQuantityError = (productId: number, quantity: number) => {
@@ -1297,12 +1299,19 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       hasShippingData: !!shippingRatesData
     });
     
+    if (hasEnforcedContractShippingMode) {
+      const requiredValue = selectedContractShippingMode === "self_transport" ? "self_pickup" : "smart_vehicle";
+      const requiredRate = shippingRatesData?.find((rate: any) =>
+        String(rate.deliveryMethod || rate.delivery_method || "").toLowerCase() === requiredValue);
+      setSelectedShippingMethod(requiredRate?.id ?? null);
+      return;
+    }
     if (shippingRatesData?.length > 0 && !selectedShippingMethod) {
       const firstMethod = shippingRatesData[0];
       console.log('🚚 [AUTO-SELECT] Auto-selecting first shipping method:', firstMethod.id, firstMethod.name);
       setSelectedShippingMethod(firstMethod.id);  
     }
-  }, [shippingRatesData, selectedShippingMethod]);
+  }, [shippingRatesData, selectedShippingMethod, selectedContractShippingMode, hasEnforcedContractShippingMode]);
 
   // Never infer shipping from configured base prices or threshold fields; quotes price delivery.
   useEffect(() => {
@@ -1358,7 +1367,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
 
   // Auto-select smart vehicle when shipping methods load
   useEffect(() => {
-    if (shippingRatesData && shippingRatesData.length > 0 && !selectedShippingMethod) {
+    if (!hasEnforcedContractShippingMode && shippingRatesData && shippingRatesData.length > 0 && !selectedShippingMethod) {
       const smartVehicleMethod = shippingRatesData.find((rate: any) => 
         rate.deliveryMethod === 'smart_vehicle' || rate.delivery_method === 'smart_vehicle'
       );
@@ -1404,7 +1413,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     Object.entries(shippingQuoteCart)
       .map(([productId, quantity]) => [Number(productId), Number(quantity)])
       .sort((a, b) => Number(a[0]) - Number(b[0]))
-  );
+  ) + `|contract:${selectedContractId ?? "ordinary"}|shipping:${selectedContractShippingMode ?? "unspecified"}`;
 
   // Calculate shipping cost - prioritize smart delivery over regular shipping
   const legacySecondaryAddress = String(crmCustomerData?.secondaryAddress || customerData?.customer?.secondaryAddress || '').trim();
@@ -1681,6 +1690,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         credentials: 'include',
         body: JSON.stringify({
           orderNumber: `CART-${Date.now()}`,
+          contractId: selectedContractId,
           cart: shippingQuoteCart,
           destinationCity: destinationCity,
           ...(destinationProvince ? { destinationProvince } : {}),
@@ -2721,6 +2731,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           !freshContract.isActive ||
           freshContract.customerId !== contractAsPresented.customerId ||
           freshContract.number !== contractAsPresented.number ||
+          freshContract.shippingMode !== contractAsPresented.shippingMode ||
           freshContract.terms !== contractAsPresented.terms ||
           freshContract.customerName !== contractAsPresented.customerName ||
           JSON.stringify(normalizeItems(freshContract.items)) !== JSON.stringify(normalizeItems(contractAsPresented.items)) ||
@@ -3065,6 +3076,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                   <div className="space-y-2">
                     <select
                       value={selectedShippingMethod || ''}
+                      disabled={hasEnforcedContractShippingMode}
                       onChange={(e) => setSelectedShippingMethod(parseInt(e.target.value) || null)}
                       className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm"
                       required
@@ -3123,6 +3135,20 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         );
                       })}
                     </select>
+                    {hasEnforcedContractShippingMode && <p className="text-xs text-muted-foreground" role="status">
+                      {language === "fa" ? (selectedContractShippingMode === "self_transport"
+                        ? "طبق قرارداد، خودرو را مشتری تأمین می‌کند؛ کرایهٔ حمل شرکت محاسبه نمی‌شود."
+                        : "طبق قرارداد، حمل با خودروی شرکت انجام می‌شود.")
+                        : language === "ar" ? (selectedContractShippingMode === "self_transport"
+                          ? "حسب العقد، يوفر العميل المركبة؛ لا تُحسب أجرة نقل الشركة."
+                          : "حسب العقد، يتم النقل بمركبة الشركة.")
+                        : language === "tr" ? (selectedContractShippingMode === "self_transport"
+                          ? "Sözleşmeye göre aracı müşteri sağlar; şirket taşıma ücreti hesaplanmaz."
+                          : "Sözleşmeye göre taşıma şirket aracıyla yapılır.")
+                        : selectedContractShippingMode === "self_transport"
+                          ? "The contract requires customer-arranged transport; no company freight is charged."
+                          : "The contract requires company-arranged vehicle delivery."}
+                    </p>}
                     
                     {/* Show shipping cost details */}
                     {selectedShippingMethod && (

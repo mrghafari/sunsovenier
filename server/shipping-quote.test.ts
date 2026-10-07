@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   assertShippingQuoteBindings,
   assertShippingQuoteCheckoutFlow,
@@ -43,6 +44,38 @@ function expectedBindings() {
     method: "smart_vehicle",
   };
 }
+
+test("both checkout flows bind contract quotes to the same contract, never another or ordinary purchase", () => {
+  process.env.SESSION_SECRET = "test-session-secret";
+  for (const method of ["smart_vehicle", "vehicle_quote"] as const) {
+    const quote = verifyShippingQuote(signShippingQuote({ ...payload(), contractId: 7, method }, 1_000), 2_000);
+    assert.doesNotThrow(() => assertShippingQuoteBindings(quote, { ...expectedBindings(), method, contractId: 7 }));
+    assert.throws(() => assertShippingQuoteBindings(quote, { ...expectedBindings(), method, contractId: 8 }), /does not match/);
+    assert.throws(() => assertShippingQuoteBindings(quote, { ...expectedBindings(), method, contractId: null }), /does not match/);
+    const ordinary = verifyShippingQuote(signShippingQuote({ ...payload(), method }, 1_000), 2_000);
+    assert.throws(() => assertShippingQuoteBindings(ordinary, { ...expectedBindings(), method, contractId: 7 }), /does not match/);
+  }
+});
+
+test("bilingual contract checkout sends contract quote context and enforces customer-arranged transport", () => {
+  const form = readFileSync(new URL("../client/src/components/bilingual-purchase-form.tsx", import.meta.url), "utf8");
+  const request = form.slice(form.indexOf("fetch('/api/logistics/select-optimal-vehicle'"), form.indexOf("const data = await response.json()", form.indexOf("fetch('/api/logistics/select-optimal-vehicle'")));
+  assert.match(request, /contractId: selectedContractId/);
+  assert.match(form, /selectedContractShippingMode === "self_transport" \? "self_pickup" : "smart_vehicle"/);
+  assert.match(form, /disabled=\{hasEnforcedContractShippingMode\}/);
+  assert.match(form, /freshContract\.shippingMode !== contractAsPresented\.shippingMode/);
+  assert.match(form, /contract:\$\{selectedContractId/);
+  const routes = readFileSync(new URL("./routes.ts", import.meta.url), "utf8");
+  const quote = routes.slice(routes.indexOf("let verifiedContractId: number | null", routes.indexOf("// Checkout weight and hazardous flags")));
+  assert.match(quote, /const session = req\.session/);
+  assert.ok(quote.indexOf("loadContractPricing(") < quote.indexOf("issueCheckoutShippingQuote("));
+  assert.match(quote, /contractId: verifiedContractId/);
+  assert.match(quote, /vehicleTemplates.transportCategory, "bulk"/);
+  assert.match(routes, /const weightValue = product\.grossWeight \?\? product\.weight/);
+  const validation = routes.slice(routes.indexOf("const isPickupMethod ="), routes.indexOf("const countryName =", routes.indexOf("const isPickupMethod =")));
+  assert.match(validation, /if \(isPickupMethod\)[\s\S]*shippingCost: 0/);
+  assert.doesNotMatch(validation, /verifyShippingQuote/);
+});
 
 test("signed smart-vehicle shipping quote verifies and binds all order facts", () => {
   process.env.SESSION_SECRET = "test-session-secret";
