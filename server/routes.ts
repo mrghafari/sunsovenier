@@ -33557,6 +33557,9 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       }
       const bulkTransport=requiresBulkContractTransport(verifiedContractId,checkoutCartFacts?.cart??[]);
       const templateId=selectedVehicleTemplateId==null?null:Number(selectedVehicleTemplateId);
+      if (verifiedContractId !== null && templateId !== null) {
+        return res.status(422).json({ success: false, message: "Contract vehicle templates are selected automatically by the system." });
+      }
       if(templateId!==null&&(!bulkTransport||!Number.isSafeInteger(templateId)||templateId<=0))
         return res.status(422).json({success:false,message:"Invalid bulk vehicle template selection."});
 

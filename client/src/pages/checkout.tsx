@@ -583,10 +583,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   const selectedContract = selectedContractFromQuery || (selectedContractId === null ? undefined : selectedContractSnapshot);
   const hasBulkContractProducts=requiresBulkContractTransport(selectedContractId,Object.keys(cart)
     .map(id=>products.find((product:any)=>Number(product.id)===Number(id))).filter(Boolean) as any[]);
-  const [bulkVehicleTemplateId,setBulkVehicleTemplateId]=useState("");
-  useEffect(()=>setBulkVehicleTemplateId(""),[selectedContractId,hasBulkContractProducts]);
   const selectedContractShippingMode = (selectedContract as (ShopContract & { shippingMode?: ContractShippingMode | null }) | undefined)?.shippingMode ||
-    (hasBulkContractProducts?"automatic_vehicle":null);
+    null;
   const requiredContractShippingMethodId = getContractShippingMethodId(selectedContractShippingMode, deliveryMethods);
   const hasEnforcedContractShippingMode = selectedContractShippingMode === 'automatic_vehicle' || selectedContractShippingMode === 'self_transport';
   const contractShippingMethodNotice = !hasEnforcedContractShippingMode
@@ -674,7 +672,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     };
   }).filter(Boolean);
   const shippingQuoteCartKey = JSON.stringify(
-    [selectedContractId,bulkVehicleTemplateId,hasBulkContractProducts,Object.entries(cart)
+    [selectedContractId,hasBulkContractProducts,Object.entries(cart)
       .map(([productId, quantity]) => [Number(productId), Number(quantity)])
       .sort((a, b) => Number(a[0]) - Number(b[0]))]
   );
@@ -747,7 +745,6 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         body: JSON.stringify({
           weight: weight,
           contractId:selectedContractId,
-          selectedVehicleTemplateId:hasBulkContractProducts&&bulkVehicleTemplateId?Number(bulkVehicleTemplateId):null,
           destinationCity: destination,
           destinationProvince: destProvince?.nameEnglish || destProvince?.name || destination,
           ...(destCity?.id != null ? { destinationCityId: destCity.id } : {}),
@@ -868,7 +865,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       setShippingQuote(null);
       return { cost: 0, vehicle: null };
     }
-  }, [containsFlammableProducts, cart, shippingQuoteCartKey, secondaryCities, provinces, refetchShippingCenter,selectedContractId,hasBulkContractProducts,bulkVehicleTemplateId]);
+  }, [containsFlammableProducts, cart, shippingQuoteCartKey, secondaryCities, provinces, refetchShippingCenter,selectedContractId,hasBulkContractProducts]);
 
   const guestDeliveryFields = getGuestDeliveryFields({
     sameAsShipping: form.watch('sameAsShipping'),
@@ -1733,7 +1730,6 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     });
 
     const orderData = {
-      selectedBulkVehicleTemplateId:hasBulkContractProducts&&bulkVehicleTemplateId?Number(bulkVehicleTemplateId):null,
       contractId: selectedContractId,
       customerInfo,
       recipientInfo: {
@@ -2729,7 +2725,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                             </p>
                           )}
                           {hasBulkContractProducts&&
-                            <BulkVehicleSelector language={language} value={bulkVehicleTemplateId} onChange={setBulkVehicleTemplateId} selfTransport={selectedContractShippingMode==="self_transport"}/>}
+                            <BulkVehicleSelector language={language} selfTransport={getContractShippingMethodId("self_transport", deliveryMethods) === selectedShippingMethodId}/>}
                           {isCurrentMethodShippingDependent && (shippingRouteUnavailable || shippingCalculationPending || !shippingQuoteReady) && (
                             <p role="alert" className="text-sm text-destructive">
                               {!deliveryAddressReady
