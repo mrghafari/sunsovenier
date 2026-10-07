@@ -1,0 +1,63 @@
+ 
+ 
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+ ObjectMultiplex - orphaned data for stream "app-init-liveness"
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+ ObjectMultiplex - orphaned data for stream "background-liveness"
+ CI_CD_TEST_2026
+ [PWA] Service Worker registered, scope: https://momtazchem.com/
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ Auth check result: 
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: 
+ 🔍 [DEBUG] userPermissions.modules: 
+ 🔍 [DEBUG] userPermissions.permissions: 
+ 🔍 [DEBUG] Total allButtons count: 39
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: 
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] legal-affairs Legal Affairs & Contracts moduleId: legal_affairs
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? 
+App-DYnQxHMG.js:901 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+App-DYnQxHMG.js:901 🔍 [DEBUG] ai_settings button found in allButtons? Object
+App-DYnQxHMG.js:901 🔍 [DEBUG] content_management button found in allButtons? Object
+App-DYnQxHMG.js:901 🔍 [DEBUG] finance button in filtered? Object
+App-DYnQxHMG.js:901 🔍 [DEBUG] geography_analytics button in filtered? Object
+App-DYnQxHMG.js:901 🔍 [DEBUG] ai_settings button in filtered? Object
+App-DYnQxHMG.js:901 🔍 [DEBUG] content_management button in filtered? Object
+App-DYnQxHMG.js:901 🔍 [DEBUG] Site Management component initialized
+App-DYnQxHMG.js:731 🔔 [FINANCIAL] نوتیفیکیشن: 3 سفارش جدید دریافت شد
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+App-DYnQxHMG.js:50 Auth check result: Object
+App-DYnQxHMG.js:731 🔍 [WALLET DEBUG] Starting wallet fetch for order: M2601315
+App-DYnQxHMG.js:731 🔍 [WALLET DEBUG] Order details response status: 200
+App-DYnQxHMG.js:731 🔍 [WALLET DEBUG] Order data received: Object
+App-DYnQxHMG.js:731 🔍 [WALLET DEBUG] Order object: Object
+App-DYnQxHMG.js:731 🔍 [WALLET DEBUG] customerId value: 8
+App-DYnQxHMG.js:731 🔍 [WALLET DEBUG] Found customer ID: 8
+App-DYnQxHMG.js:731 🔍 [WALLET DEBUG] Wallet response status: 200
+App-DYnQxHMG.js:731 🔍 [WALLET DEBUG] Wallet result: Object
+App-DYnQxHMG.js:731 🔍 [WALLET DEBUG] Final balance: 43714296734
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+App-DYnQxHMG.js:50 Auth check result: Object
+App-DYnQxHMG.js:731 🔍 [FINANCE] Approving order - Management ID: 1223, Customer Order ID: 747
+App-DYnQxHMG.js:731 💰 [FINANCE] Approving order 1223 with notes: این درسته
+/api/finance/orders/1223/approve:1  Failed to load resource: the server responded with a status of 409 ()
+App-DYnQxHMG.js:731 ❌ [FINANCE] Approval error: Error: Explicit CRM credit registration required
+    at Me (label-Cwow_VLh.js:1:33716)
+    at async Ne (label-Cwow_VLh.js:1:34022)
+onError @ App-DYnQxHMG.js:731
