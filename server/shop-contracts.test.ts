@@ -3,7 +3,6 @@ import { test } from "node:test";
 import {
   assertCompleteActiveContractDraft,
   assertContractShippingMode,
-  applyAuthoritativeContractSeller,
   attachContractHold,
   claimContractCart,
   loadContractPricing,
@@ -471,7 +470,7 @@ test("company seller mapper accepts raw pg snake_case rows and includes contact-
   assert.equal(seller.website, "https://example.test");
 });
 
-test("server overwrites forged seller data on create and preserves or refreshes snapshots on edit", () => {
+test("authorized contract payloads retain seller edits without changing the company profile or older snapshots", () => {
   const source = {
     tradeName: "Authoritative seller",
     companyNameEn: "Authoritative seller",
@@ -483,29 +482,31 @@ test("server overwrites forged seller data on create and preserves or refreshes 
     contactPersonTitle: "Director",
     phonePrimary: "+1 555 123",
   };
-  const forgedDraft = shopContractDraftSchema.parse(validV2Draft({
+  const editedDraft = shopContractDraftSchema.parse(validV2Draft({
     language: "en",
     seller: {
-      name: "Client forged name",
-      registration: "FORGED",
-      address: "Fake address",
-      representative: "Fake signer",
-      contact: "Fake contact",
+      name: "Contract-specific seller",
+      registration: "CONTRACT-123",
+      address: "Contract address",
+      representative: "Contract signer",
+      contact: "Contract contact",
+      taxNumber: "TAX-123", country: "Iraq", city: "Basra", postalCode: "12345", website: "https://contract.example.test",
     },
   }));
-  const created = applyAuthoritativeContractSeller(forgedDraft, source, undefined, true);
-  assert.equal(created.seller.name, "Authoritative seller");
-  assert.equal(created.seller.registration, "OFFICIAL-1");
-  assert.notEqual(created.seller.name, "Client forged name");
-
   const saved = companyProfileToContractSeller(source, "en");
-  const changedProfile = { ...source, companyNameEn: "Edited profile name", registrationNumber: "REG-2" };
-  const ordinaryEdit = applyAuthoritativeContractSeller(forgedDraft, changedProfile, saved, false);
-  assert.equal(ordinaryEdit.seller.name, "Authoritative seller");
-  assert.equal(ordinaryEdit.seller.registration, "OFFICIAL-1");
-  const refresh = applyAuthoritativeContractSeller(forgedDraft, changedProfile, saved, true);
-  assert.equal(refresh.seller.name, "Edited profile name");
-  assert.equal(refresh.seller.registration, "REG-2");
+  for (const refreshSeller of [false, true]) {
+    const definition = validateContractDefinition({ ...validContract(), draftData: editedDraft, refreshSeller });
+    assert.deepEqual(definition.draftData?.seller, editedDraft.seller);
+    assert.doesNotThrow(() => assertCompleteActiveContractDraft(definition.draftData!));
+    const text = buildContractDraftText(definition.draftData!, {
+      customerName: "Buyer", contractNumber: "C2612345", deliveryTerm: "FCA", items: [],
+    });
+    assert.match(text, /Contract-specific seller/);
+    assert.match(text, /Contract signer/);
+  }
+  assert.equal(source.companyNameEn, "Authoritative seller");
+  assert.equal(saved.name, "Authoritative seller");
+  assert.equal(saved.registration, "OFFICIAL-1");
 });
 
 test("v2 contract text is localized in all four languages with the selected transaction type", () => {

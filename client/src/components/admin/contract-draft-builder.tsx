@@ -23,7 +23,7 @@ const labels = {
     languageNote: "زبان متن را در این فرم انتخاب کنید. متن پیش‌نویس در هر زبان پیش از امضا نیازمند بازبینی حقوقی است.",
     documentLanguage: "زبان قرارداد", deal: "نوع معامله", iran: "محلی ایران", iraq: "محلی عراق", intl: "بین‌المللی", date: "تاریخ انعقاد",
     seller: "فروشنده", buyer: "خریدار", customer: "مشتری انتخاب‌شده", name: "نام شرکت", country: "کشور", registration: "شناسه ملی / ثبت",
-    address: "آدرس", representative: "نماینده و سمت", contact: "تماس / ایمیل", companySource: "اطلاعات فروشنده از مدیریت اطلاعات شرکت خوانده می‌شود و هنگام ثبت در قرارداد نگهداری خواهد شد.", refreshSeller: "دریافت دوباره از اطلاعات شرکت", sellerLoading: "در حال دریافت اطلاعات شرکت…", sellerError: "دریافت اطلاعات شرکت ناموفق بود؛ قرارداد جدید را تا رفع مشکل ثبت نکنید.", oldDeal: "نوع معاملهٔ قدیمی: صادرات به عراق. برای تغییر، یکی از سه نوع جدید را انتخاب کنید.",
+    address: "آدرس", representative: "نماینده و سمت", contact: "تماس / ایمیل", companySource: "اطلاعات شرکت، مقدار اولیه است. می‌توانید همهٔ فیلدهای فروشنده را برای همین قرارداد ویرایش کنید؛ تنظیمات اصلی شرکت تغییر نمی‌کند. دریافت دوباره، ویرایش‌های فروشنده را با اطلاعات شرکت جایگزین می‌کند.", refreshSeller: "دریافت دوباره از اطلاعات شرکت", sellerLoading: "در حال دریافت اطلاعات شرکت…", sellerError: "دریافت اطلاعات شرکت ناموفق بود؛ اطلاعات فروشنده را در همین فرم تکمیل کنید یا دوباره تلاش کنید.", oldDeal: "نوع معاملهٔ قدیمی: صادرات به عراق. برای تغییر، یکی از سه نوع جدید را انتخاب کنید.",
     products: "محصول و کیفیت", productHint: "کالا، سقف تعداد و قیمت واحد از فهرست محصولات قرارداد خوانده می‌شود.", grade: "گرید / استاندارد",
     tolerance: "تلورانس کیفیت محصول (%)", aggregateAllowance: "سقف اضافه‌وزن کل سفارش (%)", allowanceHint: "این شرط مستقل از تلورانس کیفیت هر محصول است. خالی یعنی در قرارداد مشخص نشده؛ ۰٪ یعنی هیچ اضافه‌وزنی مجاز نیست.", packaging: "بسته‌بندی / نوع حمل", payment: "قیمت و پرداخت", currency: "ارز فروش: دینار عراق (IQD)",
     method: "روش پرداخت", advance: "پیش‌پرداخت + مانده", lc: "اعتبار اسنادی (LC)", tt: "حواله بانکی (TT)", credit: "فروش اعتباری / مدت‌دار",
@@ -37,7 +37,7 @@ const labels = {
     languageNote: "Choose the contract language here. Every translation is a draft and needs legal review before signing.",
     documentLanguage: "Contract language", deal: "Transaction type", iran: "Domestic Iran", iraq: "Domestic Iraq", intl: "International", date: "Agreement date",
     seller: "Seller", buyer: "Buyer", customer: "Selected customer", name: "Company name", country: "Country", registration: "Registration ID",
-    address: "Address", representative: "Representative and title", contact: "Phone / email", companySource: "Seller details come from Company Information and are saved with the contract.", refreshSeller: "Refresh from Company Information", sellerLoading: "Loading company details…", sellerError: "Company details could not be loaded; do not save a new contract until this is resolved.", oldDeal: "Legacy transaction type: export to Iraq. Choose one of the three new types to change it.",
+    address: "Address", representative: "Representative and title", contact: "Phone / email", companySource: "Company Information supplies defaults. Edit any seller field for this contract without changing company settings. Refresh replaces seller edits with company defaults.", refreshSeller: "Refresh from Company Information", sellerLoading: "Loading company details…", sellerError: "Company details could not be loaded; complete seller details in this form or try again.", oldDeal: "Legacy transaction type: export to Iraq. Choose one of the three new types to change it.",
     products: "Products and quality", productHint: "Products, quantity caps and unit prices come from the contract items.", grade: "Grade / standard",
     tolerance: "Product quality tolerance (%)", aggregateAllowance: "Aggregate order overweight allowance (%)", allowanceHint: "Separate from each product’s quality tolerance. Blank means not specified in the contract; 0% means no overweight is allowed.", packaging: "Packaging / transport", payment: "Price and payment", currency: "Sale currency: Iraqi dinar (IQD)",
     method: "Payment method", advance: "Advance + balance", lc: "Letter of credit (LC)", tt: "Bank transfer (TT)", credit: "Credit / deferred",
@@ -51,7 +51,7 @@ const labels = {
     languageNote: "اختر لغة العقد من هذا النموذج. كل ترجمة مسودة تتطلب مراجعة قانونية قبل التوقيع.",
     documentLanguage: "لغة العقد", deal: "نوع المعاملة", iran: "محلي في إيران", iraq: "محلي في العراق", intl: "دولي", date: "تاريخ العقد",
     seller: "البائع", buyer: "المشتري", customer: "العميل المحدد", name: "اسم الشركة", country: "البلد", registration: "رقم التسجيل",
-    address: "العنوان", representative: "الممثل وصفته", contact: "الهاتف / البريد الإلكتروني", companySource: "تُستمد بيانات البائع من إدارة معلومات الشركة وتُحفظ مع العقد.", refreshSeller: "تحديث من معلومات الشركة", sellerLoading: "جارٍ تحميل بيانات الشركة…", sellerError: "تعذّر تحميل بيانات الشركة؛ لا تحفظ العقد الجديد قبل حل المشكلة.", oldDeal: "نوع معاملة قديم: تصدير إلى العراق. اختر أحد الأنواع الثلاثة الجديدة لتغييره.",
+    address: "العنوان", representative: "الممثل وصفته", contact: "الهاتف / البريد الإلكتروني", companySource: "معلومات الشركة هي القيم الأولية. يمكنك تعديل جميع حقول البائع لهذا العقد دون تغيير إعدادات الشركة. التحديث يستبدل التعديلات بالقيم الأصلية.", refreshSeller: "تحديث من معلومات الشركة", sellerLoading: "جارٍ تحميل بيانات الشركة…", sellerError: "تعذّر تحميل بيانات الشركة؛ أكمل بيانات البائع في هذا النموذج أو حاول مجددًا.", oldDeal: "نوع معاملة قديم: تصدير إلى العراق. اختر أحد الأنواع الثلاثة الجديدة لتغييره.",
     products: "المنتجات والجودة", productHint: "تُستمد المنتجات وحدود الكميات وأسعار الوحدات من بنود العقد.", grade: "الدرجة / المعيار",
     tolerance: "سماحية جودة المنتج (%)", aggregateAllowance: "حد زيادة وزن الطلب الإجمالي (%)", allowanceHint: "هذا الشرط مستقل عن سماحية جودة كل منتج. الخانة الفارغة تعني أنه غير محدد في العقد؛ ٠٪ تعني عدم السماح بأي زيادة.", packaging: "التعبئة / النقل", payment: "السعر والدفع", currency: "عملة البيع: الدينار العراقي (IQD)",
     method: "طريقة الدفع", advance: "دفعة مقدمة + المتبقي", lc: "اعتماد مستندي (LC)", tt: "تحويل مصرفي (TT)", credit: "بيع آجل",
@@ -65,7 +65,7 @@ const labels = {
     languageNote: "Sözleşme dilini bu formdan seçin. Her çeviri imzadan önce hukuki inceleme gerektiren bir taslaktır.",
     documentLanguage: "Sözleşme dili", deal: "İşlem türü", iran: "İran içi", iraq: "Irak içi", intl: "Uluslararası", date: "Sözleşme tarihi",
     seller: "Satıcı", buyer: "Alıcı", customer: "Seçilen müşteri", name: "Şirket adı", country: "Ülke", registration: "Sicil numarası",
-    address: "Adres", representative: "Temsilci ve unvan", contact: "Telefon / e-posta", companySource: "Satıcı bilgileri Şirket Bilgileri bölümünden alınır ve sözleşmeyle birlikte saklanır.", refreshSeller: "Şirket Bilgilerinden yenile", sellerLoading: "Şirket bilgileri yükleniyor…", sellerError: "Şirket bilgileri yüklenemedi; sorun çözülmeden yeni sözleşme kaydetmeyin.", oldDeal: "Eski işlem türü: Irak'a ihracat. Değiştirmek için üç yeni türden birini seçin.",
+    address: "Adres", representative: "Temsilci ve unvan", contact: "Telefon / e-posta", companySource: "Şirket Bilgileri başlangıç değerlerini sağlar. Şirket ayarlarını değiştirmeden bu sözleşme için tüm satıcı alanlarını düzenleyebilirsiniz. Yenileme, düzenlemeleri şirket değerleriyle değiştirir.", refreshSeller: "Şirket Bilgilerinden yenile", sellerLoading: "Şirket bilgileri yükleniyor…", sellerError: "Şirket bilgileri yüklenemedi; satıcı bilgilerini bu formda tamamlayın veya tekrar deneyin.", oldDeal: "Eski işlem türü: Irak'a ihracat. Değiştirmek için üç yeni türden birini seçin.",
     products: "Ürünler ve kalite", productHint: "Ürünler, miktar limitleri ve birim fiyatlar sözleşme kalemlerinden alınır.", grade: "Sınıf / standart",
     tolerance: "Ürün kalite toleransı (%)", aggregateAllowance: "Toplam sipariş fazla ağırlık sınırı (%)", allowanceHint: "Her ürünün kalite toleransından bağımsızdır. Boş bırakılması sözleşmede belirtilmediği anlamına gelir; %0 fazla ağırlığa izin verilmediğini belirtir.", packaging: "Ambalaj / taşıma", payment: "Fiyat ve ödeme", currency: "Satış para birimi: Irak dinarı (IQD)",
     method: "Ödeme yöntemi", advance: "Peşinat + bakiye", lc: "Akreditif (LC)", tt: "Banka havalesi (TT)", credit: "Vadeli satış",
@@ -110,7 +110,11 @@ export default function ContractDraftBuilder({ value, onChange, context, languag
   const field = (id: string, label: string, content: string, change: (next: string) => void) =>
     <div className="space-y-1.5"><Label htmlFor={id}>{label}</Label><Input id={id} value={content} onChange={(event) => change(event.target.value)} maxLength={400} /></div>;
   const sellerField = (key: keyof ShopContractDraftData["seller"], label: string) =>
-    <div className="space-y-1.5" key={key}><Label>{label}</Label><p className="min-h-10 rounded-md border bg-muted px-3 py-2 text-sm">{value.seller[key] || "—"}</p></div>;
+    <div className="space-y-1.5" key={key}><Label htmlFor={`seller-${key}`}>{label}</Label>
+      <Input id={`seller-${key}`} value={value.seller[key] || ""} disabled={sellerLoading}
+        maxLength={key === "address" ? 1000 : key === "postalCode" ? 100 : key === "registration" || key === "taxNumber" || key === "country" || key === "city" ? 200 : 300}
+        onChange={event => set("seller", { ...value.seller, [key]: event.target.value })} />
+    </div>;
   const buyerField = (key: keyof ShopContractDraftData["buyer"], label: string) =>
     field(`buyer-${key}`, label, value.buyer[key], (next) => set("buyer", { ...value.buyer, [key]: next }));
   const saveDoc = async () => {

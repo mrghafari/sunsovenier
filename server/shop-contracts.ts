@@ -3,7 +3,7 @@ import { pool } from "./db";
 import { isIncotermCode, type IncotermCode } from "@shared/incoterms";
 import {
   contractDraftLanguages,
-  isValidIsoDate,
+  getContractDraftActivationIssues,
   shopContractDraftSchema,
   type ContractDraftLanguage,
   type ShopContractDraftData,
@@ -126,25 +126,6 @@ async function loadContractSeller(
   return companyProfileToContractSeller(result.rows[0], language);
 }
 
-function draftLanguage(draft: ShopContractDraftData): ContractDraftLanguage {
-  return draft.language || "fa";
-}
-
-function draftWithSeller(draft: ShopContractDraftData, seller: ContractSellerSnapshot): ShopContractDraftData {
-  return { ...draft, seller } as ShopContractDraftData;
-}
-
-export function applyAuthoritativeContractSeller(
-  draft: ShopContractDraftData,
-  profile: Record<string, unknown> | null | undefined,
-  savedSeller?: ContractSellerSnapshot,
-  refreshSeller = false,
-): ShopContractDraftData {
-  if (savedSeller && !refreshSeller) return draftWithSeller(draft, savedSeller);
-  if (!profile) throw new ContractError("Company information is unavailable for the selected contract language.", 409);
-  return draftWithSeller(draft, companyProfileToContractSeller(profile, draftLanguage(draft)));
-}
-
 /** Shared strict payload validation used by both contract mutation endpoints. */
 export function validateContractDefinition(body: any, generatingNumber = false): ContractDefinition {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -248,32 +229,15 @@ export function resolveContractShippingMode(
 }
 
 export function assertCompleteActiveContractDraft(draft: ShopContractDraftData): void {
-  if (draft.version === 2 && !isValidIsoDate(draft.date)) {
-    throw new ContractError("Contract date must be a real YYYY-MM-DD date before activating a structured contract.");
+  const issue = getContractDraftActivationIssues(draft)[0];
+  if (!issue) return;
+  if (issue.reason === "date") {
+    throw new ContractError(`${issue.field === "date" ? "Contract" : "Delivery"} date must be a real YYYY-MM-DD date before activating a structured contract.`);
   }
-  if (draft.version === 2 && !isValidIsoDate(draft.delivery.date)) {
-    throw new ContractError("Delivery date must be a real YYYY-MM-DD date before activating a structured contract.");
-  }
-  const required: Array<[string, string]> = [
-    ["date", draft.date],
-    ["seller.name", draft.seller.name],
-    ["seller.address", draft.seller.address],
-    ["seller.representative", draft.seller.representative],
-    ["seller.registration", draft.seller.registration],
-    ["seller.contact", draft.seller.contact],
-    ["buyer.country", draft.buyer.country],
-    ["buyer.address", draft.buyer.address],
-    ["buyer.representative", draft.buyer.representative],
-    ["delivery.location", draft.delivery.location],
-    ["delivery.date", draft.delivery.date],
-    ["disputeCity", draft.disputeCity],
-  ];
-  const missing = required.find(([, value]) => !value.trim());
-  if (missing) throw new ContractError(`Complete ${missing[0]} before activating a structured contract.`);
-  if (!/^[0-9]+$/.test(draft.payment.days) || !Number.isSafeInteger(Number(draft.payment.days))
-    || Number(draft.payment.days) <= 0) {
+  if (issue.reason === "days") {
     throw new ContractError("Payment days must be a positive whole number before activating a structured contract.");
   }
+  throw new ContractError(`Complete ${issue.field} before activating a structured contract.`);
 }
 
 function readSavedDraft(value: unknown): ShopContractDraftData | null {
@@ -634,15 +598,9 @@ async function saveContractInTransaction(
 ): Promise<any> {
     if (!options.skipReconcile) await reconcileContractHolds(client);
     if (contractId === undefined) {
-      let effectiveDraft = definition.draftData ?? null;
-      if (effectiveDraft) {
-        effectiveDraft = applyAuthoritativeContractSeller(
-          effectiveDraft,
-          await loadContractSeller(client, draftLanguage(effectiveDraft)),
-          undefined,
-          true,
-        );
-      }
+      // Authorized staff may edit the seller snapshot for this agreement.
+      // Company Information supplies form defaults, not a save-time override.
+      const effectiveDraft = definition.draftData ?? null;
       if (effectiveDraft && definition.isActive) {
         assertCompleteActiveContractDraft(effectiveDraft);
       }
@@ -695,18 +653,9 @@ async function saveContractInTransaction(
       locked.rows[0].shipping_mode,
     );
     const savedDraft = readSavedDraft(locked.rows[0].draft_data);
-    let effectiveDraft = hasDraftData
+    const effectiveDraft = hasDraftData
       ? definition.draftData ?? null
       : savedDraft;
-    if (effectiveDraft) {
-      const refreshSeller = Boolean(definition.refreshSeller || !savedDraft);
-      effectiveDraft = applyAuthoritativeContractSeller(
-        effectiveDraft,
-        refreshSeller ? await loadContractSeller(client, draftLanguage(effectiveDraft)) : null,
-        savedDraft?.seller,
-        refreshSeller,
-      );
-    }
     if (effectiveDraft && definition.isActive) assertCompleteActiveContractDraft(effectiveDraft);
     const currentItems = await client.query(
       `SELECT product_id, used_quantity, is_active FROM shop_contract_items

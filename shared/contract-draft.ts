@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export function normalizeContractPaymentDays(value: string): string {
+  return value.trim().replace(/[۰-۹]/g, digit => String(digit.charCodeAt(0) - 0x06f0))
+    .replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 0x0660));
+}
+
 const textField = (maxLength: number) => z.string().trim().max(maxLength)
   .refine((value) => !value.includes("\0"), "Text cannot contain a null character.");
 
@@ -81,7 +86,7 @@ const contractDraftShape = z.object({
   aggregateWeightAllowance: aggregateWeightAllowanceSchema.optional(),
   payment: z.object({
     method: z.enum(["advance", "lc", "tt", "credit"]),
-    days: textField(100),
+    days: textField(100).transform(normalizeContractPaymentDays),
   }).strict(),
   delivery: z.object({
     location: textField(500),
@@ -122,3 +127,30 @@ export const shopContractDraftSchema = z.preprocess((input, context) => {
 );
 
 export type ShopContractDraftData = z.infer<typeof shopContractDraftSchema>;
+
+export type ContractDraftActivationIssue = {
+  field: string;
+  reason: "required" | "date" | "days";
+};
+
+// The form and server must require the same evidence before activation.
+export function getContractDraftActivationIssues(draft: ShopContractDraftData): ContractDraftActivationIssue[] {
+  const issues: ContractDraftActivationIssue[] = [];
+  if (draft.version === 2 && !isValidIsoDate(draft.date)) issues.push({ field: "date", reason: "date" });
+  if (draft.version === 2 && !isValidIsoDate(draft.delivery.date)) issues.push({ field: "delivery.date", reason: "date" });
+  const required: Array<[string, string]> = [
+    ["date", draft.date], ["seller.name", draft.seller.name], ["seller.address", draft.seller.address],
+    ["seller.representative", draft.seller.representative], ["seller.registration", draft.seller.registration],
+    ["seller.contact", draft.seller.contact], ["buyer.country", draft.buyer.country],
+    ["buyer.address", draft.buyer.address], ["buyer.representative", draft.buyer.representative],
+    ["delivery.location", draft.delivery.location], ["delivery.date", draft.delivery.date], ["disputeCity", draft.disputeCity],
+  ];
+  for (const [field, value] of required) {
+    if (!value.trim() && !issues.some(issue => issue.field === field)) issues.push({ field, reason: "required" });
+  }
+  const days = normalizeContractPaymentDays(draft.payment.days);
+  if (!/^[0-9]+$/.test(days) || !Number.isSafeInteger(Number(days)) || Number(days) <= 0) {
+    issues.push({ field: "payment.days", reason: "days" });
+  }
+  return issues;
+}

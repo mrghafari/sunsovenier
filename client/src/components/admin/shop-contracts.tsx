@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, ChevronDown, ChevronUp, Download, FileText, Loader2, Plus, Search, Trash2, Upload } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { INCOTERMS_2020, IncotermCode } from "@shared/incoterms";
-import type { ShopContractDraftData } from "@shared/contract-draft";
+import { getContractDraftActivationIssues, normalizeContractPaymentDays, type ShopContractDraftData } from "@shared/contract-draft";
+import { contractDraftActivationMessage, contractDraftIssueFieldId } from "@/lib/contract-draft-validation";
 import ContractDraftBuilder, { buildContractDraftText, emptyContractDraft } from "./contract-draft-builder";
 import ContractSignedDocuments from "./contract-signed-documents";
 import ContractAddenda from "./contract-addenda";
@@ -74,6 +75,7 @@ export default function ShopContracts() {
   const [form, setForm] = useState<ContractForm>(emptyForm);
   const [draftData, setDraftData] = useState<ShopContractDraftData | null>(null);
   const [refreshSeller, setRefreshSeller] = useState(false);
+  const [sellerDirty, setSellerDirty] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [formError, setFormError] = useState("");
@@ -114,10 +116,10 @@ export default function ShopContracts() {
     enabled: dialogOpen && draftData !== null,
   });
   useEffect(() => {
-    if (!sellerQuery.data?.seller || (!refreshSeller && editingId !== null)) return;
+    if (!dialogOpen || sellerDirty || !sellerQuery.data?.seller || (!refreshSeller && editingId !== null)) return;
     setDraftData((current) => current && (current.language || "fa") === documentLanguage
       ? { ...current, seller: sellerQuery.data.seller } : current);
-  }, [sellerQuery.data?.seller, documentLanguage, editingId, refreshSeller]);
+  }, [sellerQuery.data?.seller, documentLanguage, editingId, refreshSeller, dialogOpen, sellerDirty]);
   const customers = useMemo(() => { const payload = customerQuery.data?.data; return Array.isArray(payload) ? payload : ((payload as { customers?: Customer[] } | undefined)?.customers || customerQuery.data?.customers || []); }, [customerQuery.data]);
   const selectCustomer = (customer: Customer) => {
     setForm(current => ({ ...current, customerId: customer.id, customerName: customerLabel(customer), customerCode: customer.customerCode ?? null }));
@@ -135,14 +137,15 @@ export default function ShopContracts() {
   const endedContracts = useMemo(() => contracts.filter((contract) => Boolean(contract.endedAt)), [contracts]);
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const normalizedDraft = draftData ? { ...draftData, payment: { ...draftData.payment, days: normalizeContractPaymentDays(draftData.payment.days) } } : null;
       const draftContext = { customerName: form.customerName, customerCode: form.customerCode, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items, packaging: form.packaging };
       const payload = {
         ...(editingId !== null && !creatingAddendumFor ? { number: form.number.trim() } : {}),
         customerId: form.customerId, deliveryTerm: form.deliveryTerm,
         ...(form.shippingMode !== null ? { shippingMode: form.shippingMode } : {}),
         packaging: form.packaging,
-        terms: draftData ? buildContractDraftText(draftData, draftContext) : form.terms.trim(),
-        ...(draftData ? { draftData } : {}),
+        terms: normalizedDraft ? buildContractDraftText(normalizedDraft, draftContext) : form.terms.trim(),
+        ...(normalizedDraft ? { draftData: normalizedDraft } : {}),
         ...(editingId !== null && refreshSeller ? { refreshSeller: true } : {}),
         isActive: form.isActive,
         items: form.items.map((item) => ({ productId: item.productId, maxQuantity: Number(item.maxQuantity), unitPrice: Number(item.unitPrice) })),
@@ -179,7 +182,7 @@ export default function ShopContracts() {
     },
     onError: () => setEndError(tx.endFailed),
   });
-  const openCreate = () => { setCreatingAddendumFor(null); setEditingId(null); setRefreshSeller(false); setForm(emptyForm()); setDraftData(emptyContractDraft()); setCustomerSearch(""); setProductSearch(""); setFormError(""); setDialogOpen(true); };
+  const openCreate = () => { setCreatingAddendumFor(null); setEditingId(null); setRefreshSeller(false); setSellerDirty(false); setForm(emptyForm()); setDraftData(emptyContractDraft()); setCustomerSearch(""); setProductSearch(""); setFormError(""); setDialogOpen(true); };
   const openEdit = (contract: Contract) => {
     if (contract.endedAt) return;
     setCreatingAddendumFor(null);
@@ -187,6 +190,7 @@ export default function ShopContracts() {
     setForm({ number: contract.number || "", customerId: contract.customerId, customerName: contract.customerName || "", customerCode: contract.customerCode ?? null, deliveryTerm: contract.deliveryTerm || null, shippingMode: contract.shippingMode ?? null, terms: contract.terms || "", isActive: Boolean(contract.isActive), packaging: contract.packaging ? { ...contract.packaging } : null, items: (contract.items || []).map((item) => ({ productId: item.productId, productName: item.productName, maxQuantity: String(item.maxQuantity), unitPrice: String(item.unitPrice), usedQuantity: Number(item.usedQuantity) || 0 })) });
     setDraftData(contract.draftData || null);
     setRefreshSeller(false);
+    setSellerDirty(false);
     setCustomerSearch(""); setProductSearch(""); setFormError(""); setDialogOpen(true);
   };
   const openAddendum = (contract: Contract) => {
@@ -205,8 +209,8 @@ export default function ShopContracts() {
     setFormError("");
     try { if (form.packaging) parseContractPackaging(form.packaging); }
     catch (error) { return setFormError(packagingErrorMessage(error, language)); }
-    if (editingId === null && draftData && (sellerQuery.isLoading || sellerQuery.isError || !sellerQuery.data?.seller)) {
-      return setFormError(language === "fa" ? "اطلاعات فروشنده از مدیریت اطلاعات شرکت بارگذاری نشده است." : language === "ar" ? "لم يتم تحميل بيانات البائع من إدارة معلومات الشركة." : language === "tr" ? "Satıcı bilgileri Şirket Bilgilerinden yüklenemedi." : "Seller details have not loaded from Company Information.");
+    if (draftData && (sellerQuery.isLoading || sellerQuery.isFetching)) {
+      return setFormError(language === "fa" ? "لطفاً تا پایان دریافت اطلاعات فروشنده صبر کنید." : language === "ar" ? "يرجى الانتظار حتى اكتمال تحميل بيانات البائع." : language === "tr" ? "Satıcı bilgilerinin yüklenmesini bekleyin." : "Please wait until seller details finish loading.");
     }
     if (form.customerId === null) return setFormError(tx.requiredCustomer);
     if (editingId === null && !form.deliveryTerm) return setFormError(tx.requiredDelivery);
@@ -219,18 +223,12 @@ export default function ShopContracts() {
       if (!item.unitPrice.trim() || !Number.isInteger(price) || price < 0) return setFormError(tx.invalidPrice(item.productName));
     }
     if (draftData && form.isActive) {
-      const required = [
-        draftData.date, draftData.seller.name, draftData.seller.address, draftData.seller.representative,
-        draftData.buyer.country, draftData.buyer.address, draftData.buyer.representative,
-        draftData.delivery.location, draftData.delivery.date, draftData.disputeCity,
-      ];
-      if (required.some((value) => !value.trim()) || !/^[0-9]+$/.test(draftData.payment.days) || Number(draftData.payment.days) <= 0) {
-        return setFormError({
-          fa: "برای فعال‌کردن قرارداد، تاریخ، نام/نشانی/نمایندهٔ فروشنده، کشور/نشانی/نمایندهٔ خریدار، مهلت پرداخت، محل و تاریخ تحویل و شهر حل اختلاف را تکمیل کنید. برای ذخیرهٔ پیش‌نویس ناقص، وضعیت را غیرفعال بگذارید.",
-          en: "Complete the date, seller and buyer details, payment period, delivery details and dispute city before activating. Save an incomplete draft as inactive.",
-          ar: "أكمل التاريخ وبيانات البائع والمشتري ومهلة الدفع والتسليم ومدينة النزاع قبل التفعيل. احفظ المسودة غير المكتملة كعقد غير نشط.",
-          tr: "Etkinleştirmeden önce tarih, satıcı/alıcı bilgileri, ödeme süresi, teslimat ve uyuşmazlık şehrini doldurun. Eksik taslağı pasif olarak kaydedin.",
-        }[language]);
+      const issues = getContractDraftActivationIssues(draftData);
+      if (issues.length) {
+        const field = document.getElementById(contractDraftIssueFieldId(issues[0]));
+        field?.scrollIntoView({ block: "center", behavior: "smooth" });
+        field?.focus({ preventScroll: true });
+        return setFormError(contractDraftActivationMessage(issues, language));
       }
     }
     saveMutation.mutate();
@@ -395,16 +393,20 @@ export default function ShopContracts() {
                  value={draftData}
                  onChange={(next) => {
                    if ((next.language || "fa") !== (draftData.language || "fa")) {
+                     setSellerDirty(false);
                      setDraftData({ ...next, seller: emptyContractDraft().seller });
                      if (editingId !== null) setRefreshSeller(true);
-                   } else setDraftData(next);
+                   } else {
+                     if (next.seller !== draftData.seller) setSellerDirty(true);
+                     setDraftData(next);
+                   }
                  }}
                    context={{ customerName: form.customerName, customerCode: form.customerCode, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items, packaging: form.packaging }}
                  language={language}
                   logoUrl={companyQuery.data?.data?.logoUrl}
                  sellerLoading={sellerQuery.isLoading || sellerQuery.isFetching}
                  sellerError={sellerQuery.isError}
-                 onRefreshSeller={() => { if (editingId !== null) setRefreshSeller(true); void sellerQuery.refetch(); }}
+                 onRefreshSeller={() => { setSellerDirty(false); if (editingId !== null) setRefreshSeller(true); void sellerQuery.refetch(); }}
                />
              : <div className="space-y-3 rounded-md border p-4">
                  <Label htmlFor="contract-terms">{tx.terms}</Label>
