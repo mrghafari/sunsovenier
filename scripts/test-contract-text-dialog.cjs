@@ -18,6 +18,14 @@ const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
   });
   try {
     const page = await browser.newPage();
+    const clickText = async (selector, label) => {
+      const handle = await page.evaluateHandle(({ selector, label }) =>
+        [...document.querySelectorAll(selector)].find(button => button.textContent.trim() === label), { selector, label });
+      const button = handle.asElement();
+      assert.ok(button, `Missing button: ${label}`);
+      await button.click();
+      await handle.dispose();
+    };
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.setRequestInterception(true);
@@ -78,8 +86,7 @@ const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
         }, { entry, language, terms });
         await page.waitForFunction(label => [...document.querySelectorAll("#contract-fixture button")]
           .some(button => button.textContent.trim() === label), {}, labels[language].text);
-        await page.evaluate(label => [...document.querySelectorAll("#contract-fixture button")]
-          .find(button => button.textContent.trim() === label).click(), labels[language].text);
+        await clickText("#contract-fixture button", labels[language].text);
         await page.waitForSelector('[data-testid="contract-text-content"]');
         const result = await page.evaluate(() => {
           const content = document.querySelector('[data-testid="contract-text-content"]');
@@ -92,13 +99,11 @@ const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
         assert.ok(result.number.includes("FIXTURE-CURRENT"));
         assert.equal(result.executed, false);
         assert.equal(result.fits, true);
-        await page.evaluate(label => [...document.querySelectorAll('[role="dialog"] button')]
-          .find(button => button.textContent.trim() === label).click(), labels[language].close);
+        await clickText('[role="dialog"] button', labels[language].close);
         await page.waitForFunction(() => !document.querySelector('[data-testid="contract-text-content"]'));
         await page.click('#contract-fixture [role="tab"]:nth-child(2)');
         await page.waitForFunction(() => document.querySelector("#contract-fixture")?.textContent.includes("FIXTURE-ENDED"));
-        await page.evaluate(label => [...document.querySelectorAll("#contract-fixture button")]
-          .find(button => button.textContent.trim() === label).click(), labels[language].text);
+        await clickText("#contract-fixture button", labels[language].text);
         await page.waitForSelector('[data-testid="contract-text-content"]');
         assert.equal(await page.$eval('[data-testid="contract-text-content"]', node => node.textContent), labels[language].empty);
         await page.keyboard.press("Escape");
