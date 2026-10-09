@@ -103,7 +103,7 @@ const puppeteer = require("puppeteer");
       // Dismiss previous case's real toasts so their fixed overlay cannot intercept clicks.
       await page.evaluate(() => document.querySelectorAll("[toast-close]").forEach(el => el.click()));
        const handle = await page.evaluateHandle(fragment => [...document.querySelectorAll("#signing-fixture button, [role='dialog'] button")]
-        .find(button => button.textContent.includes(fragment)), fragment);
+        .find(button => button.textContent.includes(fragment) || button.getAttribute("aria-label")?.includes(fragment)), fragment);
       assert.ok(handle.asElement(), `Missing button: ${fragment}`);
       await handle.asElement().evaluate(el => el.scrollIntoView({ block: "center" }));
       await handle.asElement().click(); await handle.dispose();
@@ -116,22 +116,43 @@ const puppeteer = require("puppeteer");
       const terms = (language === "fa" || language === "ar" ? "متن قرارداد و شرایط پرداخت و تحویل\n" : "Agreement terms, payment and delivery.\n").repeat(70);
       docs = [
         { key: "contract:1234567", contractId: 1234567, addendumId: null, number: "FIXTURE-C", type: "contract",
-          terms, language, versionHash: "a".repeat(64), canSign: true, signature: null, signatures: [] },
+          terms, language, versionHash: "a".repeat(64), canSign: true, signature: null, signatures: [],
+          progress: { items: [{ productId: 10, productName: "FIXTURE-GOODS", quantity: 100, shippedQuantity: 20, remainingQuantity: 80 }],
+            deliveryDate: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+            deliveryDateStatus: "valid", endedAt: null, isActive: true } },
         { key: "addendum:1234568", contractId: 1234567, addendumId: 1234568, number: "FIXTURE-A", type: "addendum",
-          terms, language, versionHash: "b".repeat(64), canSign: true, signature: null, signatures: [] },
+          terms, language, versionHash: "b".repeat(64), canSign: true, signature: null, signatures: [],
+          progress: { items: [{ productId: 10, productName: "FIXTURE-GOODS", quantity: 100, shippedQuantity: 20, remainingQuantity: 80 }],
+            deliveryDate: null, deliveryDateStatus: "unset", endedAt: null, isActive: true } },
       ];
       // A new fixture document isolates Radix's global portal/scroll-lock lifecycle.
       await page.goto(`https://${process.env.REPLIT_DEV_DOMAIN}/customer-profile`, { waitUntil: "domcontentloaded" });
       await page.waitForFunction(() => window.fixtureReady);
       await mount(language);
        await page.waitForSelector('[data-testid="customer-contract-list"]');
-       assert.equal(await page.$$eval('[data-testid="customer-contract-list"] > li', rows => rows.length), 2);
-       assert.equal(await page.$eval('[data-testid="customer-contract-list"]', el => el.scrollWidth <= el.clientWidth), true);
-       const listRows = await page.$$eval('[data-testid="customer-contract-list"] > li', rows => rows.map(el => {
+       await page.waitForSelector('[data-testid="customer-contract-list"] tbody tr');
+       assert.equal(await page.$$eval('[data-testid="customer-contract-list"] tbody tr', rows => rows.length), 2);
+       assert.ok(await page.$$eval('[data-testid="customer-contract-list"] thead th', cells => cells.length >= 8), "Contract table must expose operational columns");
+       const tableWidths = await page.$eval('[data-testid="customer-contract-list"]', el => ({
+         viewport: innerWidth, width: el.getBoundingClientRect().width,
+         overflow: getComputedStyle(el).overflowX, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth,
+       }));
+       assert.ok(tableWidths.width <= tableWidths.viewport && tableWidths.overflow === "auto",
+         `Mobile horizontal scrolling must stay inside table: ${JSON.stringify(tableWidths)}`);
+       const rowText = await page.$eval('[data-testid="customer-contract-list"] tbody tr', el => el.innerText);
+       const normalized = rowText.replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d)).replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+       assert.match(normalized, /FIXTURE-GOODS/);
+       for (const quantity of ["100", "20", "80"]) assert.ok(normalized.includes(quantity), `Table missing quantity ${quantity}`);
+       const listRows = await page.$$eval('[data-testid="customer-contract-list"] tbody tr', rows => rows.map(el => {
          const box = el.getBoundingClientRect(); return { top: box.top, bottom: box.bottom };
        }));
-       assert.ok(listRows[1].top >= listRows[0].bottom, "Documents must be full-width list rows, not blocks");
+       assert.ok(listRows[1].top >= listRows[0].bottom, "Documents must be spreadsheet rows, not blocks");
        if (language === "fa") await (await page.$('[data-testid="customer-contract-list"]')).screenshot({ path: "/tmp/customer-contract-list-mobile.jpg" });
+       if (language === "fa") {
+         await page.setViewport({ width: 1280, height: 900 });
+         await (await page.$('[data-testid="customer-contract-list"]')).screenshot({ path: "/tmp/customer-contract-table-desktop.jpg" });
+         await page.setViewport({ width: 402, height: 900 });
+       }
       await page.waitForSelector('[data-testid="customer-contract-terms"]');
       assert.equal(await page.$eval('[role="checkbox"]', el => el.disabled), true, "reading acknowledgement must be gated by text viewport");
       await page.$eval('[data-testid="customer-contract-terms"]', el => el.scrollTo(0, el.scrollHeight));
@@ -167,7 +188,10 @@ const puppeteer = require("puppeteer");
       assert.equal(await page.$('input[autocomplete="name"]'), null);
       assert.ok(docs[0].signature);
       await buttons("FIXTURE-A");
-       await page.waitForFunction(() => document.querySelector('[data-testid="customer-contract-list"] button[aria-pressed="true"]')?.textContent.includes("FIXTURE-A"));
+       await page.waitForFunction(() => {
+         const button = document.querySelector('[data-testid="customer-contract-list"] button[aria-pressed="true"]');
+         return button && (button.textContent.includes("FIXTURE-A") || button.getAttribute("aria-label")?.includes("FIXTURE-A"));
+       });
       await page.waitForSelector('input[autocomplete="name"]');
       assert.equal(await page.$eval('input[autocomplete="name"]', el => el.value), "");
       assert.equal(await page.$('input[autocomplete="one-time-code"]'), null);

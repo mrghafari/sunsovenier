@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ContractSigningProgress } from "@shared/contract-signing-progress";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import ContractTextContent from "@/components/admin/contract-text-content";
@@ -12,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileCheck2, PenLine, RotateCcw, Download, MailCheck } from "lucide-react";
 
 type Signature = { id: string; number: string; signerName: string; signedAt: string; emailStatus: "pending" | "sending" | "accepted" | "failed"; downloadUrl: string; emailError?: string | null };
-type Document = { key: string; contractId: number; addendumId: number | null; number: string; type: "contract" | "addendum"; terms: string; language: string | null; versionHash: string; canSign: boolean; signature: Signature | null; signatures: Signature[] };
+type Document = { key: string; contractId: number; addendumId: number | null; number: string; type: "contract" | "addendum"; terms: string; language: string | null; versionHash: string; canSign: boolean; signature: Signature | null; signatures: Signature[]; progress?: ContractSigningProgress | null };
 type Point = { x: number; y: number };
 const text = {
   en: { title: "Contracts & signatures", intro: "Review the exact document version and sign securely.", loading: "Loading your documents…", retry: "Try again", empty: "No contract documents are available yet.", unavailable: "This document is not available for signing.", signed: "Signed", contract: "Contract", addendum: "Addendum", read: "I have read the document to the end.", authority: "I am authorized to sign this document on behalf of the customer.", ownSignature: "The handwritten signature below is my own.", consent: "I agree to sign this document electronically.", signer: "Legal signer's full name", draw: "Handwritten signature", clear: "Clear signature", begin: "Email me a verification code", code: "Six-digit code", verify: "Verify and sign", expires: "Code expires in 10 minutes.", expired: "This code has expired. Request a new code when the 60-second cooldown ends.", accepted: "Signature saved. The copy email was accepted by the mail server; inbox delivery is not confirmed.", emailPending: "Signature saved; the copy email is pending.", emailFailed: "Signature saved, but the copy email failed. You can retry it.", emailSending: "Signature saved; the copy email is being sent.", resend: "Retry email copy", reading: "Scroll the document itself to the end before continuing.", consentNote: "Confirming records consent to sign; it does not establish comprehension.", download: "Download signed PDF", error: "Could not load documents.", invalidCode: "The verification code is invalid.", expiredCode: "The verification code has expired.", attemptsExceeded: "Too many incorrect codes. Request a new code.", rateLimit: "Please wait before requesting or retrying another code.", documentChanged: "This document changed. Review the latest version and start again.", notSignable: "This document is not currently signable.", alreadySigned: "This version has already been signed.", senderUnavailable: "Verification email sending is not configured. Contact support.", templateUnavailable: "The verification email template is unavailable. Contact support.", storageUnavailable: "Secure signature storage is unavailable. Contact support.", emailChanged: "Your account email changed. Reload and request a new code.", deliveryFailed: "The email could not be sent. Please retry later." },
@@ -22,11 +23,20 @@ const text = {
 } as const;
 
 const listWords = {
-  fa: { view: "مشاهده", viewSign: "مشاهده و امضا", pending: "در انتظار امضا" },
-  ar: { view: "عرض", viewSign: "عرض وتوقيع", pending: "بانتظار التوقيع" },
-  en: { view: "View", viewSign: "View & sign", pending: "Awaiting signature" },
-  tr: { view: "Görüntüle", viewSign: "Görüntüle ve imzala", pending: "İmza bekliyor" },
+  fa: { view: "مشاهده", viewSign: "مشاهده و امضا", pending: "در انتظار امضا", unavailable: "در دسترس نیست", document: "شماره / نوع سند", product: "نوع جنس", quantity: "مقدار قراردادی", shipped: "مقدار حمل‌شده", remaining: "مقدار باقی‌مانده", time: "زمان باقی‌مانده قرارداد", signature: "وضعیت امضا", operations: "عملیات", units: "واحد", contract: "قرارداد", addendum: "الحاقیه", ended: "پایان‌یافته", inactive: "غیرفعال", noDate: "موعد تحویل ثبت نشده", invalidDate: "تاریخ تحویل نامعتبر", today: "امروز", days: (n: string) => `${n} روز باقی‌مانده`, overdue: (n: string) => `${n} روز از موعد گذشته`, shipmentBasis: "مقدار حمل‌شده بر اساس سفارش‌های در وضعیت ارسال یا تحویل محاسبه شده است؛ مقدار خریداری‌شده یا رزروشده نیست.", progressNote: "این ارقام، وضعیت عملیاتی فعلی قرارداد مادر را نشان می‌دهند؛ مقدار باقی‌مانده برابر مقدار قراردادی منهای مقدار حمل‌شده است و به معنی موجودی قابل خرید نیست." },
+  ar: { view: "عرض", viewSign: "عرض وتوقيع", pending: "بانتظار التوقيع", unavailable: "غير متاح", document: "رقم / نوع المستند", product: "المنتج", quantity: "كمية العقد", shipped: "الكمية المشحونة", remaining: "الكمية المتبقية", time: "الوقت المتبقي للعقد", signature: "حالة التوقيع", operations: "الإجراءات", units: "وحدة", contract: "عقد", addendum: "ملحق", ended: "منتهٍ", inactive: "غير نشط", noDate: "لم يُحدد موعد التسليم", invalidDate: "تاريخ التسليم غير صالح", today: "اليوم", days: (n: string) => `متبقٍ ${n} يوم`, overdue: (n: string) => `تجاوز الموعد ${n} يوم`, shipmentBasis: "تُحسب الكمية المشحونة من الطلبات ذات حالة الإرسال أو التسليم؛ ولا تمثل الكمية المشتراة أو المحجوزة.", progressNote: "تعرض هذه الأرقام الحالة التشغيلية الحالية للعقد الأساسي؛ الكمية المتبقية هي كمية العقد ناقص الكمية المشحونة، وليست كمية متاحة للشراء." },
+  en: { view: "View", viewSign: "View & sign", pending: "Awaiting signature", unavailable: "Unavailable", document: "Document no. / type", product: "Product", quantity: "Contract quantity", shipped: "Shipped quantity", remaining: "Remaining to ship", time: "Contract time remaining", signature: "Signature status", operations: "Operations", units: "units", contract: "Contract", addendum: "Addendum", ended: "Ended", inactive: "Inactive", noDate: "No delivery date set", invalidDate: "Invalid delivery date", today: "Due today", days: (n: string) => `${n} days remaining`, overdue: (n: string) => `${n} days overdue`, shipmentBasis: "Shipped quantity is based on orders in dispatch or delivery states; it is not purchased or reserved quantity.", progressNote: "These figures show the current operational status of the parent contract. Remaining to ship is contractual quantity minus shipped quantity, not availability to purchase." },
+  tr: { view: "Görüntüle", viewSign: "Görüntüle ve imzala", pending: "İmza bekliyor", unavailable: "Kullanılamıyor", document: "Belge no. / türü", product: "Ürün", quantity: "Sözleşme miktarı", shipped: "Sevk edilen miktar", remaining: "Sevk edilecek miktar", time: "Sözleşmede kalan süre", signature: "İmza durumu", operations: "İşlemler", units: "birim", contract: "Sözleşme", addendum: "Ek protokol", ended: "Sona erdi", inactive: "Pasif", noDate: "Teslim tarihi belirtilmemiş", invalidDate: "Geçersiz teslim tarihi", today: "Bugün", days: (n: string) => `${n} gün kaldı`, overdue: (n: string) => `${n} gün gecikti`, shipmentBasis: "Sevk edilen miktar, sevk veya teslim durumundaki siparişlere göre hesaplanır; satın alınan ya da ayrılan miktar değildir.", progressNote: "Bu rakamlar ana sözleşmenin güncel operasyonel durumunu gösterir. Sevk edilecek miktar, sözleşme miktarından sevk edilen miktarın çıkarılmasıyla bulunur; satın alınabilir miktar değildir." },
 } as const;
+
+function parseDateOnly(value: string | null | undefined) {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? date : null;
+}
 
 export default function CustomerContractSigning() {
   const { language, direction } = useLanguage();
@@ -67,6 +77,7 @@ export default function CustomerContractSigning() {
   }, [active?.key, active?.versionHash, active?.terms]);
   useEffect(() => { if (!cooldown) return; const timer = window.setTimeout(() => setCooldown((value) => Math.max(0, value - 1)), 1000); return () => window.clearTimeout(timer); }, [cooldown]);
   useEffect(() => { if (!challenge) return; const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, [challenge]);
+  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 60_000); return () => window.clearInterval(timer); }, []);
   const otpExpired = !!challenge && new Date(challenge.expiresAt).getTime() <= now;
   const otpRemaining = challenge ? Math.max(0, Math.ceil((new Date(challenge.expiresAt).getTime() - now) / 1000)) : 0;
   const apiErrorText = (error: unknown) => {
@@ -120,6 +131,25 @@ export default function CustomerContractSigning() {
   const signatures = active ? (active.signatures?.length ? active.signatures : active.signature ? [active.signature] : []) : [];
   const canSignDocument = !!active?.canSign && !!active.terms?.trim() && signatures.length === 0;
   const canProceed = canSignDocument && readEnd && consent && authorized && ownSignature && !!signer.trim() && pathLength >= 0.1 && strokes.length <= 100 && pointCount <= 6000;
+  const formatQuantity = (value: number) => `${new Intl.NumberFormat(language, { maximumFractionDigits: 2 }).format(value)} ${listCopy.units}`;
+  const remainingTime = (progress: ContractSigningProgress | null | undefined) => {
+    if (!progress) return "—";
+    if (progress.endedAt) return listCopy.ended;
+    if (!progress.isActive) return listCopy.inactive;
+    if (progress.deliveryDateStatus === "unset") return listCopy.noDate;
+    if (progress.deliveryDateStatus === "unparseable") return listCopy.invalidDate;
+    const due = parseDateOnly(progress.deliveryDate);
+    if (!due) return listCopy.invalidDate;
+    const current = new Date(now);
+    const today = Date.UTC(current.getFullYear(), current.getMonth(), current.getDate());
+    const difference = Math.round((due.getTime() - today) / 86_400_000);
+    if (difference === 0) return listCopy.today;
+    return difference > 0 ? listCopy.days(new Intl.NumberFormat(language).format(difference)) : listCopy.overdue(new Intl.NumberFormat(language).format(Math.abs(difference)));
+  };
+  const formatDeliveryDate = (value: string | null | undefined) => {
+    const date = parseDateOnly(value);
+    return date ? new Intl.DateTimeFormat(language, { dateStyle: "medium", timeZone: "UTC" }).format(date) : "—";
+  };
 
   return <section dir={direction} className="space-y-4" aria-labelledby="customer-signing-title">
     <Card className="overflow-hidden border-teal-900/15 bg-[#fbfcfa] shadow-sm">
@@ -132,24 +162,47 @@ export default function CustomerContractSigning() {
         {isError && <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-800">{t.error} <Button variant="outline" size="sm" onClick={() => refetch()}>{t.retry}</Button></div>}
         {!isLoading && !isError && !data?.documents?.length && <div className="rounded-lg border border-dashed border-teal-900/20 bg-white p-8 text-center text-sm text-slate-600">{t.empty}</div>}
         {!!data?.documents?.length && <>
-          <ul data-testid="customer-contract-list" className="overflow-hidden rounded-md border border-teal-900/15 bg-white divide-y divide-teal-900/10">
-            {data.documents.map((doc) => <li key={doc.key}>
-              <Button
-                disabled={completeMutation.isPending}
-                variant="ghost"
-                aria-pressed={active?.key === doc.key}
-                className={`h-auto w-full justify-between gap-3 whitespace-normal rounded-none px-4 py-3 text-start ${active?.key === doc.key ? "bg-[#eff5f1] text-[#183d3c]" : ""}`}
-                onClick={() => setSelectedKey(doc.key)}
-              >
-                <span className="flex min-w-0 flex-wrap items-center gap-2">
-                  <span>{doc.type === "contract" ? t.contract : t.addendum}</span>
-                  <bdi className="break-all font-semibold">{doc.number}</bdi>
-                  {doc.signature ? <Badge variant="secondary">{t.signed}</Badge> : doc.canSign ? <Badge variant="outline">{listCopy.pending}</Badge> : null}
-                </span>
-                <span className="shrink-0 text-xs text-teal-800">{doc.canSign ? listCopy.viewSign : listCopy.view}</span>
-              </Button>
-            </li>)}
-          </ul>
+          <div data-testid="customer-contract-list" className="w-full overflow-x-auto rounded-md border border-teal-900/15 bg-white">
+            <table className="w-full min-w-[1050px] border-collapse text-start text-sm">
+              <thead className="bg-[#eff5f1] text-[#183d3c]">
+                <tr className="border-b border-teal-900/20">
+                  {[listCopy.document, listCopy.product, listCopy.quantity, listCopy.shipped, listCopy.remaining, listCopy.time, listCopy.signature, listCopy.operations].map((label, index) =>
+                    <th key={label} scope="col" title={index === 3 ? listCopy.shipmentBasis : undefined} aria-describedby={index === 3 ? "contract-shipment-basis" : undefined} className="border-e border-teal-900/10 px-3 py-3 text-start text-xs font-semibold last:border-e-0">
+                      {label}{index === 3 && <span id="contract-shipment-basis" className="sr-only">{listCopy.shipmentBasis}</span>}
+                    </th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {data.documents.flatMap((doc) => {
+                  const items = doc.progress?.items?.length ? doc.progress.items : [null];
+                  const signed = !!doc.signature;
+                  return items.map((item, index) => <tr key={`${doc.key}-${item?.productId ?? "no-product"}-${index}`} className="border-b border-teal-900/10 last:border-b-0 hover:bg-[#f7faf8]">
+                    <td className="border-e border-teal-900/10 px-3 py-3 align-top">
+                      <div className="font-semibold text-[#183d3c]"><bdi dir="ltr">{doc.number}</bdi></div>
+                      <div className="mt-1 text-xs text-slate-500">{doc.type === "contract" ? listCopy.contract : listCopy.addendum}</div>
+                    </td>
+                    <td className="border-e border-teal-900/10 px-3 py-3 align-top">{item?.productName || "—"}</td>
+                    <td className="border-e border-teal-900/10 px-3 py-3 align-top tabular-nums">{item ? formatQuantity(item.quantity) : "—"}</td>
+                    <td className="border-e border-teal-900/10 px-3 py-3 align-top tabular-nums" title={item ? listCopy.shipmentBasis : undefined}>{item ? formatQuantity(item.shippedQuantity) : "—"}</td>
+                    <td className="border-e border-teal-900/10 px-3 py-3 align-top font-semibold tabular-nums text-[#183d3c]">{item ? formatQuantity(item.remainingQuantity) : "—"}</td>
+                    <td className="border-e border-teal-900/10 px-3 py-3 align-top">
+                      <div>{remainingTime(doc.progress)}</div>
+                      {doc.progress?.deliveryDate && <div className="mt-1 text-xs text-slate-500">{formatDeliveryDate(doc.progress.deliveryDate)}</div>}
+                    </td>
+                    <td className="border-e border-teal-900/10 px-3 py-3 align-top">
+                      {signed ? <Badge variant="secondary">{t.signed}</Badge> : doc.canSign ? <Badge variant="outline">{listCopy.pending}</Badge> : <span className="text-xs text-slate-500">{listCopy.unavailable}</span>}
+                    </td>
+                    <td className="px-3 py-3 align-top">
+                      <Button type="button" size="sm" variant={active?.key === doc.key ? "default" : "outline"} disabled={completeMutation.isPending} aria-pressed={active?.key === doc.key} aria-label={`${doc.number} · ${doc.canSign ? listCopy.viewSign : listCopy.view}`} className="whitespace-nowrap" onClick={() => setSelectedKey(doc.key)}>
+                        {doc.canSign ? listCopy.viewSign : listCopy.view}
+                      </Button>
+                    </td>
+                  </tr>);
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-slate-500">{listCopy.progressNote} <span className="ms-1" title={listCopy.shipmentBasis}>{listCopy.shipmentBasis}</span></p>
           {active && <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold text-slate-900">{active.number}</h3>{active.signature && <Badge variant="secondary">{t.signed}</Badge>}</div>
             <div onScrollCapture={(event) => { const el = event.target as HTMLElement; if (el.dataset.testid === "customer-contract-terms" && el.scrollHeight - el.scrollTop <= el.clientHeight + 8) setReachedEnd(true); }}>

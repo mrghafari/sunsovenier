@@ -5,6 +5,7 @@ import { emailService } from "./email-service";
 import { getAwsS3Service } from "./aws-s3-service";
 import { ensureContractSigningSchema } from "./contract-signing-schema";
 import { customerDocuments, signingCustomer, createSigningChallenge, completeSigning } from "./contract-signing-service";
+import { customerContractProgress } from "./contract-signing-progress";
 import { SigningError, completionInput, signatureMetadata } from "./contract-signing-domain";
 import { contractTemplateNames } from "./contract-signing-email";
 import { deliverSignedCopy, signedPdf, startSignedContractEmailWorker } from "./contract-signing-delivery";
@@ -46,13 +47,14 @@ export async function registerContractSigningRoutes(app: Express, management: Re
     try {
       const id = customerId(req);
       await signingCustomer(id);
-      const [documents, signatures] = await Promise.all([
+      const [documents, signatures, progress] = await Promise.all([
         customerDocuments(id), pool.query("SELECT * FROM electronic_contract_signatures WHERE customer_id=$1 ORDER BY signed_at DESC", [id]),
+        customerContractProgress(id),
       ]);
       return res.json({ success: true, documents: documents.map(document => {
         const history = signatures.rows.filter(row => row.document_key === document.key);
         const matching = history.find(row => row.version_hash === document.versionHash);
-        return { ...document, canSign: document.canSign && !matching,
+        return { ...document, progress: progress.get(document.contractId), canSign: document.canSign && !matching,
           signature: matching ? signatureMetadata(matching) : null, signatures: history.map(row => signatureMetadata(row)) };
       }) });
     } catch (error) { return failure(res, error); }
