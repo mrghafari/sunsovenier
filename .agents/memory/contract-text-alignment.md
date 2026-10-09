@@ -9,8 +9,8 @@ Agreement text follows its document language independently of the surrounding sc
 
 **How to apply:** Check computed direction and alignment in contract details, text dialogs and addenda with opposing screen/document languages. Preserve stored text; use content-based direction only when the document language is unavailable.
 
-The user specified that expanded contract and addendum text must display like the contents of the **Contract text** button, which they confirmed displays correctly.
+کاربر «Contract text preview» را مرجع نمایش صحیح معرفی کرد؛ متن زیر «Terms» هنگام باز کردن قرارداد یا متمم باید مثل همان پیش‌نمایش باشد و شمارهٔ ماده‌های فارسی و عربی در سمت راست قرار بگیرند.
 
-**Why:** Direction-only corrections did not satisfy the reported difference; the dialog is the user's accepted display reference.
+**Why:** The user repeated that earlier direction-only fixes did not correct the expanded view, and specifically identified the draft preview as the correct reference.
 
-**How to apply:** Keep the complete document text presentation consistent across these views, not just their direction attributes. Do not treat another report of a display difference as only a publishing issue without checking the actual view.
+**How to apply:** Compare the full paragraph presentation with the accepted draft preview, including numbered articles, not just computed direction or alignment. Keep expanded contracts, addenda and text dialogs consistent. Do not treat another report of a difference as only a publishing issue without checking the actual view.

@@ -705,42 +705,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",18046,\"'error' is of type 'unknown'.\",\"description: error.message?.includes('Authentication')\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",2339,\"Property 'text_content' does not exist on type 'EmailTemplate'.\",\"defaultValue={editingTemplate.text_content || ''}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",7053,\"Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\",\"const category = TEMPLATE_CATEGORIES[templateInfo.category];\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ '#01': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; '#02': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; '#03': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; ... 13 more ...; '#17': { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ '#01': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; '#02': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; '#03': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; ... 13 more ...; '#17': { ...; }; }'.\",\"const info = TEMPLATE_REGISTRY[templateNumber];\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ '#01': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; '#02': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; '#03': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; ... 13 more ...; '#17': { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ '#01': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; '#02': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; '#03': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; ... 13 more ...; '#17': { ...; }; }'.\",\"inRegistry: !!TEMPLATE_REGISTRY[templateNumber]\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ '#01': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; '#02': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; '#03': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; ... 13 more ...; '#17': { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ '#01': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; '#02': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; '#03': { category: string; ref: string; usage: string; autoUse: boolean; priority: string; }; ... 13 more ...; '#17': { ...; }; }'.\",\"return TEMPLATE_REGISTRY[number] || {\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\",\"{React.createElement(TEMPLATE_CATEGORIES[selectedCategory].icon, { className: \\\"w-5 h-5\\\" })}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\",\"{selectedCategory !== 'all' && TEMPLATE_CATEGORIES[selectedCategory] && (\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\",\"<Card className={`border ${TEMPLATE_CATEGORIES[selectedCategory].color.replace('text-', 'border-').replace('-800', '-200')}`}>\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/admin/email-templates-fixed.tsx\",18046,\"'templates' is of type 'unknown'.\",\"{templates.map((template) => {\"]",
       "count": 1
     },

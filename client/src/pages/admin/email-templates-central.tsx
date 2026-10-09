@@ -21,6 +21,7 @@ interface EmailTemplate {
   name: string;
   subject: string;
   html_content: string;
+  text_content?: string;
   category: string;
   language: string;
   is_active: boolean;
@@ -117,7 +118,7 @@ const TEMPLATE_CATEGORIES = {
 };
 
 // Complete registry of all 17 templates from EMAIL_TEMPLATES_GUIDE.md
-const TEMPLATE_REGISTRY = {
+const TEMPLATE_REGISTRY: Record<string, { category: string; ref: string; usage: string; autoUse: boolean; priority: string }> = {
   '#01': { 
     category: 'technical_support', 
     ref: 'TPL-001', 
@@ -332,6 +333,22 @@ const EmailTemplatesCentral: React.FC = () => {
 
   // Get template info from registry
   const getTemplateInfo = (name: string) => {
+    if (name === 'Contract signing OTP' || name === 'Signed contract copy') {
+      const isOtp = name === 'Contract signing OTP';
+      const usageByLanguage = {
+        en: isOtp ? 'One-time email verification code for signing contracts' : 'Customer copy of a completed signed contract',
+        fa: isOtp ? 'کد یک‌بارمصرف ایمیلی برای تأیید امضای قرارداد' : 'نسخه قرارداد امضاشده برای مشتری',
+        ar: isOtp ? 'رمز تحقق بالبريد لمرة واحدة لتوقيع العقود' : 'نسخة العميل من العقد بعد توقيعه',
+        tr: isOtp ? 'Sözleşme imzası için tek kullanımlık e-posta doğrulama kodu' : 'Tamamlanmış imzalı sözleşmenin müşteri kopyası',
+      } as const;
+      return {
+        category: 'notifications',
+        ref: isOtp ? 'SIGN-OTP' : 'SIGN-COPY',
+        usage: usageByLanguage[language],
+        autoUse: true,
+        priority: 'high',
+      };
+    }
     const number = getTemplateNumber(name);
     return TEMPLATE_REGISTRY[number] || { 
       category: 'notification', 
@@ -418,7 +435,7 @@ const EmailTemplatesCentral: React.FC = () => {
       console.error('❌ [EMAIL TEMPLATES] Refresh failed:', error);
       toast({
         title: `❌ ${copy.updateError}`,
-        description: error.message?.includes('Authentication') 
+        description: error instanceof Error && error.message?.includes('Authentication')
           ? copy.authMessage
           : copy.retry,
         variant: "destructive",
@@ -482,6 +499,8 @@ const EmailTemplatesCentral: React.FC = () => {
     );
   }
 
+  const selectedCategoryConfig = TEMPLATE_CATEGORIES[selectedCategory as keyof typeof TEMPLATE_CATEGORIES];
+
   return (
     <div className="min-h-screen bg-gray-50 p-6" dir={direction}>
       <div className="max-w-7xl mx-auto">
@@ -520,12 +539,12 @@ const EmailTemplatesCentral: React.FC = () => {
           </TabsList>
 
           {/* Category Descriptions */}
-          {selectedCategory !== 'all' && TEMPLATE_CATEGORIES[selectedCategory] && (
+          {selectedCategory !== 'all' && selectedCategoryConfig && (
             <div className="mt-4">
-              <Card className={`border ${TEMPLATE_CATEGORIES[selectedCategory].color.replace('text-', 'border-').replace('-800', '-200')}`}>
+              <Card className={`border ${selectedCategoryConfig.color.replace('text-', 'border-').replace('-800', '-200')}`}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    {React.createElement(TEMPLATE_CATEGORIES[selectedCategory].icon, { className: "w-5 h-5" })}
+                    {React.createElement(selectedCategoryConfig.icon, { className: "w-5 h-5" })}
                      <h3 className="font-semibold">{categoryText(selectedCategory)[0]}</h3>
                   </div>
                    <p className="text-sm text-gray-600">{categoryText(selectedCategory)[1]}</p>
@@ -544,7 +563,7 @@ const EmailTemplatesCentral: React.FC = () => {
         <div className="space-y-5">
           {filteredTemplates.map((template) => {
             const templateInfo = getTemplateInfo(template.name);
-            const category = TEMPLATE_CATEGORIES[templateInfo.category];
+            const category = TEMPLATE_CATEGORIES[templateInfo.category as keyof typeof TEMPLATE_CATEGORIES];
             const templateNumber = getTemplateNumber(template.name);
             const isSpecial = ['#05', '#13', '#17'].includes(templateNumber);
             const variables = getTemplateVariables(template);

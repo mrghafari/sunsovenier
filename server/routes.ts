@@ -1003,6 +1003,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/auth', authRoutes);
   const { registerShopContractRoutes } = await import("./shop-contracts");
   registerShopContractRoutes(app);
+  const { registerContractSigningRoutes } = await import("./contract-signing-routes");
+  const { requireContractManagement } = await import("./shop-contracts");
+  await registerContractSigningRoutes(app, requireContractManagement);
   console.log('✅ [OAUTH] Authentication routes registered at /api/auth');
   
   // Import department auth functions

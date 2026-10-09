@@ -16,6 +16,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { getOrderStatusLabel, resolveOrderStatus, type OrderStatusLanguage } from "@shared/order-status";
 import { contractTheme } from "@/lib/contract-theme";
 import OrderContractSummary from "@/components/contracts/order-contract-summary";
+import CustomerContractSigning from "@/components/customer/contract-signing";
 import DatePickerModule, { type DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persianFa from "react-date-object/locales/persian_fa";
@@ -1133,6 +1134,8 @@ const CustomerProfile = () => {
               </div>
             )}
           </header>
+
+          <CustomerContractSigning />
 
             {/* Orders */}
             <div>

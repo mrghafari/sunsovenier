@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { customers, insertCustomerSchema, type InsertCustomer, type Customer } from "./customer-schema";
 import { shopProducts } from "./shop-schema";
 import type { ShopContractDraftData } from "./contract-draft";
+import { smtpSettings } from "./email-schema";
 
 // =============================================================================
 // MAIN CRM & ADMIN SYSTEM SCHEMA
@@ -2143,5 +2144,63 @@ export const signedContractDocuments = pgTable("signed_contract_documents", {
 }));
 
 export const insertSignedContractDocumentSchema = createInsertSchema(signedContractDocuments);
+export const legalContractSigningSettings = pgTable("legal_contract_signing_settings", {
+  id: integer("id").primaryKey(),
+  senderId: integer("sender_id").references(() => smtpSettings.id, { onDelete: "restrict" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export const electronicContractSignatures = pgTable("electronic_contract_signatures", {
+  id: uuid("id").primaryKey(),
+  customerId: integer("customer_id").notNull().references(() => crmCustomers.id, { onDelete: "restrict" }),
+  contractId: integer("contract_id").notNull().references(() => shopContracts.id, { onDelete: "restrict" }),
+  addendumId: integer("addendum_id").references(() => shopContractAddenda.id, { onDelete: "restrict" }),
+  documentKey: text("document_key").notNull(),
+  versionHash: char("version_hash", { length: 64 }).notNull(),
+  documentSnapshot: jsonb("document_snapshot").notNull(),
+  signerName: text("signer_name").notNull(),
+  customerEmail: text("customer_email").notNull(),
+  strokes: jsonb("strokes").notNull(),
+  consentText: text("consent_text").notNull(),
+  readConfirmedAt: timestamp("read_confirmed_at", { withTimezone: true }).notNull(),
+  signedAt: timestamp("signed_at", { withTimezone: true }).notNull(),
+  requestIp: text("request_ip"),
+  userAgent: text("user_agent"),
+  pdfKey: text("pdf_key").notNull().unique(),
+  pdfSha256: char("pdf_sha256", { length: 64 }).notNull(),
+  emailStatus: text("email_status").notNull().default("pending"),
+  emailError: text("email_error"),
+  emailAttempts: integer("email_attempts").notNull().default(0),
+  lastEmailAttemptAt: timestamp("last_email_attempt_at", { withTimezone: true }),
+  nextEmailAttemptAt: timestamp("next_email_attempt_at", { withTimezone: true }).defaultNow(),
+  emailAcceptedAt: timestamp("email_accepted_at", { withTimezone: true }),
+}, table => ({
+  versionUnique: uniqueIndex("electronic_contract_signatures_customer_id_document_key_version_hash_key")
+    .on(table.customerId, table.documentKey, table.versionHash),
+  customerIndex: index("electronic_contract_signatures_customer_idx").on(table.customerId, table.signedAt.desc()),
+  emailStatusCheck: check("electronic_contract_signatures_email_status_check",
+    sql`${table.emailStatus} IN ('pending','sending','accepted','failed')`),
+}));
+export const contractSigningChallenges = pgTable("contract_signing_challenges", {
+  id: uuid("id").primaryKey(),
+  customerId: integer("customer_id").notNull().references(() => crmCustomers.id, { onDelete: "restrict" }),
+  contractId: integer("contract_id").notNull().references(() => shopContracts.id, { onDelete: "restrict" }),
+  addendumId: integer("addendum_id").references(() => shopContractAddenda.id, { onDelete: "restrict" }),
+  documentKey: text("document_key").notNull(),
+  versionHash: char("version_hash", { length: 64 }).notNull(),
+  documentSnapshot: jsonb("document_snapshot").notNull(),
+  signerName: text("signer_name").notNull(),
+  customerEmail: text("customer_email").notNull(),
+  strokes: jsonb("strokes").notNull(),
+  consentText: text("consent_text").notNull(),
+  otpHash: char("otp_hash", { length: 64 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  attempts: integer("attempts").notNull().default(0),
+  emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+}, table => ({
+  customerTimeIndex: index("contract_signing_challenges_customer_time_idx").on(table.customerId, table.createdAt.desc()),
+  attemptsCheck: check("contract_signing_challenges_attempts_check", sql`${table.attempts} BETWEEN 0 AND 5`),
+}));
 export type InsertSignedContractDocument = z.infer<typeof insertSignedContractDocumentSchema>;
 export type SignedContractDocument = typeof signedContractDocuments.$inferSelect;

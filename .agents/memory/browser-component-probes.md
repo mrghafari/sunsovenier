@@ -20,6 +20,18 @@ Use real pointer/keyboard interactions for Radix controls rather than assuming
 programmatic click dispatch exercises their mouse-down handlers. These probes
 verify component behavior, not a real signed-in session.
 
+Use a fresh fixture document for independent language/component cases that open
+Radix portals.
+
+**Why:** Unmounting a Select before its exit cleanup completed left global
+pointer/scroll state behind; later buttons looked enabled but real clicks never
+reached them. Reusing that document produced false signing failures with no API
+request. A fresh navigation isolates the portal lifecycle.
+
+**How to apply:** Keep real Radix interactions, dismiss stale toasts, and navigate
+to a new browser-only fixture between cases instead of mutating global body
+styles or dispatching synthetic clicks.
+
 Puppeteer's installed package does not imply its expected browser is cached.
 
 **Why:** Default launch failed because the requested Chrome build was absent even

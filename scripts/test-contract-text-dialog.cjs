@@ -66,7 +66,7 @@ const agreementText = {
         await page.setViewport({ width: language === "fa" ? 402 : 1280, height: 874 });
         const documentLanguage = { fa: "ar", ar: "en", en: "fa", tr: "tr" }[language];
         const rtl = documentLanguage === "fa" || documentLanguage === "ar";
-        const terms = "C2612345\n" + agreementText[documentLanguage] + "\n<script>window.UNSAFE_CONTRACT=true</script>";
+        const terms = "C2612345\n1. " + agreementText[documentLanguage] + "\n2. " + agreementText[documentLanguage] + "\n<script>window.UNSAFE_CONTRACT=true</script>";
         await page.evaluate(async ({ entry, language, terms, documentLanguage, tagged }) => {
           localStorage.setItem("language", language);
           localStorage.setItem("language-manually-selected", "true");
@@ -110,6 +110,9 @@ const agreementText = {
         await clickText("#contract-fixture button", "FIXTURE-CURRENT");
         await page.waitForSelector('[data-testid="contract-expanded-text"]');
         await assertLayout('[data-testid="contract-expanded-text"]', rtl);
+        if (entry === "sales" && language === "en" && tagged) {
+          await (await page.$('[data-testid="contract-expanded-text"]')).screenshot({ path: "/tmp/contract-terms-persian.jpg" });
+        }
         await page.waitForFunction(() => [...document.querySelectorAll("#contract-fixture button")]
           .some(button => button.textContent.includes("FIXTURE-ADDENDUM")));
         const addendumButton = await page.evaluateHandle(() => [...document.querySelectorAll("#contract-fixture button")]
@@ -133,7 +136,8 @@ const agreementText = {
           const node = document.querySelector(`[data-testid="${id}"]`);
           const style = getComputedStyle(node);
           return {
-            tag: node.tagName, text: node.textContent,
+            tag: node.tagName, text: node.value,
+            readOnly: node.readOnly, unicodeBidi: style.unicodeBidi,
             direction: style.direction, textAlign: style.textAlign,
             fontSize: style.fontSize, lineHeight: style.lineHeight, whiteSpace: style.whiteSpace,
             padding: style.padding, border: style.borderStyle, borderRadius: style.borderRadius,
@@ -141,6 +145,18 @@ const agreementText = {
         }));
         assert.deepEqual(surfaces[0], surfaces[2], "Expanded contract must match the Contract text dialog");
         assert.deepEqual(surfaces[1], surfaces[2], "Expanded addendum must match the Contract text dialog");
+        assert.equal(surfaces[0].tag, "TEXTAREA", "Terms must use the same native text control as Contract text preview");
+        assert.equal(surfaces[0].readOnly, true);
+        const previewBidi = await page.evaluate(rtl => {
+          const preview = document.createElement("textarea");
+          preview.readOnly = true;
+          preview.dir = rtl ? "rtl" : "ltr";
+          document.body.appendChild(preview);
+          const bidi = getComputedStyle(preview).unicodeBidi;
+          preview.remove();
+          return bidi;
+        }, rtl);
+        assert.equal(surfaces[0].unicodeBidi, previewBidi, "Terms must match the native Contract text preview control");
         assert.ok(result.number.includes("FIXTURE-CURRENT"));
         assert.equal(result.executed, false);
         assert.equal(result.fits, true);

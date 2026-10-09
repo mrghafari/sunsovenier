@@ -70,6 +70,10 @@ export class AwsS3Service {
     }
   }
 
+  isPrivateStorageConfigured(): boolean {
+    return Boolean(this.client && this.settings);
+  }
+
   /**
    * Initialize S3 client with settings
    */
