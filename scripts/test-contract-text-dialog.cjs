@@ -129,6 +129,18 @@ const agreementText = {
         assert.equal(result.text, terms);
         assert.equal(result.direction, rtl ? "rtl" : "ltr");
         await assertLayout('[data-testid="contract-text-content"]', rtl);
+        const surfaces = await page.evaluate(() => ["contract-expanded-text", "contract-addendum-text", "contract-text-content"].map(id => {
+          const node = document.querySelector(`[data-testid="${id}"]`);
+          const style = getComputedStyle(node);
+          return {
+            tag: node.tagName, text: node.textContent,
+            direction: style.direction, textAlign: style.textAlign,
+            fontSize: style.fontSize, lineHeight: style.lineHeight, whiteSpace: style.whiteSpace,
+            padding: style.padding, border: style.borderStyle, borderRadius: style.borderRadius,
+          };
+        }));
+        assert.deepEqual(surfaces[0], surfaces[2], "Expanded contract must match the Contract text dialog");
+        assert.deepEqual(surfaces[1], surfaces[2], "Expanded addendum must match the Contract text dialog");
         assert.ok(result.number.includes("FIXTURE-CURRENT"));
         assert.equal(result.executed, false);
         assert.equal(result.fits, true);

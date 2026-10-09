@@ -5,7 +5,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { contractTheme } from "@/lib/contract-theme";
-import { contractTextLayout } from "@/lib/contract-text-layout";
+import ContractTextContent from "./contract-text-content";
 
 type AddendumItem = {
   productId: number;
@@ -90,7 +90,7 @@ export default function ContractAddenda({ contractId, count, ended, onCreate }: 
                   </div>
                 ))}
               </div>
-              {addendum.contract.terms && <div className="border-t pt-3 text-sm"><p className="mb-1 font-medium">{tx.terms}</p><p data-testid="contract-addendum-text" {...contractTextLayout(addendum.contract.draftData?.language, addendum.contract.terms, language)} className="whitespace-pre-wrap break-words text-muted-foreground">{addendum.contract.terms}</p></div>}
+              {addendum.contract.terms && <div className="border-t pt-3 text-sm"><p className="mb-1 font-medium">{tx.terms}</p><ContractTextContent testId="contract-addendum-text" text={addendum.contract.terms} documentLanguage={addendum.contract.draftData?.language} siteLanguage={language} /></div>}
             </div>
           )}
         </div>

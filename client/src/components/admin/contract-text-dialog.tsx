@@ -1,5 +1,5 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import { contractTextLayout } from "@/lib/contract-text-layout";
+import ContractTextContent from "./contract-text-content";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -29,10 +29,8 @@ export default function ContractTextDialog({ contract, onClose }: {
           <DialogTitle>{copy.title} — <bdi>{contract?.number}</bdi></DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
-        <div data-testid="contract-text-content" {...contractTextLayout(contract?.draftData?.language, contract?.terms ?? null, language)}
-          className="min-h-0 overflow-y-auto rounded-md border bg-muted/30 p-4 text-sm leading-7 whitespace-pre-wrap break-words">
-          {contract?.terms?.trim() ? contract.terms : <p dir={direction} className="text-muted-foreground">{copy.empty}</p>}
-        </div>
+        <ContractTextContent testId="contract-text-content" text={contract?.terms ?? null}
+          documentLanguage={contract?.draftData?.language} siteLanguage={language} emptyText={copy.empty} />
         <DialogFooter><Button type="button" variant="outline" onClick={onClose}>{copy.close}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
