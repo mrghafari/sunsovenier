@@ -361,6 +361,18 @@ export default function SiteManagement() {
     queryKey: ['/api/active-users'],
     enabled: false,
   });
+  const superAdminCapabilityQuery = useQuery({
+    queryKey: ["/api/super-admin/cleanup/capability"],
+    enabled: isAuthenticated,
+    retry: false,
+    queryFn: async () => {
+      const response = await fetch("/api/super-admin/cleanup/capability", { credentials: "include" });
+      if (response.status === 401 || response.status === 403) return false;
+      if (!response.ok) throw new Error(`Capability check failed: ${response.status}`);
+      const capability = await response.json().catch(() => null);
+      return capability?.isSuperAdmin === true;
+    },
+  });
 
   // All useEffect hooks - never conditional
   useEffect(() => {
@@ -387,7 +399,7 @@ export default function SiteManagement() {
       const filteredButtons = getFilteredButtons();
       setButtons(mergeSavedOrder(filteredButtons));
     }
-  }, [userPermissions, language, loadingStatusQuery.data?.enabled]);
+  }, [userPermissions, language, loadingStatusQuery.data?.enabled, superAdminCapabilityQuery.data]);
 
   // Helper functions
   const getModuleText = (id: SiteManagementModuleId) => ({
@@ -783,7 +795,17 @@ export default function SiteManagement() {
     console.log('🔍 [DEBUG] ai_settings button in filtered?', filtered.find(b => b.moduleId === 'ai_settings'));
     console.log('🔍 [DEBUG] content_management button in filtered?', filtered.find(b => b.moduleId === 'content_management'));
     
-    return filtered;
+    if (superAdminCapabilityQuery.data === true) {
+      const superAdminShortcut: QuickActionButton = {
+        id: "super-admin-order-management",
+        ...getModuleText("super-admin-order-management"),
+        icon: Package,
+        onClick: () => trackButtonClick("super-admin-order-management", () => setLocation("/mrg/super-admin-order-management")),
+        className: "border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-900",
+      };
+      return [...filtered.filter(button => button.id !== superAdminShortcut.id), superAdminShortcut];
+    }
+    return filtered.filter(button => button.id !== "super-admin-order-management");
   };
 
   const mergeSavedOrder = (allowedButtons: QuickActionButton[]) => {

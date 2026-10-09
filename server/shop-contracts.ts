@@ -287,7 +287,7 @@ async function inTransaction<T>(callback: (client: import("pg").PoolClient) => P
   }
 }
 
-async function releaseHoldWithinTransaction(client: import("pg").PoolClient, holdId: string): Promise<void> {
+export async function releaseHoldWithinTransaction(client: import("pg").PoolClient, holdId: string): Promise<void> {
   const hold = await client.query(
     `UPDATE shop_contract_holds
         SET status = 'released', updated_at = now()

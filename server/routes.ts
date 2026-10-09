@@ -1018,6 +1018,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Every route carrying this name must verify an active super-admin role.
   // A generic authenticated customer or non-super-admin session is not enough.
   const requireSuperAdmin = requireSuperAdminRole;
+  const { registerSuperAdminCleanupRoutes, annotateCleanupOrders } = await import("./super-admin-cleanup-routes");
+  registerSuperAdminCleanupRoutes(app, requireSuperAdmin);
   const {registerCustomerCodeRoutes}=await import("./customer-codes");
   registerCustomerCodeRoutes(app,requireSuperAdminRole);
   
@@ -57614,7 +57616,7 @@ momtazchem.com
       const hasMore = result.rows.length > limit;
       const rows = result.rows.slice(0, limit);
       const total = rows[0]?._filteredTotal ?? 0;
-      const data = rows.map(({ _filteredTotal, ...order }) => order);
+      const data = await annotateCleanupOrders(rows.map(({ _filteredTotal, ...order }) => order));
 
       res.json({
         success: true,
@@ -57784,7 +57786,7 @@ momtazchem.com
       const hasMore = result.rows.length > limit;
       const pageRows = result.rows.slice(0, limit);
       const total = pageRows[0]?._filteredTotal ?? offset;
-      const allOrders = pageRows.map(({ _filteredTotal, ...order }) => order);
+      const allOrders = await annotateCleanupOrders(pageRows.map(({ _filteredTotal, ...order }) => order));
       
       // Separate orders by type for better presentation
       const ordersWithNumbers = allOrders.filter(order => order.orderNumber);
