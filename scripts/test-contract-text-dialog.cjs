@@ -11,6 +11,12 @@ const labels = {
   tr: { text: "Sözleşme metni", close: "Kapat", empty: "Bu sözleşme için metin kaydedilmemiş." },
 };
 const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+const agreementText = {
+  fa: "این قرارداد میان فروشنده و خریدار تنظیم شده است. طرفین دربارهٔ قیمت کالاها، مهلت پرداخت، شرایط تحویل و شهر حل اختلاف توافق کرده‌اند.",
+  ar: "تم إبرام هذا العقد بين البائع والمشتري. اتفق الطرفان على أسعار المنتجات ومدة الدفع وشروط التسليم والمدينة المختصة بحل النزاعات.",
+  en: "This contract records the agreement between the seller and buyer on product prices, payment period, delivery and dispute resolution.",
+  tr: "Bu sözleşme satıcı ve alıcı arasında ürün fiyatları, ödeme süresi, teslimat ve uyuşmazlıkların çözümü konusunda yapılan anlaşmayı kaydeder.",
+};
 (async () => {
   const browser = await puppeteer.launch({
     executablePath: execFileSync("which", ["chromium"], { encoding: "utf8" }).trim(),
@@ -25,6 +31,12 @@ const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
       assert.ok(button, `Missing button: ${label}`);
       await button.click();
       await handle.dispose();
+    };
+    const assertLayout = async (selector, rtl) => {
+      const layout = await page.$eval(selector, node => ({
+        direction: getComputedStyle(node).direction, align: getComputedStyle(node).textAlign,
+      }));
+      assert.deepEqual(layout, { direction: rtl ? "rtl" : "ltr", align: rtl ? "right" : "left" });
     };
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
@@ -48,9 +60,14 @@ const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
     await page.waitForFunction(() => window.fixtureReady);
     for (const entry of ["sales", "legal"]) {
       for (const language of Object.keys(labels)) {
+        // Document language differs from the surrounding UI; also cover older
+        // snapshots without a language tag and with a Latin code as the header.
+        for (const tagged of [true, false]) {
         await page.setViewport({ width: language === "fa" ? 402 : 1280, height: 874 });
-        const terms = "شرایط توافق‌شده\nپرداخت ظرف ۱۰ روز؛ تحویل در محل مشتری.\n<script>window.UNSAFE_CONTRACT=true</script>";
-        await page.evaluate(async ({ entry, language, terms }) => {
+        const documentLanguage = { fa: "ar", ar: "en", en: "fa", tr: "tr" }[language];
+        const rtl = documentLanguage === "fa" || documentLanguage === "ar";
+        const terms = "C2612345\n" + agreementText[documentLanguage] + "\n<script>window.UNSAFE_CONTRACT=true</script>";
+        await page.evaluate(async ({ entry, language, terms, documentLanguage, tagged }) => {
           localStorage.setItem("language", language);
           localStorage.setItem("language-manually-selected", "true");
           const [source, main] = await Promise.all([
@@ -76,16 +93,31 @@ const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
           const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
           const common = { customerId: -99, customerName: "Synthetic customer", deliveryTerm: "DAP",
             shippingMode: "self_transport", items: [], addendumCount: 0 };
+          const current = { ...common, id: -1, number: "FIXTURE-CURRENT", terms, draftData: tagged ? { language: documentLanguage } : null, isActive: true, endedAt: null };
+          client.setQueryData(["/api/admin/shop/contracts", -1, "addenda"], { addenda: [{
+            id: -3, number: "FIXTURE-ADDENDUM", sequence: 1, createdAt: "2026-01-01", contract: current,
+          }] });
           client.setQueryData(["/api/admin/shop/contracts"], { success: true, contracts: [
-            { ...common, id: -1, number: "FIXTURE-CURRENT", terms, draftData: { language: "fa" }, isActive: true, endedAt: null },
+            current,
             { ...common, id: -2, number: "FIXTURE-ENDED", terms: "", draftData: null, isActive: false, endedAt: "2026-01-01" },
           ] });
           window.contractFixtureRoot = createRoot(container);
           window.contractFixtureRoot.render(React.createElement(QueryClientProvider, { client },
             React.createElement(LanguageProvider, null, React.createElement(Component))));
-        }, { entry, language, terms });
+        }, { entry, language, terms, documentLanguage, tagged });
         await page.waitForFunction(label => [...document.querySelectorAll("#contract-fixture button")]
           .some(button => button.textContent.trim() === label), {}, labels[language].text);
+        await clickText("#contract-fixture button", "FIXTURE-CURRENT");
+        await page.waitForSelector('[data-testid="contract-expanded-text"]');
+        await assertLayout('[data-testid="contract-expanded-text"]', rtl);
+        await page.waitForFunction(() => [...document.querySelectorAll("#contract-fixture button")]
+          .some(button => button.textContent.includes("FIXTURE-ADDENDUM")));
+        const addendumButton = await page.evaluateHandle(() => [...document.querySelectorAll("#contract-fixture button")]
+          .find(button => button.textContent.includes("FIXTURE-ADDENDUM")));
+        await addendumButton.asElement().click();
+        await addendumButton.dispose();
+        await page.waitForSelector('[data-testid="contract-addendum-text"]');
+        await assertLayout('[data-testid="contract-addendum-text"]', rtl);
         await clickText("#contract-fixture button", labels[language].text);
         await page.waitForSelector('[data-testid="contract-text-content"]');
         const result = await page.evaluate(() => {
@@ -95,7 +127,8 @@ const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
             executed: !!window.UNSAFE_CONTRACT, fits: dialog.getBoundingClientRect().width <= innerWidth };
         });
         assert.equal(result.text, terms);
-        assert.equal(result.direction, "rtl");
+        assert.equal(result.direction, rtl ? "rtl" : "ltr");
+        await assertLayout('[data-testid="contract-text-content"]', rtl);
         assert.ok(result.number.includes("FIXTURE-CURRENT"));
         assert.equal(result.executed, false);
         assert.equal(result.fits, true);
@@ -108,9 +141,10 @@ const baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
         assert.equal(await page.$eval('[data-testid="contract-text-content"]', node => node.textContent), labels[language].empty);
         await page.keyboard.press("Escape");
         await page.waitForFunction(() => !document.querySelector('[data-testid="contract-text-content"]'));
+        }
       }
     }
     assert.deepEqual(errors, []);
-    console.log("PASS: both contract sections, four languages, current/ended contracts, exact plain text, empty state, close/Escape, RTL and mobile width (16 cases).");
+    console.log("PASS: sales/legal sections, four screen languages, tagged/legacy mixed-language documents; computed RTL/right and LTR/left alignment in contract rows, addenda and text dialog; exact plain text, empty states, close/Escape and mobile width (32 current/ended cases).");
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exit(1); });

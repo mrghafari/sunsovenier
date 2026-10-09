@@ -27,6 +27,7 @@ import type { ContractPackaging } from "@shared/contract-packaging";
 import { parseContractPackaging, packagingTypeLabel } from "@shared/contract-packaging";
 import { ContractPackagingFields } from "@/components/contract-packaging-fields";
 import { normalizeCustomerSearch } from "@shared/customer-search";
+import { contractTextLayout } from "@/lib/contract-text-layout";
 
 type ContractItem = { productId: number | string; productName: string; maxQuantity: number; usedQuantity: number; remainingQuantity: number; unitPrice: number; netWeight?: string | number | null; weightUnit?: string };
 type ShippingMode = "automatic_vehicle" | "self_transport";
@@ -320,7 +321,7 @@ export default function ShopContracts() {
                         </div>
                       </div>}
                       {!contract.packaging && <p className="mt-4 rounded-md border border-dashed p-3 text-sm text-muted-foreground">{language === "fa" ? "برای این قرارداد هزینهٔ جداگانهٔ بسته‌بندی ثبت نشده است." : language === "ar" ? "لا توجد رسوم تعبئة منفصلة مسجلة لهذا العقد." : language === "tr" ? "Bu sözleşme için ayrı paketleme ücreti kaydedilmemiş." : "No separate packaging charge is recorded for this contract."}</p>}
-                      {contract.terms && <div className="mt-4 border-t pt-3"><p className="text-sm font-medium">{tx.termsLabel}</p><p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{contract.terms}</p></div>}
+                      {contract.terms && <div className="mt-4 border-t pt-3"><p className="text-sm font-medium">{tx.termsLabel}</p><p data-testid="contract-expanded-text" {...contractTextLayout(contract.draftData?.language, contract.terms, language)} className="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">{contract.terms}</p></div>}
                     </div>
                     <ContractAddenda contractId={contract.id} count={Number(contract.addendumCount) || 0} ended={ended} onCreate={() => openAddendum(contract)} />
                     <ContractSignedDocuments contractId={contract.id}

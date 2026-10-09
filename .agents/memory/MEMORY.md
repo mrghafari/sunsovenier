@@ -91,3 +91,4 @@
 - [Contract packaging billing](contract-packaging-billing.md) — per net tonne, separate VAT, and frozen order evidence; never substitute gross shipping weight.
 - [Cached form initialization](cached-form-initialization.md) — unchanged query responses may not rerun effects; resetting a dialog must explicitly reapply cached defaults.
 - [Editable contract seller](editable-contract-seller.md) — company data supplies defaults; authorized staff may edit the seller for an individual agreement.
+- [Contract text alignment](contract-text-alignment.md) — align agreements by document language; keep RTL fixes local rather than changing shared direction utilities.
