@@ -21,9 +21,17 @@ const text = {
   tr: { title: "Sözleşmeler ve imzalar", intro: "Belgenin tam sürümünü inceleyin ve güvenle imzalayın.", loading: "Belgeler yükleniyor…", retry: "Yeniden dene", empty: "Henüz sözleşme belgesi yok.", unavailable: "Bu belge imzaya açık değil.", signed: "İmzalandı", contract: "Sözleşme", addendum: "Ek protokol", read: "Belgeyi sonuna kadar okudum.", authority: "Müşteri adına bu belgeyi imzalama yetkim var.", ownSignature: "Aşağıdaki el yazısı imza bana aittir.", consent: "Bu belgeyi elektronik olarak imzalamayı kabul ediyorum.", signer: "Yetkili imza sahibinin tam adı", draw: "El yazısı imza", clear: "İmzayı temizle", begin: "E-posta doğrulama kodu gönder", code: "Altı haneli kod", verify: "Doğrula ve imzala", expires: "Kod 10 dakika geçerlidir.", expired: "Kodun süresi doldu. 60 saniyelik bekleme bitince yeni kod isteyin.", accepted: "İmza kaydedildi. E-posta kopyası posta sunucusu tarafından kabul edildi; gelen kutusuna teslim edildiği doğrulanmaz.", emailPending: "İmza kaydedildi; e-posta kopyası beklemede.", emailFailed: "İmza kaydedildi ancak e-posta kopyası gönderilemedi. Yeniden deneyebilirsiniz.", emailSending: "İmza kaydedildi; e-posta kopyası gönderiliyor.", resend: "E-posta kopyasını yeniden gönder", reading: "Devam etmek için belgenin kendisini sonuna kadar kaydırın.", consentNote: "Onayınız imza rızasını kaydeder; içeriğin anlaşıldığını kanıtlamaz.", download: "İmzalı PDF'yi indir", error: "Belgeler yüklenemedi.", invalidCode: "Doğrulama kodu geçersiz.", expiredCode: "Doğrulama kodunun süresi doldu.", attemptsExceeded: "Çok fazla hatalı kod denendi. Yeni kod isteyin.", rateLimit: "Yeni kod istemeden veya yeniden denemeden önce bekleyin.", documentChanged: "Belge değişti. Güncel sürümü inceleyip yeniden başlayın.", notSignable: "Bu belge şu anda imzalanamaz.", alreadySigned: "Bu sürüm zaten imzalanmış.", senderUnavailable: "Doğrulama e-postası gönderimi yapılandırılmamış. Destekle iletişime geçin.", templateUnavailable: "Doğrulama e-posta şablonu kullanılamıyor. Destekle iletişime geçin.", storageUnavailable: "Güvenli imza depolaması kullanılamıyor. Destekle iletişime geçin.", emailChanged: "Hesap e-postanız değişti. Yenileyip yeni kod isteyin.", deliveryFailed: "E-posta gönderilemedi. Daha sonra tekrar deneyin." },
 } as const;
 
+const listWords = {
+  fa: { view: "مشاهده", viewSign: "مشاهده و امضا", pending: "در انتظار امضا" },
+  ar: { view: "عرض", viewSign: "عرض وتوقيع", pending: "بانتظار التوقيع" },
+  en: { view: "View", viewSign: "View & sign", pending: "Awaiting signature" },
+  tr: { view: "Görüntüle", viewSign: "Görüntüle ve imzala", pending: "İmza bekliyor" },
+} as const;
+
 export default function CustomerContractSigning() {
   const { language, direction } = useLanguage();
   const t = text[language as keyof typeof text] || text.en;
+  const listCopy = listWords[language as keyof typeof listWords] || listWords.en;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data, isLoading, isError, refetch } = useQuery<{ success: boolean; documents: Document[] }>({ queryKey: ["/api/customers/contract-signing"], queryFn: () => request("/api/customers/contract-signing", { method: "GET" }), retry: 1 });
@@ -124,7 +132,24 @@ export default function CustomerContractSigning() {
         {isError && <div role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-800">{t.error} <Button variant="outline" size="sm" onClick={() => refetch()}>{t.retry}</Button></div>}
         {!isLoading && !isError && !data?.documents?.length && <div className="rounded-lg border border-dashed border-teal-900/20 bg-white p-8 text-center text-sm text-slate-600">{t.empty}</div>}
         {!!data?.documents?.length && <>
-          <div className="flex flex-wrap gap-2">{data.documents.map((doc) => <Button key={doc.key} disabled={completeMutation.isPending} variant={active?.key === doc.key ? "default" : "outline"} size="sm" onClick={() => setSelectedKey(doc.key)}>{doc.type === "contract" ? t.contract : t.addendum} · {doc.number}</Button>)}</div>
+          <ul data-testid="customer-contract-list" className="overflow-hidden rounded-md border border-teal-900/15 bg-white divide-y divide-teal-900/10">
+            {data.documents.map((doc) => <li key={doc.key}>
+              <Button
+                disabled={completeMutation.isPending}
+                variant="ghost"
+                aria-pressed={active?.key === doc.key}
+                className={`h-auto w-full justify-between gap-3 whitespace-normal rounded-none px-4 py-3 text-start ${active?.key === doc.key ? "bg-[#eff5f1] text-[#183d3c]" : ""}`}
+                onClick={() => setSelectedKey(doc.key)}
+              >
+                <span className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span>{doc.type === "contract" ? t.contract : t.addendum}</span>
+                  <bdi className="break-all font-semibold">{doc.number}</bdi>
+                  {doc.signature ? <Badge variant="secondary">{t.signed}</Badge> : doc.canSign ? <Badge variant="outline">{listCopy.pending}</Badge> : null}
+                </span>
+                <span className="shrink-0 text-xs text-teal-800">{doc.canSign ? listCopy.viewSign : listCopy.view}</span>
+              </Button>
+            </li>)}
+          </ul>
           {active && <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold text-slate-900">{active.number}</h3>{active.signature && <Badge variant="secondary">{t.signed}</Badge>}</div>
             <div onScrollCapture={(event) => { const el = event.target as HTMLElement; if (el.dataset.testid === "customer-contract-terms" && el.scrollHeight - el.scrollTop <= el.clientHeight + 8) setReachedEnd(true); }}>

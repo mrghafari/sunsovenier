@@ -40,3 +40,13 @@ though the environment already had a working system Chromium.
 **How to apply:** Resolve the installed Chromium executable with `command -v`
 and supply its path explicitly; do not hardcode a Nix store hash or install a
 second browser just to satisfy Puppeteer's default cache lookup.
+
+Coordinate-based pointer probes must use bounds from a stable viewport.
+
+**Why:** Smooth scrolling can continue after bounds are read. A taller document
+list caused a signature probe to draw outside its canvas and falsely appear to
+break signing, despite the component working correctly.
+
+**How to apply:** Finish scrolling before measuring a pointer target and verify
+that hit-testing the intended coordinates reaches that target. Do not infer an
+application failure from a coordinate gesture that missed its control.

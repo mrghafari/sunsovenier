@@ -124,6 +124,14 @@ const puppeteer = require("puppeteer");
       await page.goto(`https://${process.env.REPLIT_DEV_DOMAIN}/customer-profile`, { waitUntil: "domcontentloaded" });
       await page.waitForFunction(() => window.fixtureReady);
       await mount(language);
+       await page.waitForSelector('[data-testid="customer-contract-list"]');
+       assert.equal(await page.$$eval('[data-testid="customer-contract-list"] > li', rows => rows.length), 2);
+       assert.equal(await page.$eval('[data-testid="customer-contract-list"]', el => el.scrollWidth <= el.clientWidth), true);
+       const listRows = await page.$$eval('[data-testid="customer-contract-list"] > li', rows => rows.map(el => {
+         const box = el.getBoundingClientRect(); return { top: box.top, bottom: box.bottom };
+       }));
+       assert.ok(listRows[1].top >= listRows[0].bottom, "Documents must be full-width list rows, not blocks");
+       if (language === "fa") await (await page.$('[data-testid="customer-contract-list"]')).screenshot({ path: "/tmp/customer-contract-list-mobile.jpg" });
       await page.waitForSelector('[data-testid="customer-contract-terms"]');
       assert.equal(await page.$eval('[role="checkbox"]', el => el.disabled), true, "reading acknowledgement must be gated by text viewport");
       await page.$eval('[data-testid="customer-contract-terms"]', el => el.scrollTo(0, el.scrollHeight));
@@ -131,15 +139,20 @@ const puppeteer = require("puppeteer");
       const checks = await page.$$('[role="checkbox"]');
       assert.equal(checks.length, 4);
       for (const checkbox of checks) await checkbox.click();
+       assert.deepEqual(await page.$$eval('[role="checkbox"]', nodes => nodes.map(el => el.getAttribute("data-state"))), ["checked", "checked", "checked", "checked"]);
       await page.type('input[autocomplete="name"]', "Synthetic Signer");
       const ink = await page.$("canvas");
-      await ink.evaluate(el => el.scrollIntoView({ block: "center" }));
+       await ink.evaluate(el => el.scrollIntoView({ block: "center", behavior: "instant" }));
+       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const bounds = await ink.boundingBox();
+       assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName === "CANVAS",
+         { x: bounds.x + bounds.width * .1, y: bounds.y + bounds.height * .3 }), true, "Signature canvas must be in view before pointer coordinates are used");
       await page.mouse.move(bounds.x + bounds.width * .1, bounds.y + bounds.height * .3);
       await page.mouse.down();
       await page.mouse.move(bounds.x + bounds.width * .5, bounds.y + bounds.height * .7, { steps: 8 });
       await page.mouse.move(bounds.x + bounds.width * .8, bounds.y + bounds.height * .2, { steps: 8 });
       await page.mouse.up();
+       assert.equal(await page.$eval("canvas", el => [...el.getContext("2d").getImageData(0, 0, el.width, el.height).data].some(value => value)), true, "Pointer input must draw a real signature");
       await buttons(requestLabels[language]);
       try { await page.waitForSelector('input[autocomplete="one-time-code"]', { timeout: 7000 }); }
       catch (error) { console.error("Fixture diagnostics", { language, requests: requests.slice(-5), errors }, await page.$eval("#signing-fixture", el => el.innerText)); throw error; }
@@ -154,6 +167,7 @@ const puppeteer = require("puppeteer");
       assert.equal(await page.$('input[autocomplete="name"]'), null);
       assert.ok(docs[0].signature);
       await buttons("FIXTURE-A");
+       await page.waitForFunction(() => document.querySelector('[data-testid="customer-contract-list"] button[aria-pressed="true"]')?.textContent.includes("FIXTURE-A"));
       await page.waitForSelector('input[autocomplete="name"]');
       assert.equal(await page.$eval('input[autocomplete="name"]', el => el.value), "");
       assert.equal(await page.$('input[autocomplete="one-time-code"]'), null);

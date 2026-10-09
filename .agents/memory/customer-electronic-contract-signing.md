@@ -9,6 +9,8 @@ description: User requirements for customer-profile signing and delivery of sign
 
 تنظیمات امضا باید با دکمهٔ «تنظیمات» در بالای صفحه در دسترس باشد، نه به‌صورت بخش تنظیمات در پایین صفحه.
 
+قراردادها و متمم‌های مشتری برای مشاهده و امضا در بخش قراردادهای پروفایل باید به‌صورت لیست نمایش داده شوند، نه بلوک‌های جدا کنار هم.
+
 **Why:** The user requested this customer signing and email workflow.
 
 **How to apply:** Keep customer-profile signing, the module's configured sender, and the editable email template connected in the complete workflow.
