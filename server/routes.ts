@@ -1019,7 +1019,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // A generic authenticated customer or non-super-admin session is not enough.
   const requireSuperAdmin = requireSuperAdminRole;
   const { registerSuperAdminCleanupRoutes, annotateCleanupOrders } = await import("./super-admin-cleanup-routes");
-  registerSuperAdminCleanupRoutes(app, requireSuperAdmin);
+  await registerSuperAdminCleanupRoutes(app, requireSuperAdmin);
   const {registerCustomerCodeRoutes}=await import("./customer-codes");
   registerCustomerCodeRoutes(app,requireSuperAdminRole);
   
@@ -57603,7 +57603,7 @@ momtazchem.com
         FROM customer_orders co
         LEFT JOIN customers c ON co.customer_id = c.id
         LEFT JOIN crm_customers crm ON co.customer_id = crm.id
-        WHERE (
+        WHERE NOT EXISTS(SELECT 1 FROM super_admin_removals x WHERE x.kind='orders' AND x.target_id=co.id) AND (
           co.guest_email = $1 
           OR c.email = $1 
           OR crm.email = $1
@@ -57716,7 +57716,7 @@ momtazchem.com
         date: String(req.query.date || "").trim(),
       };
       const values: unknown[] = [];
-      const where = [`(
+      const where = [`NOT EXISTS (SELECT 1 FROM super_admin_removals x WHERE x.kind='orders' AND x.target_id=co.id)`, `(
         co.order_number IS NOT NULL
         OR (co.order_number IS NULL AND (
           co.status IN ('cancelled', 'failed', 'pending')

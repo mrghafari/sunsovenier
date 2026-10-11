@@ -1,6 +1,6 @@
 import { pool } from "./db";
 
-export type CleanupClient = { query: (sql: string, values?: any[]) => Promise<any> };
+export type CleanupClient = { query: (sql: string, values?: any[]) => Promise<{ rows: any[]; rowCount?: number | null }> };
 export type CleanupSchema = Map<string, Set<string>>;
 export class CleanupError extends Error {
   constructor(public code: string, public status = 409) { super(code); }

@@ -51,10 +51,23 @@ const paymentFilterOptions = [
   { group: "status", values: ["pending", "partial", "paid", "grace_period", "receipt_uploaded"] },
   { group: "method", values: ["online_payment", "bank_transfer_grace", "wallet_full", "wallet_partial"] },
 ];
+const removalCopy: Record<Lang, Record<string, string>> = {
+  en: { subtitle: "Remove eligible unshipped orders and wholly unshipped contracts from active lists. Signed PDFs, receipts, and financial evidence stay retained; confirmed, unreturned payments become customer wallet credit.", orders: "Removable orders", bulk: "Remove selected", delete: "Remove", confirm: "Remove from active lists", deleting: "Removing…", deleted: "Removed from active lists; evidence retained", bulkDeleted: "removed from active lists; evidence retained" },
+  fa: { subtitle: "سفارش‌های واجد شرایطِ ارسال‌نشده و قراردادهای کاملاً ارسال‌نشده از فهرست فعال خارج می‌شوند. فایل‌های امضاشده، رسیدها و شواهد مالی حفظ می‌شوند؛ پرداخت تأییدشده و بازپرداخت‌نشده به اعتبار کیف پول مشتری تبدیل می‌شود.", orders: "سفارش‌های قابل خارج‌کردن", bulk: "خارج‌کردن انتخاب‌شده‌ها", delete: "خارج‌کردن", confirm: "خارج‌کردن از فهرست فعال", deleting: "در حال خارج‌کردن…", deleted: "از فهرست فعال خارج شد؛ شواهد حفظ شدند", bulkDeleted: "از فهرست فعال خارج شدند؛ شواهد حفظ شدند" },
+  ar: { subtitle: "تُزال الطلبات المؤهلة غير المشحونة والعقود غير المشحونة بالكامل من القوائم النشطة. تُحفظ ملفات PDF الموقعة والإيصالات والأدلة المالية؛ وتصبح المدفوعات المؤكدة غير المستردة رصيداً في محفظة العميل.", orders: "الطلبات القابلة للإزالة", bulk: "إزالة المحدد", delete: "إزالة", confirm: "إزالة من القوائم النشطة", deleting: "جارٍ الإزالة…", deleted: "أُزيل من القوائم النشطة مع حفظ الأدلة", bulkDeleted: "أُزيلت من القوائم النشطة مع حفظ الأدلة" },
+  tr: { subtitle: "Uygun, sevk edilmemiş siparişler ve tamamen sevk edilmemiş sözleşmeler etkin listelerden kaldırılır. İmzalı PDF'ler, makbuzlar ve finansal kanıtlar saklanır; onaylı ve iade edilmemiş ödemeler müşteri cüzdanına kredi olur.", orders: "Kaldırılabilir siparişler", bulk: "Seçilenleri kaldır", delete: "Kaldır", confirm: "Etkin listelerden kaldır", deleting: "Kaldırılıyor…", deleted: "Etkin listelerden kaldırıldı; kanıtlar saklandı", bulkDeleted: "etkin listelerden kaldırıldı; kanıtlar saklandı" },
+};
+const removalReasons: Record<Lang, Record<string, string>> = {
+  en: { SIGNED_CONTRACT: "Signed contract evidence is retained; signing alone does not block an unshipped removal", SHIPPED: "Shipped order or contract cannot be removed", ALREADY_REMOVED: "Already removed", PAYMENT_EVIDENCE_REQUIRED: "Payment evidence required", WALLET_CURRENCY_MISMATCH: "Wallet currency mismatch", FINANCIAL_RECONCILIATION_REQUIRED: "Financial reconciliation required", WALLET_UNAVAILABLE: "Wallet unavailable" },
+  fa: { SIGNED_CONTRACT: "مدرک قرارداد امضاشده حفظ می‌شود؛ امضا به‌تنهایی مانع خارج‌کردن مورد ارسال‌نشده نیست", SHIPPED: "سفارش یا قرارداد ارسال‌شده قابل خارج‌کردن نیست", ALREADY_REMOVED: "قبلاً خارج شده است", PAYMENT_EVIDENCE_REQUIRED: "مدرک پرداخت لازم است", WALLET_CURRENCY_MISMATCH: "عدم تطابق ارز کیف پول", FINANCIAL_RECONCILIATION_REQUIRED: "تطبیق مالی لازم است", WALLET_UNAVAILABLE: "کیف پول در دسترس نیست" },
+  ar: { SIGNED_CONTRACT: "يُحفظ دليل العقد الموقع؛ ولا يمنع التوقيع وحده إزالة ما لم يُشحن", SHIPPED: "لا يمكن إزالة طلب أو عقد تم شحنه", ALREADY_REMOVED: "تمت الإزالة مسبقاً", PAYMENT_EVIDENCE_REQUIRED: "دليل الدفع مطلوب", WALLET_CURRENCY_MISMATCH: "عملة المحفظة غير متطابقة", FINANCIAL_RECONCILIATION_REQUIRED: "التسوية المالية مطلوبة", WALLET_UNAVAILABLE: "المحفظة غير متاحة" },
+  tr: { SIGNED_CONTRACT: "İmzalı sözleşme kanıtı saklanır; imza tek başına sevk edilmemiş kaydın kaldırılmasını engellemez", SHIPPED: "Sevk edilmiş sipariş veya sözleşme kaldırılamaz", ALREADY_REMOVED: "Zaten kaldırılmış", PAYMENT_EVIDENCE_REQUIRED: "Ödeme kanıtı gerekli", WALLET_CURRENCY_MISMATCH: "Cüzdan para birimi uyuşmuyor", FINANCIAL_RECONCILIATION_REQUIRED: "Finansal mutabakat gerekli", WALLET_UNAVAILABLE: "Cüzdan kullanılamıyor" },
+};
 
 export default function SuperAdminOrderManagement() {
   const { language, direction } = useLanguage();
-  const c = { ...(copy[language as Lang] || copy.en) };
+  const lang = (["en", "fa", "ar", "tr"].includes(language) ? language : "en") as Lang;
+  const c = { ...copy[lang], ...removalCopy[lang] };
   const locale = language === "fa" ? "fa-IR" : language === "ar" ? "ar" : language === "tr" ? "tr-TR" : "en-US";
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -165,8 +178,8 @@ export default function SuperAdminOrderManagement() {
       ar: { FINANCIAL_ACTIVITY: "يوجد نشاط مالي", SIGNED_CONTRACT: "محمي بعقد موقّع", OPERATIONAL_ACTIVITY: "يوجد نشاط تشغيلي", UNKNOWN_DEPENDENCY: "تبعية غير معروفة", ACTIVE_ALLOCATION: "تخصيص نشط" },
       tr: { FINANCIAL_ACTIVITY: "Finansal faaliyet mevcut", SIGNED_CONTRACT: "İmzalı sözleşmeyle korunuyor", OPERATIONAL_ACTIVITY: "Operasyonel faaliyet mevcut", UNKNOWN_DEPENDENCY: "Bilinmeyen bağımlılık", ACTIVE_ALLOCATION: "Etkin tahsis" },
     };
-    if (!codes.length) return reasons[language as Lang]?.UNKNOWN_DEPENDENCY || reasons.en.UNKNOWN_DEPENDENCY;
-    return codes.map(code => reasons[language as Lang]?.[code] || code).join(", ");
+    if (!codes.length) return reasons[lang]?.UNKNOWN_DEPENDENCY || reasons.en.UNKNOWN_DEPENDENCY;
+    return codes.map(code => removalReasons[lang]?.[code] || reasons[lang]?.[code] || code).join(", ");
   };
   const status = (s: string) => <Badge variant="outline" className="whitespace-nowrap">{c[`status${s.charAt(0).toUpperCase()}${s.slice(1)}`] || s || c.unknown}</Badge>;
   const payment = (method: string | null | undefined) => {
@@ -231,7 +244,7 @@ export default function SuperAdminOrderManagement() {
       const deletedSet = new Set(deleted);
       setSelected(prev => ({ orders: new Set([...prev.orders].filter(id => !deletedSet.has(id))), customer: new Set([...prev.customer].filter(id => !deletedSet.has(id))) }));
       setDialogOpen(false);
-      toast({ title: cleanupIds.length === 1 ? c.deleted : `${deleted.length} ${c.bulkDeleted}` });
+       toast({ title: cleanupIds.length === 1 ? c.deleted : `${deleted.length} ${c.bulkDeleted}` });
     }} />
   </div>;
 }

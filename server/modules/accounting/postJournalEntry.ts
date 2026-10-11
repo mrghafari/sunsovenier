@@ -53,6 +53,11 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
     where company_id=${data.companyId} and source_id=${data.sourceId}`)).rows[0]:undefined;
    const partialBook=data.sourceType==="PartialReturn"?(await tx.execute(sql`select id,valuation from accounting_partial_return_books
      where company_id=${data.companyId} and source_id=${data.sourceId}`)).rows[0]:undefined;
+   const cancellationBook=data.sourceType==="OrderCancellationCredit"?(await tx.execute(sql`
+     select order_id,valuation from super_admin_credit_books where company_id=${data.companyId}
+       and order_id=substring(${data.sourceId} from '^cleanup-order:([0-9]+)$')::integer`)).rows[0]:undefined;
+   if(data.sourceType==="OrderCancellationCredit"&&(!cancellationBook||data.lines.length!==2))
+     throw new AccountingError("Reviewed unshipped-order carrying proof required",409,"CANCELLATION_EVIDENCE_MISSING");
    if(data.sourceType==="PartialReturn"&&!partialBook)
      throw new AccountingError("Reviewed partial-return proof required",409,"RETURN_EVIDENCE_MISSING");
   if(data.sourceType==="LoadingReturnCredit"&&(!returnCredit?.valid||data.lines.length!==2))
@@ -74,7 +79,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
      foreignInvoiceBook?{...normalized,foreignInvoiceProof:foreignInvoiceBook}:
      returnCredit?{...normalized,returnCreditProof:returnCredit}:
       refundBook?{...normalized,refundCarryingProof:refundBook}:
-      partialBook?{...normalized,partialReturnProof:partialBook}:normalized)).digest("hex");
+      partialBook?{...normalized,partialReturnProof:partialBook}:
+      cancellationBook?{...normalized,cancellationProof:cancellationBook}:normalized)).digest("hex");
   const [existing] = await tx.select().from(entries).where(and(
     eq(entries.companyId,data.companyId),eq(entries.sourceType,data.sourceType),eq(entries.sourceId,data.sourceId),
   )).limit(1);
@@ -129,11 +135,15 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
          .find(l=>l.accountId===line.accountId&&l.currency===line.currency&&decimal(l.debit).eq(line.debit)&&
            decimal(l.credit).eq(line.credit)&&l.partyType===line.partyType&&l.partyId===line.partyId&&l.costCenterId===line.costCenterId):undefined;
        if(partialBook&&!partialLine)throw new AccountingError("Partial return line differs from original carrying proof",409,"RETURN_EVIDENCE_MISSING");
+       const cancellationLine=cancellationBook?(cancellationBook.valuation as {lines:import("@shared/accounting-partial-returns").PartialReturnLine[]}).lines
+         .find(l=>l.accountId===line.accountId&&l.currency===line.currency&&decimal(l.debit).eq(line.debit)&&
+           decimal(l.credit).eq(line.credit)&&l.partyType===line.partyType&&l.partyId===line.partyId&&l.costCenterId===line.costCenterId):undefined;
+       if(cancellationBook&&!cancellationLine)throw new AccountingError("Cancellation line differs from frozen carrying proof",409,"CANCELLATION_EVIDENCE_MISSING");
       const returnCreditLine=returnCredit&&line.currency===returnCredit.currency&&
         ((line.accountId===returnCredit.receivableAccountId&&decimal(line.debit).eq(returnCredit.amount)&&decimal(line.credit).isZero())||
          (line.accountId===returnCredit.liabilityAccountId&&decimal(line.credit).eq(returnCredit.amount)&&decimal(line.debit).isZero()));
      const historical=Boolean(walletHistorical||receiptValue||chequeLine?.valuationBasis==="historical_carrying"||expenseLine||foreignInvoiceLine||
-          reversalLine?.valuationBasis==="historical_carrying"||returnCreditLine||refundLine||partialLine);
+           reversalLine?.valuationBasis==="historical_carrying"||returnCreditLine||refundLine||partialLine||cancellationLine);
     const bookAmount=walletHistorical?String(line.accountId===book.liability_account_id?book.wallet_base:book.receivable_base):
        receiptValue?.base??(chequeLine?(decimal(line.debit).gt(0)?chequeLine.baseDebit:chequeLine.baseCredit):
          expenseLine?(decimal(line.debit).gt(0)?expenseLine.baseDebit:expenseLine.baseCredit):
@@ -141,11 +151,12 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
           reversalLine?(decimal(line.debit).gt(0)?reversalLine.baseCredit:reversalLine.baseDebit):
            returnCreditLine?returnCredit.baseAmount:
             refundLine?(decimal(line.debit).gt(0)?refundLine.baseDebit:refundLine.baseCredit):
-            partialLine?(decimal(line.debit).gt(0)?partialLine.baseDebit:partialLine.baseCredit):undefined);
+             partialLine?(decimal(line.debit).gt(0)?partialLine.baseDebit:partialLine.baseCredit):
+             cancellationLine?(decimal(line.debit).gt(0)?cancellationLine.baseDebit:cancellationLine.baseCredit):undefined);
     let rate = walletHistorical?String(line.accountId===book.liability_account_id?book.wallet_rate:book.receivable_rate):
        receiptValue?receiptValue.rate:chequeLine?chequeLine.exchangeRate:expenseLine?expenseLine.exchangeRate:
        foreignInvoiceLine?foreignInvoiceLine.exchangeRate:
-          returnCreditLine?returnCredit.rate:refundLine?refundLine.exchangeRate:partialLine?partialLine.exchangeRate:
+           returnCreditLine?returnCredit.rate:refundLine?refundLine.exchangeRate:partialLine?partialLine.exchangeRate:cancellationLine?cancellationLine.exchangeRate:
       data.reversalOfId ? originalLines[lineIndex]?.exchangeRate : cachedRates.get(line.currency);
     if (data.reversalOfId && !rate) throw new AccountingError("Reversal line count does not match the original");
     if (!rate) {

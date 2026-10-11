@@ -7,13 +7,13 @@ Destructive super-admin operations must verify an active `super_admin` role, not
 
 **Why:** Customer sessions can also be authenticated, and pool-level transaction statements do not guarantee that subsequent queries use the same connection. Either mistake can make permanent deletion unauthorized or partially applied.
 
-**How to apply:** Snapshot and display exact targets before confirmation, cap and validate IDs, delete dependents before primary records using exact identifiers, roll back the entire batch on any missing target or failure, and never claim partial success for an atomic request.
+**How to apply:** Snapshot and display exact targets before confirmation, cap and validate IDs, lock related evidence using exact identifiers, roll back the entire batch on any missing target or failure, and never claim partial success for an atomic request.
 
-Signed contracts and signed addenda must be preserved even when no financial operation has begun. Permanent cleanup is for unsigned records without financial activity; reversing or failing a payment does not make its history disposable.
+Super-admin removal is now withdrawal from active circulation, not physical deletion. An unshipped order or wholly unshipped contract can be withdrawn even if signed or financially reviewed. Signed contracts, addenda, payment evidence and historical counters remain. Only confirmed payments not already returned become customer credit and wallet funds; uncaptured holds are released, not credited.
 
-**Why:** The user explicitly selected «قرارداد امضاشده حفظ شود» when restoring the super-admin cleanup module.
+**Why:** The user changed the earlier unsigned/no-financial-activity restriction and explicitly chose archive_signed and confirmed_net_payment. Preserving evidence does not mean keeping signed contracts in active circulation.
 
-**How to apply:** Treat electronic signatures and uploaded signed documents as blockers, including when deleting related orders. Never turn this administrative cleanup into a financial reversal or a signed-document erasure.
+**How to apply:** Reject real dispatch/delivery including historical evidence. Any shipped linked order blocks whole-contract withdrawal. Preserve signed documents, reverse posted obligations with historical valuation where necessary, prevent duplicate customer credit, keep legacy balances separate from the new ledger, and never issue automatic bank payouts.
 
 Check-to-delete locks alone do not protect against a stale financial writer that submits after deletion commits. Financial reference checks must serialize with the source order and reject missing sources; retain the distinction between legacy shop-order and customer-order identity namespaces.
 

@@ -1,8 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type { Express, Request, RequestHandler } from "express";
 import { pool } from "./db";
-import { CleanupError, ordersEligibility } from "./super-admin-cleanup-policy";
+import { CleanupError } from "./super-admin-cleanup-policy";
 import { cleanupIds, cleanupPlan, deleteCleanup, type CleanupActor, type CleanupKind } from "./super-admin-cleanup-service";
+import { removalEligibility } from "./super-admin-removal-policy";
+import { publicCredit } from "./super-admin-removal-service";
+import { ensureRemovalSchema } from "./super-admin-removal-schema";
 
 const previews = new Map<string, {
   actor: string; expiresAt: number; kind: CleanupKind; ids: number[]; fingerprint: string; confirmation: string;
@@ -33,12 +36,19 @@ const sameOrigin: RequestHandler = (req, res, next) => {
 };
 
 export async function annotateCleanupOrders(rows: any[]) {
-  const eligibility = await ordersEligibility(rows.map(row => Number(row.id)));
+  const eligibility = await removalEligibility(rows.map(row => Number(row.id)));
   return rows.map(row => ({ ...row, ...(eligibility.get(Number(row.id))
     || { canDelete: false, deletionBlockers: ["TARGET_NOT_FOUND"] }) }));
 }
 
-export function registerSuperAdminCleanupRoutes(app: Express, requireSuperAdmin: RequestHandler) {
+export async function registerSuperAdminCleanupRoutes(app: Express, requireSuperAdmin: RequestHandler) {
+  const schemaClient = await pool.connect();
+  try {
+    await schemaClient.query("BEGIN");
+    await ensureRemovalSchema(schemaClient);
+    await schemaClient.query("COMMIT");
+  } catch (error) { await schemaClient.query("ROLLBACK"); throw error; }
+  finally { schemaClient.release(); }
   app.get("/api/super-admin/cleanup/capability", requireSuperAdmin, (_req, res) => res.json({ success: true, isSuperAdmin: true }));
   app.post("/api/super-admin/cleanup/preview", requireSuperAdmin, sameOrigin, async (req, res) => {
     try {
@@ -59,7 +69,8 @@ export function registerSuperAdminCleanupRoutes(app: Express, requireSuperAdmin:
         confirmation: plan.targets.length === 1 ? plan.targets[0].number : "DELETE",
       });
       return res.json({ success: true, preview: {
-        kind, targets: plan.targets, canDelete: plan.canDelete, deletionBlockers: plan.deletionBlockers,
+        kind, mode: plan.mode, credits: plan.credits.map(publicCredit),
+        targets: plan.targets, canDelete: plan.canDelete, deletionBlockers: plan.deletionBlockers,
         linkedOrders: plan.linkedOrders, effects: plan.effects, token: plan.canDelete ? token : "",
       } });
     } catch (error) { return failure(res, error); }
@@ -87,7 +98,8 @@ export function registerSuperAdminCleanupRoutes(app: Express, requireSuperAdmin:
       const contracts = await pool.query(`SELECT c.id,c.number,c.customer_id,
         concat_ws(' ',cc.first_name,cc.last_name) AS "customerName",cc.customer_code AS "customerCode",
         count(*) OVER()::int AS total FROM shop_contracts c JOIN crm_customers cc ON cc.id=c.customer_id
-        WHERE c.number ILIKE $1 OR concat_ws(' ',cc.first_name,cc.last_name,cc.customer_code) ILIKE $1
+         WHERE NOT EXISTS(SELECT 1 FROM super_admin_removals x WHERE x.kind='contract' AND x.target_id=c.id)
+           AND (c.number ILIKE $1 OR concat_ws(' ',cc.first_name,cc.last_name,cc.customer_code) ILIKE $1)
         ORDER BY c.id DESC LIMIT $2 OFFSET $3`, [q, limit + 1, offset]);
       const rows = contracts.rows.slice(0, limit);
       const data = [];

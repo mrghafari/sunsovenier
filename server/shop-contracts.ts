@@ -460,7 +460,9 @@ async function loadContractRows(client: import("pg").PoolClient, contractId?: nu
             (SELECT count(*)::integer FROM shop_contract_addenda a WHERE a.parent_contract_id = c.id) AS addendum_count
        FROM shop_contracts c
        JOIN crm_customers cc ON cc.id = c.customer_id
-      ${contractId === undefined ? "" : "WHERE c.id = $1"}
+      WHERE ${contractId === undefined
+        ? "NOT EXISTS(SELECT 1 FROM super_admin_removals x WHERE x.kind='contract' AND x.target_id=c.id)"
+        : "c.id = $1"}
       ORDER BY c.id DESC`,
     contractId === undefined ? [] : [contractId],
   );
@@ -896,7 +898,9 @@ export function registerShopContractRoutes(app: Express): void {
                 COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name,
                 (SELECT count(*)::integer FROM shop_contract_addenda a WHERE a.parent_contract_id = c.id) AS addendum_count
            FROM shop_contracts c JOIN crm_customers cc ON cc.id = c.customer_id
-          WHERE c.customer_id = $1 ORDER BY c.id DESC`,
+          WHERE c.customer_id = $1
+            AND NOT EXISTS(SELECT 1 FROM super_admin_removals x WHERE x.kind='contract' AND x.target_id=c.id)
+          ORDER BY c.id DESC`,
         [customerId],
       );
       const ids = result.rows.map((row: any) => Number(row.id));

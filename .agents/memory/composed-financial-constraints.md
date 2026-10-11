@@ -70,3 +70,17 @@ The combined suite also exceeded the five-minute foreground command limit.
 **How to apply:** Run long suites as monitored background commands, collect their
 complete result and release their transactions before restarting the workflow.
 Do not change server ports or bypass financial guards to resolve this contention.
+
+Withdrawing a paid invoice must be a coordinated operation with the customer's
+credit, including retained receipt evidence. Foreign receipt guards can protect
+the original invoice too; deferred checks may still try to value its remaining
+receivable after a valid reversal has closed it.
+
+**Why:** Administrative withdrawal exposed both protections only when a real
+foreign invoice, posted collection, exact reversal and deferred constraints were
+tested together. Passing a native-currency fixture did not prove the foreign path.
+
+**How to apply:** Keep generic valuation and reversal guards strict. Authorize
+only an evidenced, completed withdrawal and exempt only its closed receivable
+from collectible-debt revaluation. Assert both native and historical base
+balances after flushing deferred constraints; uncleared cheques are not confirmed cash.

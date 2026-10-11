@@ -16,7 +16,7 @@ const puppeteer = require("puppeteer");
     let previewCount = 0;
     const orders = [
       { id: 7001, orderNumber: "FIXTURE-M1", customerName: "Synthetic Customer", customerEmail: "synthetic@example.invalid", totalAmount: "50", currency: "USD", status: "pending", paymentMethod: "bank_transfer", createdAt: "2026-10-01", canDelete: true, deletionBlockers: [] },
-      { id: 7002, orderNumber: "FIXTURE-M2", customerName: "Synthetic Customer", customerEmail: "synthetic@example.invalid", totalAmount: "50", currency: "USD", status: "pending", paymentMethod: "bank_transfer", createdAt: "2026-10-01", canDelete: false, deletionBlockers: ["FINANCIAL_ACTIVITY"] },
+      { id: 7002, orderNumber: "FIXTURE-M2", customerName: "Synthetic Customer", customerEmail: "synthetic@example.invalid", totalAmount: "50", currency: "USD", status: "shipped", paymentMethod: "bank_transfer", createdAt: "2026-10-01", canDelete: false, deletionBlockers: ["SHIPPED"] },
     ];
     page.on("pageerror", error => errors.push(error.message));
     await page.setRequestInterception(true);
@@ -39,13 +39,15 @@ const puppeteer = require("puppeteer");
       if (path === "/api/super-admin/contracts") result = {
         success: true, data: [
           { id: 9001, number: "FIXTURE-C1", customerName: "Synthetic Customer", customerCode: "9200001", items: [{ productName: "Synthetic Goods", quantity: 5 }], orderCount: 1, addendumCount: 1, canDelete: true, deletionBlockers: [] },
-          { id: 9002, number: "FIXTURE-C2", customerName: "Synthetic Customer", customerCode: "9200001", items: [], orderCount: 0, addendumCount: 0, canDelete: false, deletionBlockers: ["SIGNED_CONTRACT"] },
+          { id: 9002, number: "FIXTURE-C2", customerName: "Synthetic Customer", customerCode: "9200001", items: [], orderCount: 1, addendumCount: 0, canDelete: false, deletionBlockers: ["SHIPPED"] },
         ], pagination: { total: 2, limit: 25, hasMore: false },
       };
       if (path.endsWith("/cleanup/preview")) {
         previewCount++;
         result = { success: true, preview: {
-          kind: body.kind, targets: body.ids.map(id => ({ id, number: body.kind === "contract" ? "FIXTURE-C1" : "FIXTURE-M1" })),
+          kind: body.kind, mode: "archive", credits: [{ orderId:7001,orderNumber:"FIXTURE-M1",customerId:99001,currency:"USD",
+            confirmedPayment:"50.00",previouslyReturned:"10.00",creditAmount:"40.00",reservedRelease:"5.00",alreadyAvailable:"2.00" }],
+          targets: body.ids.map(id => ({ id, number: body.kind === "contract" ? "FIXTURE-C1" : "FIXTURE-M1" })),
           linkedOrders: [{ id: 7001, orderNumber: "FIXTURE-M1" }], canDelete: true, deletionBlockers: [],
           effects: [{ table: "order_items", count: 2 }], token: `synthetic-${previewCount}`,
         } };
@@ -85,10 +87,10 @@ const puppeteer = require("puppeteer");
       throw new Error(`Missing ${selector}: ${text}`);
     };
     const languages = {
-      en: { contracts: "Contracts", bulk: "Delete selected", delete: "Delete permanently", cancel: "Cancel" },
-      fa: { contracts: "قراردادها", bulk: "حذف انتخاب‌شده‌ها", delete: "حذف دائمی", cancel: "انصراف" },
-      ar: { contracts: "العقود", bulk: "حذف المحدد", delete: "حذف نهائي", cancel: "إلغاء" },
-      tr: { contracts: "Sözleşmeler", bulk: "Seçilenleri sil", delete: "Kalıcı olarak sil", cancel: "İptal" },
+      en: { contracts: "Contracts", bulk: "Remove selected", delete: "Remove from active lists", cancel: "Cancel" },
+      fa: { contracts: "قراردادها", bulk: "خارج‌کردن انتخاب‌شده‌ها", delete: "خارج‌کردن از فهرست فعال", cancel: "انصراف" },
+      ar: { contracts: "العقود", bulk: "إزالة المحدد", delete: "إزالة من القوائم النشطة", cancel: "إلغاء" },
+      tr: { contracts: "Sözleşmeler", bulk: "Seçilenleri kaldır", delete: "Etkin listelerden kaldır", cancel: "İptal" },
     };
     for (const [language, labels] of Object.entries(languages)) {
       await mount(language);
@@ -99,6 +101,9 @@ const puppeteer = require("puppeteer");
       await findClick("button", labels.bulk);
       await page.waitForSelector("#cleanup-confirm");
       assert.match(await page.$eval("[role=dialog]", node => node.textContent), /order_items/);
+      const reviewText = await page.$eval("[role=dialog]", node => node.textContent);
+      assert.match(reviewText,/40/); assert.match(reviewText,/USD/);
+      assert.match(reviewText,/10/); assert.match(reviewText,/5/);
       await page.type("#cleanup-confirm", "wrong");
       assert.equal(await page.evaluate(text => [...document.querySelectorAll("[role=dialog] button")].find(button => button.textContent.trim() === text).disabled, labels.delete), true);
       await page.$eval("#cleanup-confirm", element => { element.focus(); element.select(); });
@@ -108,9 +113,10 @@ const puppeteer = require("puppeteer");
       await findClick("[role=dialog] button", labels.delete);
       await page.waitForFunction(() => document.querySelector("#cleanup-confirm")?.value === "");
       assert.ok(previewCount > before, "changed preview requires fresh explicit confirmation");
-      assert.deepEqual(mutations.at(-1).ids, [7001], "select-all excludes financial records");
+      assert.deepEqual(mutations.at(-1).ids, [7001], "select-all excludes shipped records");
       assert.equal(mutations.at(-1).confirmation, "FIXTURE-M1", "a one-order bulk selection uses the single target number");
       await findClick("[role=dialog] button", labels.cancel);
+      await page.waitForFunction(() => !document.querySelector("[role=dialog]"));
       await findClick("[role=tab]", labels.contracts);
       await page.waitForFunction(() => document.body.textContent.includes("FIXTURE-C2"));
       assert.equal(await page.evaluate(() => [...document.querySelectorAll("tbody tr")].find(row => row.textContent.includes("FIXTURE-C2")).querySelector("button").disabled), true);
