@@ -71,6 +71,15 @@ The combined suite also exceeded the five-minute foreground command limit.
 complete result and release their transactions before restarting the workflow.
 Do not change server ports or bypass financial guards to resolve this contention.
 
+Serialize financial database suites that share the ledger advisory lock, even
+when their fixture rows are unrelated.
+
+**Why:** An independent approval probe timed out waiting for the lock held by a
+long rollback-only invoice suite; it was contention, not a failed business rule.
+
+**How to apply:** Run unit/browser checks alongside the suite, but run the next
+financial integration probe only after the previous suite releases its transaction.
+
 Withdrawing a paid invoice must be a coordinated operation with the customer's
 credit, including retained receipt evidence. Foreign receipt guards can protect
 the original invoice too; deferred checks may still try to value its remaining

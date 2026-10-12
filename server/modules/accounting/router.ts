@@ -33,6 +33,8 @@ import {readPostingQueue,previewQueuedPosting,enqueueReviewedPosting,processRevi
 import {postingQueueScopeSchema} from "@shared/accounting-posting-queue";
 import {assertPipelineManager} from "./loading-invoice-stock";
 import {readZeroStart,activateZeroStart} from "./zero-start";
+import {readManualActivation,activateManualDocuments} from "./manual-activation";
+import {postingWorker} from "./posting-worker";
 import {deleteAccountingCompany} from "./company-deletion";
 import {readCapitalizationWorkbench,capitalizeInventoryDocument} from "./inventory-capitalization";
 import {stockBookMetadata,registerStockBook} from "./loading-invoice-stock";
@@ -71,6 +73,13 @@ export function createAccountingRouter() {
   });
   router.get("/v2/zero-start",async(req,res,next)=>{
     try{res.json(await readZeroStart(Number(req.query.companyId)));}catch(e){next(e);}
+  });
+  router.get("/v2/posting-worker",(_req,res)=>res.json(postingWorker.status()));
+  router.get("/v2/manual-activation",async(req,res,next)=>{
+    try{res.json(await readManualActivation(Number(req.query.companyId)));}catch(error){next(error);}
+  });
+  router.post("/v2/manual-activation",async(req,res,next)=>{
+    try{res.json(await activateManualDocuments(req.body,res.locals.accountingAccess));}catch(error){next(error);}
   });
   router.post("/v2/zero-start",async(req,res,next)=>{
     try{res.json(await activateZeroStart(req.body,res.locals.accountingAccess));}catch(e){next(e);}

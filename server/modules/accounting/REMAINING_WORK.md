@@ -101,8 +101,9 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    transactional handlers. Partial-goods invoice/AR/stock returns and documented
    external cash payouts also have transactional handlers and workbenches.
    Remaining: actual documentary openings and reconciliation,
-   coordinated shipment-cost/linked-receipt returns, and separately approved worker retry/backoff and
-   error provenance. Real opening evidence and activation are still outstanding.
+    coordinated shipment-cost/linked-receipt returns, and real documentary evidence
+    and operational acceptance. The reviewed-command worker now runs with bounded
+    retries and sanitized error provenance, only within approved company gates.
    Never flip event eligibility or start a consumer merely because arithmetic
    succeeds.
     Shipment/fleet posting now has an explicit manager handler and four-language

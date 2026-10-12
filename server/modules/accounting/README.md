@@ -1,5 +1,25 @@
 # Centralized accounting — integration boundary
 
+## Current operational entry points
+
+The server starts a bounded reviewed-posting worker every 30 seconds. It selects
+only due, manager-reviewed commands for active companies with an approved posting
+boundary, then invokes the existing transactional handler. Original reviewer
+permissions, source hashes, stock evidence, currency gates and ledger guards are
+rechecked; the worker neither enrolls historical balances nor turns raw events
+into invoices. Shutdown drains its current batch before closing the server.
+`GET /api/accounting/v2/posting-worker` reports observed scheduling/error state.
+
+The Documents & Expenses panel provides separately audited manager approval at
+`GET/POST /api/accounting/v2/manual-activation`. Approval requires an existing
+independent book, active base currency and open fiscal period, and explicit
+preservation of legacy balances. It enables only the manual-document gate; it
+does not populate balances, approve foreign gates or fabricate a journal.
+
+The Persian operator handbook is `/accounting-guide-fa.html`, linked from the
+posting panel. Historical delivery notes below describe their original staged
+boundaries; actual activation must be read from each company's current records.
+
 ## Shipment-cost capture and staged posting
 
 Accounting → Shipment costs is a four-language, RBAC-controlled workbench.

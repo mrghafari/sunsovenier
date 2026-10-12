@@ -25,6 +25,7 @@ import { createLoadingRouter } from "./modules/loading/router";
 import { monitoringService } from "./monitoring-service";
 import { sequenceSyncService } from "./sequence-sync";
 import { startMarketingEmailWorker, stopMarketingEmailWorker } from "./marketing-email-worker";
+import { postingWorker } from "./modules/accounting/posting-worker";
 
 // Global error handlers to prevent server crashes
 process.on('uncaughtException', (err) => {
@@ -439,6 +440,7 @@ app.use((req, res, next) => {
     }, () => {
       log(`serving on port ${port}`);
       startMarketingEmailWorker();
+      postingWorker.start();
       
       // Start services with delayed initialization
       setTimeout(async () => {
@@ -504,8 +506,9 @@ app.use((req, res, next) => {
         }
       }, 5000); // Delay 5 seconds to ensure database connections are stable
     });
-    const stopMarketingWorker = () => {
+    const stopMarketingWorker = async () => {
       stopMarketingEmailWorker();
+      await postingWorker.stop();
       server.close(() => process.exit(0));
     };
     process.once("SIGTERM", stopMarketingWorker);

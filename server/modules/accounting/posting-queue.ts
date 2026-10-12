@@ -144,8 +144,8 @@ export async function processReviewedPostingBatch(companyId:number,limit=5,calle
   }
   return result;
 }
-// Prepared consumer: never started by server/index.ts or by an environment flag.
-// A future independently approved scheduler may call tick after documentary cutover.
+// Bounded adapter for callers with an explicit company scope. The server's
+// posting-worker separately selects only currently approved, due reviewed work.
 export function createReviewedPostingConsumer(companyIds:number[]){
   return {tick:async()=>{const results:PostingBatchResult[]=[];
     for(const id of [...new Set(companyIds)])results.push(await processReviewedPostingBatch(id));

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
+import AccountingManualActivation from "./accounting-manual-activation";
 import { normalizeAccountingDigits } from "./accounting-logic";
 import { useManualDocument, useManualDocumentAction, useManualDocumentMetadata, useManualDocuments, usePreviewManualDocument, useSaveManualDocument } from "@/lib/accounting-documents-api";
 import type { ManualDocumentDetail, ManualDocumentInput, ManualDocumentMetadata, ManualDocumentRow, ManualDocumentStatus } from "@shared/accounting-documents";
@@ -191,6 +192,7 @@ export default function AccountingDocuments({companies,canManage}:{companies:Com
         </div>
         <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           <label><span className={labelClass}>{t("company")}</span><select className={inputClass} disabled={formBusy||Boolean(confirmAction)||reverseOpen} value={companyId??""} onChange={e=>selectCompany(e.target.value?Number(e.target.value):undefined)}><option value="">{t("company")}</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+          <AccountingManualActivation companyId={companyId} canManage={canManage} language={language}/>
           <Meta label={t("metadata")} value={metadata?metadata.postingReady?t("ready"):t("notReady"):metadataQuery.isLoading?t("loading"):t("notReady")} good={Boolean(metadata?.postingReady)}/>
           <Meta label={t("company")} value={metadata&&metadata.company.id===companyId?`${metadata.company.name} · ${metadata.company.baseCurrency}`:companyName??t("noCompany")}/>
           <Meta label={t("period")} value={metadata?.fiscalPeriods.length?metadata.fiscalPeriods.map(p=>`${p.name} · ${p.status==="open"?t("periodOpen"):p.status==="closed"?t("periodClosed"):p.status}`).join(" / "):"—"}/>

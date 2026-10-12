@@ -14,3 +14,31 @@ mtime_ms = 1788986294982
 storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:861926f6-85c5-4e93-bb9b-7e1a3d8bd878/977e987f-8c87-4436-9b24-4c5c3571b598/604be8db-4c34-4df9-9e4a-e16f4eaba038"
 storage_version_token = "1788986461200345"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "RDubsAQHgdj_DZcIxJb-T"
+uri = "file://generated-artifacts/accounting-operational-status-fa.pdf"
+type = "pdf"
+title = "گزارش فارسی وضعیت حسابداری"
+description = "وضعیت واقعی دفتر مستقل، قابلیت‌های آماده، نتایج آزمون‌ها و موارد باقی‌مانده برای بهره‌برداری."
+logical_id = "6efcebf0-7d45-4004-9883-8f745797b5d3"
+content_hash = "sha256:07db365f278193697e8c07a3e8c04448833c33dbe0a72d5a76ac4db0ef5261d1"
+size = 92302
+mtime_ms = 1791830935266
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:861926f6-85c5-4e93-bb9b-7e1a3d8bd878/6efcebf0-7d45-4004-9883-8f745797b5d3/29a0c07a-4324-4da1-a95e-ebd1b081f089"
+storage_version_token = "1791831070548983"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "_21gNz41gL1yYRaSTXyQ7"
+uri = "file://generated-artifacts/accounting-guide-fa.pdf"
+type = "pdf"
+title = "دفترچهٔ فارسی حسابداری"
+description = "راهنمای خرید، دریافت، بارگیری، صف ثبت، اسناد دستی، برگشت‌ها و کنترل روزانه."
+logical_id = "76c1779b-bd72-4e68-9a22-445d2510c1d8"
+content_hash = "sha256:f8fd9209f1834f36f00562a3fb131d286482bb6f35ebc7e7da821a54fc5b7aaf"
+size = 97236
+mtime_ms = 1791830076226
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:861926f6-85c5-4e93-bb9b-7e1a3d8bd878/76c1779b-bd72-4e68-9a22-445d2510c1d8/a5a1541a-32d9-460c-a36e-72b833d7e020"
+storage_version_token = "1791831071476616"
+content_type = "application/pdf"

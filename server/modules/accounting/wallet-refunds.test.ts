@@ -7,8 +7,14 @@ const command={...quote,sourceId:"documented-payout",expectedPlanHash:"a".repeat
 test("documented payout is separate from invoice or receipt return and requires explicit evidence",()=>{
   assert.ok(walletRefundCommandSchema.safeParse(command).success);
   for(const extra of [{payoutDocumentConfirmed:false},{payoutDocumentConfirmed:undefined},{evidenceReference:""},
-    {payoutReference:undefined},{payoutReference:""},{expectedPlanHash:""},{amount:10},{amount:"-1"},{amount:"0"},{invoiceId:10},{receiptId:20},{baseAmount:"1000"},{exchangeRate:"1500"}])
+    {payoutReference:undefined},{payoutReference:""},{expectedPlanHash:""},{amount:10},{amount:"-1"},{amount:"0"},{invoiceId:10},{baseAmount:"1000"},{exchangeRate:"1500"}])
     assert.equal(walletRefundCommandSchema.safeParse({...command,...extra}).success,false);
+});
+test("optional return-credit references are allowed only as valid identities, not valuation overrides",()=>{
+  for(const reference of [{receiptId:20},{goodsReturnId:10},{receiptId:20,goodsReturnId:10}])
+    assert.equal(walletRefundCommandSchema.safeParse({...command,...reference}).success,true);
+  for(const reference of [{receiptId:0},{receiptId:"20"},{goodsReturnId:-1}])
+    assert.equal(walletRefundCommandSchema.safeParse({...command,...reference}).success,false);
 });
 test("actual payout references normalize case and Persian/Arabic digits, independently of command IDs",()=>{
   assert.equal(walletRefundCommandSchema.parse({...command,payoutReference:" tx-۱۲٣۴۵ "}).payoutReference,"TX-12345");

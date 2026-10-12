@@ -184,6 +184,11 @@ export default function AccountingPostingQueue({ companies, defaultCompanyId, ca
       </section>}
     </section>
     <AccountingZeroStart companyId={company?.id} canManage={canManage} language={language}/>
+    <Button asChild variant="outline" className="my-3">
+      <a href="/accounting-guide-fa.html" target="_blank" rel="noopener noreferrer" data-testid="accounting-persian-guide">
+        {({fa:"دفترچهٔ فارسی حسابداری",ar:"دليل المحاسبة باللغة الفارسية",en:"Persian accounting guide",tr:"Farsça muhasebe kılavuzu"} as Record<string,string>)[language] ?? "Persian accounting guide"}
+      </a>
+    </Button>
     {error && <Alert variant="destructive" role="alert"><AlertCircle className="h-4 w-4"/><AlertTitle>{t(language,"error")}</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
     {message && <p role="status" className="rounded-lg border border-[#cbdccf] bg-[#edf4eb] p-3 text-xs text-[#42634e]">{message}</p>}
     <section className="overflow-hidden rounded-2xl border border-[#dfe6de] bg-[#fbfcf8]" data-testid="posting-queue-history">
