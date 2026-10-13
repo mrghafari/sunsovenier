@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import type { CustomerAccountingReport, CustomerReportFilters, CustomerReportName } from "@shared/accounting-customer-reports";
+import { accountingCustomerCodeSchema, type CustomerAccountingReport, type CustomerReportFilters, type CustomerReportName } from "@shared/accounting-customer-reports";
 import { useCustomerAccountingReport, downloadCustomerAccountingReport } from "@/lib/accounting-customer-reports-api";
 import { useAccountingResource } from "@/lib/accounting-api";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -19,7 +19,6 @@ const initialDraft = (): Draft => {
 };
 const inputClass = "h-10 w-full rounded-lg border border-[#d4ddd4] bg-[#f7f9f5] px-3 text-sm text-[#29423f] outline-none focus:border-[#60877a] focus:ring-2 focus:ring-[#60877a]/15 disabled:opacity-60";
 const isDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`)) && new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value;
-const validId = (value: string) => /^[1-9]\d*$/.test(value) && Number(value) <= 2147483647;
 
 export default function CustomerAccountingReports({ companies }: { companies: { id: number; name: string }[] }) {
   const { language, direction } = useLanguage();
@@ -46,7 +45,7 @@ export default function CustomerAccountingReports({ companies }: { companies: { 
     setExportError("");
     if (!draft.companyId) return setFormError(t("required"));
     const customerIdText = normalizeAccountingDigits(draft.customerId.trim());
-    if (customerIdText && !validId(customerIdText)) return setFormError(t("invalidId"));
+    if (customerIdText && !accountingCustomerCodeSchema.safeParse(customerIdText).success) return setFormError(t("invalidId"));
     if (isStatement && !customerIdText) return setFormError(t("required"));
     if (isStatement && (!isDate(draft.from) || !isDate(draft.to) || draft.from > draft.to)) return setFormError(t("dateRange"));
     if (!isStatement && !draft.asOf) return setFormError(t("required"));
@@ -55,13 +54,13 @@ export default function CustomerAccountingReports({ companies }: { companies: { 
     // Build only fields applicable to the selected report; never send statement dates to aging or vice versa.
     const filters: CustomerReportFilters = isStatement
       ? {
-          companyId: Number(draft.companyId), customerId: Number(customerIdText),
+          companyId: Number(draft.companyId), customerCode: customerIdText,
           from: draft.from, to: draft.to, page: 1, pageSize: 50,
           ...(draft.currency ? { currency: draft.currency.toUpperCase() } : {}),
         }
       : {
           companyId: Number(draft.companyId), page: 1, pageSize: 50,
-          ...(customerIdText ? { customerId: Number(customerIdText) } : {}),
+          ...(customerIdText ? { customerCode: customerIdText } : {}),
           ...(draft.asOf ? { asOf: draft.asOf } : {}),
           ...(draft.currency ? { currency: draft.currency.toUpperCase() } : {}),
         };

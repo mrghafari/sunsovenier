@@ -28,7 +28,7 @@ export function CustomerReportResult({ report, data, language, page, changePage 
     ["runningNative", "runningNative"], ["runningBase", "runningBase"], ["currency", "currencyCol"], ["exchangeRate", "rate"],
     ["valuationBasis", "valuation"], ["partyType", "partyType"], ["partyId", "partyId"], ["costCenterCode", "center"],
     ["sourceType", "source"], ["sourceId", "sourceId"], ["reversalOfId", "reversal"],
-    ["customerId", "customerRef"], ["customerCode", "customerCode"], ["customerName", "customer"],
+    ["customerCode", "customerRef"], ["customerName", "customer"],
   ];
   const agingColumns: [string, CustomerReportCopyKey][] = [
     ["kind", "bucket"], ["customerCode", "customerCode"], ["customerName", "customer"],
@@ -53,7 +53,7 @@ export function CustomerReportResult({ report, data, language, page, changePage 
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Metric label={t("company")} value={data.company.name} />
       <Metric label={t("customer")} value={data.customer ? `${data.customer.code ? `${data.customer.code} · ` : ""}${data.customer.name}` : "—"} />
-      <Metric label={t("customerRef")} value={data.customer ? String(data.customer.id) : "—"} />
+      <Metric label={t("customerRef")} value={data.customer?.code ?? "—"} />
       <Metric label={t("companyBase")} value={data.company.baseCurrency} />
       <Metric label={statement ? t("statementPeriod") : t("agingAsOf")} value={statement ? `${data.filters.from ?? "—"} — ${data.filters.to ?? "—"}` : data.filters.asOf ?? "—"} />
     </div>

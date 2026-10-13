@@ -10,8 +10,8 @@ export async function readCustomerReport(name:string,input:unknown,callerTx?:Acc
   if(!customerReportNames.includes(name as CustomerReportName))throw new AccountingError("Unknown customer accounting report",404,"NOT_FOUND");
   const parsed=customerReportFiltersSchema.safeParse(input);
   if(!parsed.success)throw new AccountingError(parsed.error.issues[0].message);
-  const f=parsed.data,report=name as CustomerReportName;
-  if(report==="customer-statement"&&(!f.customerId||!f.from||!f.to||f.asOf))
+  const requested=parsed.data,f={...requested},report=name as CustomerReportName;
+  if(report==="customer-statement"&&(!(f.customerId||f.customerCode)||!f.from||!f.to||f.asOf))
     throw new AccountingError("Customer statement requires customer, from and to dates; no as-of filter");
   if(report==="receivables-aging"&&(!f.asOf||f.from||f.to))
     throw new AccountingError("Receivables aging requires an as-of date; no period filter");
@@ -24,11 +24,15 @@ export async function readCustomerReport(name:string,input:unknown,callerTx?:Acc
       from accounting_companies c where c.id=${f.companyId}`)).rows[0];
     if(!company)throw new AccountingError("Accounting company not found",404,"NOT_FOUND");
     let customer:CustomerAccountingReport["customer"]=null;
-    if(f.customerId){
-      const c=(await tx.execute(sql`select id,concat_ws(' ',first_name,last_name) as name,customer_code as code
-        from crm_customers where id=${f.customerId}`)).rows[0];
-      if(!c)throw new AccountingError("CRM customer not found",404,"NOT_FOUND");
+    if(f.customerId||f.customerCode){
+      const matches=(await tx.execute(sql`select id,concat_ws(' ',first_name,last_name) as name,customer_code as code
+        from crm_customers where ${f.customerCode?sql`customer_code=${f.customerCode}`:sql`id=${f.customerId}`} limit 2`)).rows;
+      if(!matches.length)throw new AccountingError("Customer number not found in CRM",404,"NOT_FOUND");
+      if(matches.length!==1)throw new AccountingError("Customer number is ambiguous",409,"AMBIGUOUS_CUSTOMER");
+      const c=matches[0];
       customer={id:Number(c.id),name:String(c.name),code:c.code===null?null:String(c.code)};
+      // Resolve only the read scope; never relink a wallet or import legacy balances.
+      f.customerId=customer.id;
     }
     if(f.currency&&!((await tx.execute(sql`select code from accounting_currencies where code=${f.currency}`)).rows.length))
       throw new AccountingError("Unknown report currency");
@@ -94,7 +98,7 @@ export async function readCustomerReport(name:string,input:unknown,callerTx?:Acc
         order by sort_customer,sort_currency,sort_date nulls last,sort_id nulls last,kind
         limit ${limit} offset ${offset}`)).rows.map(r=>r.row as CustomerReportRow);
     }
-    return {report,filters:f,company:{id:Number(company.id),name:String(company.name),baseCurrency:String(company.base_currency)},customer,
+    return {report,filters:requested,company:{id:Number(company.id),name:String(company.name),baseCurrency:String(company.base_currency)},customer,
       coverage:{postedEntryCount:Number(company.posted_count),receivableAccountCount:Number(accounts.count),
         walletCutoverReady:company.wallet_ready===true,receiptCutoverReady:company.receipt_ready===true,legacyOpeningVerified:false as const},
       rows,balances,agingSummaries,pagination:{page:exportAll?1:f.page,pageSize:exportAll?REPORT_EXPORT_LIMIT:f.pageSize,totalRows}};
