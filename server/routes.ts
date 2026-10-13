@@ -19429,6 +19429,12 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           try {
             // Use the customer ID that exists (prioritize CRM customer)
             const customerIdToUse = finalCrmCustomerId || customerId;
+            const accountingSelection = await import("./modules/accounting/wallet");
+            const useNewAccount = await accountingSelection.shouldDeferWalletCheckout(Number(finalCrmCustomerId || 0));
+            if(useNewAccount && finalPaymentMethod !== "wallet_full") {
+              return res.status(409).json({success:false,code:"INDEPENDENT_ACCOUNT_PARTIAL_UNSUPPORTED",
+                message:"حساب مستقل فقط برای پرداخت کامل سفارش قابل استفاده است؛ پرداخت ترکیبی را با کیف پول قدیمی انجام ندهید."});
+            }
             
             // CRITICAL: For wallet_partial payments, RESERVE funds instead of deducting
             // Actual deduction happens ONLY after bank payment is confirmed
@@ -19449,7 +19455,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               console.log('💰 [PAYMENT STATUS] Set to PENDING - wallet_partial awaiting bank payment');
             } else if (finalPaymentMethod === 'wallet_full') {
               const accountingWallet = await import("./modules/accounting/wallet");
-              accountingWalletDeferred = await accountingWallet.shouldDeferWalletCheckout(Number(customerId && crmCustomerId || 0));
+              accountingWalletDeferred = useNewAccount;
               if (accountingWalletDeferred) {
                 actualWalletUsed = 0;
                 finalPaymentStatus = "pending";
@@ -20049,9 +20055,13 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           Math.round(totalAmount),
           Math.max(0, Math.round(parseFloat(orderData.walletAmountUsed || 0))),
         );
-        if (requestedWallet > 0 && Math.max(0, Math.round(totalAmount) - requestedWallet) <= 1) {
+        if (requestedWallet > 0) {
           const accountingWallet = await import("./modules/accounting/wallet");
           accountingCustomerWalletDeferred = await accountingWallet.shouldDeferWalletCheckout(Number(crmCustomerId || 0));
+          if(accountingCustomerWalletDeferred && Math.max(0,Math.round(totalAmount)-requestedWallet)>1) {
+            return res.status(409).json({success:false,code:"INDEPENDENT_ACCOUNT_PARTIAL_UNSUPPORTED",
+              message:"حساب مستقل فقط برای پرداخت کامل سفارش قابل استفاده است؛ پرداخت ترکیبی را با کیف پول قدیمی انجام ندهید."});
+          }
         }
       }
 
@@ -41588,6 +41598,13 @@ momtazchem.com
         return res.status(401).json({ success: false, message: "Customer authentication required" });
       }
 
+      if(req.query.purpose==="checkout"){
+        const {readShopCustomerAccount}=await import("./modules/accounting/wallet");
+        const account=await readShopCustomerAccount(req.session.customerId);
+        if(account)return res.json({success:true,...account,balance:Number(account.availableBalance),
+          totalBalance:Number(account.totalBalance),reservedBalance:Number(account.reservedBalance),
+          availableBalance:Number(account.availableBalance),creditLimit:0});
+      }
       const balanceInfo = await walletStorage.getAvailableBalance(req.session.customerId);
       res.json({ success: true, balance: balanceInfo.availableBalance, totalBalance: balanceInfo.totalBalance, reservedBalance: balanceInfo.reservedBalance, availableBalance: balanceInfo.availableBalance, creditLimit: balanceInfo.creditLimit });
     } catch (error) {
@@ -42942,13 +42959,14 @@ momtazchem.com
       const directWallet = await customerDb
         .select()
         .from(customerWallets)
-        .where(eq(customerWallets.customerId, customerId));
+        .where(and(eq(customerWallets.customerId, customerId),sql`${customerWallets.accountingCompanyId} is null`));
       
       // 2. Recalculate balance from all transactions
       const allTransactions = await customerDb
         .select()
         .from(walletTransactions)
-        .where(eq(walletTransactions.customerId, customerId))
+        .where(and(eq(walletTransactions.customerId, customerId),sql`${walletTransactions.walletId} in
+          (select id from customer_wallets where customer_id=${customerId} and accounting_company_id is null)`))
         .orderBy(walletTransactions.createdAt);
       
       let calculatedBalance = 0;

@@ -15,6 +15,7 @@ const CRITICAL_SEQUENCES: SequenceInfo[] = [
   { tableName: 'customer_activities', sequenceName: 'customer_activities_id_seq', idColumn: 'id' },
   { tableName: 'financial_transactions', sequenceName: 'financial_transactions_id_seq', idColumn: 'id' },
   { tableName: 'wallet_transactions', sequenceName: 'wallet_transactions_id_seq', idColumn: 'id' },
+  { tableName: 'customer_wallets', sequenceName: 'customer_wallets_id_seq', idColumn: 'id' },
   { tableName: 'fib_payments', sequenceName: 'fib_payments_id_seq', idColumn: 'id' },
   { tableName: 'order_items', sequenceName: 'order_items_id_seq', idColumn: 'id' },
   { tableName: 'contacts', sequenceName: 'contacts_id_seq', idColumn: 'id' },

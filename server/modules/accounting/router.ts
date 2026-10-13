@@ -45,6 +45,7 @@ import {readCustomerReport} from "./customer-reports";
 import {customerReportCsv} from "./customer-report-csv";
 import {readCreditExposure} from "./credit-exposure";
 import {readCreditCustomer} from "./credit-customer";
+import {readCustomerAccounts,createIndependentCustomerAccount,setCustomerAccountCreditLimit} from "./customer-accounts";
 import {registerCreditOrder,approveCreditOrder} from "./credit-orders";
 import {readManualMetadata,readManualDocuments,readManualDocument,previewManualDocument,
   saveManualDocument,postManualDocument,discardManualDocument,reverseManualDocument} from "./manual-documents";
@@ -206,6 +207,15 @@ export function createAccountingRouter() {
         throw new AccountingError("Valid company and wallet IDs required");
       res.status(201).json(await linkWallet(companyId,walletId,res.locals.accountingAccess));
     }catch(e){next(e);}
+  });
+  router.get("/v2/customer-accounts",async(req,res,next)=>{
+    try{res.json(await readCustomerAccounts(req.query));}catch(e){next(e);}
+  });
+  router.post("/v2/customer-accounts",async(req,res,next)=>{
+    try{res.status(201).json(await createIndependentCustomerAccount(req.body,res.locals.accountingAccess));}catch(e){next(e);}
+  });
+  router.post("/v2/customer-accounts/credit-limit",async(req,res,next)=>{
+    try{res.json(await setCustomerAccountCreditLimit(req.body,res.locals.accountingAccess));}catch(e){next(e);}
   });
   router.post("/v2/wallets/:kind",async(req,res,next)=>{
     try {

@@ -30,6 +30,16 @@ import { contractTheme } from "@/lib/contract-theme";
 
 const EMPTY_SHIPPING_OPTIONS: any[] = [];
 const EMPTY_PAYMENT_SETTINGS: any[] = [];
+type CheckoutWalletAccount = {
+  accountMode?: string;
+  walletId?: number;
+  companyId?: number;
+  companyName?: string;
+  currency?: string;
+  totalBalance?: number;
+  reservedBalance?: number;
+  availableBalance?: number;
+};
 
 // Dynamic checkout form validation schema - required fields only if not logged in
 const createCheckoutFormSchema = (isLoggedIn: boolean, t: Translation) => z.object({
@@ -139,6 +149,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [walletBalance, setWalletBalance] = useState(0);
+  const [walletAccount, setWalletAccount] = useState<CheckoutWalletAccount | undefined>();
+  const walletFetchGeneration = useRef(0);
   const [selectedContractId] = useState<number | null>(null);
   const [selectedContractSnapshot, setSelectedContractSnapshot] = useState<ShopContract | undefined>();
   const shippingMethodBeforeContractPolicyRef = useRef<string | undefined>(undefined);
@@ -501,20 +513,52 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
 
   // Fetch wallet balance for logged in users
   const fetchWalletBalance = async () => {
-    if (!isUserLoggedIn) return;
-    
+    const generation = ++walletFetchGeneration.current;
+    const clearBalance = () => {
+      setWalletBalance(0);
+      setWalletAccount(undefined);
+      setUseWallet(false);
+      setWalletAmountToUse(0);
+      if (isWalletPaymentMethod(form.getValues('paymentMethod'))) {
+        form.setValue('paymentMethod', getSupportedNonWalletPaymentMethod());
+      }
+    };
+    if (!isUserLoggedIn) {
+      clearBalance();
+      return;
+    }
     try {
-      const response = await fetch('/api/customers/wallet/balance', {
+      const response = await fetch('/api/customers/wallet/balance?purpose=checkout', {
         credentials: 'include'
       });
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setWalletBalance(result.balance || 0);
-        }
+      if (!response.ok) throw new Error('Could not load customer account balance');
+      const result = await response.json();
+      if (generation !== walletFetchGeneration.current) return;
+      if (result.success) {
+        const account: CheckoutWalletAccount = {
+          accountMode: result.accountMode,
+          walletId: result.walletId,
+          companyId: result.companyId,
+          companyName: result.companyName,
+          currency: result.currency,
+          totalBalance: result.totalBalance,
+          reservedBalance: result.reservedBalance,
+          availableBalance: result.availableBalance,
+        };
+        const rawBalance = result.accountMode === 'independent'
+          ? result.availableBalance
+            ?? (result.totalBalance !== undefined
+              ? Number(result.totalBalance) - Number(result.reservedBalance ?? 0)
+              : result.balance)
+          : result.balance;
+        const spendable = Number(rawBalance);
+        setWalletAccount(account);
+        setWalletBalance(Number.isFinite(spendable) ? Math.max(0, spendable) : 0);
+      } else {
+        clearBalance();
       }
     } catch (error) {
+      if (generation === walletFetchGeneration.current) clearBalance();
       console.error('Error fetching wallet balance:', error);
     }
   };
@@ -524,9 +568,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   // Move this useEffect after beforeWalletTotal calculation
 
   useEffect(() => {
-    if (isUserLoggedIn) {
-      fetchWalletBalance();
-    }
+    void fetchWalletBalance();
   }, [isUserLoggedIn]);
 
   // Set customer info from query data
@@ -1203,6 +1245,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   // Item subtotal can be shown immediately, but no payable total exists
   // until the selected delivery address has a valid shipping price.
   const beforeWalletTotal = finalPriceReady ? subtotal + shippingCost + totalTaxAmount + (packagingCharge?.totalAmount || 0) : 0;
+  const isIndependentWallet = walletAccount?.accountMode === 'independent';
+  const walletCurrency = walletAccount?.currency?.toUpperCase() || (isIndependentWallet ? '' : 'IQD');
+  const independentCurrencySupported = walletCurrency === 'IQD';
+  const independentCanPayInFull = isIndependentWallet && independentCurrencySupported
+    && beforeWalletTotal > 0 && walletBalance >= beforeWalletTotal;
   
   // Auto-enable wallet usage when wallet payment method is selected
   useEffect(() => {
@@ -1222,6 +1269,17 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       return;
     }
     if (paymentMethod === 'wallet_combined') {
+      if (isIndependentWallet) {
+        if (!independentCanPayInFull) {
+          setUseWallet(false);
+          setWalletAmountToUse(0);
+          form.setValue('paymentMethod', getSupportedNonWalletPaymentMethod());
+          return;
+        }
+        setUseWallet(true);
+        setWalletAmountToUse(beforeWalletTotal);
+        return;
+      }
       setUseWallet(true);
       // Always suggest full payment amount if wallet has sufficient balance
       const suggestedAmount = Math.min(walletBalance, beforeWalletTotal);
@@ -1247,12 +1305,16 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       setUseWallet(false);
       setWalletAmountToUse(0);
     }
-  }, [form.watch('paymentMethod'), walletBalance, beforeWalletTotal, selectedContractId, paymentSettings]);
+  }, [form.watch('paymentMethod'), walletBalance, beforeWalletTotal, selectedContractId, paymentSettings, isIndependentWallet, independentCanPayInFull]);
   
   // Calculate wallet usage
-  const maxWalletUsage = Math.min(walletBalance, beforeWalletTotal);
+  const maxWalletUsage = isIndependentWallet
+    ? (independentCanPayInFull ? beforeWalletTotal : 0)
+    : Math.min(walletBalance, beforeWalletTotal);
   const actualWalletUsage = selectedContractId === null && useWallet
-    ? Math.min(walletAmountToUse, maxWalletUsage)
+    ? isIndependentWallet
+      ? (independentCanPayInFull ? beforeWalletTotal : 0)
+      : Math.min(walletAmountToUse, maxWalletUsage)
     : 0;
   const totalAmount = beforeWalletTotal - actualWalletUsage;
   
@@ -1361,6 +1423,23 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
             ? 'Sözleşmeli siparişlerde cüzdanla ödeme kullanılamaz'
             : 'Wallet payment is not allowed for contract orders';
       toast({ title: walletGuardTitle, description: contractNonWalletPaymentNote, variant: 'destructive' });
+      return;
+    }
+    if (isIndependentWallet && (isWalletPaymentMethod(data.paymentMethod) || useWallet)
+      && (!independentCanPayInFull || actualWalletUsage !== beforeWalletTotal)) {
+      setUseWallet(false);
+      setWalletAmountToUse(0);
+      setSecondaryPaymentMethod('');
+      form.setValue('paymentMethod', getSupportedNonWalletPaymentMethod());
+      setPendingReview(null);
+      const walletUnavailableNote = language === 'fa'
+        ? 'مانده حساب مستقل برای پرداخت کامل کافی نیست یا ارز آن با سفارش هماهنگ نیست. پرداخت بانکی را انتخاب کنید؛ تأمین این حساب باید جداگانه و با مستندات ثبت شود.'
+        : language === 'ar'
+          ? 'رصيد الحساب المستقل غير كافٍ للدفع الكامل أو أن عملته لا تطابق الطلب. اختر الدفع المصرفي؛ يجب توثيق تمويل هذا الحساب وإيداعه بشكل منفصل.'
+          : language === 'tr'
+            ? 'Bağımsız hesap bakiyesi tam ödeme için yetersiz veya para birimi siparişle eşleşmiyor. Banka ödemesini seçin; hesaba fonlama ayrıca belgelenmelidir.'
+            : 'The independent account cannot cover the full order in the same currency. Choose bank payment; funding must be deposited and documented separately.';
+      toast({ title: language === 'fa' ? 'پرداخت کیف پول در دسترس نیست' : language === 'ar' ? 'الدفع بالمحفظة غير متاح' : language === 'tr' ? 'Cüzdanla ödeme kullanılamıyor' : 'Wallet payment unavailable', description: walletUnavailableNote, variant: 'destructive' });
       return;
     }
     if (selectedContractId !== null) {
@@ -1808,6 +1887,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
             ? getSupportedNonWalletPaymentMethod()
             : data.paymentMethod;
         }
+        if (isIndependentWallet && data.paymentMethod === 'wallet_combined') {
+          return 'wallet_full';
+        }
         // Let backend handle wallet_combined conversion
         if (data.paymentMethod === 'wallet_combined') {
           console.log('📤 [FRONTEND] Sending wallet_combined to backend for smart conversion');
@@ -1823,7 +1905,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
           return data.paymentMethod;
         }
       })(),
-      secondaryPaymentMethod: selectedContractId === null ? secondaryPaymentMethod : '',
+      secondaryPaymentMethod: selectedContractId === null && !(isIndependentWallet && actualWalletUsage > 0) ? secondaryPaymentMethod : '',
       walletAmountUsed: selectedContractId === null ? actualWalletUsage : 0,
       remainingAmount: beforeWalletTotal - actualWalletUsage, // Fix: Send actual remaining amount after wallet deduction
       // Use ref to get current vehicle (avoids stale closure in callbacks)
@@ -2893,9 +2975,10 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                     // Special handling for wallet payment
                                     if (setting.methodKey === 'wallet') {
                                       if (!isUserLoggedIn || walletBalance <= 0) return null;
+                                      if (isIndependentWallet && !independentCanPayInFull) return null;
                                       return (
                                         <SelectItem key={setting.methodKey} value="wallet_combined">
-                                          {methodName} - {t.checkout_page.walletBalance} {walletBalance.toLocaleString()} IQD
+                                          {methodName} - {t.checkout_page.walletBalance} {walletBalance.toLocaleString()} {walletCurrency}
                                         </SelectItem>
                                       );
                                     }
@@ -2923,18 +3006,60 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                       )}
                     />
 
+                    {isIndependentWallet && (
+                      <div role="note" className="space-y-2 rounded-xl border border-[#d9e3d9] bg-[#f2f6f0] px-4 py-3 text-sm text-[#38594a]">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <strong>{language === 'fa' ? 'حساب مستقل شرکت' : language === 'ar' ? 'حساب الشركة المستقل' : language === 'tr' ? 'Bağımsız şirket hesabı' : 'Independent company account'}</strong>
+                          <span dir="ltr" className="font-mono text-xs">{walletAccount?.companyName || (walletAccount?.companyId ? `#${walletAccount.companyId}` : '')} · {walletCurrency || '—'}</span>
+                        </div>
+                        <p className="text-xs leading-5">
+                          {language === 'fa'
+                            ? 'حساب مستقل است؛ پول قدیمی منتقل نمی‌شود و مانده افتتاحیه آن صفر بوده است.'
+                            : language === 'ar'
+                              ? 'هذا حساب مستقل؛ لا تُنقل إليه الأموال القديمة وكان رصيده الافتتاحي صفراً.'
+                              : language === 'tr'
+                                ? 'Bu bağımsız bir hesaptır; eski para aktarılmaz ve açılış bakiyesi sıfırdır.'
+                                : 'This is an independent account; legacy funds are not transferred and its opening balance was zero.'}
+                        </p>
+                        <p className="text-xs font-medium leading-5">
+                          {language === 'fa' ? 'مانده قابل استفاده' : language === 'ar' ? 'الرصيد المتاح' : language === 'tr' ? 'Kullanılabilir bakiye' : 'Available balance'}: {walletBalance.toLocaleString(language)} {walletCurrency || '—'}
+                        </p>
+                        {!independentCurrencySupported ? (
+                          <p role="status" className="rounded-lg border border-[#e6d9c4] bg-[#faf4e9] px-3 py-2 text-xs leading-5 text-[#786344]">
+                            {language === 'fa'
+                              ? 'ارز این حساب با مبلغ سفارش (IQD) یکسان نیست؛ پرداخت بانکی را انتخاب کنید.'
+                              : language === 'ar'
+                                ? 'عملة هذا الحساب لا تطابق مبلغ الطلب (IQD)؛ اختر الدفع المصرفي.'
+                                : language === 'tr'
+                                  ? 'Hesap para birimi sipariş tutarıyla (IQD) eşleşmiyor; banka ödemesini seçin.'
+                                  : 'This account currency does not match the order total (IQD); choose bank payment.'}
+                          </p>
+                        ) : beforeWalletTotal > 0 && walletBalance < beforeWalletTotal ? (
+                          <p role="status" className="rounded-lg border border-[#e6d9c4] bg-[#faf4e9] px-3 py-2 text-xs leading-5 text-[#786344]">
+                            {language === 'fa'
+                              ? 'این حساب فقط پرداخت کامل را پشتیبانی می‌کند و مانده برای این سفارش کافی نیست. پرداخت بانکی را انتخاب کنید؛ تأمین مالی حساب باید جداگانه و مستند انجام شود.'
+                              : language === 'ar'
+                                ? 'يدعم هذا الحساب الدفع الكامل فقط ورصيده لا يكفي لهذا الطلب. اختر الدفع المصرفي؛ يجب توثيق تمويل الحساب وإيداعه بشكل منفصل.'
+                                : language === 'tr'
+                                  ? 'Bu hesap yalnızca tam ödemeyi destekler ve bakiye sipariş için yetersizdir. Banka ödemesini seçin; hesaba fonlama ayrıca belgelenmelidir.'
+                                  : 'This account supports full payment only and cannot cover this order. Choose bank payment; funding must be deposited and documented separately.'}
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
+
                     {/* Wallet Payment Section */}
                     {selectedContractId === null && isUserLoggedIn && walletBalance > 0 && form.watch('paymentMethod') === 'wallet_combined' && (
                       <div className="p-4 bg-green-50 rounded-lg space-y-4">
                         <div className="flex items-center justify-between">
                           <div>
                             <h4 className="font-medium text-green-800">{t.checkout_page.walletPaymentTitle}</h4>
-                            <p className="text-sm text-green-600">{walletBalance.toLocaleString()} IQD {t.checkout_page.availableFunds}</p>
+                            <p className="text-sm text-green-600">{walletBalance.toLocaleString()} {walletCurrency} {t.checkout_page.availableFunds}</p>
                           </div>
 
                         </div>
                         
-                        {useWallet && (
+                        {useWallet && !isIndependentWallet && (
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-green-700">
                               {t.checkout_page.walletAmountToUse}
@@ -2978,6 +3103,17 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                               </div>
                             )}
                           </div>
+                        )}
+                        {useWallet && isIndependentWallet && (
+                          <p role="status" className="rounded-lg border border-green-200 bg-green-100 px-3 py-2 text-sm font-medium text-green-800">
+                            {language === 'fa'
+                              ? `مانده مستقل ${beforeWalletTotal.toLocaleString(language)} IQD هزینه سفارش را به‌طور کامل پوشش می‌دهد.`
+                              : language === 'ar'
+                                ? `الرصيد المستقل يغطي كامل الطلب: ${beforeWalletTotal.toLocaleString(language)} IQD.`
+                                : language === 'tr'
+                                  ? `Bağımsız bakiye siparişin tamamını karşılıyor: ${beforeWalletTotal.toLocaleString(language)} IQD.`
+                                  : `The independent balance covers the full order: ${beforeWalletTotal.toLocaleString(language)} IQD.`}
+                          </p>
                         )}
                       </div>
                     )}

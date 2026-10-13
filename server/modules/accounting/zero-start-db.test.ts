@@ -7,7 +7,8 @@ import {accountingDb} from "./db";
 import {pool} from "../../db";
 import {iraqChart} from "./iraq-chart";
 import {activateZeroStart,readZeroStart} from "./zero-start";
-import {linkWallet} from "./wallet";
+import {linkWallet,readShopCustomerAccount,shouldDeferWalletCheckout,recordWalletMovement} from "./wallet";
+import {readCustomerAccounts,createIndependentCustomerAccount,setCustomerAccountCreditLimit} from "./customer-accounts";
 import {POSTING_KEYS} from "@shared/accounting-api";
 
 test("independent zero start activates only an isolated book and preserves native balances (rollback-only)",
@@ -104,6 +105,56 @@ test("independent zero start activates only an isolated book and preserves nativ
        select ${companyId},id,'2026-10-05','Rollback forbidden retrospective source','ManualJournal',
        ${randomUUID()},${"a".repeat(64)},${actorId},'admin' from accounting_fiscal_years where company_id=${companyId}`),/Retrospective/);
      assert.equal((await tx.execute(sql`select processing_ready from accounting_foreign_invoice_cutovers where company_id=${companyId}`)).rows.length,0);
+   });
+   await t.test("same CRM customer retains legacy wallet while independent company accounts start at zero",async()=>{
+     const customerId=1801000000+randomInt(1,100000);
+     const customerCode=String((await tx.execute(sql`insert into crm_customers(id,email,first_name,last_name)
+       values(${customerId},${randomUUID()+"@example.invalid"},'Independent','Rollback') returning customer_code`)).rows[0].customer_code);
+     const legacyId=Number((await tx.execute(sql`insert into customer_wallets(customer_id,currency,balance,created_at)
+       values(${customerId},'IQD',123,'2026-01-01') returning id`)).rows[0].id);
+     const legacyBefore=(await tx.execute(sql`select to_jsonb(w) data from customer_wallets w where id=${legacyId}`)).rows[0].data;
+     const input={companyId,customerCode,currency:"IQD" as const,reason:"Rollback independent customer account evidence",independentConfirmed:true};
+     assert.equal(await shouldDeferWalletCheckout(customerId,tx),false);
+     await rejected(()=>createIndependentCustomerAccount(input,{...actor,canManage:false},tx),/manager/i);
+     await rejected(()=>createIndependentCustomerAccount({...input,independentConfirmed:false},actor,tx),/confirmation/i);
+     const result=await createIndependentCustomerAccount(input,actor,tx);
+     assert.equal(result.duplicate,false);
+     assert.equal(result.legacyBalancesChanged,false);
+     assert.notEqual(result.walletId,legacyId);
+     assert.equal((await createIndependentCustomerAccount(input,actor,tx)).walletId,result.walletId);
+     const info=await readCustomerAccounts({companyId,customerCode},tx);
+     assert.equal(info.accounts.length,1);
+     assert.equal(info.accounts[0].balance,"0.00");
+     assert.equal(info.legacyAccounts.length,1);
+     assert.equal(info.legacyAccounts[0].balance,"123.00");
+     assert.equal(await shouldDeferWalletCheckout(customerId,tx),true);
+     assert.equal((await readShopCustomerAccount(customerId,tx))?.walletId,result.walletId);
+     assert.equal((await readShopCustomerAccount(customerId,tx))?.availableBalance,"0.00");
+     const deposit={companyId,walletId:result.walletId,sourceId:randomUUID(),entryDate:"2026-10-13",amount:"100",
+       channel:"BANK" as const,evidenceReference:"Rollback bank receipt evidence",reason:"Rollback documented new deposit"};
+     const posted=await recordWalletMovement("topup",deposit,actor,tx);
+     assert.equal(posted.duplicate,false);
+     assert.equal((await recordWalletMovement("topup",deposit,actor,tx)).duplicate,true);
+     assert.equal((await readShopCustomerAccount(customerId,tx))?.availableBalance,"100.00");
+     const credit={companyId,walletId:result.walletId,creditLimit:"250",reason:"Rollback documented credit authorization",confirmed:true};
+     await rejected(()=>setCustomerAccountCreditLimit(credit,{...actor,canManage:false},tx),/manager/i);
+     const policy=await setCustomerAccountCreditLimit(credit,actor,tx);
+     assert.equal(policy.creditLimit,"250");
+     assert.equal(policy.balanceChanged,false);
+     assert.equal((await setCustomerAccountCreditLimit(credit,actor,tx)).duplicate,true);
+     assert.equal((await readShopCustomerAccount(customerId,tx))?.availableBalance,"100.00");
+     assert.deepEqual((await tx.execute(sql`select to_jsonb(w) data from customer_wallets w where id=${legacyId}`)).rows[0].data,legacyBefore);
+     await rejected(()=>tx.execute(sql`update customer_wallets set accounting_company_id=${companyId} where id=${legacyId}`),/identity/i);
+     await rejected(()=>tx.execute(sql`insert into customer_wallets(customer_id,currency,balance) values(${customerId},'USD',0)`),/unique/i);
+     await rejected(()=>tx.execute(sql`insert into customer_wallets(customer_id,accounting_company_id,currency,balance)
+       values(${customerId},${companyId},'USD',1)`),/zero initial/i);
+     await rejected(()=>tx.execute(sql`update customer_wallets set currency='USD' where id=${result.walletId}`),/identity/i);
+     await createIndependentCustomerAccount({...input,currency:"USD"},actor,tx);
+     assert.equal((await readCustomerAccounts({companyId,customerCode},tx)).accounts.length,2);
+     assert.equal((await readShopCustomerAccount(customerId,tx))?.currency,"IQD");
+     await tx.execute(sql`update customer_wallets set status='frozen' where id=${result.walletId}`);
+     await rejected(()=>shouldDeferWalletCheckout(customerId,tx),/not active/i);
+     await rejected(()=>readShopCustomerAccount(customerId,tx),/not active/i);
    });
    const existingCompanyId=Number(process.env.ACCOUNTING_ZERO_START_VERIFY_EXISTING_COMPANY);
    if(Number.isSafeInteger(existingCompanyId)&&existingCompanyId>0){

@@ -1,4 +1,5 @@
-import { pgTable, text, serial, timestamp, decimal, boolean, integer, json, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, decimal, boolean, integer, json, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
+import {sql} from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { crmCustomers, shopContracts } from "./schema";
@@ -430,7 +431,10 @@ export type QuoteRequest = typeof quoteRequests.$inferSelect;
 // Customer wallets table - stores customer credit balance
 export const customerWallets = pgTable("customer_wallets", {
   id: serial("id").primaryKey(),
-  customerId: integer("customer_id").notNull().unique().references(() => crmCustomers.id),
+  customerId: integer("customer_id").notNull().references(() => crmCustomers.id),
+  // Null is the preserved legacy wallet. Accounting owns company-scoped
+  // independent accounts; partial uniqueness/FK are installed by its migration.
+  accountingCompanyId: integer("accounting_company_id"),
   balance: decimal("balance", { precision: 15, scale: 2 }).notNull().default("0"),
   reservedBalance: decimal("reserved_balance", { precision: 15, scale: 2 }).notNull().default("0"), // مبلغ رزرو شده برای سفارشات در انتظار
   currency: text("currency").notNull().default("IQD"), // IQD, USD, EUR, IRR
@@ -439,7 +443,11 @@ export const customerWallets = pgTable("customer_wallets", {
   lastActivityDate: timestamp("last_activity_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+},table=>[
+  uniqueIndex("customer_wallets_legacy_customer_unique").on(table.customerId).where(sql`${table.accountingCompanyId} is null`),
+  uniqueIndex("customer_wallets_accounting_customer_currency_unique").on(table.customerId,table.accountingCompanyId,table.currency)
+    .where(sql`${table.accountingCompanyId} is not null`),
+]);
 
 // Wallet transactions table - all wallet transaction history
 export const walletTransactions = pgTable("wallet_transactions", {

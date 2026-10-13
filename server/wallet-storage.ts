@@ -12,7 +12,7 @@ import {
   type WalletRechargeRequest,
   type InsertWalletRechargeRequest
 } from "@shared/customer-schema";
-import { eq, desc, sum, and } from "drizzle-orm";
+import { eq, desc, sum, and, isNull } from "drizzle-orm";
 
 export interface IWalletStorage {
   // Wallet management
@@ -85,7 +85,7 @@ export class WalletStorage implements IWalletStorage {
     const [wallet] = await customerDb
       .select()
       .from(customerWallets)
-      .where(eq(customerWallets.customerId, customerId));
+      .where(and(eq(customerWallets.customerId, customerId),isNull(customerWallets.accountingCompanyId)));
     return wallet;
   }
 
@@ -156,10 +156,12 @@ export class WalletStorage implements IWalletStorage {
   }
 
   async getTransactionsByCustomer(customerId: number, limit: number = 50): Promise<WalletTransaction[]> {
+    const wallet=await this.getWalletByCustomerId(customerId);
+    if(!wallet)return [];
     return await customerDb
       .select()
       .from(walletTransactions)
-      .where(eq(walletTransactions.customerId, customerId))
+      .where(and(eq(walletTransactions.customerId, customerId),eq(walletTransactions.walletId,wallet.id)))
       .orderBy(desc(walletTransactions.createdAt))
       .limit(limit);
   }
@@ -233,7 +235,7 @@ export class WalletStorage implements IWalletStorage {
     // Read and lock inside the same transaction as the debit and caller's
     // paid-order update. Concurrent checkouts cannot overwrite this balance.
     const [wallet] = await tx.select().from(customerWallets)
-      .where(eq(customerWallets.customerId, customerId)).limit(1).for("update");
+      .where(and(eq(customerWallets.customerId, customerId),isNull(customerWallets.accountingCompanyId))).limit(1).for("update");
     if (!wallet) {
       throw new Error("Customer wallet not found");
     }
@@ -500,6 +502,7 @@ export class WalletStorage implements IWalletStorage {
       .from(walletTransactions)
       .where(and(
         eq(walletTransactions.customerId, customerId),
+        eq(walletTransactions.walletId,wallet?.id??-1),
         eq(walletTransactions.transactionType, "debit")
       ));
 
@@ -508,6 +511,7 @@ export class WalletStorage implements IWalletStorage {
       .from(walletTransactions)
       .where(and(
         eq(walletTransactions.customerId, customerId),
+        eq(walletTransactions.walletId,wallet?.id??-1),
         eq(walletTransactions.transactionType, "credit")
       ));
 

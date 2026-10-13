@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and, lte, gte, sql } from "drizzle-orm";
+import { eq, and, lte, gte, sql, isNull } from "drizzle-orm";
 import { customerOrders, orderItems } from "../shared/customer-schema";
 import { orderManagement, orderStatusHistory } from "../shared/order-management-schema";
 import { shopProducts } from "../shared/shop-schema";
@@ -38,7 +38,7 @@ export class PaymentWorkflowService {
       const [wallet] = await db
         .select({ balance: customerWallets.balance })
         .from(customerWallets)
-        .where(eq(customerWallets.customerId, customerId))
+        .where(and(eq(customerWallets.customerId, customerId),isNull(customerWallets.accountingCompanyId)))
         .limit(1);
       
       walletBalance = parseFloat(wallet?.balance || "0");
@@ -288,6 +288,12 @@ export class PaymentWorkflowService {
   
   // 9. برداشت از کیف پول
   private async deductFromWallet(customerId: number, amount: number, orderNumber: string, customerOrderId: number) {
+    // This is the legacy immediate-debit workflow. New independent accounts
+    // must use finance holds/loading settlement, even if legacy funds remain.
+    const controlled=await db.execute(sql`select o.id from customer_orders o
+      join accounting_wallet_cutovers g on g.company_id=o.accounting_company_id and g.pipeline_ready
+      where o.id=${customerOrderId} and not accounting_legacy_wallet_order(o.id)`);
+    if(controlled.rows.length)throw new Error("Independent prepaid orders require accounting finance approval; legacy debit is prohibited");
     console.log(`💰 [WALLET DEDUCT] ${amount} IQD from customer ${customerId} for order ${customerOrderId}`);
     
     // بروزرسانی موجودی
@@ -297,19 +303,19 @@ export class PaymentWorkflowService {
         balance: sql`${customerWallets.balance} - ${amount}`,
         updatedAt: new Date()
       })
-      .where(eq(customerWallets.customerId, customerId));
+      .where(and(eq(customerWallets.customerId, customerId),isNull(customerWallets.accountingCompanyId)));
     
     // ثبت تراکنش
     await db
       .insert(walletTransactions)
       .values({
-        walletId: sql`(SELECT id FROM customer_wallets WHERE customer_id = ${customerId})`,
+        walletId: sql`(SELECT id FROM customer_wallets WHERE customer_id = ${customerId} AND accounting_company_id IS NULL)`,
         customerId,
         transactionType: 'debit',
         amount: amount.toString(),
         currency: 'IQD',
-        balanceBefore: sql`(SELECT balance FROM customer_wallets WHERE customer_id = ${customerId}) + ${amount}`,
-        balanceAfter: sql`(SELECT balance FROM customer_wallets WHERE customer_id = ${customerId})`,
+        balanceBefore: sql`(SELECT balance FROM customer_wallets WHERE customer_id = ${customerId} AND accounting_company_id IS NULL) + ${amount}`,
+        balanceAfter: sql`(SELECT balance FROM customer_wallets WHERE customer_id = ${customerId} AND accounting_company_id IS NULL)`,
         description: `برداشت برای سفارش ${orderNumber}`,
         referenceType: 'order',
         referenceId: customerOrderId,

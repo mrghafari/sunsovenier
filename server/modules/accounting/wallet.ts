@@ -144,13 +144,16 @@ export async function shouldDeferWalletCheckout(
     join accounting_wallet_cutovers g on g.company_id=b.company_id and g.pipeline_ready
     where b.source_module='shop' and b.capture_enabled`);
   if(!gate.rows.length) return false;
-  const r=await reader.execute(sql`select w.id from accounting_source_bindings b
+  const r=await reader.execute(sql`select w.id,w.status from accounting_source_bindings b
     join accounting_wallet_cutovers g on g.company_id=b.company_id and g.pipeline_ready
     join accounting_wallet_links l on l.company_id=b.company_id
     join customer_wallets w on w.id=l.wallet_id and w.customer_id=l.customer_id and w.currency=l.currency
     where b.source_module='shop' and b.capture_enabled and l.customer_id=${crmCustomerId}
-    and w.status='active' and w.currency='IQD'`);
-  if(r.rows.length===1) return true;
+    and w.currency='IQD'`);
+  if(r.rows.length===1){
+    if(r.rows[0].status!=="active")throw new AccountingError("Checkout account is not active",409,"WALLET_ACCOUNT_INACTIVE");
+    return true;
+  }
   if(r.rows.length===0) {
     // Independent zero opening does not migrate existing balances. Only an
     // unlinked, active IQD wallet demonstrably older than every active cutover
@@ -167,6 +170,32 @@ export async function shouldDeferWalletCheckout(
   }
   throw new AccountingError("An explicitly authenticated CRM prepaid account link is required",409,"WALLET_LINK_REQUIRED");
 }
+// Checkout uses the shop's explicitly linked IQD account, never the preserved
+// legacy balance when a new account exists. Other legacy wallet APIs stay legacy.
+export async function readShopCustomerAccount(crmCustomerId:number,callerTx?:AccountingTransaction){
+  if(!Number.isSafeInteger(crmCustomerId)||crmCustomerId<=0)throw new AccountingError("Authenticated CRM customer required",401,"AUTH_REQUIRED");
+  const run=async(tx:AccountingTransaction)=>{
+    const rows=(await tx.execute(sql`select w.id,w.balance::text,w.currency,w.status,l.company_id,c.name
+      from accounting_source_bindings b
+      join accounting_wallet_cutovers g on g.company_id=b.company_id and g.pipeline_ready
+      join accounting_companies c on c.id=b.company_id and c.is_active
+      join accounting_wallet_links l on l.company_id=b.company_id and l.customer_id=${crmCustomerId}
+      join customer_wallets w on w.id=l.wallet_id and w.customer_id=l.customer_id and w.currency=l.currency
+      where b.source_module='shop' and b.capture_enabled and w.currency='IQD'`)).rows;
+    if(!rows.length)return null;
+    if(rows.length!==1)throw new AccountingError("Ambiguous checkout account",409,"WALLET_ACCOUNT_AMBIGUOUS");
+    const w=rows[0];
+    // A frozen account must not silently fall back to spendable legacy money.
+    if(w.status!=="active")throw new AccountingError("Checkout account is not active",409,"WALLET_ACCOUNT_INACTIVE");
+    const spendable=await available(tx,Number(w.id),String(w.balance));
+    const reserved=decimal(String(w.balance)).minus(spendable);
+    return {walletId:Number(w.id),companyId:Number(w.company_id),companyName:String(w.name),currency:String(w.currency),
+      totalBalance:String(w.balance),reservedBalance:reserved.toFixed(2),
+      availableBalance:spendable.toFixed(2),creditLimit:"0",
+      accountMode:"independent" as const};
+  };
+  return callerTx?run(callerTx):accountingDb.transaction(run,{accessMode:"read only",isolationLevel:"repeatable read"});
+}
 export async function prepareWalletOrder(orderId:number,crmCustomerId:number,callerTx?:AccountingTransaction) {
   const run=async(tx:AccountingTransaction)=>{
     await tx.execute(sql`select pg_advisory_xact_lock(718392,0)`);
@@ -176,7 +205,8 @@ export async function prepareWalletOrder(orderId:number,crmCustomerId:number,cal
       join accounting_wallet_links l on l.company_id=b.company_id and l.customer_id=${crmCustomerId}
       join customer_wallets w on w.id=l.wallet_id
       join accounting_wallet_cutovers g on g.company_id=l.company_id and g.pipeline_ready
-      where o.id=${orderId} for update of o`);
+      where o.id=${orderId} and w.currency='IQD' and w.status='active'
+        and w.customer_id=l.customer_id and w.currency=l.currency for update of o`);
     const row=r.rows[0];
     if(!row) throw new AccountingError("New wallet order is not eligible",409,"WALLET_ORDER_INELIGIBLE");
     const snapshot=row.snapshot as {version:number;currency:string;orderTotal:string;lines:unknown[]};

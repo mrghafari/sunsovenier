@@ -14,6 +14,7 @@ import AccountingCredit, {creditCopy} from "./accounting-credit";
 import AccountingInventoryDocuments from "./accounting-inventory-documents";
 import AccountingInventoryFifo from "./accounting-inventory-fifo";
 import AccountingLoadingInvoices from "./accounting-loading-invoices";
+import AccountingCustomerAccounts from "./accounting-customer-accounts";
 import AccountingShipmentCosts from "./accounting-shipment-costs";
 import AccountingInventoryCapitalization from "./accounting-inventory-capitalization";
 import CompanyDeleteControl from "./company-delete-control";
@@ -107,7 +108,7 @@ export default function AccountingManagement() {
   const seedMutation = useSeedAccounting();
   const [seedCountry,setSeedCountry]=useState<"IR"|"IQ">(language==="fa"?"IR":"IQ");
   const [activeResource, setActiveResource] = useState<AccountingResource>("companies");
-   const [activePanel, setActivePanel] = useState<"setup" | "reports" | "receipts" | "documents" | "inventory" | "fifo" | "credit" | "loading-invoices" | "capitalization" | "shipment-costs" | "loading-returns" | "wallet-refunds" | "posting-queue">("setup");
+   const [activePanel, setActivePanel] = useState<"setup" | "reports" | "receipts" | "documents" | "inventory" | "fifo" | "credit" | "loading-invoices" | "capitalization" | "shipment-costs" | "loading-returns" | "wallet-refunds" | "posting-queue" | "customer-accounts">("setup");
   const [record, setRecord] = useState<AccountingRow | undefined>();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -312,6 +313,7 @@ export default function AccountingManagement() {
           <button type="button" role="tab" aria-selected={activePanel === "shipment-costs"} onClick={() => setActivePanel("shipment-costs")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "shipment-costs" ? "bg-[#735b3e] text-[#fbf6ed]" : "bg-[#f0e9dd] text-[#685940]"}`}>{language === "fa" ? "ثبت هزینه حمل" : language === "ar" ? "ترحيل تكلفة الشحن" : language === "tr" ? "Sevkiyat maliyeti kaydı" : "Shipment cost posting"}</button>
           <button type="button" role="tab" aria-selected={activePanel === "loading-returns"} onClick={() => setActivePanel("loading-returns")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "loading-returns" ? "bg-[#735b3e] text-[#fbf6ed]" : "bg-[#f0e9dd] text-[#685940]"}`}>{language === "fa" ? "مرجوعی فاکتور بارگیری" : language === "ar" ? "مرتجعات فواتير التحميل" : language === "tr" ? "Yükleme faturası iadeleri" : "Loading invoice returns"}</button>
           <button type="button" role="tab" aria-selected={activePanel === "capitalization"} onClick={() => setActivePanel("capitalization")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "capitalization" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{language === "fa" ? "سرمایه‌ای‌سازی خرید" : language === "ar" ? "رسملة المشتريات" : language === "tr" ? "سەرمایەیی‌کردنی کڕین" : "Purchase capitalization"}</button>
+          <button type="button" role="tab" aria-selected={activePanel === "customer-accounts"} onClick={() => setActivePanel("customer-accounts")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "customer-accounts" ? "bg-[#735b3e] text-[#fbf6ed]" : "bg-[#f0e9dd] text-[#685940]"}`}>{language === "fa" ? "حساب مستقل مشتری" : language === "ar" ? "حسابات العملاء المستقلة" : language === "tr" ? "Bağımsız müşteri hesapları" : "Customer accounts"}</button>
         </div>
         {activePanel === "credit" ? <div className="mt-5"><AccountingCredit companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage}/></div> :
           activePanel === "wallet-refunds" ? <div className="mt-5"><AccountingWalletRefunds companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} defaultCompanyId={companyId} canManage={canManage}/></div> :
@@ -325,6 +327,7 @@ export default function AccountingManagement() {
            activePanel === "loading-returns" ? <div className="mt-5"><AccountingLoadingReturns companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} onWalletPayout={() => setActivePanel("wallet-refunds")} /></div> :
            activePanel === "posting-queue" ? <div className="mt-5"><AccountingPostingQueue companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} defaultCompanyId={companyId} canManage={canManage}/></div> :
            activePanel === "capitalization" ? <div className="mt-5"><AccountingInventoryCapitalization companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} /></div> :
+           activePanel === "customer-accounts" ? <div className="mt-5"><AccountingCustomerAccounts companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} defaultCompanyId={companyId} canManage={canManage}/></div> :
         <div className="mt-6 grid items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
           <aside className="rounded-[22px] border border-[#dce2db] bg-[#e8ede7] p-3">
             <p className="px-3 pb-2 pt-3 text-[10px] font-bold uppercase tracking-[.2em] text-[#718078]">{txt("stepOne")}</p>

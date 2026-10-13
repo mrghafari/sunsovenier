@@ -5,6 +5,7 @@ import { loadingPreviewFiltersSchema } from "@shared/accounting-loading-preview"
 import { useLoadingPreviews } from "@/lib/accounting-loading-preview-api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { normalizeAccountingDigits } from "./accounting-logic";
+import { parseLoadingOrderReference, loadingOrderReferenceCopy } from "./loading-order-number-copy";
 import { loadingPreviewCopy as t, loadingPreviewIssueCopy, loadingPreviewPending } from "./accounting-loading-preview-copy";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -24,9 +25,12 @@ export default function AccountingLoadingPreview({ companies,canManage=false }: 
   const [applied, setApplied] = useState<LoadingPreviewFilters>();
   const [formError, setFormError] = useState(false);
   const selectedCompany = companies.find(company => String(company.id) === draft.companyId);
+  const orderReference = parseLoadingOrderReference(draft.orderId);
   const scopeMatches = !!applied && !!selectedCompany
     && selectedCompany.id === applied.companyId
-    && Number(clean(draft.orderId) || 0) === (applied.orderId ?? 0);
+    && orderReference !== undefined
+    && orderReference.orderId === applied.orderId
+    && orderReference.orderNumber === applied.orderNumber;
   const currentFilters = scopeMatches ? applied : undefined;
   const query = useLoadingPreviews(currentFilters);
   const report = query.data;
@@ -34,13 +38,16 @@ export default function AccountingLoadingPreview({ companies,canManage=false }: 
     && report.company.id === currentFilters.companyId
     && report.filters.companyId === currentFilters.companyId
     && report.filters.orderId === currentFilters.orderId
+    && report.filters.orderNumber === currentFilters.orderNumber
     && report.filters.page === currentFilters.page && report.filters.pageSize === currentFilters.pageSize;
   const totalPages = reportMatches ? Math.max(1, Math.ceil(report!.pagination.totalRows / report!.pagination.pageSize)) : 1;
 
   const apply = () => {
     setFormError(false);
+    const reference = parseLoadingOrderReference(draft.orderId);
+    if (!reference) { setFormError(true); return; }
     const parsed = loadingPreviewFiltersSchema.safeParse({
-      companyId: clean(draft.companyId), orderId: clean(draft.orderId), page: 1, pageSize: 25,
+      companyId: clean(draft.companyId), ...reference, page: 1, pageSize: 25,
     });
     if (!parsed.success || !companies.some(company => company.id === parsed.data.companyId)) {
       setFormError(true);
@@ -73,7 +80,10 @@ export default function AccountingLoadingPreview({ companies,canManage=false }: 
       <Field label={t(language, "company")}><select value={draft.companyId} onChange={event => setDraft({ ...draft, companyId: event.target.value })} className={inputClass}>
         <option value="">{t(language, "company")}</option>{companies.map(company => <option key={company.id} value={company.id}>{company.name} · #{company.id}</option>)}
       </select></Field>
-      <Field label={t(language, "orderId")}><input inputMode="numeric" value={draft.orderId} onChange={event => setDraft({ ...draft, orderId: event.target.value })} className={inputClass}/></Field>
+      <Field label={loadingOrderReferenceCopy[language as keyof typeof loadingOrderReferenceCopy]?.order ?? loadingOrderReferenceCopy.en.order}>
+        <input dir="ltr" autoComplete="off" value={draft.orderId} onChange={event => setDraft({ ...draft, orderId: event.target.value })} className={inputClass}/>
+        <span className="block text-xs font-normal text-[#758179]">{loadingOrderReferenceCopy[language as keyof typeof loadingOrderReferenceCopy]?.help ?? loadingOrderReferenceCopy.en.help}</span>
+      </Field>
       {formError && <div role="alert" className="rounded-lg border border-[#e4b9b2] bg-[#f9eae6] px-3 py-2 text-sm text-[#883f37] md:col-span-2">{t(language, "invalid")}</div>}
       {!companies.length && <div className="rounded-lg border border-dashed border-[#d7e0d7] bg-[#f7f9f5] p-3 text-sm text-[#66776e] md:col-span-2">{t(language, "noCompanies")}</div>}
       <div className="flex items-center gap-2 md:col-span-2"><Button type="submit" disabled={!companies.length} className="bg-[#20484a] text-white hover:bg-[#2d5d5c]"><Calculator className="me-2 h-4 w-4"/>{t(language, "apply")}</Button></div>
@@ -106,7 +116,7 @@ export function LoadingPreviewResult({ report, language, page, totalPages, chang
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="grid min-w-0 flex-1 gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-4">
               <Fact label={t(language, "fact")} value={`#${row.factId}`} mono/>
-              <Fact label={t(language, "order")} value={`${row.orderNumber || "—"} · #${row.orderId}`} mono/>
+              <Fact label={t(language, "order")} value={`${row.orderNumber || `#${row.orderId}`} · #${row.orderId}`} mono/>
               <Fact label={t(language, "reference")} value={row.loadingReference || "—"}/>
               <Fact label={t(language, "date")} value={row.eventDate || "—"} mono/>
               <Fact label={t(language, "currency")} value={row.currency || "—"} mono/>
