@@ -104,6 +104,12 @@ opening gate; 0023 stores immutable reviewed order/customer associations. Both
 are included in the explicit development migration runner and schema inventory.
 No company gate is enabled by these migrations or by the UI.
 
+- `GET /api/accounting/v2/credit-customer?companyId=…&customerCode=…` resolves
+  the seven-digit CRM customer number (including Persian/Arabic digits) and
+  lists only existing active accounts explicitly linked to that company.
+  An empty account list means the customer exists but has no eligible link;
+  no link, balance transfer or opening activation is performed. The credit UI
+  uses this lookup and requires a choice when multiple accounts are available.
 - `GET /api/accounting/v2/credit-exposure?companyId=…&walletId=…` reads one
   explicitly linked active CRM customer/currency policy. It reports observed
   open invoice AR, active allocations of uncleared cheques, approved unbilled

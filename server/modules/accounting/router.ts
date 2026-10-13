@@ -44,6 +44,7 @@ import {readAccountingAudit,accountingAuditCsv} from "./audit-reports";
 import {readCustomerReport} from "./customer-reports";
 import {customerReportCsv} from "./customer-report-csv";
 import {readCreditExposure} from "./credit-exposure";
+import {readCreditCustomer} from "./credit-customer";
 import {registerCreditOrder,approveCreditOrder} from "./credit-orders";
 import {readManualMetadata,readManualDocuments,readManualDocument,previewManualDocument,
   saveManualDocument,postManualDocument,discardManualDocument,reverseManualDocument} from "./manual-documents";
@@ -230,6 +231,12 @@ export function createAccountingRouter() {
     try{const companyId=Number(req.query.companyId);
       if(!Number.isSafeInteger(companyId)||companyId<=0)throw new AccountingError("Valid company ID required");
       res.json({items:await readReceivables(companyId)});
+    }catch(e){next(e);}
+  });
+  router.get("/v2/credit-customer",async(req,res,next)=>{
+    try{
+      res.set("Cache-Control","private, no-store");
+      res.json(await readCreditCustomer(req.query));
     }catch(e){next(e);}
   });
   router.get("/v2/credit-exposure",async(req,res,next)=>{

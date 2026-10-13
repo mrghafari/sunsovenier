@@ -1,5 +1,5 @@
 import {z} from "zod";
-import {loadingPreviewFiltersSchema,type LoadingInvoiceAmounts} from "./accounting-loading-preview";
+import {loadingPreviewFiltersSchema,type LoadingInvoiceAmounts,type LoadingPreviewFilters} from "./accounting-loading-preview";
 export const loadingInvoiceFiltersSchema=loadingPreviewFiltersSchema;
 const id=z.number().int().positive().max(2147483647);
 export const loadingInvoiceCommandSchema=z.object({
@@ -39,6 +39,7 @@ export interface LoadingInvoicePlan {
 }
 export interface LoadingInvoiceWorkbench {
   company:{id:number;name:string;baseCurrency:string};rows:LoadingInvoicePlan[];
+  filters?:LoadingPreviewFilters;
   pagination:{page:number;pageSize:number;totalRows:number};activationEnabled:boolean;
 }
 export interface StockBookMetadata {

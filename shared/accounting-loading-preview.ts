@@ -1,11 +1,15 @@
 import {z} from "zod";
 import type {LoadingFixedShipping} from "./accounting-loading-shipping";
+export const accountingOrderNumberSchema=z.string().trim().transform(value=>value.replace(/[۰-۹٠-٩]/g,
+  digit=>String("۰۱۲۳۴۵۶۷۸۹".includes(digit)?"۰۱۲۳۴۵۶۷۸۹".indexOf(digit):"٠١٢٣٤٥٦٧٨٩".indexOf(digit))).toUpperCase())
+  .pipe(z.string().max(150).regex(/^M[0-9]+$/,"Enter the order number, for example M2601287"));
 export const loadingPreviewFiltersSchema=z.object({
   companyId:z.coerce.number().int().positive().max(2147483647),
   orderId:z.coerce.number().int().positive().max(2147483647).optional(),
+  orderNumber:accountingOrderNumberSchema.optional(),
   page:z.coerce.number().int().min(1).max(100000).default(1),
   pageSize:z.coerce.number().int().min(1).max(100).default(25),
-}).strict();
+}).strict().refine(f=>!(f.orderId&&f.orderNumber),"Use either an order number or an internal order ID, not both");
 export type LoadingPreviewFilters=z.infer<typeof loadingPreviewFiltersSchema>;
 export type LoadingPreviewIssue="INVALID_CAPTURE"|"LEGACY_SNAPSHOT"|"SNAPSHOT_IDENTITY"|"UNKNOWN_CURRENCY"|
   "INVALID_MEASUREMENTS"|"LINE_SNAPSHOT_REQUIRED"|"PRICE_BASIS_REQUIRED"|"TAX_SNAPSHOT_REQUIRED"|

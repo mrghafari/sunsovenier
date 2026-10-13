@@ -8,6 +8,15 @@ import { loadingInvoiceBlockerText, loadingInvoiceText } from "./accounting-load
 import { ForeignInvoiceValuationPanel, LoadingInvoiceReturnMarker, LoadingInvoiceSafetyNotice } from "./accounting-loading-invoices";
 import type { LoadingInvoicePlan, LoadingInvoiceWorkbench } from "@shared/accounting-loading-invoices";
 Object.assign(globalThis, { React });
+test("business order-number URLs and cache keys stay separate from internal ID and unfiltered scopes",()=>{
+  const filters={companyId:1,orderNumber:"M2601287",page:1,pageSize:20};
+  const url=new URL(loadingInvoicesUrl(filters),"https://example.test");
+  assert.equal(url.searchParams.get("orderNumber"),"M2601287");
+  assert.equal(url.searchParams.has("orderId"),false);
+  assert.notDeepEqual(loadingInvoicesKey(filters),loadingInvoicesKey({companyId:1,page:1,pageSize:20}));
+  assert.notDeepEqual(loadingInvoicesKey(filters),loadingInvoicesKey({companyId:1,orderId:2601287,page:1,pageSize:20}));
+  assert.notDeepEqual(loadingInvoicesKey(filters),loadingInvoicesKey({...filters,orderNumber:"M2601288"}));
+});
 
 test("loading invoice API URL carries validated company/order/page scope and query keys are isolated", () => {
   const url = new URL(loadingInvoicesUrl({ companyId: 12, orderId: 804, page: 3, pageSize: 20 }), "http://local");

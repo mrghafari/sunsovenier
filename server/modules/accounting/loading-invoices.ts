@@ -12,6 +12,7 @@ import {postJournalEntry,type JournalInput} from "./postJournalEntry";
 import {settleWalletReceivable} from "./wallet-settlement";
 import {assertLedgerReady} from "./readiness";
 import {readForeignLoadingValuation,assertForeignLoadingReady} from "./foreign-loading-invoice";
+import {resolveAccountingOrderNumber} from "./order-number-scope";
 const obj=(v:unknown):Record<string,unknown>=>v&&typeof v==="object"&&!Array.isArray(v)?v as Record<string,unknown>:{};
 function metric(line:Record<string,unknown>){
   if(typeof line.quantity!=="string"||typeof line.unit!=="string")throw new Error("Missing quantity");
@@ -160,7 +161,8 @@ export async function readLoadingInvoiceWorkbench(input:unknown,callerTx?:Accoun
   const f=parsed.data,run=async(tx:AccountingTransaction)=>{
     const c=(await tx.execute(sql`select id,name,base_currency from accounting_companies where id=${f.companyId}`)).rows[0];
     if(!c)throw new AccountingError("Accounting company not found",404,"NOT_FOUND");
-    const scope=sql`company_id=${f.companyId} and event_type='LoadingCompleted' ${f.orderId?sql`and order_id=${f.orderId}`:sql``}`;
+    const orderId=f.orderNumber?await resolveAccountingOrderNumber(tx,f.companyId,f.orderNumber):f.orderId;
+    const scope=sql`company_id=${f.companyId} and event_type='LoadingCompleted' ${orderId?sql`and order_id=${orderId}`:sql``}`;
     const count=(await tx.execute(sql`select count(*) as n from accounting_operational_facts where ${scope}`)).rows[0];
     const facts=(await tx.execute(sql`select id from accounting_operational_facts where ${scope} order by id desc
       limit ${f.pageSize} offset ${(f.page-1)*f.pageSize}`)).rows;
@@ -169,7 +171,7 @@ export async function readLoadingInvoiceWorkbench(input:unknown,callerTx?:Accoun
       join accounting_companies c on c.id=i.company_id and c.is_active
       join accounting_wallet_cutovers w on w.company_id=i.company_id and w.pipeline_ready
       join accounting_receipt_cutovers r on r.company_id=i.company_id and r.processing_ready where i.company_id=${f.companyId}`)).rows[0];
-    return {company:{id:Number(c.id),name:String(c.name),baseCurrency:String(c.base_currency)},rows,
+    return {company:{id:Number(c.id),name:String(c.name),baseCurrency:String(c.base_currency)},filters:f,rows,
       pagination:{page:f.page,pageSize:f.pageSize,totalRows:Number(count.n)},activationEnabled:Boolean(gate?.processing_ready)};
   };
   return callerTx?run(callerTx):accountingDb.transaction(run,{isolationLevel:"repeatable read",accessMode:"read only"});

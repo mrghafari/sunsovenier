@@ -5,6 +5,7 @@ import {loadingPreviewFiltersSchema,type LoadingPreviewReport} from "@shared/acc
 import {calculateLoadingInvoicePreview} from "./loading-invoice-calculation";
 import {decimal,exactMoney} from "./money";
 import {calculateLoadingWeightControl,readLoadingContractEvidence,capturedContractEvidence} from "./loading-weight-control";
+import {resolveAccountingOrderNumber} from "./order-number-scope";
 export async function readLoadingPreviews(input:unknown,callerTx?:AccountingTransaction):Promise<LoadingPreviewReport>{
   const parsed=loadingPreviewFiltersSchema.safeParse(input);
   if(!parsed.success)throw new AccountingError(parsed.error.issues[0].message);
@@ -13,7 +14,8 @@ export async function readLoadingPreviews(input:unknown,callerTx?:AccountingTran
     const c=(await tx.execute(sql`select id,name from accounting_companies where id=${f.companyId}`)).rows[0];
     if(!c)throw new AccountingError("Accounting company not found",404,"NOT_FOUND");
     const currencies=(await tx.execute(sql`select code,decimals from accounting_currencies order by code`)).rows as LoadingPreviewReport["currencies"];
-    const where=sql`company_id=${f.companyId} and event_type='LoadingCompleted' ${f.orderId?sql`and order_id=${f.orderId}`:sql``}`;
+    const orderId=f.orderNumber?await resolveAccountingOrderNumber(tx,f.companyId,f.orderNumber):f.orderId;
+    const where=sql`company_id=${f.companyId} and event_type='LoadingCompleted' ${orderId?sql`and order_id=${orderId}`:sql``}`;
     const count=(await tx.execute(sql`select count(*)::integer n from accounting_operational_facts where ${where}`)).rows[0];
     const facts=(await tx.execute(sql`select id,company_id as "companyId",order_id as "orderId",source_id as "sourceId",payload
       from accounting_operational_facts where ${where} order by id desc limit ${f.pageSize} offset ${(f.page-1)*f.pageSize}`)).rows;

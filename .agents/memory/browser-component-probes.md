@@ -16,6 +16,10 @@ fixture, mount real components under their normal providers, and supply syntheti
 query-cache data. Resolve React, React DOM and query-library URLs from Vite's
 transformed source instead of assuming dependency paths. Normalize CommonJS
 default exports; otherwise a valid React DOM module may appear to lack createRoot.
+The same default-export normalization applies to React itself: the browser's
+dynamic import may expose `createElement` only on the module's default export.
+Dependency URLs may begin with `/@fs/` as well as `/node_modules/`; extract
+the full URL from transformed imports rather than matching one prefix.
 Use real pointer/keyboard interactions for Radix controls rather than assuming
 programmatic click dispatch exercises their mouse-down handlers. These probes
 verify component behavior, not a real signed-in session.

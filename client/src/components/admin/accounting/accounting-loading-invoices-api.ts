@@ -6,13 +6,14 @@ import { loadingPreviewFiltersSchema, type LoadingPreviewFilters } from "@shared
 export const loadingInvoicesEndpoint = "/api/accounting/v2/loading-invoices";
 export const stockBooksEndpoint = "/api/accounting/v2/stock-books";
 export const loadingInvoicesKey = (filters?: LoadingPreviewFilters) =>
-  [loadingInvoicesEndpoint, filters?.companyId ?? null, filters?.orderId ?? null, filters?.page ?? null, filters?.pageSize ?? null] as const;
+  [loadingInvoicesEndpoint, filters?.companyId ?? null, filters?.orderNumber ?? filters?.orderId ?? null, filters?.page ?? null, filters?.pageSize ?? null] as const;
 export const stockBooksKey = (companyId?: number) => [stockBooksEndpoint, companyId ?? null] as const;
 
 export function loadingInvoicesUrl(filters: LoadingPreviewFilters) {
   const parsed = loadingPreviewFiltersSchema.parse(filters);
   const params = new URLSearchParams({ companyId: String(parsed.companyId), page: String(parsed.page), pageSize: String(parsed.pageSize) });
   if (parsed.orderId !== undefined) params.set("orderId", String(parsed.orderId));
+  if (parsed.orderNumber !== undefined) params.set("orderNumber", parsed.orderNumber);
   return `${loadingInvoicesEndpoint}?${params}`;
 }
 async function request<T>(url: string, init?: RequestInit): Promise<T> {

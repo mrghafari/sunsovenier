@@ -4,6 +4,7 @@ import { loadingInvoiceCommandSchema, stockBookCommandSchema, type LoadingInvoic
 import { loadingPreviewFiltersSchema, type LoadingPreviewFilters } from "@shared/accounting-loading-preview";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { normalizeAccountingDigits } from "./accounting-logic";
+import {parseLoadingOrderReference,loadingOrderError} from "./loading-order-number-copy";
 import { loadingInvoiceBlockerText as blockerText, loadingInvoiceText as t } from "./accounting-loading-invoices-copy";
 import { useIssueLoadingInvoice, useLoadingInvoices, useRegisterStockBook, useStockBooks } from "./accounting-loading-invoices-api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -26,7 +27,10 @@ export default function AccountingLoadingInvoices({ companies, canManage = false
   const [reason, setReason] = useState<Record<number, string>>({});
   const [settle, setSettle] = useState<Record<number, boolean>>({});
   const selectedCompany = companies.find(company => String(company.id) === draft.companyId);
-  const scopeMatches = Boolean(applied && selectedCompany?.id === applied.companyId && Number(clean(draft.orderId) || 0) === (applied.orderId ?? 0));
+  const orderReference=parseLoadingOrderReference(draft.orderId);
+  const scopeMatches = Boolean(applied && selectedCompany?.id === applied.companyId
+    && orderReference && orderReference.orderNumber === applied.orderNumber
+    && orderReference.orderId === applied.orderId);
   const filters = scopeMatches ? applied : undefined;
   const invoiceQuery = useLoadingInvoices(filters);
   const bookQuery = useStockBooks(filters?.companyId);
@@ -36,6 +40,7 @@ export default function AccountingLoadingInvoices({ companies, canManage = false
   const workbenchMatches = Boolean(filters && workbench && workbench.company.id === filters.companyId
     && workbench.pagination.page === filters.page && workbench.pagination.pageSize === filters.pageSize
     && workbench.rows.every(row => row.companyId === filters.companyId)
+    && (!filters.orderNumber || workbench.filters?.orderNumber === filters.orderNumber)
     && (!filters.orderId || workbench.rows.every(row => row.orderId === filters.orderId)));
   const totalPages = workbenchMatches ? Math.max(1, Math.ceil(workbench!.pagination.totalRows / workbench!.pagination.pageSize)) : 1;
   const parsedCompanyId = filters?.companyId;
@@ -53,7 +58,9 @@ export default function AccountingLoadingInvoices({ companies, canManage = false
 
   const apply = () => {
     setFormError(false);
-    const parsed = loadingPreviewFiltersSchema.safeParse({ companyId: clean(draft.companyId), orderId: clean(draft.orderId), page: 1, pageSize: 20 });
+    const reference=parseLoadingOrderReference(draft.orderId);
+    if(!reference){setFormError(true);return;}
+    const parsed = loadingPreviewFiltersSchema.safeParse({ companyId: clean(draft.companyId), ...reference, page: 1, pageSize: 20 });
     if (!parsed.success || !companies.some(company => company.id === parsed.data.companyId)) { setFormError(true); return; }
     setApplied(parsed.data);
     setActionError(""); setActionMessage("");
@@ -108,7 +115,7 @@ export default function AccountingLoadingInvoices({ companies, canManage = false
     </header>
     <form onSubmit={event => { event.preventDefault(); apply(); }} className="grid gap-3 rounded-2xl border border-[#dfe6de] bg-[#fbfcf8] p-4 md:grid-cols-[1fr_1fr_auto] md:items-end md:p-5">
       <Field label={t(language,"scope")}><select aria-label={t(language,"scope")} value={draft.companyId} onChange={event => setDraft({ ...draft, companyId: event.target.value })} className={inputClass}><option value="">{t(language,"scope")}</option>{companies.map(company=><option key={company.id} value={company.id}>{company.name} · #{company.id}</option>)}</select></Field>
-      <Field label={t(language,"order")}><input aria-label={t(language,"order")} inputMode="numeric" value={draft.orderId} onChange={event=>setDraft({...draft,orderId:event.target.value})} className={inputClass}/></Field>
+      <Field label={t(language,"order")}><input aria-label={t(language,"order")} dir="ltr" placeholder="M2601287" value={draft.orderId} onChange={event=>setDraft({...draft,orderId:event.target.value})} className={inputClass}/><span className="block text-xs font-normal">{t(language,"help")}</span></Field>
       <Button type="submit" disabled={!companies.length} className="bg-[#20484a] text-white hover:bg-[#2d5d5c]"><FileText className="me-2 h-4 w-4"/>{t(language,"apply")}</Button>
       {formError && <p role="alert" className="rounded-lg border border-[#e4b9b2] bg-[#f9eae6] px-3 py-2 text-sm text-[#883f37] md:col-span-3">{t(language,"invalid")}</p>}
       {!companies.length && <p className="rounded-lg border border-dashed border-[#d7e0d7] bg-[#f7f9f5] p-3 text-sm text-[#66776e] md:col-span-3">{t(language,"noCompanies")}</p>}
@@ -118,7 +125,7 @@ export default function AccountingLoadingInvoices({ companies, canManage = false
     {!companies.length ? <Empty text={t(language,"noCompanies")}/> : !applied ? <Empty text={t(language,"choose")}/> :
       !scopeMatches ? <div role="status" className="rounded-xl border border-[#e6d9c4] bg-[#f8f1e5] px-4 py-3 text-sm text-[#806844]">{t(language,"stale")}</div> :
       invoiceQuery.isLoading ? <div aria-label={t(language,"loading")} className="space-y-3"><Skeleton className="h-20 rounded-xl bg-[#e8ede7]"/><Skeleton className="h-40 rounded-xl bg-[#e8ede7]"/></div> :
-      invoiceQuery.isError ? <LoadError message={invoiceQuery.error instanceof Error ? invoiceQuery.error.message : t(language,"failed")} retry={()=>void invoiceQuery.refetch()} language={language}/> :
+      invoiceQuery.isError ? <LoadError message={loadingOrderError(invoiceQuery.error,language,t(language,"failed"))} retry={()=>void invoiceQuery.refetch()} language={language}/> :
       !workbenchMatches ? <div role="status" className="rounded-xl border border-[#e6d9c4] bg-[#f8f1e5] px-4 py-3 text-sm text-[#806844]">{t(language,"stale")}</div> :
       <Workbench workbench={workbench!} language={language} page={filters!.page} totalPages={totalPages} changePage={changePage} canManage={canManage}
         reason={reason} setReason={setReason} settle={settle} setSettle={setSettle} onIssue={issue} busy={invoiceMutation.isPending}/>}

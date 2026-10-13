@@ -1,3 +1,4 @@
+import {loadingOrderCopy,loadingOrderReferenceCopy} from "./loading-order-number-copy";
 type Language = "fa" | "ar" | "ku" | "en";
 const copy: Record<Language, Record<string, any>> = {
   en: {
@@ -40,6 +41,10 @@ const foreignValuationCopy:Record<Language,Record<string,string>>={
   ku:{foreignValuation:"هەڵسەنگاندنی پشتڕاستکراوی پسووڵەی بیانی",valuationUnavailable:"بەڵگەی فەرمیی بەرواردار بەردەست نییە؛ هیچ نرخ یان بەهایەکی بنەڕەت خەمڵێنراو نییە.",officialRate:"نرخی فەرمی",effectiveOn:"بەرواری کاریگەری نرخ",evidenceReference:"سەرچاوەی بەڵگە",rateId:"تۆماری نرخ",baseReceivable:"قەرز / داهاتی جێگیری دراوی بنەڕەت",baseGoods:"داهاتی کاڵای جێگیری دراوی بنەڕەت",baseTax:"باجی جێگیری دراوی بنەڕەت",baseShipping:"گواستنەوەی جێگیری دراوی بنەڕەت",rounding:"خڕکردنەوەی کۆکراوەی پێکهاتەکان کۆی جێگیر دەپارێزێت؛ داهاتی FXی بەدەستهاتوو نییە و تێچووی کۆگا دروست ناکات.",nativeDebt:"قەرزی کڕیار هەر بە بڕی پسووڵەی دراوی ڕەسەنە.",nativeReceivable:"قەرزی کڕیار بە دراوی پسووڵە",postedFrozen:"تۆمارەکانی پۆستکراو بەها ڕەسەنەکانیان دەپارێزن، تەنانەت ئەگەر نرخەکان بگۆڕێن.",foreignCostSeparation:"تێچووی بنەڕەتی کۆگا جیاوازە و لە سەرەوە پیشان دراوە؛ هەڵسەنگاندنی پسووڵە تێچووی ساختە دروست ناکات.",valuationStatus:"بەڵگەی پشتڕاستکراوی بەرواردار",notAvailable:"بەردەست نییە",account:"هەژمار",party:"لایەن",debit:"قەرزدار",credit:"قەرزخواز",baseDebit:"قەرزداری بنەڕەت",baseCredit:"قەرزخوازی بنەڕەت",lineRate:"نرخی هێڵ"},
 };
 export function loadingInvoiceText(language: string, key: string): string {
+  const referenceCopy=loadingOrderReferenceCopy[language as keyof typeof loadingOrderReferenceCopy]??loadingOrderReferenceCopy.en;
+  if(key==="order"||key==="help")return referenceCopy[key];
+  const orderCopy=loadingOrderCopy[language as keyof typeof loadingOrderCopy]??loadingOrderCopy.en;
+  if(["order","invalid","empty","help"].includes(key))return orderCopy[key as "order"|"invalid"|"empty"|"help"];
   const returnedCopy: Record<string, Record<string, string>> = {
     en:{returned:"RETURNED",returnDate:"Return date",invoiceReversal:"Invoice reversal",cogsReversal:"COGS reversal",unavailable:"Unavailable"},
     fa:{returned:"مرجوع‌شده",returnDate:"تاریخ مرجوعی",invoiceReversal:"معکوس‌سازی فاکتور",cogsReversal:"معکوس‌سازی بهای تمام‌شده",unavailable:"در دسترس نیست"},
