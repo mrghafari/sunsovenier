@@ -829,6 +829,8 @@ export const vehicleTemplates = pgTable("vehicle_templates", {
   nameEn: text("name_en"),
   vehicleType: varchar("vehicle_type", { length: 50 }).notNull(), // motorcycle, van, light_truck, heavy_truck
   transportCategory: varchar("transport_category",{length:20,enum:["standard","bulk"]}).notNull().default("standard"),
+  supportsContract: boolean("supports_contract").notNull().default(false),
+  supportsBulk: boolean("supports_bulk").notNull().default(false),
   
   // Capacity limits
   maxWeightKg: decimal("max_weight_kg", { precision: 8, scale: 2 }).notNull(),

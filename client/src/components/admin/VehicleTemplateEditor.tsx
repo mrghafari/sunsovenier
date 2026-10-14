@@ -39,6 +39,8 @@ const vehicleTemplateSchema = z.object({
   supportsFlammable: z.boolean(),
   supportsRefrigerated: z.boolean(),
   supportsFragile: z.boolean(),
+  supportsContract: z.boolean(),
+  supportsBulk: z.boolean(),
   notAllowedFlammable: z.boolean(),
   averageSpeedKmh: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, "سرعت متوسط باید عدد مثبت باشد"),
   isActive: z.boolean(),
@@ -126,6 +128,8 @@ export default function VehicleTemplateEditor({ className = "" }: VehicleTemplat
       supportsFlammable: false,
       supportsRefrigerated: false,
       supportsFragile: true,
+      supportsContract: false,
+      supportsBulk: false,
       notAllowedFlammable: false,
       averageSpeedKmh: "50",
       isActive: true,
@@ -221,6 +225,8 @@ export default function VehicleTemplateEditor({ className = "" }: VehicleTemplat
       pricePerKg: parseInt(formData.pricePerKg) || undefined,
       averageSpeedKmh: parseInt(formData.averageSpeedKmh),
       priority: parseInt(formData.priority) || 0,
+      supportsContract: formData.supportsContract === true,
+      supportsBulk: formData.supportsBulk === true,
     };
 
     addTemplateMutation.mutate(submitData);
@@ -246,6 +252,8 @@ export default function VehicleTemplateEditor({ className = "" }: VehicleTemplat
       supportsFlammable: template.supportsFlammable || false,
       supportsRefrigerated: template.supportsRefrigerated || false,
       supportsFragile: template.supportsFragile !== false,
+      supportsContract: template.supportsContract ?? (template.transportCategory === "bulk"),
+      supportsBulk: template.supportsBulk ?? (template.transportCategory === "bulk"),
       notAllowedFlammable: (template as any).notAllowedFlammable || false,
       averageSpeedKmh: template.averageSpeedKmh?.toString() || "50",
       isActive: template.isActive !== false,
@@ -278,7 +286,9 @@ export default function VehicleTemplateEditor({ className = "" }: VehicleTemplat
       pricePerKg: parseFloat(data.pricePerKg),
       averageSpeedKmh: parseFloat(data.averageSpeedKmh),
       priority: parseInt(data.priority),
-      allowedRoutes: selectedRoutes
+      allowedRoutes: selectedRoutes,
+      supportsContract: data.supportsContract === true,
+      supportsBulk: data.supportsBulk === true
     };
 
     updateTemplateMutation.mutate({ id: editingTemplate.id, data: updateData });
@@ -345,7 +355,7 @@ export default function VehicleTemplateEditor({ className = "" }: VehicleTemplat
                 افزودن الگوی خودرو جدید
               </DialogTitle>
               <DialogDescription>
-                الگو جدید برای سیستم انتخاب بهینه وسیله نقلیه اضافه کنید
+                الگو جدید برای سیستم انتخاب بهینه وسیله نقلیه اضافه کنید. مجوز حمل قراردادی مستقل از مناسب‌بودن برای حمل فله‌ای است؛ خودروهای واقعی را واحد لجستیک اختصاص می‌دهد.
               </DialogDescription>
             </DialogHeader>
             
@@ -709,6 +719,43 @@ export default function VehicleTemplateEditor({ className = "" }: VehicleTemplat
                     )}
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="supportsContract"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>مجاز برای حمل قراردادی</FormLabel>
+                          <FormDescription className="text-xs">
+                            مجوز مستقل از مناسب‌بودن برای حمل فله‌ای است
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="supportsBulk"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>مناسب برای حمل فله‌ای</FormLabel>
+                          <FormDescription className="text-xs">
+                            قابلیت مستقل از مجوز حمل قراردادی است
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
               {/* Status */}
@@ -792,7 +839,7 @@ export default function VehicleTemplateEditor({ className = "" }: VehicleTemplat
                         <span className="text-sm text-muted-foreground">({template.nameEn})</span>
                       )}
                     </CardTitle>
-                    <CardDescription className="flex items-center gap-2 mt-2">
+                    <CardDescription className="flex flex-wrap items-center gap-2 mt-2">
                       <Badge variant={template.isActive ? "default" : "secondary"}>
                         {template.isActive ? "فعال" : "غیرفعال"}
                       </Badge>
@@ -801,6 +848,12 @@ export default function VehicleTemplateEditor({ className = "" }: VehicleTemplat
                       </Badge>
                       <Badge variant="outline">
                         اولویت: {template.priority || 0}
+                      </Badge>
+                      <Badge variant={(template.supportsContract ?? (template.transportCategory === "bulk")) ? "default" : "secondary"}>
+                        {(template.supportsContract ?? (template.transportCategory === "bulk")) ? "قراردادی: مجاز" : "قراردادی: ندارد"}
+                      </Badge>
+                      <Badge variant={(template.supportsBulk ?? (template.transportCategory === "bulk")) ? "outline" : "secondary"}>
+                        {(template.supportsBulk ?? (template.transportCategory === "bulk")) ? "فله‌ای: مناسب" : "فله‌ای: نامناسب"}
                       </Badge>
                     </CardDescription>
                   </div>
@@ -896,7 +949,7 @@ export default function VehicleTemplateEditor({ className = "" }: VehicleTemplat
               ویرایش الگوی خودرو: {editingTemplate?.name}
             </DialogTitle>
             <DialogDescription>
-              تغییر مشخصات و پارامترهای الگوی خودرو برای بهینه‌سازی انتخاب وسیله نقلیه
+              تغییر مشخصات و پارامترهای الگوی خودرو برای بهینه‌سازی انتخاب وسیله نقلیه. مجوز حمل قراردادی مستقل از مناسب‌بودن برای حمل فله‌ای است؛ تخصیص خودروهای واقعی با واحد لجستیک است.
             </DialogDescription>
           </DialogHeader>
 
@@ -1224,6 +1277,43 @@ export default function VehicleTemplateEditor({ className = "" }: VehicleTemplat
                             checked={field.value}
                             onCheckedChange={field.onChange}
                           />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="supportsContract"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>مجاز برای حمل قراردادی</FormLabel>
+                          <FormDescription className="text-xs">
+                            مجوز مستقل از مناسب‌بودن برای حمل فله‌ای است
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="supportsBulk"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>مناسب برای حمل فله‌ای</FormLabel>
+                          <FormDescription className="text-xs">
+                            قابلیت مستقل از مجوز حمل قراردادی است
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
                       </FormItem>
                     )}

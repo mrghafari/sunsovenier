@@ -71,7 +71,7 @@ test("bilingual contract checkout sends contract quote context and enforces cust
   assert.match(quote, /const session = req\.session/);
   assert.ok(quote.indexOf("loadContractPricing(") < quote.indexOf("issueCheckoutShippingQuote("));
   assert.match(quote, /contractId: verifiedContractId/);
-  assert.match(quote, /vehicleTemplates.transportCategory, "bulk"/);
+  assert.match(quote, /eligibleTransportTemplates\(activeTemplates,bulkTransport\?"bulk":"standard",null,verifiedContractId!==null\)/);
   assert.match(routes, /const weightValue = product\.grossWeight \?\? product\.weight/);
   const validation = routes.slice(routes.indexOf("const isPickupMethod ="), routes.indexOf("const countryName =", routes.indexOf("const isPickupMethod =")));
   assert.match(validation, /if \(isPickupMethod\)[\s\S]*shippingCost: 0/);

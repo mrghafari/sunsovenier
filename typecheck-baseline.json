@@ -37,7 +37,7 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/components/admin/VehicleTemplateEditor.tsx\",2322,\"Type '{ maxWeightKg: number; maxVolumeM3: number | null; basePrice: number; pricePerKm: number; pricePerKg: number; averageSpeedKmh: number; priority: number; allowedRoutes: string[]; name: string; ... 7 more ...; nameEn?: string | undefined; }' is not assignable to type 'Partial<{ id: number; name: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; vehicleType: string; nameEn: string | null; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; ... 12 more ...; priority: number | null; }>'.\\n  Types of property 'maxWeightKg' are incompatible.\\n    Type 'number' is not assignable to type 'string'.\",\"updateTemplateMutation.mutate({ id: editingTemplate.id, data: updateData });\"]",
+      "key": "[\"client/src/components/admin/VehicleTemplateEditor.tsx\",2322,\"Type '{ maxWeightKg: number; maxVolumeM3: number | null; basePrice: number; pricePerKm: number; pricePerKg: number; averageSpeedKmh: number; priority: number; allowedRoutes: string[]; supportsContract: boolean; ... 9 more ...; nameEn?: string | undefined; }' is not assignable to type 'Partial<{ id: number; name: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; vehicleType: string; nameEn: string | null; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; ... 14 more ...; priority: number | null; }>'.\\n  Types of property 'maxWeightKg' are incompatible.\\n    Type 'number' is not assignable to type 'string'.\",\"updateTemplateMutation.mutate({ id: editingTemplate.id, data: updateData });\"]",
       "count": 1
     },
     {
@@ -2741,15 +2741,15 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'canTransportFragile' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'.\",\"if (isFragile && !vehicle.canTransportFragile) specialOk = false;\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'canTransportFragile' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'.\",\"if (isFragile && !vehicle.canTransportFragile) specialOk = false;\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'canTransportFragile' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'.\",\"if (isFragile && vehicle.canTransportFragile) score += 2;\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'canTransportFragile' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'.\",\"if (isFragile && vehicle.canTransportFragile) score += 2;\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'canTransportHazardous' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'.\",\"if (isHazardous && vehicle.canTransportHazardous) score += 5;\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'canTransportHazardous' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'.\",\"if (isHazardous && vehicle.canTransportHazardous) score += 5;\"]",
       "count": 1
     },
     {
@@ -2905,7 +2905,7 @@
       "count": 3
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'description' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'.\",\"description: vehicle.description || '',\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'description' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'.\",\"description: vehicle.description || '',\"]",
       "count": 1
     },
     {
@@ -2965,15 +2965,15 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'fuelConsumption' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'.\",\"score += (100 - vehicle.fuelConsumption) * 0.2;\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'fuelConsumption' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'.\",\"score += (100 - vehicle.fuelConsumption) * 0.2;\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'fuelConsumptionL100km' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'.\",\"fuelConsumptionL100km: parseFloat(vehicle.fuelConsumptionL100km || '0'),\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'fuelConsumptionL100km' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'.\",\"fuelConsumptionL100km: parseFloat(vehicle.fuelConsumptionL100km || '0'),\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'fuelConsumptionL100km' does not exist on type '{ totalCost: number; basePrice: number; distanceCost: number; weightCost: number; score: number; weightUtilization: number; costPerKg: number; id: number; name: string; nameEn: string | null; ... 16 more ...; updatedAt: Date; }'.\",\"fuelConsumptionL100km: selectedVehicle.fuelConsumptionL100km,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'fuelConsumptionL100km' does not exist on type '{ totalCost: number; basePrice: number; distanceCost: number; weightCost: number; score: number; weightUtilization: number; costPerKg: number; id: number; name: string; nameEn: string | null; ... 18 more ...; updatedAt: Date; }'.\",\"fuelConsumptionL100km: selectedVehicle.fuelConsumptionL100km,\"]",
       "count": 1
     },
     {
@@ -3037,11 +3037,11 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'hasRefrigeration' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'.\",\"if (isRefrigerated && !vehicle.hasRefrigeration) specialOk = false;\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'hasRefrigeration' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'.\",\"if (isRefrigerated && !vehicle.hasRefrigeration) specialOk = false;\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'hasRefrigeration' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'.\",\"if (isRefrigerated && vehicle.hasRefrigeration) score += 5;\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'hasRefrigeration' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'.\",\"if (isRefrigerated && vehicle.hasRefrigeration) score += 5;\"]",
       "count": 1
     },
     {
@@ -3101,15 +3101,15 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'maxDistance' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'.\",\"const distanceOk = distance <= vehicle.maxDistance;\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'maxDistance' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'.\",\"const distanceOk = distance <= vehicle.maxDistance;\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'maxSpeed' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'.\",\"if (deliveryUrgency === 'urgent' && vehicle.maxSpeed > 80) {\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'maxSpeed' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'.\",\"if (deliveryUrgency === 'urgent' && vehicle.maxSpeed > 80) {\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'maxSpeedKmh' does not exist on type '{ totalCost: number; basePrice: number; distanceCost: number; weightCost: number; score: number; weightUtilization: number; costPerKg: number; id: number; name: string; nameEn: string | null; ... 16 more ...; updatedAt: Date; }'.\",\"maxSpeedKmh: selectedVehicle.maxSpeedKmh\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'maxSpeedKmh' does not exist on type '{ totalCost: number; basePrice: number; distanceCost: number; weightCost: number; score: number; weightUtilization: number; costPerKg: number; id: number; name: string; nameEn: string | null; ... 18 more ...; updatedAt: Date; }'.\",\"maxSpeedKmh: selectedVehicle.maxSpeedKmh\"]",
       "count": 1
     },
     {
@@ -3305,7 +3305,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'specialFeatures' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'.\",\"if (specialRequirements && vehicle.specialFeatures?.includes(specialRequirements)) {\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'specialFeatures' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'.\",\"if (specialRequirements && vehicle.specialFeatures?.includes(specialRequirements)) {\"]",
       "count": 1
     },
     {
@@ -3389,11 +3389,11 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'type' does not exist on type '{ totalCost: number; basePrice: number; distanceCost: number; weightCost: number; score: number; weightUtilization: number; costPerKg: number; id: number; name: string; nameEn: string | null; ... 16 more ...; updatedAt: Date; }'.\",\"vehicleType: selectedVehicle.type,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'type' does not exist on type '{ totalCost: number; basePrice: number; distanceCost: number; weightCost: number; score: number; weightUtilization: number; costPerKg: number; id: number; name: string; nameEn: string | null; ... 18 more ...; updatedAt: Date; }'.\",\"vehicleType: selectedVehicle.type,\"]",
       "count": 2
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'type' does not exist on type '{ totalCost: number; basePrice: number; distanceCost: number; weightCost: number; score: number; weightUtilization: number; costPerKg: number; id: number; name: string; nameEn: string | null; ... 16 more ...; updatedAt: Date; }'.\",\"vehicleType: v.type,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'type' does not exist on type '{ totalCost: number; basePrice: number; distanceCost: number; weightCost: number; score: number; weightUtilization: number; costPerKg: number; id: number; name: string; nameEn: string | null; ... 18 more ...; updatedAt: Date; }'.\",\"vehicleType: v.type,\"]",
       "count": 1
     },
     {
@@ -3857,19 +3857,19 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'maxVolume' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'. Did you mean 'maxVolumeM3'?\",\"const volumeOk = orderVolume <= vehicle.maxVolume;\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'maxVolume' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'. Did you mean 'maxVolumeM3'?\",\"const volumeOk = orderVolume <= vehicle.maxVolume;\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'maxVolume' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'. Did you mean 'maxVolumeM3'?\",\"const volumeUtilization = orderVolume / vehicle.maxVolume;\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'maxVolume' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'. Did you mean 'maxVolumeM3'?\",\"const volumeUtilization = orderVolume / vehicle.maxVolume;\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'maxWeight' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'. Did you mean 'maxWeightKg'?\",\"const weightOk = orderWeight <= vehicle.maxWeight;\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'maxWeight' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'. Did you mean 'maxWeightKg'?\",\"const weightOk = orderWeight <= vehicle.maxWeight;\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'maxWeight' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; maxWeightKg: string; maxVolumeM3: string | null; allowedRoutes: string[]; ... 12 more ...; updatedAt: Date; }'. Did you mean 'maxWeightKg'?\",\"const weightUtilization = orderWeight / vehicle.maxWeight;\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'maxWeight' does not exist on type '{ id: number; name: string; nameEn: string | null; vehicleType: string; transportCategory: \\\"standard\\\" | \\\"bulk\\\"; supportsContract: boolean; supportsBulk: boolean; maxWeightKg: string; maxVolumeM3: string | null; ... 13 more ...; updatedAt: Date; }'. Did you mean 'maxWeightKg'?\",\"const weightUtilization = orderWeight / vehicle.maxWeight;\"]",
       "count": 1
     },
     {

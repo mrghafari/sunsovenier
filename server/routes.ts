@@ -888,17 +888,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (contractPricing?.packaging && quote.selectedVehicles.some(v => v.transportCategory !== (bulkContract ? "bulk" : "standard"))) {
         throw new ShippingConfigurationError("Contract packaging changed. Recalculate the shipping quote.", 422);
       }
-      if(bulkContract){
+      if(contractPricing){
         const ids=quote.selectedVehicles.map(v=>Number(v.id));
         if(ids.some(id=>!Number.isSafeInteger(id)||id<=0))
-          throw new ShippingConfigurationError("Invalid bulk vehicle quote.",422);
-        const activeBulk=await db.select().from(vehicleTemplates).where(and(
-          inArray(vehicleTemplates.id,ids),eq(vehicleTemplates.isActive,true),eq(vehicleTemplates.transportCategory,"bulk")));
-        if(new Set(ids).size!==activeBulk.length||quote.selectedVehicles.some(v=>v.transportCategory!=="bulk"))
-          throw new ShippingConfigurationError("The selected bulk vehicle is no longer active in the bulk category. Recalculate shipping.",422);
-        if(activeBulk.some(v=>(currentFlammable&&(v.supportsFlammable!==true||v.notAllowedFlammable===true))||
+          throw new ShippingConfigurationError("Invalid contract vehicle quote.",422);
+        const activeTemplates=await db.select().from(vehicleTemplates).where(and(
+          inArray(vehicleTemplates.id,ids),eq(vehicleTemplates.isActive,true)));
+        const eligibleTemplates=eligibleTransportTemplates(activeTemplates,bulkContract?"bulk":"standard",null,true);
+        if(new Set(ids).size!==eligibleTemplates.length||quote.selectedVehicles.some(v=>v.transportCategory!==(bulkContract?"bulk":"standard")))
+          throw new ShippingConfigurationError("The selected vehicle's contract or bulk capability changed. Recalculate shipping.",422);
+        if(eligibleTemplates.some(v=>(currentFlammable&&(v.supportsFlammable!==true||v.notAllowedFlammable===true))||
           (currentHazardous&&v.supportsHazardous!==true)))
-          throw new ShippingConfigurationError("The selected bulk vehicle's safety capabilities changed. Recalculate shipping.",422);
+          throw new ShippingConfigurationError("The selected vehicle's safety capabilities changed. Recalculate shipping.",422);
       }
       try {
         assertShippingQuoteBindings(quote, {
@@ -33494,12 +33495,12 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       const { vehicleTemplates: vehicleTemplatesTable } = await import('@shared/logistics-schema');
       
       const activeTemplates=await db.select().from(vehicleTemplatesTable).where(eq(vehicleTemplatesTable.isActive,true));
-      const vehicleTemplates=eligibleTransportTemplates(activeTemplates,bulkTransport?"bulk":"standard",templateId);
+      const vehicleTemplates=eligibleTransportTemplates(activeTemplates,bulkTransport?"bulk":"standard",templateId,verifiedContractId!==null);
       
       if (!vehicleTemplates.length) {
         return res.status(422).json({
           success: false,
-          message: bulkTransport?"هیچ قالب خودروی فعال در دستهٔ فله‌ای برای این انتخاب وجود ندارد":"هیچ الگوی خودرویی در دسترس نیست"
+          message: bulkTransport?"هیچ قالب فعال با مجوز قرارداد و قابلیت حمل فله‌ای وجود ندارد":verifiedContractId!==null?"هیچ قالب فعال با مجوز استفاده در قرارداد وجود ندارد":"هیچ الگوی خودرویی در دسترس نیست"
         });
       }
 
@@ -33599,6 +33600,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         if (containsFlammableProducts || containsHazardousProducts) {
           // Only vehicles that support flammable materials
           const isAuthorized = (!containsFlammableProducts || template.supportsFlammable === true)
+            && (!containsFlammableProducts || template.notAllowedFlammable !== true)
             && (!containsHazardousProducts || template.supportsHazardous === true);
           console.log(`🚛 [VEHICLE] ${template.name}: ${isAuthorized ? '✅ AUTHORIZED' : '❌ EXCLUDED'} for flammable transport`);
           return isAuthorized;
@@ -51838,6 +51840,8 @@ momtazchem.com
       const vehicleData = req.body;
       if(vehicleData.transportCategory!==undefined&&!["standard","bulk"].includes(vehicleData.transportCategory))
         return res.status(400).json({success:false,message:"Invalid transport category"});
+      if(["supportsContract","supportsBulk"].some(key=>vehicleData[key]!==undefined&&typeof vehicleData[key]!=="boolean"))
+        return res.status(400).json({success:false,message:"Vehicle capabilities must be boolean"});
       vehicleData.updatedAt = new Date();
       
       const [updatedVehicle] = await db.update(vehicleTemplates)
@@ -51867,6 +51871,8 @@ momtazchem.com
       const vehicleData = req.body;
       if(vehicleData.transportCategory!==undefined&&!["standard","bulk"].includes(vehicleData.transportCategory))
         return res.status(400).json({success:false,message:"Invalid transport category"});
+      if(["supportsContract","supportsBulk"].some(key=>vehicleData[key]!==undefined&&typeof vehicleData[key]!=="boolean"))
+        return res.status(400).json({success:false,message:"Vehicle capabilities must be boolean"});
       vehicleData.updatedAt = new Date();
       
       const [updatedVehicle] = await db.update(vehicleTemplates)
@@ -52236,16 +52242,16 @@ momtazchem.com
         });
       }
 
-      // Contract bulk goods must be quoted from the same category validated at checkout.
-      const vehicles = await db.select().from(vehicleTemplates)
-        .where(and(eq(vehicleTemplates.isActive, true),
-          ...(bulkTransport ? [eq(vehicleTemplates.transportCategory, "bulk")] : [])))
+      // Shared capabilities, not exclusive categories, control contract eligibility.
+      const activeTemplates = await db.select().from(vehicleTemplates)
+        .where(eq(vehicleTemplates.isActive, true))
         .orderBy(vehicleTemplates.priority);
+      const vehicles = eligibleTransportTemplates(activeTemplates,bulkTransport?"bulk":"standard",null,verifiedContractId!==null);
 
       if (vehicles.length === 0) {
         return res.status(404).json({
           success: false,
-          message: bulkTransport ? "No active bulk-category vehicle is available." : "هیچ الگوی خودروی فعالی یافت نشد"
+          message: bulkTransport ? "No active vehicle template supports both contract orders and bulk transport." : verifiedContractId!==null ? "No active vehicle template is authorized for contract orders." : "هیچ الگوی خودروی فعالی یافت نشد"
         });
       }
 
@@ -52268,7 +52274,7 @@ momtazchem.com
         let specialOk = true;
 
         if (isHazardous && !vehicle.supportsHazardous) specialOk = false;
-        if (checkoutCartFacts?.isFlammable && !vehicle.supportsFlammable) specialOk = false;
+        if (checkoutCartFacts?.isFlammable && (!vehicle.supportsFlammable || vehicle.notAllowedFlammable===true)) specialOk = false;
         if (isRefrigerated && !vehicle.hasRefrigeration) specialOk = false;
         if (isFragile && !vehicle.canTransportFragile) specialOk = false;
         

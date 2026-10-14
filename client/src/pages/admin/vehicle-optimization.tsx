@@ -22,6 +22,8 @@ interface VehicleTemplate {
   nameEn: string | null;
   vehicleType: string;
   transportCategory:"standard"|"bulk";
+  supportsContract?: boolean;
+  supportsBulk?: boolean;
   maxWeightKg: string;
   maxVolumeM3: string | null;
   allowedRoutes: string[];
@@ -158,6 +160,8 @@ export default function VehicleOptimization() {
       supportsRefrigerated: formData.get('supportsRefrigerated') === 'true',
       supportsFragile: formData.get('supportsFragile') !== 'false',
       supportsFlammable: formData.get('supportsFlammable') === 'true',
+      supportsContract: formData.getAll('supportsContract').includes('true'),
+      supportsBulk: formData.getAll('supportsBulk').includes('true'),
       averageSpeedKmh: formData.get('averageSpeedKmh') as string || "50",
       fuelConsumptionL100km: formData.get('fuelConsumptionL100km') as string || null,
       priority: parseInt(formData.get('priority') as string) || 0
@@ -176,6 +180,9 @@ export default function VehicleOptimization() {
             سیستم انتخاب بهینه وسیله نقلیه
           </h1>
           <p className="text-muted-foreground">مدیریت الگوهای خودرو و انتخاب بهینه بر اساس الگوریتم هزینه</p>
+          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+            مجوز حمل قراردادی مستقل از مناسب‌بودن برای حمل فله‌ای است؛ خودروهای واقعی را واحد لجستیک به الگوها اختصاص می‌دهد.
+          </p>
         </div>
       </div>
 
@@ -192,7 +199,9 @@ export default function VehicleOptimization() {
               <DialogContent className="max-w-2xl" dir="rtl">
                 <DialogHeader>
                   <DialogTitle>افزودن الگوی خودروی جدید</DialogTitle>
-                  <DialogDescription>اطلاعات الگوی خودرو را برای استفاده در انتخاب بهینه وارد کنید</DialogDescription>
+                  <DialogDescription>
+                    اطلاعات الگوی خودرو را وارد کنید. مجوز حمل قراردادی مستقل از مناسب‌بودن برای حمل فله‌ای است؛ تخصیص خودروهای واقعی با واحد لجستیک است.
+                  </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); handleCreateVehicle(new FormData(e.currentTarget)); }}>
                   <div className="grid grid-cols-2 gap-4 py-4">
@@ -222,6 +231,24 @@ export default function VehicleOptimization() {
                       <select id="transportCategory" name="transportCategory" defaultValue="standard" className="w-full rounded border p-2">
                         <option value="standard">حمل عادی / بسته‌بندی‌شده</option><option value="bulk">حمل فله‌ای</option>
                       </select>
+                      <div className="mt-3 space-y-3 rounded-md border p-3">
+                        <div className="flex items-start gap-2">
+                          <input type="hidden" name="supportsContract" value="false" />
+                          <input type="checkbox" name="supportsContract" value="true" id="supportsContract" />
+                          <div>
+                            <Label htmlFor="supportsContract">مجاز برای حمل قراردادی</Label>
+                            <p className="text-xs text-muted-foreground">این مجوز، دستهٔ حمل یا مناسب‌بودن برای حمل فله‌ای را تغییر نمی‌دهد.</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <input type="hidden" name="supportsBulk" value="false" />
+                          <input type="checkbox" name="supportsBulk" value="true" id="supportsBulk" />
+                          <div>
+                            <Label htmlFor="supportsBulk">مناسب برای حمل فله‌ای</Label>
+                            <p className="text-xs text-muted-foreground">قابلیت مستقل از مجوز حمل قراردادی است.</p>
+                          </div>
+                        </div>
+                      </div>
                       <Label htmlFor="maxWeightKg">حداکثر وزن (کیلوگرم) *</Label>
                       <Input id="maxWeightKg" name="maxWeightKg" type="number" required />
                     </div>
@@ -301,6 +328,7 @@ export default function VehicleOptimization() {
                   <TableRow>
                     <TableHead>نام</TableHead>
                     <TableHead>نوع</TableHead>
+                    <TableHead>قابلیت‌ها</TableHead>
                     <TableHead>حداکثر وزن</TableHead>
                     <TableHead>مسیرهای مجاز</TableHead>
                     <TableHead>قیمت پایه</TableHead>
@@ -312,11 +340,11 @@ export default function VehicleOptimization() {
                 <TableBody>
                   {vehiclesLoading ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center">در حال بارگذاری...</TableCell>
+                      <TableCell colSpan={9} className="text-center">در حال بارگذاری...</TableCell>
                     </TableRow>
                   ) : vehicles.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center">هیچ الگوی خودرویی یافت نشد</TableCell>
+                      <TableCell colSpan={9} className="text-center">هیچ الگوی خودرویی یافت نشد</TableCell>
                     </TableRow>
                   ) : (
                     vehicles.map((vehicle) => (
@@ -328,6 +356,16 @@ export default function VehicleOptimization() {
                           </div>
                         </TableCell>
                         <TableCell>{VEHICLE_TYPES[vehicle.vehicleType as keyof typeof VEHICLE_TYPES]}<Badge className="ms-2" variant="outline">{vehicle.transportCategory==="bulk"?"فله‌ای":"عادی"}</Badge></TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            <Badge variant={(vehicle.supportsContract ?? (vehicle.transportCategory === "bulk")) ? "default" : "secondary"}>
+                              {(vehicle.supportsContract ?? (vehicle.transportCategory === "bulk")) ? "قراردادی: مجاز" : "قراردادی: ندارد"}
+                            </Badge>
+                            <Badge variant={(vehicle.supportsBulk ?? (vehicle.transportCategory === "bulk")) ? "outline" : "secondary"}>
+                              {(vehicle.supportsBulk ?? (vehicle.transportCategory === "bulk")) ? "فله‌ای: مناسب" : "فله‌ای: نامناسب"}
+                            </Badge>
+                          </div>
+                        </TableCell>
                         <TableCell>{parseFloat(vehicle.maxWeightKg).toLocaleString()} kg</TableCell>
                         <TableCell>
                           <div className="flex gap-1 flex-wrap">
@@ -390,6 +428,8 @@ export default function VehicleOptimization() {
                   nameEn: formData.get('nameEn') as string,
                   vehicleType: formData.get('vehicleType') as string,
                   transportCategory:(formData.get('transportCategory')==="bulk"?"bulk":"standard") as "bulk"|"standard",
+                  supportsContract: formData.getAll('supportsContract').includes('true'),
+                  supportsBulk: formData.getAll('supportsBulk').includes('true'),
                   maxWeightKg: formData.get('maxWeightKg') as string,
                   maxVolumeM3: formData.get('maxVolumeM3') as string || null,
                   allowedRoutes: (formData.get('allowedRoutes') as string).split(',').map(r => r.trim()),
@@ -435,6 +475,24 @@ export default function VehicleOptimization() {
                     <select id="edit-transportCategory" name="transportCategory" defaultValue={editingVehicle.transportCategory??"standard"} className="w-full rounded border p-2">
                       <option value="standard">حمل عادی / بسته‌بندی‌شده</option><option value="bulk">حمل فله‌ای</option>
                     </select>
+                    <div className="mt-3 space-y-3 rounded-md border p-3">
+                      <div className="flex items-start gap-2">
+                        <input type="hidden" name="supportsContract" value="false" />
+                        <input type="checkbox" name="supportsContract" value="true" id="edit-supportsContract" defaultChecked={editingVehicle.supportsContract ?? (editingVehicle.transportCategory === "bulk")} />
+                        <div>
+                          <Label htmlFor="edit-supportsContract">مجاز برای حمل قراردادی</Label>
+                          <p className="text-xs text-muted-foreground">این مجوز، دستهٔ حمل یا مناسب‌بودن برای حمل فله‌ای را تغییر نمی‌دهد.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <input type="hidden" name="supportsBulk" value="false" />
+                        <input type="checkbox" name="supportsBulk" value="true" id="edit-supportsBulk" defaultChecked={editingVehicle.supportsBulk ?? (editingVehicle.transportCategory === "bulk")} />
+                        <div>
+                          <Label htmlFor="edit-supportsBulk">مناسب برای حمل فله‌ای</Label>
+                          <p className="text-xs text-muted-foreground">قابلیت مستقل از مجوز حمل قراردادی است.</p>
+                        </div>
+                      </div>
+                    </div>
                     <Label htmlFor="edit-maxWeightKg">حداکثر وزن (کیلوگرم) *</Label>
                     <Input id="edit-maxWeightKg" name="maxWeightKg" type="number" defaultValue={editingVehicle.maxWeightKg} required />
                   </div>
