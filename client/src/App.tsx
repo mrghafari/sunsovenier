@@ -214,9 +214,11 @@ function PublicAdminSwitch({ children }: { children: React.ReactNode }) {
 }
 
 function Router() {
+  const [location] = useLocation();
+  const isLanding = location === "/";
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+      {!isLanding && <Header />}
       <main className="flex-1 pb-16 md:pb-0">
         <PublicAdminSwitch>
           <Route path="/" component={Home} />
@@ -415,7 +417,7 @@ function Router() {
           <Route component={NotFound} />
         </PublicAdminSwitch>
       </main>
-      <Footer />
+      {!isLanding && <Footer />}
       <MobileBottomNav />
     </div>
   );

@@ -579,6 +579,8 @@ const requireCustomerAuth = (req: Request, res: Response, next: NextFunction) =>
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const {registerLandingAssets}=await import("./landing-assets");
+  registerLandingAssets(app);
   async function getCanonicalCheckoutCartFacts(cart: unknown) {
     if (!cart || typeof cart !== "object" || Array.isArray(cart)) {
       throw new ShippingConfigurationError("A product cart is required for a shipping quote.", 422);
