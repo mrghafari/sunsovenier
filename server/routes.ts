@@ -47305,6 +47305,11 @@ momtazchem.com
   });
 
   // Content Management API endpoints
+  const {registerLandingContentRoutes}=await import("./landing-content-routes");
+  registerLandingContentRoutes(app,{
+    view:requireModuleAccess("content_management","view"),
+    edit:requireModuleAccess("content_management","edit"),
+  });
   app.get("/api/content-management/items", requireAuth, async (req: Request, res: Response) => {
     try {
       const { language, section } = req.query;

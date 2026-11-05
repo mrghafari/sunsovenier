@@ -20,6 +20,7 @@
 .mc-header { position: sticky; top: 0; z-index: 100; height: 72px; color: #fff; background: rgba(17,25,35,.96); border-bottom: 1px solid rgba(255,255,255,.09); backdrop-filter: blur(12px); }
 .mc-nav { height: 100%; display: flex; justify-content: space-between; align-items: center; gap: 24px; }
 .mc-logo { display: inline-flex; align-items: center; gap: 9px; color: #fff; font-size: 21px; font-weight: 800; letter-spacing: -.045em; white-space: nowrap; }
+.mc-logo .mc-brand-logo { width: 40px; height: 40px; flex: 0 0 40px; object-fit: contain; }
 .mc-logo > i, .mc-logo span span { color: var(--mc-blue-light); }
 .mc-nav-links { display: flex; align-items: center; gap: 28px; list-style: none; color: rgba(255,255,255,.86); font-size: 14px; font-weight: 600; }
 .mc-nav-links a { transition: color .2s ease; }

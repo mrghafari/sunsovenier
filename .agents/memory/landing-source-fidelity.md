@@ -14,3 +14,15 @@ The corrected blue/navy landing reference replaces the earlier gold design. The 
 **Why:** The user explicitly requested the replacement homepage and consistent themes on other pages.
 
 **How to apply:** Carry the supplied visual identity through shared page themes and components, while retaining functional forms, permissions, and meaningful success/warning/error colors.
+
+Manage landing images and the supplied settings controls in the existing content-management module, not an inline browser-only editor on the homepage.
+
+**Why:** The user explicitly corrected the location: «باید بیاد در ماژول محتوی».
+
+**How to apply:** Keep editing in the authorized content module; saved changes must be shared site content rather than a private browser preview.
+
+Use the company's real logo beside the brand name, not the reference's flask icon.
+
+**Why:** The user explicitly said: «از لوگوی شرکت کنار اسم برند استفاده کن».
+
+**How to apply:** Follow the existing configured company-logo source and retain its bundled fallback when external images fail.

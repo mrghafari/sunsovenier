@@ -1,22 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/hooks/useAuth";
+import CompanyBrandLogo from "@/components/company-brand-logo";
 import { apiRequest } from "@/lib/queryClient";
+import type { LandingContent } from "@shared/landing-content";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import type { ShopCategory, ShopProduct } from "@shared/shop-schema";
 import assets from "./landing/landing-assets.json";
-import { BASE_PRODUCTS, LIQUID_PACKAGES, LOCALIZED_PRODUCTS, PACKAGES, PRODUCT_DETAILS_UI, type LandingProduct, type PackageId } from "./landing/catalog";
-import { imageFileToDataUrl, readLocalLanding, writeLocalLanding, type LocalLandingState } from "./landing/local-editor";
+import { BASE_PRODUCTS, LIQUID_PACKAGES, LOCALIZED_PRODUCTS, PACKAGES, PRODUCT_DETAILS_UI } from "./landing/catalog";
 import "./landing/landing.css";
 
 type LandingAsset = { url: string; width?: number; height?: number };
 const landingAssets = (assets as { images: LandingAsset[] }).images;
 const assetUrl = (index: number) => landingAssets[index]?.url ?? "";
 const LANGUAGES: Record<string, string> = { en: "English", fa: "فارسی", ar: "العربية", tr: "Türkçe" };
-const EMPTY_EDITOR: LocalLandingState = { images: {}, edits: {}, custom: [] };
 
 const translations = {
   en: {
@@ -94,7 +93,6 @@ type Language = keyof typeof translations;
 
 export default function Home() {
   const { language, setLanguage, direction } = useLanguage();
-  const { isAuthenticated } = useAuth();
   const locale = (language in translations ? language : "en") as Language;
   const c = translations[locale];
   const localizedProducts = LOCALIZED_PRODUCTS[locale];
@@ -102,9 +100,8 @@ export default function Home() {
   const [slide, setSlide] = useState(0);
   const slideRef = useRef(0);
   slideRef.current = slide;
-  const loadedSlides = useRef(new Set<number>([0]));
-  const pendingSlides = useRef(new Map<number, Promise<boolean>>());
-  const [loadedSlideState, setLoadedSlideState] = useState<number[]>([0]);
+  const loadedSlides = useRef(new Set<string>([assetUrl(0)]));
+  const pendingSlides = useRef(new Map<string, Promise<boolean>>());
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState("");
@@ -113,14 +110,19 @@ export default function Home() {
   const quoteRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [formError, setFormError] = useState("");
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [editor, setEditor] = useState<LocalLandingState>(EMPTY_EDITOR);
-  const [editorReady, setEditorReady] = useState(false);
-  const [editorMessage, setEditorMessage] = useState("");
-  const [newCard, setNewCard] = useState({ title: "", short: "", long: "", pack: [] as PackageId[] });
-  const [newCardImage, setNewCardImage] = useState("");
-  const previewId = useRef(0);
-
+  const { data: landingContent, isError: landingError, refetch: retryLanding } = useQuery<LandingContent>({
+    queryKey: ["/api/landing-content"],
+    queryFn: async () => {
+      const response = await fetch("/api/landing-content", { credentials: "include", cache: "no-store" });
+      if (!response.ok) throw new Error("Unable to load published landing content.");
+      const result = await response.json();
+      if (!result.success || !result.data) throw new Error("Unable to load published landing content.");
+      return result.data as LandingContent;
+    },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
+  });
   const { data: categoriesResponse, isLoading, isError, refetch } = useQuery({
     queryKey: ["/api/public/categories"],
     queryFn: async () => {
@@ -153,46 +155,44 @@ export default function Home() {
     });
     return result;
   }, [shopProducts]);
-  const imageFor = useCallback((key: string, assetIndex: number) => isAuthenticated ? editor.images[key] || assetUrl(assetIndex) : assetUrl(assetIndex), [editor.images, isAuthenticated]);
+  const imageFor = useCallback((key: string, assetIndex: number) => landingContent?.images[key] || assetUrl(assetIndex), [landingContent?.images]);
   const products = useMemo(() => BASE_PRODUCTS.map((product, index) => {
     const localized = localizedProducts?.[index];
-    const override = isAuthenticated ? editor.edits[product.id] : undefined;
-    return { ...product, title: override?.title || localized?.[0] || product.title, short: override?.short || localized?.[1] || product.short, long: override?.long || product.long };
-  }).concat(isAuthenticated ? editor.custom : []), [editor.custom, editor.edits, isAuthenticated, localizedProducts]);
+    const localeOverride = landingContent?.edits?.[locale]?.[product.id];
+    const englishOverride = landingContent?.edits?.en?.[product.id];
+    return {
+      ...product,
+      title: localeOverride?.title ?? englishOverride?.title ?? localized?.[0] ?? product.title,
+      short: localeOverride?.short ?? englishOverride?.short ?? localized?.[1] ?? product.short,
+      long: localeOverride?.long ?? englishOverride?.long ?? product.long,
+    };
+  }).concat((landingContent?.custom ?? []).map((product) => {
+    const localized = landingContent?.edits?.[locale]?.[product.id];
+    const english = landingContent?.edits?.en?.[product.id];
+    return {
+      ...product,
+      title: localized?.title ?? english?.title ?? product.title,
+      short: localized?.short ?? english?.short ?? product.short,
+      long: localized?.long ?? english?.long ?? product.long,
+      categoryPath: "/contact",
+      custom: true as const,
+    };
+  })), [landingContent, localizedProducts, locale]);
 
   const ensureHeroLoaded = useCallback((index: number): Promise<boolean> => {
-    if (loadedSlides.current.has(index)) return Promise.resolve(true);
-    const pending = pendingSlides.current.get(index);
+    const url = landingContent?.images[`hero-${index}`] || assetUrl(index);
+    if (loadedSlides.current.has(url)) return Promise.resolve(true);
+    const pending = pendingSlides.current.get(url);
     if (pending) return pending;
     const task = new Promise<boolean>((resolve) => {
       const image = new Image();
-      image.onload = () => { loadedSlides.current.add(index); setLoadedSlideState((items) => items.includes(index) ? items : [...items, index]); resolve(true); };
+      image.onload = () => { loadedSlides.current.add(url); resolve(true); };
       image.onerror = () => resolve(false);
-      image.src = assetUrl(index);
-    }).finally(() => pendingSlides.current.delete(index));
-    pendingSlides.current.set(index, task);
+      image.src = url;
+    }).finally(() => pendingSlides.current.delete(url));
+    pendingSlides.current.set(url, task);
     return task;
-  }, []);
-
-  useEffect(() => {
-    if (!isAuthenticated) { setEditor(EMPTY_EDITOR); setEditorReady(false); return; }
-    let active = true;
-    readLocalLanding().then((saved) => {
-      if (active) { setEditor(saved ?? EMPTY_EDITOR); setEditorReady(true); setEditorMessage(""); }
-    }).catch(() => {
-      // Never overwrite a saved preview with empty defaults after a failed read.
-      if (active) { setEditorReady(false); setEditorMessage(c.saveError); }
-    });
-    return () => { active = false; };
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (!isAuthenticated || !editorReady) return;
-    const timeout = window.setTimeout(() => {
-      writeLocalLanding(editor).then(() => setEditorMessage(c.saved)).catch(() => setEditorMessage(c.saveError));
-    }, 350);
-    return () => window.clearTimeout(timeout);
-  }, [c.saveError, c.saved, editor, editorReady, isAuthenticated]);
+  }, [landingContent?.images]);
 
   useEffect(() => {
     let active = true;
@@ -239,70 +239,13 @@ export default function Home() {
   useEffect(() => {
     if (activeProductId && modalRef.current && !modalRef.current.open) modalRef.current.showModal();
   }, [activeProductId]);
-
-  async function onEditorImage(key: string, event: ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0];
-    event.currentTarget.value = "";
-    if (!file) return;
-    try {
-      const dataUrl = await imageFileToDataUrl(file);
-      setEditor((state) => ({ ...state, images: { ...state.images, [key]: dataUrl } }));
-      setEditorMessage(c.saved);
-    } catch (error) { setEditorMessage(error instanceof Error ? error.message : c.saveError); }
-  }
-
-  function setProductText(id: string, field: "title" | "short" | "long", value: string) {
-    setEditor((state) => ({ ...state, edits: { ...state.edits, [id]: { ...state.edits[id], [field]: value } } }));
-  }
-
-  async function addCustomProduct(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const file = formData.get("customImage");
-    let image = newCardImage;
-    if (file instanceof File && file.size) {
-      try { image = await imageFileToDataUrl(file); } catch (error) { setEditorMessage(error instanceof Error ? error.message : c.saveError); return; }
+  useEffect(() => {
+    if (activeProductId && !products.some((product) => product.id === activeProductId)) {
+      modalRef.current?.close();
+      setActiveProductId(null);
     }
-    if (!newCard.title.trim() || !newCard.short.trim() || !newCard.long.trim() || !newCard.pack.length) {
-      setEditorMessage(c.formError); return;
-    }
-    const id = `custom-${Date.now()}-${++previewId.current}`;
-    const product: LandingProduct = {
-      id, title: newCard.title.trim(), short: newCard.short.trim(), long: newCard.long.trim(),
-      specs: [], pack: newCard.pack, asset: 9, categoryPath: "/shop", custom: true,
-    };
-    setEditor((state) => ({ ...state, custom: [...state.custom, product], images: image ? { ...state.images, [id]: image } : state.images }));
-    setNewCard({ title: "", short: "", long: "", pack: [] });
-    setNewCardImage("");
-    form.reset();
-    setEditorMessage(c.saved);
-  }
-
-  function removeCustomProduct(id: string) {
-    setEditor((state) => {
-      const images = { ...state.images }; delete images[id];
-      return { ...state, custom: state.custom.filter((product) => product.id !== id), images };
-    });
-  }
-
-  async function resetEditor() {
-    setEditor(EMPTY_EDITOR);
-    try {
-      const db = await new Promise<IDBDatabase>((resolve, reject) => {
-        const request = indexedDB.open("momtazchem-home-preview-v2", 1);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      await new Promise<void>((resolve, reject) => {
-        const transaction = db.transaction("local-content", "readwrite");
-        transaction.objectStore("local-content").delete("landing");
-        transaction.oncomplete = () => resolve();
-        transaction.onerror = () => reject(transaction.error);
-      });
-      setEditorMessage(c.saved);
-    } catch { setEditorMessage(c.saveError); }
-  }
+    if (selectedProduct && !products.some((product) => product.id === selectedProduct)) setSelectedProduct("");
+  }, [activeProductId, products, selectedProduct]);
 
   function openProduct(id: string) {
     setActiveProductId(id);
@@ -351,59 +294,14 @@ export default function Home() {
   const activeProduct = products.find((product) => product.id === activeProductId);
   const packageProductIds = new Set(products.map((product) => product.id));
   const heroImages = [0, 1, 2];
-  const imageKeys: Array<[string, string, number]> = [
-    ["drum220", "220L Steel Drum", 4], ["ibc1000", "1000L IBC Container", 5], ["tank1500", "1500L Stainless Tank", 6],
-    ["fert", "Agricultural Fertilizers", 7], ["logistics", "Logistics", 8], ["water", "Water", 9],
-  ];
-
   return (
     <div className="mc-landing" dir={direction} lang={locale}>
       <OpenGraphTags title={locale === "fa" ? "ممتازکم | راهکارهای شیمیایی صنعتی" : "Momtaz Chem | Industrial Chemical Solutions"} description="Advanced chemical solutions for fuel additives, water treatment, paint & thinner products, and agricultural fertilizers." type="website" image="https://momtazchem.com/og-home.jpg" locale={locale === "fa" ? "fa_IR" : "en_US"} />
       <CanonicalUrl path="/" />
-      {isAuthenticated && <div className="mc-manager">
-        <div className="mc-manager-bar">
-          <span><i className="fa-solid fa-sliders" aria-hidden="true" /> {c.localTitle} <small>· {c.localStatus}</small></span>
-          <button type="button" aria-expanded={editorOpen} aria-controls="mc-manager-panel" onClick={() => setEditorOpen((open) => !open)}><i className={`fa-solid ${editorOpen ? "fa-xmark" : "fa-gear"}`} aria-hidden="true" /> {editorOpen ? c.closeEditor : c.openEditor}</button>
-        </div>
-        {editorOpen && <section className="mc-manager-panel" id="mc-manager-panel" aria-label={c.localTitle}>
-          <p className="mc-manager-note">{c.localStatus}</p>
-          <h2>{c.heroImages}</h2>
-          <div className="mc-manager-grid">{heroImages.map((index) => <label className="mc-manager-field" key={index}>{`Slide ${index + 1}`}<input type="file" accept="image/*" onChange={(event) => void onEditorImage(`hero-${index}`, event)} /><img src={imageFor(`hero-${index}`, index)} alt={`Hero slide ${index + 1} preview`} /></label>)}</div>
-          <h2>{c.aboutImage}</h2>
-          <div className="mc-manager-grid"><label className="mc-manager-field">{c.aboutImage}<input type="file" accept="image/*" onChange={(event) => void onEditorImage("about", event)} /><img src={imageFor("about", 3)} alt="About section preview" /></label></div>
-          <h2>{c.cardImages}</h2>
-          <div className="mc-manager-grid">{imageKeys.map(([key, label, index]) => <label className="mc-manager-field" key={key}>{label}<input type="file" accept="image/*" onChange={(event) => void onEditorImage(key, event)} /><img src={imageFor(key, index)} alt={`${label} preview`} /></label>)}</div>
-          <h2>{c.textEdit}</h2>
-          {BASE_PRODUCTS.map((product) => {
-            const localTitle = editor.edits[product.id]?.title || product.title;
-            return <div className="mc-manager-field" key={product.id} style={{ marginBottom: 16 }}>
-              <strong>{localTitle}</strong>
-              <label>{c.title}<input value={editor.edits[product.id]?.title ?? product.title} onChange={(event) => setProductText(product.id, "title", event.target.value)} /></label>
-              <label>{c.short}<input value={editor.edits[product.id]?.short ?? product.short} onChange={(event) => setProductText(product.id, "short", event.target.value)} /></label>
-              <label>{c.long}<textarea rows={3} value={editor.edits[product.id]?.long ?? product.long} onChange={(event) => setProductText(product.id, "long", event.target.value)} /></label>
-            </div>;
-          })}
-          {editor.custom.map((product) => <div className="mc-admin-product" key={product.id}><img src={imageFor(product.id, product.asset)} alt="" /><span>{product.title}</span><button type="button" onClick={() => removeCustomProduct(product.id)}>{c.remove}</button></div>)}
-          <h2>{c.customTitle}</h2>
-          <form className="mc-manager-add-form" onSubmit={(event) => void addCustomProduct(event)}>
-            <label className="mc-manager-field">{c.title}<input required value={newCard.title} onChange={(event) => setNewCard((value) => ({ ...value, title: event.target.value }))} /></label>
-            <label className="mc-manager-field">{c.short}<input required value={newCard.short} onChange={(event) => setNewCard((value) => ({ ...value, short: event.target.value }))} /></label>
-            <label className="mc-manager-field">{c.long}<textarea required rows={2} value={newCard.long} onChange={(event) => setNewCard((value) => ({ ...value, long: event.target.value }))} /></label>
-            <label className="mc-manager-field">{c.imageEdit}<input type="file" name="customImage" accept="image/*" onChange={(event) => {
-              const file = event.currentTarget.files?.[0];
-              if (!file) return;
-              void imageFileToDataUrl(file).then(setNewCardImage).catch(() => setEditorMessage(c.saveError));
-            }} /></label>
-            <fieldset className="mc-manager-field" style={{ border: 0, padding: 0, gridColumn: "1 / -1" }}><legend>{c.packages}</legend><div className="mc-field-pair">{Object.entries(PACKAGES).map(([id, pack]) => <label key={id}><input type="checkbox" checked={newCard.pack.includes(id as PackageId)} onChange={(event) => setNewCard((value) => ({ ...value, pack: event.target.checked ? [...value.pack, id as PackageId] : value.pack.filter((item) => item !== id) }))} /> {pack.name}</label>)}</div></fieldset>
-            <button type="submit" className="mc-manager-add"><i className="fa-solid fa-plus" aria-hidden="true" /> {c.add}</button>
-          </form>
-          <div className="mc-manager-actions"><p role="status" aria-live="polite">{editorMessage || c.localStatus}</p><button type="button" onClick={() => void resetEditor()}>{c.reset}</button></div>
-        </section>}
-      </div>}
-
+      {landingError && <div className="mc-category-error" role="alert"><p>{locale === "fa" ? "بارگذاری محتوای به‌روز سایت ناموفق بود؛ ممکن است نسخه ذخیره‌شده قدیمی باشد." : "Could not refresh published site content. Previously loaded content is not being replaced."}</p><button type="button" onClick={() => void retryLanding()}>{c.retry}</button></div>}
       <header className="mc-header">
         <div className="mc-container mc-nav">
-          <Link href="/" className="mc-logo" aria-label="Momtaz Chem home"><i className="fa-solid fa-flask" aria-hidden="true" /><span>MOMTAZ<span>CHEM</span></span></Link>
+          <Link href="/" className="mc-logo" aria-label="Momtaz Chem home"><CompanyBrandLogo /><span>MOMTAZ<span>CHEM</span></span></Link>
           <nav className={`mc-nav-links ${mobileMenu ? "is-open" : ""}`} aria-label="Main navigation">
             <a href="#about" onClick={() => setMobileMenu(false)}>{c.navAbout}</a>
             <a href="#services" onClick={() => setMobileMenu(false)}>{c.navProducts}</a>
@@ -427,8 +325,7 @@ export default function Home() {
         <section className="mc-hero">
           <div className="mc-hero-slider" aria-hidden="true">
             {heroImages.map((index) => {
-              const source = isAuthenticated ? editor.images[`hero-${index}`] : "";
-              const background = source || (loadedSlideState.includes(index) ? assetUrl(index) : "");
+              const background = landingContent?.images[`hero-${index}`] || (loadedSlides.current.has(assetUrl(index)) ? assetUrl(index) : "");
               return <div key={index} className={`mc-hero-slide ${slide === index ? "is-active" : ""}`} style={background ? { backgroundImage: `url("${background}")` } : undefined} />;
             })}
           </div>
@@ -490,7 +387,6 @@ export default function Home() {
               <div className="mc-service-image"><img src={imageFor(imageKey, assetIndex)} alt={product.title} loading="lazy" /></div>
               <div className="mc-service-body"><h3>{product.title}</h3><p>{product.short}</p>
                 <button type="button" className="mc-detail-link" onClick={() => openProduct(product.id)}>{c.details}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></button>
-                {product.custom && <span className="mc-preview-card-tag">{c.previewCard}</span>}
               </div>
             </article>;
           })}</div>
@@ -508,9 +404,9 @@ export default function Home() {
       </main>
       <footer className="mc-footer"><div className="mc-container">
         <div className="mc-footer-grid">
-          <div><Link href="/" className="mc-logo"><i className="fa-solid fa-flask" aria-hidden="true" /><span>MOMTAZ<span>CHEM</span></span></Link><p className="mc-footer-tagline">{c.tagline}</p><Link className="mc-footer-cta" href="/shop">{c.shop}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></Link></div>
+          <div><Link href="/" className="mc-logo"><CompanyBrandLogo /><span>MOMTAZ<span>CHEM</span></span></Link><p className="mc-footer-tagline">{c.tagline}</p><Link className="mc-footer-cta" href="/shop">{c.shop}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></Link></div>
           <div><h3>{c.company}</h3><ul><li><Link href="/about">{c.aboutLink}</Link></li><li><Link href="/services">{c.services}</Link></li><li><Link href="/contact">{c.getQuote}</Link></li></ul></div>
-          <div><h3>{c.packaging}</h3><ul>{LIQUID_PACKAGES.map((packId) => <li key={packId}><button className="mc-footer-product" type="button" onClick={() => openProduct(packId)}>{PACKAGES[packId].name}</button></li>)}</ul></div>
+          <div><h3>{c.packaging}</h3><ul>{Array.from(new Set(products.flatMap((product) => product.pack))).map((packId) => <li key={packId}><button className="mc-footer-product" type="button" onClick={() => { const target = products.find((product) => product.id === packId) ?? products.find((product) => product.pack.includes(packId)); if (target) openProduct(target.id); }}>{PACKAGES[packId].name}</button></li>)}</ul></div>
           <div><h3>{c.connect}</h3><ul><li><Link href="/customer/login">{c.account}</Link></li><li><Link href="/shop">{c.shop}</Link></li><li><Link href="/contact">{c.getQuote}</Link></li><li><Link href="/site-management">Website management</Link></li></ul></div>
         </div>
         <div className="mc-footer-bottom"><span>© 2026 MOMTAZ CHEM. All rights reserved.</span><span><Link href="/privacy">Privacy Policy</Link><i /> <Link href="/terms">Terms of Service</Link></span></div>

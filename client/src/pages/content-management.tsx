@@ -10,11 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, Image, Type, Globe, Palette, Save, RefreshCw, Trash2, Eye, Edit3, Package, MessageCircle } from "lucide-react";
+import { ArrowLeft, Upload, Image, Type, Globe, Palette, Save, RefreshCw, Trash2, Eye, Edit3, Package, MessageCircle, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import LandingPageEditor from "@/components/admin/content/LandingPageEditor";
 import { translateContentManagement } from "./content-management-translations";
 import {
   normalizeSiteLanguageSettings,
@@ -109,7 +110,8 @@ export default function ContentManagement() {
   const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ar' | 'ku' | 'tr' | 'fa'>('en');
   const [selectedSection, setSelectedSection] = useState<string>('product_display');
   const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('content');
+  const [activeTab, setActiveTab] = useState<string>('landing');
+  const [landingDirty, setLandingDirty] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('agricultural-fertilizers');
   
   // State for Tawk.to Support Chat
@@ -126,6 +128,23 @@ export default function ContentManagement() {
 
   // Check if user is super admin (id = 1)
   const isSuperAdmin = user?.id === 1;
+  const confirmLeaveLanding = () => {
+    if (landingDirty) {
+      const warning = interfaceLanguage === 'fa'
+        ? 'تغییرات صفحه اول ذخیره نشده‌اند. بدون ذخیره از این صفحه خارج می‌شوید؟'
+        : interfaceLanguage === 'ar'
+          ? 'تغييرات الصفحة الرئيسية غير محفوظة. هل تريد المغادرة دون حفظ؟'
+          : interfaceLanguage === 'tr'
+            ? 'Ana sayfa değişiklikleri kaydedilmedi. Kaydetmeden ayrılmak istiyor musunuz?'
+            : 'Landing-page changes are unsaved. Leave without saving?';
+      return window.confirm(warning);
+    }
+    return true;
+  };
+  const changeContentTab = (nextTab: string) => {
+    if (activeTab === 'landing' && nextTab !== 'landing' && !confirmLeaveLanding()) return;
+    setActiveTab(nextTab);
+  };
 
   // Query for content items using admin API
   const { data: contentItems, isLoading: loadingContent } = useQuery({
@@ -479,7 +498,7 @@ export default function ContentManagement() {
             {isSuperAdmin && (
               <Button
                 variant="ghost"
-                onClick={() => setLocation("/admin/site-management")}
+                onClick={() => { if (activeTab !== 'landing' || confirmLeaveLanding()) setLocation("/admin/site-management"); }}
                 className="hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -497,7 +516,7 @@ export default function ContentManagement() {
           </div>
           
           {/* Language and Section Selectors */}
-          <div className="flex items-center gap-4">
+          {activeTab !== 'landing' && <div className="flex items-center gap-4">
             <Select value={selectedLanguage} onValueChange={(value: 'en' | 'ar' | 'ku' | 'tr' | 'fa') => setSelectedLanguage(value)}>
               <SelectTrigger className="w-40">
                 <SelectValue />
@@ -526,12 +545,16 @@ export default function ContentManagement() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </div>}
         </div>
 
         {/* Content Management Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={changeContentTab} className="w-full">
           <TabsList className="flex flex-wrap w-full h-auto gap-1 p-1">
+            <TabsTrigger value="landing" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              {interfaceLanguage === "fa" ? "صفحه اول" : interfaceLanguage === "ar" ? "الصفحة الرئيسية" : interfaceLanguage === "tr" ? "Ana sayfa" : "Landing page"}
+            </TabsTrigger>
             <TabsTrigger value="content" className="flex items-center gap-2">
               <Type className="w-4 h-4" />
               {tx("Text Content")}
@@ -573,6 +596,10 @@ export default function ContentManagement() {
               {tx("Site Languages")}
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="landing" className="space-y-6">
+            <LandingPageEditor onDirtyChange={setLandingDirty} />
+          </TabsContent>
 
           {/* Text Content Tab */}
           <TabsContent value="content" className="space-y-6">
