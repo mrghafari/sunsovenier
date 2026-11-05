@@ -313,7 +313,6 @@ export default function Home() {
           <div className="mc-nav-actions">
             <label className="mc-language" aria-label={c.language}><i className="fa-solid fa-globe" aria-hidden="true" />
               <select value={locale} onChange={(event) => setLanguage(event.target.value as Language)} aria-label={c.language}>{Object.entries(LANGUAGES).map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select>
-              <i className="fa-solid fa-chevron-down" aria-hidden="true" />
             </label>
             <a className="mc-phone" href="tel:+9647500000000"><i className="fa-solid fa-phone" aria-hidden="true" /><span>+964 (750) 000-0000</span></a>
             <button className="mc-menu-toggle" type="button" aria-label={mobileMenu ? "Close menu" : "Open menu"} aria-expanded={mobileMenu} onClick={() => setMobileMenu((value) => !value)}><i className={`fa-solid ${mobileMenu ? "fa-xmark" : "fa-bars"}`} aria-hidden="true" /></button>
