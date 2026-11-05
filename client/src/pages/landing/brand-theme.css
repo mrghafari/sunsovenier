@@ -94,6 +94,86 @@ nav[class*="z-[990]"] span[class*="h-[3px]"] { background-color: #6ea3ff; }
 nav[class*="z-[990]"] span[class*="border-white"] { border-color: #111923; }
 .mc-footer-product { padding: 0; border: 0; color: inherit; background: none; font: inherit; text-align: start; cursor: pointer; }
 .mc-footer-product:hover { color: var(--mc-blue-light); }
+
+/* Storefront night mode: intentionally limited to the public catalog routes. */
+html[data-shop-night="true"] .shop-storefront {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+html[data-shop-night="true"] .shop-storefront [class~="bg-white"],
+html[data-shop-night="true"] .shop-storefront [class~="bg-gray-50"],
+html[data-shop-night="true"] .shop-storefront [class~="bg-gray-100"] {
+  background-color: var(--card);
+}
+html[data-shop-night="true"] .shop-storefront [class~="bg-gray-200"] {
+  background-color: var(--muted);
+}
+html[data-shop-night="true"] .shop-storefront [class~="bg-white/90"],
+html[data-shop-night="true"] .shop-storefront [class~="bg-white/95"] {
+  background-color: var(--card);
+}
+html[data-shop-night="true"] .shop-storefront [class~="text-gray-900"],
+html[data-shop-night="true"] .shop-storefront [class~="text-gray-800"],
+html[data-shop-night="true"] .shop-storefront [class~="text-gray-700"],
+html[data-shop-night="true"] .shop-storefront [class~="text-gray-600"] {
+  color: var(--foreground);
+}
+html[data-shop-night="true"] .shop-storefront [class~="text-gray-500"],
+html[data-shop-night="true"] .shop-storefront [class~="text-gray-400"] {
+  color: var(--muted-foreground);
+}
+html[data-shop-night="true"] .shop-storefront [class~="text-gray-300"] {
+  color: var(--muted-foreground);
+}
+/* Promotional panels keep their original pale status gradients. */
+html[data-shop-night="true"] .shop-storefront [class~="from-orange-50"] [class*="text-gray-"],
+html[data-shop-night="true"] .shop-storefront [class~="from-purple-50"] [class*="text-gray-"] {
+  color: #364152;
+}
+html[data-shop-night="true"] .shop-storefront [class~="border-gray-100"],
+html[data-shop-night="true"] .shop-storefront [class~="border-gray-200"],
+html[data-shop-night="true"] .shop-storefront [class~="border-gray-300"],
+html[data-shop-night="true"] .shop-storefront [class~="border-gray-400"] {
+  border-color: var(--border);
+}
+html[data-shop-night="true"] .shop-storefront input,
+html[data-shop-night="true"] .shop-storefront select,
+html[data-shop-night="true"] .shop-storefront textarea {
+  border-color: var(--input);
+  background-color: var(--card);
+  color: var(--foreground);
+}
+html[data-shop-night="true"] .shop-storefront input::placeholder,
+html[data-shop-night="true"] .shop-storefront textarea::placeholder {
+  color: var(--muted-foreground);
+}
+html[data-shop-night="true"] .shop-storefront [class~="hover:bg-gray-50"]:hover,
+html[data-shop-night="true"] .shop-storefront [class~="hover:bg-gray-100"]:hover {
+  background-color: var(--accent);
+}
+html[data-shop-night="true"] .shop-storefront .shop-theme-toggle {
+  border-color: var(--border);
+  background-color: var(--secondary);
+  color: var(--foreground);
+}
+html[data-shop-night="true"] [role="dialog"],
+html[data-shop-night="true"] [data-radix-popper-content-wrapper] > *,
+html[data-shop-night="true"] [data-radix-select-viewport] {
+  border-color: var(--border);
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+}
+html[data-shop-night="true"] [role="dialog"] [class~="bg-white"],
+html[data-shop-night="true"] [data-radix-popper-content-wrapper] > * [class~="bg-white"] {
+  background-color: var(--popover);
+}
+html[data-shop-night="true"] .shop-search-page {
+  color: var(--foreground);
+}
+html[data-shop-night="true"] .shop-search-page [class~="bg-gray-100"],
+html[data-shop-night="true"] .shop-search-page [class~="bg-gray-200"] {
+  background-color: var(--muted);
+}
 @media (prefers-reduced-motion: no-preference) {
   :where(button, a, [role="button"]) { transition-property: color, background-color, border-color, box-shadow; transition-duration: 160ms; }
 }

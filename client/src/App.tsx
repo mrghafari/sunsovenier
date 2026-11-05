@@ -167,6 +167,7 @@ import FibPaymentPage from "@/pages/fib-payment";
 import NotFound from "@/pages/not-found";
 import AdminRoute from "@/components/AdminRoute";
 import LoadingManagement from "@/modules/loading/LoadingManagement";
+import { ShopThemeProvider } from "@/components/ShopTheme";
 
 const INTERNAL_ADMIN_PREFIX = "/admin";
 const PUBLIC_ADMIN_PREFIX = "/mrg";
@@ -217,6 +218,7 @@ function Router() {
   const [location] = useLocation();
   const isLanding = location === "/";
   return (
+    <ShopThemeProvider>
     <div className="min-h-screen flex flex-col">
       {!isLanding && <Header />}
       <main className="flex-1 pb-16 md:pb-0">
@@ -420,6 +422,7 @@ function Router() {
       {!isLanding && <Footer />}
       <MobileBottomNav />
     </div>
+    </ShopThemeProvider>
   );
 }
 

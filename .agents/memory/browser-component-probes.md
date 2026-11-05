@@ -54,3 +54,14 @@ break signing, despite the component working correctly.
 **How to apply:** Finish scrolling before measuring a pointer target and verify
 that hit-testing the intended coordinates reaches that target. Do not infer an
 application failure from a coordinate gesture that missed its control.
+
+On navigation-prone app startup, prefer boolean readiness polling over transferring
+an element handle between Puppeteer execution contexts.
+
+**Why:** A visible-element wait repeatedly failed with Chromium's
+`DOM.describeNode: Cannot find context with specified id` during startup navigation,
+even though the storefront rendered and its controls worked.
+
+**How to apply:** Poll DOM readiness with `waitForFunction`, then locate controls
+after navigation settles. Wait for actual page content, not just the shared header,
+before capturing screenshots.

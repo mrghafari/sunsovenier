@@ -156,7 +156,7 @@ export default function ShopSearch() {
   const availableFilters = searchResults?.data?.filters;
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="shop-storefront shop-search-page min-h-screen bg-gray-50 px-4 py-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Advanced Product Search</h1>
         <p className="text-gray-600 mb-4">Search through our comprehensive chemical product catalog with advanced filters</p>

@@ -40,7 +40,9 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     localStorage.setItem('language', language);
     document.documentElement.dir = direction;
     document.documentElement.lang = language;
-    document.documentElement.className = `lang-${language}`;
+    const root = document.documentElement;
+    Array.from(root.classList).filter((name) => name.startsWith('lang-')).forEach((name) => root.classList.remove(name));
+    root.classList.add(`lang-${language}`);
   }, [language, direction,ready]);
 
   useEffect(() => {

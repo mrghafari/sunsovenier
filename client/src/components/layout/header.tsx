@@ -25,6 +25,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import { ShopThemeToggle } from "@/components/ShopTheme";
 
 // Import the logo into the frontend bundle so it is available in production
 // without depending on a persistent /uploads directory or an S3 request.
@@ -105,6 +106,7 @@ export default function Header() {
     { href: '/contact', label: t.contact },
     { href: '/shop', label: t.shop.title },
   ];
+  const isCustomerStorefront = location === '/shop' || location === '/shop-search' || /^\/shop\/product\/[^/]+$/.test(location);
 
   const productCategories = [
     {
@@ -303,6 +305,9 @@ export default function Header() {
 
           {/* Right side actions */}
           <div className="flex items-center gap-4">
+            {isCustomerStorefront && (
+              <ShopThemeToggle className="border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700" />
+            )}
             {/* Admin Status Badge with Logout */}
             {isAdminAuthenticated && (
               <div className="hidden md:flex items-center gap-2">

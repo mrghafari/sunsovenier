@@ -26,3 +26,9 @@ Use the company's real logo beside the brand name, not the reference's flask ico
 **Why:** The user explicitly said: «از لوگوی شرکت کنار اسم برند استفاده کن».
 
 **How to apply:** Follow the existing configured company-logo source and retain its bundled fallback when external images fail.
+
+The storefront must offer a day/night button; night mode should use the original dark theme.
+
+**Why:** The user explicitly requested «دکمه روز و شب» with «در حالت شب همان تم اصلی که تیره است».
+
+**How to apply:** Reuse the existing navy dark palette rather than introduce an unrelated night theme.

@@ -116,7 +116,7 @@ export default function ShopProductPage() {
   const next = () => setImgIndex(i => (i === images.length - 1 ? 0 : i + 1));
 
   return (
-    <div className={`min-h-screen bg-gray-50 dark:bg-gray-950 ${language === "fa" ? "shop-lang-fa" : ""}`} dir={direction}>
+    <div className={`shop-storefront min-h-screen bg-gray-50 dark:bg-gray-950 ${language === "fa" ? "shop-lang-fa" : ""}`} dir={direction}>
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
 
         {/* ── Back button ────────────────────────────────────────────────── */}
