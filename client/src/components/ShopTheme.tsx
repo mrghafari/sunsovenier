@@ -81,7 +81,6 @@ export function ShopThemeToggle({ className = "" }: { className?: string }) {
       className={`shop-theme-toggle inline-flex min-h-9 items-center justify-center gap-2 rounded-md border px-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 ${className}`}
     >
       {theme.isNight ? <Sun className="h-4 w-4" aria-hidden="true" /> : <Moon className="h-4 w-4" aria-hidden="true" />}
-      <span>{theme.isNight ? copy.night : copy.day}</span>
     </button>
   );
 }

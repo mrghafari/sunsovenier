@@ -25,6 +25,9 @@ try{
   await page.waitForFunction(()=>document.querySelector('[data-testid="shop-theme-toggle"]')?.getBoundingClientRect().width>0,{timeout:90000});
   await page.waitForSelector(".shop-storefront h1",{timeout:90000});
   assert.equal(await page.$eval(toggle,button=>button.getAttribute("aria-pressed")),"false");
+  await page.hover(toggle);
+  await page.waitForFunction(()=>getComputedStyle(document.querySelector('[data-testid="shop-theme-toggle"]')).color==="rgb(0, 0, 0)",{timeout:10000});
+  assert.equal(await page.$eval(toggle,button=>button.textContent.trim()),"","The theme control must use only an icon");
   const light=await page.$eval("main > div",element=>getComputedStyle(element).backgroundColor);
   await page.click(toggle);
   await page.waitForFunction(()=>document.documentElement.classList.contains("dark"));
@@ -49,6 +52,16 @@ try{
   await page.screenshot({path:`${output}/night-mobile.png`});
   await page.click(toggle);
   await page.waitForFunction(()=>!document.documentElement.classList.contains("dark"));
+  await page.waitForFunction(()=>getComputedStyle(document.querySelector('[data-testid="shop-theme-toggle"]')).color==="rgb(0, 0, 0)",{timeout:10000});
+  const banner=await page.evaluate(()=>{
+    const heading=[...document.querySelectorAll(".shop-storefront h3")].find(element=>element.textContent.includes("MAXIMIZE YOUR SAVINGS"));
+    const panel=heading?.closest(".bg-gradient-to-r");
+    return panel?{classes:panel.className,background:getComputedStyle(panel).backgroundImage}:null;
+  });
+  if(banner){
+    assert.ok(!/from-purple-600|via-pink-600|to-red-600/.test(banner.classes),"The discount banner must no longer use the old red/pink gradient");
+    assert.ok(banner.background.includes("gradient"),"Preserve the branded gradient treatment");
+  }
   await page.screenshot({path:`${output}/day-mobile.png`});
   assert.equal(await page.$eval(toggle,button=>button.getAttribute("aria-pressed")),"false");
   assert.deepEqual(errors,[]);

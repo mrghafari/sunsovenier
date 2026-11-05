@@ -43,6 +43,10 @@ header.sticky.top-0.z-50.w-full.border-b.backdrop-blur [class~="text-gray-600"] 
 }
 header.sticky.top-0.z-50.w-full.border-b.backdrop-blur [class~="text-blue-600"] { color: #6ea3ff; }
 header.sticky.top-0.z-50.w-full.border-b.backdrop-blur [class~="bg-blue-600"] { background-color: #6ea3ff; }
+header.sticky.top-0.z-50.w-full.border-b.backdrop-blur .shop-theme-toggle[aria-pressed="false"],
+header.sticky.top-0.z-50.w-full.border-b.backdrop-blur .shop-theme-toggle[aria-pressed="false"]:hover {
+  color: #000;
+}
 .mc-site-header button[class~="bg-background"] {
   background-color: rgba(255,255,255,.07);
   border-color: rgba(255,255,255,.18);

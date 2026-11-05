@@ -1303,12 +1303,12 @@ const Shop = () => {
       <div className="w-full px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Global Volume Discount Incentive Banner - Controlled by Content Management */}
         {discountBannerEnabled && (
-          <div className="mb-4 sm:mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xl border border-purple-300 overflow-hidden relative">
+          <div className="mb-4 sm:mb-6 bg-gradient-to-r from-[#0a1632] via-[#1648b8] to-[#1a56db] rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xl border border-blue-300/60 overflow-hidden relative">
             {/* Animated Background Elements */}
             <div className="absolute inset-0">
-              <div className="absolute -top-8 -right-8 w-24 h-24 bg-yellow-400/20 rounded-full animate-bounce"></div>
-              <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-orange-400/20 rounded-full animate-pulse"></div>
-              <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-pink-400/20 rounded-full animate-ping"></div>
+              <div className="absolute -top-8 -right-8 w-24 h-24 bg-sky-300/20 rounded-full animate-bounce"></div>
+              <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-blue-300/20 rounded-full animate-pulse"></div>
+              <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-cyan-300/20 rounded-full animate-ping"></div>
             </div>
             
             {/* Glassmorphism Overlay */}
@@ -1317,10 +1317,10 @@ const Shop = () => {
             <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 text-white">
               <div className="flex items-center gap-2 sm:gap-4">
                 <div className="flex items-center gap-2 sm:gap-3">
-                  <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-yellow-300" />
+                  <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-sky-200" />
                   <div>
                     <h3 className="text-base sm:text-xl md:text-2xl font-bold mb-0.5 sm:mb-1">💰 {discountBannerCopy.title}</h3>
-                    <p className="text-purple-100 text-xs sm:text-sm">
+                    <p className="text-blue-100 text-xs sm:text-sm">
                       {language === 'fa' && discountBannerText ? discountBannerText : discountBannerCopy.message}
                     </p>
                   </div>
@@ -1328,7 +1328,7 @@ const Shop = () => {
               </div>
               
               <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                <div className="bg-yellow-400 text-purple-900 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold text-xs sm:text-sm animate-pulse shadow-lg whitespace-nowrap">
+                <div className="bg-blue-100 text-[#0a1632] px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold text-xs sm:text-sm animate-pulse shadow-lg whitespace-nowrap">
                   🔥 {discountBannerCopy.active}
                 </div>
                 <div className="bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 border border-white/30">

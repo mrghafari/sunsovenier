@@ -27,8 +27,8 @@ Use the company's real logo beside the brand name, not the reference's flask ico
 
 **How to apply:** Follow the existing configured company-logo source and retain its bundled fallback when external images fail.
 
-The storefront must offer a day/night button; night mode should use the original dark theme.
+The storefront must offer an icon-only day/night button; night mode should use the original dark theme. The discount banner should use the site's blue palette, not red.
 
-**Why:** The user explicitly requested «دکمه روز و شب» with «در حالت شب همان تم اصلی که تیره است».
+**Why:** The user requested «دکمه روز و شب» with «در حالت شب همان تم اصلی که تیره است», then clarified «نیاز به نوشته هم نیست فقط نشانه اش باشه کافیه» and asked for a blue discount banner.
 
-**How to apply:** Reuse the existing navy dark palette rather than introduce an unrelated night theme.
+**How to apply:** Reuse the existing navy dark palette rather than introduce an unrelated night theme. Keep the control icon-only with an accessible name and tooltip.
