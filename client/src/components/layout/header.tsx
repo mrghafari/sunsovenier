@@ -187,15 +187,15 @@ export default function Header() {
 
   return (
     <header className={cn(
-      "sticky top-0 z-50 w-full border-b backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-900/60",
+      "mc-site-header sticky top-0 z-50 w-full border-b backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-900/60",
       isAdminAuthenticated 
         ? "bg-red-50/95 border-red-200 dark:bg-red-900/95 dark:border-red-800" 
         : "bg-white/95 dark:bg-gray-900/95"
     )}>
       {/* Admin Status Indicator */}
       {isAdminAuthenticated && (
-        <div className="text-white text-center py-1 text-sm font-medium bg-[#28c70e]">
-          🔐 Admin Mode Active
+          <div className="text-white text-center py-1 text-sm font-medium bg-[#1a56db]">
+            Admin Mode Active
         </div>
       )}
       <div className="container mx-auto px-4">

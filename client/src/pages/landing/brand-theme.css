@@ -1,0 +1,99 @@
+:root {
+  color-scheme: light;
+  --mc-brand-blue: #1a56db;
+  --mc-brand-blue-deep: #1648b8;
+  --mc-brand-blue-light: #6ea3ff;
+  --mc-navy: #111923;
+  --mc-navy-raised: #1a2430;
+  --mc-ink: #19222e;
+  --mc-paper: #f4f6f9;
+  --mc-line: #e1e6ed;
+}
+html { scroll-padding-top: 84px; }
+body { font-family: "Plus Jakarta Sans", "Vazirmatn", sans-serif; background: var(--background); color: var(--foreground); }
+.dark body { color-scheme: dark; }
+body:lang(fa), body:lang(ar), [dir="rtl"] { font-family: "Vazirmatn", "Plus Jakarta Sans", sans-serif; }
+:focus-visible { outline: 3px solid #6ea3ff; outline-offset: 2px; }
+
+/* Shared Momtazchem utility surfaces; status colors remain semantic. */
+.rounded-lg.border.bg-card,
+[class*="rounded"][class*="border"][class*="bg-white"],
+[class*="rounded"][class*="border"][class*="bg-gray-50"] {
+  border-color: var(--border);
+  border-radius: 14px;
+  box-shadow: 0 7px 24px rgba(25, 43, 66, .045);
+}
+button, [role="button"], a { -webkit-tap-highlight-color: transparent; }
+input, select, textarea {
+  border-radius: 8px;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  border-color: #6ea3ff;
+  box-shadow: 0 0 0 3px rgba(26, 86, 219, .12);
+}
+header.sticky.top-0.z-50.w-full.border-b.backdrop-blur {
+  border-color: rgba(255,255,255,.1);
+  color: #eef3f9;
+  background: rgba(17,25,35,.97);
+}
+header.sticky.top-0.z-50.w-full.border-b.backdrop-blur [class~="text-gray-900"],
+header.sticky.top-0.z-50.w-full.border-b.backdrop-blur [class~="text-gray-700"],
+header.sticky.top-0.z-50.w-full.border-b.backdrop-blur [class~="text-gray-600"] {
+  color: rgba(239,244,250,.82);
+}
+header.sticky.top-0.z-50.w-full.border-b.backdrop-blur [class~="text-blue-600"] { color: #6ea3ff; }
+header.sticky.top-0.z-50.w-full.border-b.backdrop-blur [class~="bg-blue-600"] { background-color: #6ea3ff; }
+.mc-site-header button[class~="bg-background"] {
+  background-color: rgba(255,255,255,.07);
+  border-color: rgba(255,255,255,.18);
+  color: #eef3f9;
+}
+.mc-site-header button[class~="bg-background"]:hover,
+.mc-site-header button[class~="bg-background"][data-state="open"] {
+  background-color: #26384e;
+  color: #fff;
+}
+/* Brand public-page banners, not success/warning/status backgrounds. */
+section[class~="from-primary"][class~="to-secondary"] {
+  background-image: linear-gradient(115deg, #0a1632, #1a56db);
+}
+header.sticky.top-0.z-50.w-full.border-b.backdrop-blur [data-radix-navigation-menu-viewport],
+header.sticky.top-0.z-50.w-full.border-b.backdrop-blur [data-radix-popper-content-wrapper] > * {
+  border-color: #344254;
+  background-color: #1a2430;
+  color: #f1f5fa;
+}
+button[class~="bg-blue-600"], a[class~="bg-blue-600"], [role="button"][class~="bg-blue-600"] {
+  background-color: #1a56db;
+  color: #fff;
+}
+button[class~="bg-blue-600"]:hover, a[class~="bg-blue-600"]:hover, [role="button"][class~="bg-blue-600"]:hover {
+  background-color: #1648b8;
+}
+[role="dialog"], [data-radix-dialog-content] {
+  border-color: var(--border);
+  border-radius: 12px;
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 22px 60px rgba(14,28,46,.2);
+}
+footer.bg-gray-900 {
+  border-color: rgba(255,255,255,.1);
+  background-color: #111923;
+}
+footer.bg-gray-900 [class~="text-green-400"] { color: #6ea3ff; }
+footer.bg-gray-900 [class~="text-gray-400"] { color: rgba(236,242,249,.62); }
+nav[class*="z-[990]"] {
+  border-color: #2c3948;
+  background-color: rgba(17,25,35,.97);
+  color: #eef3f9;
+}
+nav[class*="z-[990]"] [class~="text-blue-600"] { color: #6ea3ff; }
+nav[class*="z-[990]"] [class~="text-gray-500"] { color: #a6b2c0; }
+nav[class*="z-[990]"] span[class*="h-[3px]"] { background-color: #6ea3ff; }
+nav[class*="z-[990]"] span[class*="border-white"] { border-color: #111923; }
+.mc-footer-product { padding: 0; border: 0; color: inherit; background: none; font: inherit; text-align: start; cursor: pointer; }
+.mc-footer-product:hover { color: var(--mc-blue-light); }
+@media (prefers-reduced-motion: no-preference) {
+  :where(button, a, [role="button"]) { transition-property: color, background-color, border-color, box-shadow; transition-duration: 160ms; }
+}

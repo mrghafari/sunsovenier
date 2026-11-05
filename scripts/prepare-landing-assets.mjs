@@ -3,7 +3,8 @@ import {createHash} from "node:crypto";
 import {spawnSync} from "node:child_process";
 import sharp from "sharp";
 
-const source=await readFile("attached_assets/NEW111_1793469659038.html","utf8");
+const sourceFile=process.argv[2]??"attached_assets/NEW111-fixed_1793902522085.html";
+const source=await readFile(sourceFile,"utf8");
 const directory="generated-artifacts/landing-assets";
 await mkdir(directory,{recursive:true});
 const images=[];
@@ -46,8 +47,9 @@ async function download(url,headers={}){
 css.push("/* Font Awesome Free 6.7.2 icons: CC BY 4.0, https://fontawesome.com/license/free */");
 css.push(".mc-landing .fa-solid,.mc-landing .fa-brands{display:inline-block;font-style:normal;line-height:1}");
 css.push(".mc-landing .fa-solid::before,.mc-landing .fa-brands::before{content:'';display:inline-block;width:1em;height:1em;background-color:currentColor;mask:var(--mc-icon) center/contain no-repeat;-webkit-mask:var(--mc-icon) center/contain no-repeat;vertical-align:-.125em}");
-for(const name of ["arrow-right","bars","boxes-stacked","chevron-down","flask","gear","globe","image","images",
-  "industry","phone","plus","plus-circle","shield-halved","sliders","star","truck-fast","vial-circle-check","xmark","google"]){
+for(const name of ["arrow-right","bars","bag-shopping","boxes-stacked","check","chevron-down","cube","database","drum-steelpan",
+  "flask","gear","globe","image","images","industry","phone","plus","plus-circle","shield-halved","sliders","star",
+  "truck-fast","vial-circle-check","xmark","google"]){
   const family=name==="google"?"brands":"solid";
   const canonicalName=name==="plus-circle"?"circle-plus":name;
   let svg=await(await download(`https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/svgs/${family}/${canonicalName}.svg`)).text();

@@ -30,7 +30,7 @@ try{
   });
   await page.goto(base+"/",{waitUntil:"domcontentloaded",timeout:60000});
   await page.waitForSelector(".mc-service-card",{timeout:60000});
-  await page.waitForFunction(()=>document.querySelectorAll(".mc-category-samples").length>0);
+  await page.waitForFunction(()=>document.querySelectorAll(".mc-category-link").length>0);
   assert.equal(await page.$$(".mc-service-card").then(rows=>rows.length),6);
   assert.equal(await page.$(".mc-manager"),null,"Anonymous visitors must not see preview management");
   assert.equal(await page.$eval(".mc-logo",el=>getComputedStyle(el).color),"rgb(255, 255, 255)");
@@ -52,7 +52,7 @@ try{
   await page.$eval(".mc-estimate-card form",form=>form.requestSubmit());
   assert.equal(requests.length,0,"Invalid form must not submit");
   async function fill(){
-    await page.select("select[name=productInterest]","Petroleum Solvents");
+    await page.select("select[name=productInterest]","drum220");
     for(const [name,value] of Object.entries({fullName:"Probe",email:"landing-probe@example.invalid",phone:"+964000000000",address:"Synthetic address"})){
       await page.$eval(`[name=${name}]`,(input,value)=>{input.value=value;input.dispatchEvent(new Event("input",{bubbles:true}));},value);
     }

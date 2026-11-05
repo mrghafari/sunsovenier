@@ -1,3 +1,5 @@
+@import "./pages/landing/brand-theme.css";
+@import "./pages/landing/landing-fonts.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -290,49 +292,58 @@
 }
 
 :root {
-  --background: hsl(0, 0%, 100%);
-  --foreground: hsl(20, 14.3%, 4.1%);
-  --muted: hsl(60, 4.8%, 95.9%);
-  --muted-foreground: hsl(25, 5.3%, 44.7%);
-  --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(20, 14.3%, 4.1%);
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 14.3%, 4.1%);
-  --border: hsl(20, 5.9%, 90%);
-  --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(120, 40%, 35%);
-  --secondary-foreground: hsl(60, 9.1%, 97.8%);
-  --accent: hsl(38, 100%, 50%);
-  --accent-foreground: hsl(60, 9.1%, 97.8%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(20, 14.3%, 4.1%);
-  --radius: 0.5rem;
+  --background: hsl(210 24% 98%);
+  --foreground: hsl(219 28% 14%);
+  --muted: hsl(213 24% 95%);
+  --muted-foreground: hsl(215 12% 43%);
+  --popover: hsl(210 30% 99%);
+  --popover-foreground: hsl(219 28% 14%);
+  --card: hsl(210 30% 99%);
+  --card-foreground: hsl(219 28% 14%);
+  --border: hsl(214 20% 88%);
+  --input: hsl(214 20% 84%);
+  --primary: hsl(221 79% 48%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(214 31% 92%);
+  --secondary-foreground: hsl(219 28% 18%);
+  --accent: hsl(215 100% 92%);
+  --accent-foreground: hsl(221 79% 35%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --ring: hsl(216 100% 70%);
+  --radius: 0.625rem;
+  --brand-blue: hsl(221 79% 48%);
+  --brand-blue-light: hsl(216 100% 72%);
+  --brand-navy: hsl(220 30% 9%);
+  --brand-surface: hsl(220 24% 14%);
+  --brand-line: hsl(216 18% 87%);
 }
 
 .dark {
-  --background: hsl(240, 10%, 3.9%);
-  --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
-  --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(120, 40%, 35%);
-  --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(38, 100%, 50%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(240, 4.9%, 83.9%);
-  --radius: 0.5rem;
+  --background: hsl(220 30% 9%);
+  --foreground: hsl(210 24% 96%);
+  --muted: hsl(220 24% 15%);
+  --muted-foreground: hsl(216 14% 68%);
+  --popover: hsl(220 26% 12%);
+  --popover-foreground: hsl(210 24% 96%);
+  --card: hsl(220 26% 12%);
+  --card-foreground: hsl(210 24% 96%);
+  --border: hsl(220 17% 23%);
+  --input: hsl(220 17% 26%);
+  --primary: hsl(221 79% 58%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(220 20% 19%);
+  --secondary-foreground: hsl(210 24% 96%);
+  --accent: hsl(220 22% 20%);
+  --accent-foreground: hsl(216 100% 78%);
+  --destructive: hsl(0 63% 40%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --ring: hsl(216 100% 72%);
+  --brand-blue: hsl(221 79% 58%);
+  --brand-blue-light: hsl(216 100% 78%);
+  --brand-navy: hsl(220 30% 9%);
+  --brand-surface: hsl(220 24% 14%);
+  --brand-line: hsl(220 17% 23%);
 }
 
 @layer base {
@@ -342,7 +353,7 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    font-family: "Plus Jakarta Sans", "Vazirmatn", sans-serif;
   }
 }
 
