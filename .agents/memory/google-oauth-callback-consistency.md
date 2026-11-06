@@ -14,3 +14,9 @@ Do not assume this project's Replit deployment logs cover the custom-domain serv
 **Why:** Direct requests to the custom-domain OAuth start route were absent from otherwise flowing Replit deployment logs, and the custom domain served a different bundle than the deployment's primary URL.
 
 **How to apply:** Confirm the serving origin before interpreting absent OAuth telemetry. The custom-domain server's sanitized callback error is needed to distinguish provider, state/session, and database failures; browser extension warnings and anonymous 401s cannot establish the cause.
+
+The custom-domain production site runs on an external Ubuntu Docker server with its own database connection; Replit-managed database operations do not target that server.
+
+**Why:** External server logs identified schema drift after Google had already returned a profile. The user confirmed real Google login succeeded after a targeted additive database repair, without changing OAuth credentials or restarting the app.
+
+**How to apply:** For future custom-domain failures, inspect that server's sanitized logs and confirm its database target before prescribing changes. Do not assume a Replit publish repairs its schema.
