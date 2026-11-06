@@ -47310,6 +47310,11 @@ momtazchem.com
     view:requireModuleAccess("content_management","view"),
     edit:requireModuleAccess("content_management","edit"),
   });
+  const {registerFaqContentRoutes}=await import("./faq-content-routes");
+  registerFaqContentRoutes(app,{
+    view:requireModuleAccess("content_management","view"),
+    edit:requireModuleAccess("content_management","edit"),
+  });
   app.get("/api/content-management/items", requireAuth, async (req: Request, res: Response) => {
     try {
       const { language, section } = req.query;

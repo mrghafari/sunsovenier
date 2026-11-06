@@ -110,6 +110,19 @@ export default function Home() {
   const quoteRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [formError, setFormError] = useState("");
+  const { data: publishedFaqs, isError: faqError, refetch: retryFaq } = useQuery<Record<string, Array<{id: string; question: string; answer: string}>>>({
+    queryKey: ["/api/faq"],
+    queryFn: async () => {
+      const response = await fetch("/api/faq", { cache: "no-store" });
+      if (!response.ok) throw new Error("Unable to load FAQ content.");
+      const result = await response.json();
+      if (!result.success || !result.data) throw new Error("Unable to load FAQ content.");
+      return result.data;
+    },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
+  });
   const { data: landingContent, isError: landingError, refetch: retryLanding } = useQuery<LandingContent>({
     queryKey: ["/api/landing-content"],
     queryFn: async () => {
@@ -395,9 +408,10 @@ export default function Home() {
           <div className="mc-process-grid">{c.process.map(([title, description], index) => <article className="mc-process-card mc-reveal" key={title}><span className="mc-process-number">0{index + 1}</span><h3>{title}</h3><p>{description}</p></article>)}</div>
         </div></section>
         <section className="mc-faq" id="faq"><div className="mc-container mc-reveal"><span className="mc-eyebrow mc-eyebrow-dark">{c.faqEyebrow}</span><h2 className="mc-section-title">{c.faqTitle}</h2>
-          <div className="mc-faq-list">{c.faqs.map(([question, answer], index) => <div className={`mc-faq-item ${openFaq === index ? "is-open" : ""}`} key={question}>
+          {faqError && <p role="alert"><button type="button" onClick={() => void retryFaq()}>{locale === "fa" ? "دریافت سؤالات متداول ناموفق بود؛ تلاش دوباره" : locale === "ar" ? "تعذر تحميل الأسئلة؛ أعد المحاولة" : locale === "tr" ? "Sorular yüklenemedi; tekrar deneyin" : "Could not load FAQs. Retry"}</button></p>}
+          <div className="mc-faq-list">{(publishedFaqs?.[locale] ?? []).map(({id, question, answer}, index) => <div className={`mc-faq-item ${openFaq === index ? "is-open" : ""}`} key={id}>
             <h3><button className="mc-faq-toggle" type="button" aria-expanded={openFaq === index} aria-controls={`mc-faq-${index}`} onClick={() => setOpenFaq((current) => current === index ? null : index)}>{question}<i className="fa-solid fa-plus" aria-hidden="true" /></button></h3>
-            <div className="mc-faq-answer" id={`mc-faq-${index}`} hidden={openFaq !== index}><p>{answer}</p></div>
+            <div className="mc-faq-answer" id={`mc-faq-${index}`} hidden={openFaq !== index}><p style={{whiteSpace: "pre-wrap"}}>{answer}</p></div>
           </div>)}</div>
         </div></section>
       </main>

@@ -16,6 +16,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import LandingPageEditor from "@/components/admin/content/LandingPageEditor";
+import FaqEditor from "@/components/admin/content/FaqEditor";
 import { translateContentManagement } from "./content-management-translations";
 import {
   normalizeSiteLanguageSettings,
@@ -112,6 +113,7 @@ export default function ContentManagement() {
   const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
   const [activeTab, setActiveTab] = useState<string>('landing');
   const [landingDirty, setLandingDirty] = useState(false);
+  const [faqDirty, setFaqDirty] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('agricultural-fertilizers');
   
   // State for Tawk.to Support Chat
@@ -121,9 +123,7 @@ export default function ContentManagement() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get('tab');
-    if (tab === 'settings-control') {
-      setActiveTab('settings-control');
-    }
+    if (tab === 'settings-control' || tab === 'faq') setActiveTab(tab);
   }, []);
 
   // Check if user is super admin (id = 1)
@@ -141,9 +141,27 @@ export default function ContentManagement() {
     }
     return true;
   };
+  const confirmLeaveFaq = () => {
+    if (faqDirty) {
+      const warning = interfaceLanguage === 'fa'
+        ? 'تغییرات سوالات متداول ذخیره نشده‌اند. بدون ذخیره خارج می‌شوید؟'
+        : interfaceLanguage === 'ar'
+          ? 'تغييرات الأسئلة الشائعة غير محفوظة. هل تريد المغادرة دون حفظ؟'
+          : interfaceLanguage === 'tr'
+            ? 'SSS değişiklikleri kaydedilmedi. Kaydetmeden ayrılmak istiyor musunuz?'
+            : 'FAQ changes are unsaved. Leave without saving?';
+      return window.confirm(warning);
+    }
+    return true;
+  };
   const changeContentTab = (nextTab: string) => {
     if (activeTab === 'landing' && nextTab !== 'landing' && !confirmLeaveLanding()) return;
+    if (activeTab === 'faq' && nextTab !== 'faq' && !confirmLeaveFaq()) return;
     setActiveTab(nextTab);
+    const url = new URL(window.location.href);
+    if (nextTab === 'faq') url.searchParams.set('tab', 'faq');
+    else if (url.searchParams.get('tab') === 'faq') url.searchParams.delete('tab');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
   };
 
   // Query for content items using admin API
@@ -498,7 +516,7 @@ export default function ContentManagement() {
             {isSuperAdmin && (
               <Button
                 variant="ghost"
-                onClick={() => { if (activeTab !== 'landing' || confirmLeaveLanding()) setLocation("/admin/site-management"); }}
+                onClick={() => { if ((activeTab !== 'landing' || confirmLeaveLanding()) && (activeTab !== 'faq' || confirmLeaveFaq())) setLocation("/admin/site-management"); }}
                 className="hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -516,7 +534,7 @@ export default function ContentManagement() {
           </div>
           
           {/* Language and Section Selectors */}
-          {activeTab !== 'landing' && <div className="flex items-center gap-4">
+          {activeTab !== 'landing' && activeTab !== 'faq' && <div className="flex items-center gap-4">
             <Select value={selectedLanguage} onValueChange={(value: 'en' | 'ar' | 'ku' | 'tr' | 'fa') => setSelectedLanguage(value)}>
               <SelectTrigger className="w-40">
                 <SelectValue />
@@ -554,6 +572,10 @@ export default function ContentManagement() {
             <TabsTrigger value="landing" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
               {interfaceLanguage === "fa" ? "صفحه اول" : interfaceLanguage === "ar" ? "الصفحة الرئيسية" : interfaceLanguage === "tr" ? "Ana sayfa" : "Landing page"}
+            </TabsTrigger>
+            <TabsTrigger value="faq" className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" />
+              {interfaceLanguage === "fa" ? "سوالات متداول" : interfaceLanguage === "ar" ? "الأسئلة الشائعة" : interfaceLanguage === "tr" ? "Sık sorulan sorular" : "FAQ"}
             </TabsTrigger>
             <TabsTrigger value="content" className="flex items-center gap-2">
               <Type className="w-4 h-4" />
@@ -599,6 +621,10 @@ export default function ContentManagement() {
 
           <TabsContent value="landing" className="space-y-6">
             <LandingPageEditor onDirtyChange={setLandingDirty} />
+          </TabsContent>
+
+          <TabsContent value="faq" className="space-y-6">
+            <FaqEditor onDirtyChange={setFaqDirty} />
           </TabsContent>
 
           {/* Text Content Tab */}
