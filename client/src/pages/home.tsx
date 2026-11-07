@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
 import CompanyBrandLogo from "@/components/company-brand-logo";
+import { resolveLandingPhone } from "@shared/landing-phone";
 import { apiRequest } from "@/lib/queryClient";
 import type { LandingContent } from "@shared/landing-content";
 import { defaultLandingPageSettings, localizedSetting, type LandingLink } from "@shared/landing-page-settings";
@@ -140,6 +141,13 @@ export default function Home() {
     refetchInterval: 60_000,
   });
   const page = landingContent?.page ?? pageDefaults;
+  const { data: companyContact } = useQuery<{ data?: { contactSettings?: { landingPhone?: string } | null } | null }>({
+    queryKey: ["/api/company-information"],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
+  });
+  const headerPhone = resolveLandingPhone(companyContact?.data?.contactSettings, page);
   const extras = {
     en: { messageLabel: "Message", ratingLabel: "Google Rating", copyright: "© 2026 MOMTAZ CHEM. All rights reserved.", privacyLabel: "Privacy Policy", termsLabel: "Terms of Service", managementLabel: "Website management", aboutImageAlt: "Momtaz Chem industrial facility", openMenu: "Open menu", closeMenu: "Close menu", seoTitle: "Momtaz Chem | Industrial Chemical Solutions", seoDescription: translations.en.heroDesc },
     fa: { messageLabel: "پیام", ratingLabel: "امتیاز گوگل", copyright: "© ۲۰۲۶ ممتاز شیمی. تمامی حقوق محفوظ است.", privacyLabel: "حریم خصوصی", termsLabel: "شرایط استفاده", managementLabel: "مدیریت سایت", aboutImageAlt: "تأسیسات صنعتی ممتاز شیمی", openMenu: "باز کردن منو", closeMenu: "بستن منو", seoTitle: "ممتازکم | راهکارهای شیمیایی صنعتی", seoDescription: translations.fa.heroDesc },
@@ -406,7 +414,7 @@ export default function Home() {
             <label className="mc-language" aria-label={c.language}><i className="fa-solid fa-globe" aria-hidden="true" />
               <select value={locale} onChange={(event) => setLanguage(event.target.value as Language)} aria-label={c.language}>{Object.entries(LANGUAGES).map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select>
             </label>
-            {page.phoneLabel && <a className="mc-phone" href={page.phoneHref}><i className="fa-solid fa-phone" aria-hidden="true" /><span>{page.phoneLabel}</span></a>}
+            {headerPhone.label && <a className="mc-phone" href={headerPhone.href} dir="ltr"><i className="fa-solid fa-phone" aria-hidden="true" /><span>{headerPhone.label}</span></a>}
             <button className="mc-menu-toggle" type="button" aria-label={mobileMenu ? c.closeMenu : c.openMenu} aria-expanded={mobileMenu} onClick={() => setMobileMenu((value) => !value)}><i className={`fa-solid ${mobileMenu ? "fa-xmark" : "fa-bars"}`} aria-hidden="true" /></button>
           </div>
         </div>

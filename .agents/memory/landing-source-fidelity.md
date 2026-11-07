@@ -39,6 +39,12 @@ Use the company's real logo beside the brand name, not the reference's flask ico
 
 **How to apply:** Follow the existing configured company-logo source and retain its bundled fallback when external images fail.
 
+The landing header telephone belongs in Company Information → Contact Information → Phone & WhatsApp, rather than the homepage content editor.
+
+**Why:** The user explicitly requested editing the top-of-landing phone from the company's contact information.
+
+**How to apply:** Keep this contact setting independent of the company's primary and secondary phones; update both its displayed number and click-to-call link together.
+
 The storefront must offer an icon-only day/night button; night mode should use the original dark theme. The discount banner should use the site's blue palette, not red.
 
 **Why:** The user requested «دکمه روز و شب» with «در حالت شب همان تم اصلی که تیره است», then clarified «نیاز به نوشته هم نیست فقط نشانه اش باشه کافیه» and asked for a blue discount banner.

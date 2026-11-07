@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { MapLocationPicker } from '@/components/admin/map-location-picker';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { defaultLandingPageSettings } from '@shared/landing-page-settings';
 import { 
   Building2, 
   Phone, 
@@ -77,6 +78,7 @@ interface CompanyInfo {
   businessHoursSaturday?: string;
   weeklySchedule?: WeeklySchedule;
   contactSettings?: {
+    landingPhone?: string;
     addressLine1?: string;
     addressLine2?: string;
     addressLine3?: string;
@@ -244,6 +246,8 @@ const pageTranslations: Record<string, PageTranslation> = {
   'ایمیل فرعی': p('ایمیل فرعی', 'Secondary Email', 'البريد الإلكتروني الثانوي', 'İkincil E-posta'),
   'ایمیل پشتیبانی': p('ایمیل پشتیبانی', 'Support Email', 'بريد الدعم', 'Destek E-postası'),
   'تلفن اصلی': p('تلفن اصلی', 'Primary Phone', 'الهاتف الرئيسي', 'Birincil Telefon'),
+  'تلفن بالای صفحه اصلی': p('تلفن بالای صفحه اصلی', 'Homepage Header Phone', 'هاتف أعلى الصفحة الرئيسية', 'Ana Sayfa Üst Telefonu'),
+  'این شماره در بالای لندینگ پیج نمایش داده می‌شود؛ برای مخفی کردن، آن را خالی و ذخیره کنید.': p('این شماره در بالای لندینگ پیج نمایش داده می‌شود؛ برای مخفی کردن، آن را خالی و ذخیره کنید.', 'Shown at the top of the homepage. Clear and save to hide it.', 'يظهر أعلى الصفحة الرئيسية. امسحه واحفظ لإخفائه.', 'Ana sayfanın üstünde görünür. Gizlemek için silip kaydedin.'),
   'تلفن فرعی': p('تلفن فرعی', 'Secondary Phone', 'الهاتف الثانوي', 'İkincil Telefon'),
   'نماینده مجاز شرکت': p('نماینده مجاز شرکت', 'Authorized Company Representative', 'ممثل الشركة المخول', 'Yetkili Şirket Temsilcisi'),
   'نام نماینده': p('نام نماینده', 'Representative Name', 'اسم الممثل', 'Temsilci Adı'),
@@ -541,6 +545,13 @@ export default function CompanyInformation() {
       return result.data || null;
     }
   });
+
+  const { data: landingPhoneDefaults } = useQuery<{ data?: { page?: { phoneLabel?: string } } }>({
+    queryKey: ['/api/landing-content'],
+  });
+  const landingPhoneValue = formData.contactSettings?.landingPhone
+    ?? landingPhoneDefaults?.data?.page?.phoneLabel
+    ?? defaultLandingPageSettings().phoneLabel;
 
   // Fetch Iraqi provinces
   const { data: provinces } = useQuery({
@@ -1380,6 +1391,20 @@ export default function CompanyInformation() {
                 </div>
                   </TabsContent>
                   <TabsContent value="phones" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="landingPhone">{tx('تلفن بالای صفحه اصلی')}</Label>
+                  <Input
+                    id="landingPhone"
+                    type="tel"
+                    dir="ltr"
+                    value={landingPhoneValue}
+                    onChange={(e) => handleContactSettingChange('landingPhone', e.target.value)}
+                    aria-describedby="landingPhoneHelp"
+                  />
+                  <p id="landingPhoneHelp" className="text-sm text-muted-foreground">
+                    {tx('این شماره در بالای لندینگ پیج نمایش داده می‌شود؛ برای مخفی کردن، آن را خالی و ذخیره کنید.')}
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <Label>{tx('تلفن اصلی')}</Label>
                   <Input 
