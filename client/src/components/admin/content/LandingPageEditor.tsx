@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Check, ImagePlus, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
 import type { LandingContent, LandingLanguage } from "@shared/landing-content";
-import { landingLanguages, landingPackageIds, landingProductIds, defaultLandingContent } from "@shared/landing-content";
+import { landingLanguages, landingPackageIds, landingProductIds, defaultLandingContent, landingContentSchema } from "@shared/landing-content";
+import { defaultLandingPageSettings, landingTextGroups } from "@shared/landing-page-settings";
+import { defaultLandingLayout } from "@shared/landing-layout";
 import { BASE_PRODUCTS, LOCALIZED_PRODUCTS, PACKAGES, type LandingProduct, type PackageId } from "@/pages/landing/catalog";
 import { readLocalLanding } from "@/pages/landing/local-editor";
 import assets from "@/pages/landing/landing-assets.json";
@@ -10,16 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/contexts/LanguageContext";
+import LandingSettingsEditor from "./LandingSettingsEditor";
+import LandingBlockBuilder from "./LandingBlockBuilder";
+import LandingInquiryList from "./LandingInquiryList";
 
 const key = ["/api/content-management/landing"];
 const sourceAssets = (assets as { images: Array<{ url: string }> }).images;
-const imageSlots = [
-  { key: "hero-0", label: "Hero slide 1", asset: 0 },
-  { key: "hero-1", label: "Hero slide 2", asset: 1 },
-  { key: "hero-2", label: "Hero slide 3", asset: 2 },
-  { key: "about", label: "About section", asset: 3 },
-  ...BASE_PRODUCTS.map((product) => ({ key: product.id, label: product.title, asset: product.asset })),
-];
 const languages: Array<{ id: LandingLanguage; name: string }> = [
   { id: "en", name: "English" }, { id: "fa", name: "فارسی" }, { id: "ar", name: "العربية" }, { id: "tr", name: "Türkçe" },
 ];
@@ -40,7 +38,9 @@ async function readLanding(): Promise<LandingContent> {
   const response = await fetch(key[0], { credentials: "include", cache: "no-store" });
   const result = await response.json();
   if (!response.ok || !result.success || !result.data) throw new Error(result.message || "Landing content could not be loaded.");
-  return result.data as LandingContent;
+  const data = result.data as LandingContent;
+  const defaults = defaultLandingPageSettings();
+  return { ...data, page: { ...defaults, ...(data.page ?? {}), layout: data.page?.layout ?? defaultLandingLayout() } };
 }
 
 export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (dirty: boolean) => void }) {
@@ -53,6 +53,7 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
   const [message, setMessage] = useState("");
   const [newCard, setNewCard] = useState({ title: "", short: "", long: "", specs: "", pack: [] as PackageId[] });
   const [conflict, setConflict] = useState(false);
+  const [builderBusy, setBuilderBusy] = useState(false);
   useEffect(() => { if (query.data && !draft) setDraft(query.data); }, [query.data, draft]);
   const dirty = !!draft && !!query.data && JSON.stringify(draft) !== JSON.stringify(query.data);
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
@@ -101,12 +102,31 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
         }
         if (Object.keys(normalized).length) edits[id] = normalized;
       }
-      setDraft((current) => current ? {
-        revision: current.revision,
-        images,
-        edits: { ...current.edits, [language]: edits },
-        custom: customs,
-      } : current);
+       setDraft((current) => {
+         if (!current) return current;
+         const customIds = new Set(customs.map((card) => card.id));
+         const validIds = new Set<string>([...landingProductIds, ...customIds]);
+         const validImageKeys = new Set<string>([
+           ...validIds,
+           ...current.page.slides.map((slide) => `hero-${slide.id}`),
+           ...current.page.partners.map((partner) => `partner-${partner.id}`),
+            ...current.page.layout.rows.flatMap((row) => row.blocks.filter((block) => block.type === "image").map((block) => `layout-${block.id}`)),
+           "about", "seo",
+         ]);
+         const retainedImages = Object.fromEntries(Object.entries(current.images).filter(([slot]) => validImageKeys.has(slot)));
+         const retainedEdits = Object.fromEntries(landingLanguages.map((locale) => {
+           const source = locale === language ? edits : current.edits[locale] ?? {};
+           return [locale, Object.fromEntries(Object.entries(source).filter(([id]) => validIds.has(id)))];
+         })) as LandingContent["edits"];
+         const cards = Object.fromEntries(Object.entries(current.page.cards).filter(([id]) => validIds.has(id)));
+         return {
+           ...current,
+           images: { ...retainedImages, ...images },
+           edits: retainedEdits,
+           custom: customs,
+           page: { ...current.page, cards },
+         };
+       });
       setMessage(copy.importDone);
     } catch { setMessage(copy.importFailed); }
   };
@@ -121,11 +141,14 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
   const save = useMutation({
     mutationFn: async () => {
       if (!draft) throw new Error("No landing content is loaded.");
+      const validation = landingContentSchema.safeParse(draft);
+      if (!validation.success) throw new Error(validation.error.issues[0].message);
       const response = await fetch(key[0], { method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(draft) });
       const result = await response.json();
       if (response.status === 409) { setConflict(true); throw new Error(copy.conflict); }
       if (!response.ok || !result.success || !result.data) throw new Error(result.message || copy.saveFailed);
-      return result.data as LandingContent;
+      const data = result.data as LandingContent;
+      return { ...data, page: data.page ?? defaultLandingPageSettings() };
     },
     onSuccess: async (data) => {
       setDraft(data); setConflict(false); setMessage(copy.published);
@@ -133,6 +156,34 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
     },
     onError: (error) => setMessage(error instanceof Error && error.message === copy.conflict ? copy.conflict : copy.saveFailed),
   });
+  const saveDraft = () => {
+    if (!draft || builderBusy) return;
+    const validation = landingContentSchema.safeParse(draft);
+    if (!validation.success) {
+      const issue = validation.error.issues[0];
+      const path = issue.path.join(".");
+      const locale = issue.path[0] === "page" && issue.path[1] === "texts"
+        ? issue.path[2]
+        : issue.path[0] === "page" && ["stats", "process"].includes(String(issue.path[1]))
+          ? issue.path[2]
+          : issue.path[1];
+      if (typeof locale === "string" && landingLanguages.includes(locale as LandingLanguage)) setLanguage(locale as LandingLanguage);
+      setMessage(`تنظیم نامعتبر در «${path}»: ${issue.message} / Invalid setting at “${path}”: ${issue.message}`);
+      window.setTimeout(() => {
+        const textGroup = issue.path[0] === "page" && issue.path[1] === "texts"
+          ? Object.entries(landingTextGroups).find(([, keys]) => keys.includes(String(issue.path[3]) as never))?.[0]
+          : undefined;
+        const group = textGroup ? `text-${textGroup}` : issue.path[0] === "page" ? issue.path[1] : issue.path[0];
+        const target = document.querySelector<HTMLElement>(`[data-setting-group="${String(group)}"]`);
+        if (target instanceof HTMLDetailsElement) target.open = true;
+        const parent = target?.closest("details");
+        if (parent) parent.open = true;
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 0);
+      return;
+    }
+    save.mutate();
+  };
   const productMap = useMemo(() => Object.fromEntries(BASE_PRODUCTS.map((item) => [item.id, item])), []);
   const updateText = (id: string, field: "title" | "short" | "long", value: string) => {
     setDraft((current) => current ? { ...current, edits: { ...current.edits, [language]: { ...current.edits[language], [id]: { ...current.edits[language]?.[id], [field]: value } } } } : current);
@@ -169,36 +220,68 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
   const visualLocale = interfaceLanguage in visualWords ? interfaceLanguage as keyof typeof visualWords : "en";
   const visual = visualWords[visualLocale];
   const slots = [
-    ...imageSlots.map((slot) => {
-      if (slot.key.startsWith("hero-")) return { ...slot, label: `${visual.slide} ${Number(slot.key.slice(-1)) + 1}` };
-      if (slot.key === "about") return { ...slot, label: visual.about };
-      const index = BASE_PRODUCTS.findIndex((product) => product.id === slot.key);
-      const name = LOCALIZED_PRODUCTS[visualLocale]?.[index]?.[0] ?? slot.label;
-      return { ...slot, label: `${visual.product}: ${name}` };
+    ...draft.page.slides.map((slide, index) => ({ key: `hero-${slide.id}`, label: `${visual.slide} ${index + 1}`, asset: ["0", "1", "2"].includes(slide.id) ? Number(slide.id) : -1 })),
+    { key: "about", label: visual.about, asset: 3 },
+    ...BASE_PRODUCTS.map((product) => {
+      const index = BASE_PRODUCTS.findIndex((item) => item.id === product.id);
+      const name = LOCALIZED_PRODUCTS[visualLocale]?.[index]?.[0] ?? product.title;
+      return { key: product.id, label: `${visual.product}: ${name}`, asset: product.asset };
     }),
     ...draft.custom.map((card) => ({ key: card.id, label: card.title, asset: card.asset })),
+    ...draft.page.partners.map((partner) => ({ key: `partner-${partner.id}`, label: `شریک / Partner: ${partner.id}`, asset: -1 })),
+    { key: "seo", label: "تصویر سئو / SEO image", asset: -1 },
   ];
   return <div className="space-y-6 p-4 md:p-6" dir={interfaceLanguage === "fa" || interfaceLanguage === "ar" ? "rtl" : "ltr"}>
     <header className="flex flex-col justify-between gap-4 rounded-2xl border bg-card p-5 md:flex-row md:items-center">
       <div><p className="text-xs font-semibold uppercase tracking-[.18em] text-primary">{copy.eyebrow}</p><h2 className="mt-1 text-2xl font-semibold">{copy.title}</h2><p className="mt-1 max-w-2xl text-sm text-muted-foreground">{copy.intro}</p></div>
       <div className="flex flex-wrap items-center gap-2">
         <span className={`rounded-full px-3 py-1 text-xs ${dirty ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"}`}>{dirty ? copy.dirty : `${copy.current} ${draft.revision} · ${copy.upToDate}`}</span>
-        <Button variant="outline" onClick={() => void importPrevious()}><RotateCcw className="mr-2 h-4 w-4" />{copy.importDraft}</Button>
-        <Button variant="outline" onClick={originalReset}><RotateCcw className="mr-2 h-4 w-4" />{copy.reset}</Button>
-        <Button disabled={!dirty || save.isPending} onClick={() => save.mutate()}><Save className="mr-2 h-4 w-4" />{save.isPending ? copy.publishing : copy.publish}</Button>
+        <Button variant="outline" disabled={save.isPending} onClick={() => void importPrevious()}><RotateCcw className="mr-2 h-4 w-4" />{copy.importDraft}</Button>
+        <Button variant="outline" disabled={save.isPending} onClick={originalReset}><RotateCcw className="mr-2 h-4 w-4" />{copy.reset}</Button>
+         <Button data-testid="landing-save" disabled={!dirty || save.isPending || builderBusy} onClick={saveDraft}><Save className="mr-2 h-4 w-4" />{builderBusy ? copy.uploading : save.isPending ? copy.publishing : copy.publish}</Button>
       </div>
     </header>
-    {message && <div role="status" className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${save.isError || conflict ? "border-destructive/30 bg-destructive/5" : "border-primary/20 bg-primary/5"}`}><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span className="flex-1">{message}</span>{conflict && <Button size="sm" variant="outline" onClick={() => { if (window.confirm(copy.reloadConfirm)) { setDraft(null); setConflict(false); setMessage(""); void query.refetch().then((result) => { if (result.data) setDraft(result.data); }); } }}>{copy.reload}</Button>}</div>}
-    <section className="rounded-xl border bg-card p-4">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold">{copy.shared}</h3><p className="text-sm text-muted-foreground">{copy.sharedHint}</p></div><label className="text-sm font-medium">{copy.textLanguage} <select className="ml-2 rounded-md border bg-background px-3 py-2" value={language} onChange={(event) => setLanguage(event.target.value as LandingLanguage)}>{languages.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
+     {message && <div role={save.isError || conflict || message.includes("Invalid setting") || message.includes("تنظیم نامعتبر") ? "alert" : "status"} className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${save.isError || conflict || message.includes("Invalid setting") || message.includes("تنظیم نامعتبر") ? "border-destructive/30 bg-destructive/5" : "border-primary/20 bg-primary/5"}`}><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" /><span className="flex-1">{message}</span>{conflict && <Button size="sm" variant="outline" onClick={() => { if (window.confirm(copy.reloadConfirm)) { setDraft(null); setConflict(false); setMessage(""); void query.refetch().then((result) => { if (result.data) setDraft(result.data); }); } }}>{copy.reload}</Button>}</div>}
+     <fieldset disabled={save.isPending} className="contents">
+     <section data-setting-group="images" className="rounded-xl border bg-card p-4">
+       <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold">{copy.shared}</h3><p className="text-sm text-muted-foreground">{copy.sharedHint}</p></div><label className="text-sm font-medium">{copy.textLanguage} <select data-testid="landing-language" className="ml-2 rounded-md border bg-background px-3 py-2" value={language} onChange={(event) => setLanguage(event.target.value as LandingLanguage)}>{languages.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{slots.map((slot) => <article key={slot.key} className="overflow-hidden rounded-xl border bg-background">
-        <img className="h-40 w-full object-cover" src={draft.images[slot.key] || sourceAssets[slot.asset]?.url} alt={`${slot.label} · ${copy.image}`} />
+         {(draft.images[slot.key] || (slot.asset >= 0 ? sourceAssets[slot.asset]?.url : undefined)) ? <img className="h-40 w-full object-cover" src={draft.images[slot.key] || sourceAssets[slot.asset]?.url} alt={`${slot.label} · ${copy.image}`} /> : <div className="flex h-40 items-center justify-center bg-muted text-xs text-muted-foreground">تصویر هنوز بارگذاری نشده / No image uploaded</div>}
         <div className="flex items-center justify-between gap-2 p-3"><span className="truncate text-sm font-medium">{slot.label}</span><div className="flex gap-1">
-          <label className="inline-flex cursor-pointer items-center rounded-md border px-2 py-1.5 text-xs hover:bg-muted"><ImagePlus className="mr-1 h-3.5 w-3.5" />{copy.replace}<input className="sr-only" type="file" accept="image/*" onChange={(event) => { void replaceImage(slot.key, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} /></label>
-          {draft.images[slot.key] && <Button size="sm" variant="ghost" aria-label={`${copy.reset} ${slot.label}`} onClick={() => setDraft({ ...draft, images: Object.fromEntries(Object.entries(draft.images).filter(([keyName]) => keyName !== slot.key)) })}>{copy.reset}</Button>}
+           <label className="inline-flex cursor-pointer items-center rounded-md border px-2 py-1.5 text-xs hover:bg-muted"><ImagePlus className="mr-1 h-3.5 w-3.5" />{copy.replace}<input className="sr-only" type="file" accept="image/*" disabled={save.isPending} onChange={(event) => { void replaceImage(slot.key, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} /></label>
+           {draft.images[slot.key] && <Button size="sm" variant="ghost" disabled={save.isPending} aria-label={`${copy.reset} ${slot.label}`} onClick={() => setDraft({ ...draft, images: Object.fromEntries(Object.entries(draft.images).filter(([keyName]) => keyName !== slot.key)) })}>{copy.reset}</Button>}
         </div></div></article>)}</div>
     </section>
-    <section className="space-y-4">
+      <LandingBlockBuilder
+        layout={draft.page.layout ?? defaultLandingLayout()}
+        language={language}
+        onChange={(layout) => setDraft((current) => current ? { ...current, page: { ...current.page, layout } } : current)}
+        images={draft.images}
+        uploadImage={upload}
+        onBusyChange={setBuilderBusy}
+        onRemoveImages={(slots) => setDraft((current) => current ? { ...current, images: Object.fromEntries(Object.entries(current.images).filter(([slot]) => !slots.includes(slot))) } : current)}
+        onImageUploaded={(slot, url) => setDraft((current) => {
+          if (!current) return current;
+          const exists = current.page.layout.rows.some((row) => row.blocks.some((block) => block.type === "image" && `layout-${block.id}` === slot));
+          return exists ? { ...current, images: { ...current.images, [slot]: url } } : current;
+        })}
+        locked={save.isPending}
+      />
+      <LandingSettingsEditor page={draft.page} language={language} onChange={(page) => setDraft((current) => current ? { ...current, page } : current)} content={draft} onContentChange={(content) => setDraft((current) => current ? { ...current, images: content.images } : current)} onImageUploaded={(slot, url) => setDraft((current) => {
+        if (!current) return current;
+        const validSlots = new Set([
+          ...landingProductIds,
+          ...current.custom.map((card) => card.id),
+          ...current.page.slides.map((slide) => `hero-${slide.id}`),
+          ...current.page.partners.map((partner) => `partner-${partner.id}`),
+           ...current.page.layout.rows.flatMap((row) => row.blocks.filter((block) => block.type === "image").map((block) => `layout-${block.id}`)),
+          "about",
+          "seo",
+        ]);
+        return validSlots.has(slot) ? { ...current, images: { ...current.images, [slot]: url } } : current;
+      })} uploadImage={upload} locked={save.isPending || builderBusy} />
+     <LandingInquiryList />
+     <section data-setting-group="edits" className="space-y-4">
       <div><h3 className="text-lg font-semibold">{copy.products}</h3><p className="text-sm text-muted-foreground">{copy.productsHint}</p></div>
       {[...BASE_PRODUCTS, ...draft.custom].map((item) => {
         const override = draft.edits[language]?.[item.id];
@@ -213,10 +296,10 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
           }
           return original ? original[field] : item[field];
         };
-        return <article key={item.id} className="grid gap-4 rounded-xl border bg-card p-4 md:grid-cols-[150px_1fr]">
+         return <article key={item.id} className="grid gap-4 rounded-xl border bg-card p-4 md:grid-cols-[150px_1fr]">
           <img className="h-32 w-full rounded-lg object-cover md:h-full" src={draft.images[item.id] || sourceAssets[item.asset]?.url} alt="" />
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3"><h4 className="font-semibold">{item.title}</h4>{item.custom && <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { if (!window.confirm(copy.deleteConfirm)) return; setDraft((current) => current ? { ...current, custom: current.custom.filter((card) => card.id !== item.id), images: Object.fromEntries(Object.entries(current.images).filter(([imageKey]) => imageKey !== item.id)), edits: Object.fromEntries(landingLanguages.map((locale) => [locale, Object.fromEntries(Object.entries(current.edits[locale] ?? {}).filter(([productId]) => productId !== item.id))])) } : current); }}><Trash2 className="mr-1 h-4 w-4" />{copy.delete}</Button>}</div>
+             <div className="flex items-center justify-between gap-3"><h4 className="font-semibold">{item.title}</h4>{item.custom && <Button variant="ghost" size="sm" className="text-destructive" disabled={save.isPending} onClick={() => { if (!window.confirm(copy.deleteConfirm)) return; setDraft((current) => current ? { ...current, custom: current.custom.filter((card) => card.id !== item.id), images: Object.fromEntries(Object.entries(current.images).filter(([imageKey]) => imageKey !== item.id)), page: { ...current.page, cards: Object.fromEntries(Object.entries(current.page.cards).filter(([productId]) => productId !== item.id)) }, edits: Object.fromEntries(landingLanguages.map((locale) => [locale, Object.fromEntries(Object.entries(current.edits[locale] ?? {}).filter(([productId]) => productId !== item.id))])) } : current); }}><Trash2 className="mr-1 h-4 w-4" />{copy.delete}</Button>}</div>
             <Input dir={language === "fa" || language === "ar" ? "rtl" : "ltr"} aria-label={`${item.title} ${copy.titleField}`} value={text("title")} onChange={(event) => updateText(item.id, "title", event.target.value)} placeholder={copy.titleField} />
             <Textarea dir={language === "fa" || language === "ar" ? "rtl" : "ltr"} aria-label={`${item.title} ${copy.short}`} value={text("short")} onChange={(event) => updateText(item.id, "short", event.target.value)} placeholder={copy.short} rows={2} />
             <Textarea dir={language === "fa" || language === "ar" ? "rtl" : "ltr"} aria-label={`${item.title} ${copy.long}`} value={text("long")} onChange={(event) => updateText(item.id, "long", event.target.value)} placeholder={copy.long} rows={3} />
@@ -225,7 +308,7 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
         </article>;
       })}
     </section>
-    <section className="rounded-xl border bg-card p-4">
+     <section data-setting-group="custom" className="rounded-xl border bg-card p-4">
       <div className="mb-4"><h3 className="text-lg font-semibold">{copy.addTitle}</h3><p className="text-sm text-muted-foreground">{copy.addHint}</p></div>
       <div className="grid gap-3 md:grid-cols-2">
         <Input placeholder={copy.titleField} value={newCard.title} onChange={(event) => setNewCard({ ...newCard, title: event.target.value })} />
@@ -237,5 +320,6 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
       <Button variant="outline" onClick={addCustom}><Plus className="mr-2 h-4 w-4" />{copy.add}</Button>
       {draft.custom.length > 0 && <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"><Check className="h-3.5 w-3.5" />{draft.custom.length} {copy.inDraft}</p>}
     </section>
-  </div>;
+     </fieldset>
+   </div>;
 }

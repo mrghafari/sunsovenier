@@ -21,6 +21,18 @@ Manage landing images and the supplied settings controls in the existing content
 
 **How to apply:** Keep editing in the authorized content module; saved changes must be shared site content rather than a private browser preview.
 
+The user requires complete dashboard control of the homepage: «تمامی بخش‌ها، فرم‌ها، بنرها و محتوای صفحه اصلی باید به طور کامل به پنل مدیریت متصل شوند».
+
+**Why:** The user explicitly requires the whole homepage to be manageable, not just its images or FAQ.
+
+**How to apply:** When adding homepage content or forms, include authorized editing and public rendering together. Submitted forms must reach a real administrative inbox; browser-only previews do not satisfy this requirement.
+
+The homepage must allow modular, block-based drag-and-drop editing: the administrator should be able to create new arrangements without code changes.
+
+**Why:** The user explicitly requested dynamic placement of homepage blocks and elements.
+
+**How to apply:** Preserve the supplied design as the default, not a restriction against administrator-authored layouts. Keep layout editing in Content Management and publish it through the same authorized shared save as homepage content.
+
 Use the company's real logo beside the brand name, not the reference's flask icon.
 
 **Why:** The user explicitly said: «از لوگوی شرکت کنار اسم برند استفاده کن».

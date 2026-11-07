@@ -5,12 +5,16 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import CompanyBrandLogo from "@/components/company-brand-logo";
 import { apiRequest } from "@/lib/queryClient";
 import type { LandingContent } from "@shared/landing-content";
+import { defaultLandingPageSettings, localizedSetting, type LandingLink } from "@shared/landing-page-settings";
+import { effectiveLayoutSections } from "@shared/landing-layout";
+import LandingLayoutRenderer, { LayoutElements } from "./landing/LandingLayoutRenderer";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import type { ShopCategory, ShopProduct } from "@shared/shop-schema";
 import assets from "./landing/landing-assets.json";
 import { BASE_PRODUCTS, LIQUID_PACKAGES, LOCALIZED_PRODUCTS, PACKAGES, PRODUCT_DETAILS_UI } from "./landing/catalog";
 import "./landing/landing.css";
+import "./landing/landing-layout.css";
 
 type LandingAsset = { url: string; width?: number; height?: number };
 const landingAssets = (assets as { images: LandingAsset[] }).images;
@@ -94,9 +98,8 @@ type Language = keyof typeof translations;
 export default function Home() {
   const { language, setLanguage, direction } = useLanguage();
   const locale = (language in translations ? language : "en") as Language;
-  const c = translations[locale];
+  const [pageDefaults] = useState(defaultLandingPageSettings);
   const localizedProducts = LOCALIZED_PRODUCTS[locale];
-  const detailLabels = PRODUCT_DETAILS_UI[locale] ?? PRODUCT_DETAILS_UI.en;
   const [slide, setSlide] = useState(0);
   const slideRef = useRef(0);
   slideRef.current = slide;
@@ -136,6 +139,40 @@ export default function Home() {
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,
   });
+  const page = landingContent?.page ?? pageDefaults;
+  const extras = {
+    en: { messageLabel: "Message", ratingLabel: "Google Rating", copyright: "© 2026 MOMTAZ CHEM. All rights reserved.", privacyLabel: "Privacy Policy", termsLabel: "Terms of Service", managementLabel: "Website management", aboutImageAlt: "Momtaz Chem industrial facility", openMenu: "Open menu", closeMenu: "Close menu", seoTitle: "Momtaz Chem | Industrial Chemical Solutions", seoDescription: translations.en.heroDesc },
+    fa: { messageLabel: "پیام", ratingLabel: "امتیاز گوگل", copyright: "© ۲۰۲۶ ممتاز شیمی. تمامی حقوق محفوظ است.", privacyLabel: "حریم خصوصی", termsLabel: "شرایط استفاده", managementLabel: "مدیریت سایت", aboutImageAlt: "تأسیسات صنعتی ممتاز شیمی", openMenu: "باز کردن منو", closeMenu: "بستن منو", seoTitle: "ممتازکم | راهکارهای شیمیایی صنعتی", seoDescription: translations.fa.heroDesc },
+    ar: { messageLabel: "الرسالة", ratingLabel: "تقييم Google", copyright: "© 2026 ممتاز كيم. جميع الحقوق محفوظة.", privacyLabel: "سياسة الخصوصية", termsLabel: "شروط الاستخدام", managementLabel: "إدارة الموقع", aboutImageAlt: "منشأة ممتاز كيم الصناعية", openMenu: "فتح القائمة", closeMenu: "إغلاق القائمة", seoTitle: "ممتاز كيم | حلول كيميائية صناعية", seoDescription: translations.ar.heroDesc },
+    tr: { messageLabel: "Mesaj", ratingLabel: "Google Puanı", copyright: "© 2026 MOMTAZ CHEM. Tüm hakları saklıdır.", privacyLabel: "Gizlilik Politikası", termsLabel: "Kullanım Şartları", managementLabel: "Site yönetimi", aboutImageAlt: "Momtaz Chem endüstriyel tesisi", openMenu: "Menüyü aç", closeMenu: "Menüyü kapat", seoTitle: "Momtaz Chem | Endüstriyel Kimyasal Çözümler", seoDescription: translations.tr.heroDesc },
+  }[locale];
+  const c = { ...translations[locale], ...extras, ...page.texts.en, ...page.texts[locale] };
+  const originalDetailLabels = PRODUCT_DETAILS_UI[locale] ?? PRODUCT_DETAILS_UI.en;
+  const detailText = (key: string, fallback: string) => page.texts[locale]?.[key] ?? page.texts.en?.[key] ?? fallback;
+  const detailLabels = { ...originalDetailLabels,
+    close: detailText("modalClose", originalDetailLabels.close),
+    detail: detailText("modalDetail", originalDetailLabels.detail),
+    packaging: detailText("modalPackaging", originalDetailLabels.packaging),
+    specifications: detailText("modalSpecs", originalDetailLabels.specifications),
+    request: detailText("modalQuote", originalDetailLabels.request),
+  };
+  const packages = Object.fromEntries(Object.entries(PACKAGES).map(([id, item]) => [id, {
+    ...item,
+    name: localizedSetting(page.packages[id as keyof typeof PACKAGES]?.name ?? {}, locale, item.name),
+    description: localizedSetting(page.packages[id as keyof typeof PACKAGES]?.description ?? {}, locale, item.description),
+    capacity: localizedSetting(page.packages[id as keyof typeof PACKAGES]?.capacity ?? {}, locale, item.capacity),
+  }])) as typeof PACKAGES;
+  const sections = effectiveLayoutSections(page.layout, page.sections);
+  const detached = new Set(page.layout.rows.flatMap(row => row.blocks.map(block => block.type)));
+  const visibleSlides = page.slides.filter(item => item.isActive);
+  const slideKey = visibleSlides[slide]?.id ?? visibleSlides[0]?.id ?? "0";
+  const currentSlide = visibleSlides[slide] ?? visibleSlides[0];
+  const linkLabel = (link: LandingLink) => localizedSetting(link.labels, locale, (c as unknown as Record<string, string>)[link.textKey ?? ""] ?? link.id);
+  const sectionForAnchor: Record<string, keyof typeof sections> = { "#about": "about", "#services": "services", "#process": "process", "#faq": "faq", "#quote": "quote" };
+  const effectiveHref = (href: string) => sectionForAnchor[href] && !sections[sectionForAnchor[href]] ? "/contact" : href;
+  const renderLinks = (links: LandingLink[]) => links.filter(link => link.isActive).map(link =>
+    <li key={link.id}><a href={effectiveHref(link.href)}>{linkLabel(link)}</a></li>,
+  );
   const { data: categoriesResponse, isLoading, isError, refetch } = useQuery({
     queryKey: ["/api/public/categories"],
     queryFn: async () => {
@@ -190,10 +227,21 @@ export default function Home() {
       categoryPath: "/contact",
       custom: true as const,
     };
-  })), [landingContent, localizedProducts, locale]);
+  })).filter(product => page.cards[product.id]?.isActive !== false).map(product => ({
+    ...product, pack: page.cards[product.id]?.pack ?? product.pack,
+    specs: page.cards[product.id]?.specs[locale] ?? page.cards[product.id]?.specs.en ?? product.specs,
+  })).sort((a,b) => {
+    const originals = [...BASE_PRODUCTS, ...(landingContent?.custom ?? [])];
+    return (page.cards[a.id]?.order ?? originals.findIndex(item=>item.id===a.id))
+      - (page.cards[b.id]?.order ?? originals.findIndex(item=>item.id===b.id));
+  }),
+  [landingContent, localizedProducts, locale, page.cards]);
 
   const ensureHeroLoaded = useCallback((index: number): Promise<boolean> => {
-    const url = landingContent?.images[`hero-${index}`] || assetUrl(index);
+    const id = visibleSlides[index]?.id;
+    if (id === undefined) return Promise.resolve(false);
+    const url = landingContent?.images[`hero-${id}`] || (["0","1","2"].includes(id) ? assetUrl(Number(id)) : "");
+    if (!url) return Promise.resolve(false);
     if (loadedSlides.current.has(url)) return Promise.resolve(true);
     const pending = pendingSlides.current.get(url);
     if (pending) return pending;
@@ -205,7 +253,7 @@ export default function Home() {
     }).finally(() => pendingSlides.current.delete(url));
     pendingSlides.current.set(url, task);
     return task;
-  }, [landingContent?.images]);
+  }, [landingContent?.images, page.slides]);
 
   useEffect(() => {
     let active = true;
@@ -213,17 +261,17 @@ export default function Home() {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const schedule = () => {
       window.clearTimeout(timeout);
-      if (!active || motion.matches || document.visibilityState !== "visible") return;
+      if (!active || !page.autoplay || visibleSlides.length < 2 || motion.matches || document.visibilityState !== "visible") return;
       timeout = window.setTimeout(async () => {
-        const next = (slideRef.current + 1) % 3;
+        const next = (slideRef.current + 1) % visibleSlides.length;
         const ready = await ensureHeroLoaded(next);
         if (active && ready && document.visibilityState === "visible" && !motion.matches) setSlide(next);
         schedule();
-      }, 5000);
+      }, page.slideInterval);
     };
     const firstFrame = requestAnimationFrame(() => {
+      void ensureHeroLoaded(0);
       void ensureHeroLoaded(1);
-      window.setTimeout(() => { void ensureHeroLoaded(2); }, 1100);
       schedule();
     });
     document.addEventListener("visibilitychange", schedule);
@@ -233,7 +281,8 @@ export default function Home() {
       document.removeEventListener("visibilitychange", schedule);
       motion.removeEventListener?.("change", schedule);
     };
-  }, [ensureHeroLoaded]);
+  }, [ensureHeroLoaded, page.autoplay, page.slideInterval]);
+  useEffect(() => { setSlide(0); }, [page.slides]);
 
   useEffect(() => {
     const nodes = document.querySelectorAll<HTMLElement>(".mc-landing .mc-reveal");
@@ -247,7 +296,7 @@ export default function Home() {
     }), { threshold: 0.1, rootMargin: "0px 0px -35px 0px" });
     nodes.forEach((node) => observer.observe(node));
     return () => { observer.disconnect(); document.documentElement.classList.remove("mc-reveal-ready"); };
-  }, []);
+  }, [landingContent?.revision]);
 
   useEffect(() => {
     if (activeProductId && modalRef.current && !modalRef.current.open) modalRef.current.showModal();
@@ -268,6 +317,7 @@ export default function Home() {
     setActiveProductId(null);
   }
   function requestProductQuote(id: string) {
+    if (!sections.quote) { window.location.assign("/contact"); return; }
     setSelectedProduct(id);
     closeProduct();
     window.setTimeout(() => {
@@ -282,22 +332,22 @@ export default function Home() {
     setStatus("sending"); setFormError("");
     const data = new FormData(form);
     const fullName = String(data.get("fullName") ?? "").trim();
-    const [firstName, ...lastNameParts] = fullName.split(/\s+/);
+    const [firstName] = fullName.split(/\s+/);
     const emailValue = String(data.get("email") ?? "").trim();
     const phone = String(data.get("phone") ?? "").trim();
     const address = String(data.get("address") ?? "").trim();
     const productInterest = String(data.get("productInterest") ?? "").trim();
     const company = String(data.get("company") ?? "").trim();
-    const productLabel = products.find((item) => item.id === productInterest)?.title ?? productInterest;
-    const message = `Estimate request — ${productLabel}. Phone: ${phone}. Address: ${address}.`;
-    if (!form.checkValidity() || !firstName || !emailValue || !phone || !address || !productInterest) {
+    const message = String(data.get("message") ?? "").trim();
+    if (!form.checkValidity() || !firstName || !emailValue) {
       setStatus("error"); setFormError(c.formError); return;
     }
     try {
-      await apiRequest("/api/contact", {
+      const response = await apiRequest("/api/landing-estimate", {
         method: "POST",
-        body: { firstName, lastName: lastNameParts.join(" "), email: emailValue, company, productInterest: productLabel, message },
+        body: { fullName, email: emailValue, company, productInterest, phone, address, message, language: locale },
       });
+      if (!response?.success) throw new Error("Request not accepted.");
       setStatus("success"); setSelectedProduct(""); form.reset();
     } catch {
       setStatus("error"); setFormError(c.failed);
@@ -306,93 +356,107 @@ export default function Home() {
 
   const activeProduct = products.find((product) => product.id === activeProductId);
   const packageProductIds = new Set(products.map((product) => product.id));
-  const heroImages = [0, 1, 2];
+  const heroImages = visibleSlides;
+  const stats = page.stats[locale] ?? page.stats.en ?? c.stats.map((label, index) => ({label, value: c.statsValues[index]}));
+  const processSteps = page.process[locale] ?? page.process.en ?? c.process.map(([title, description]) => ({title, description}));
+  const formFields = page.form.fields;
+  const quoteBlock = sections.quote && <div className="mc-estimate-card mc-reveal" id="quote" ref={quoteRef} data-home-part="quote">
+    <h2>{c.quoteTitle}</h2>
+    <form onSubmit={submitEstimate} noValidate>
+      <LayoutElements order={page.layout.elements.form}>
+        {formFields.productInterest.visible && <div className="mc-layout-field" data-home-part="productInterest"><label className="mc-sr-only" htmlFor="mc-product">{c.product}</label>
+          <select id="mc-product" name="productInterest" className="mc-control" value={selectedProduct} onChange={event => setSelectedProduct(event.target.value)} required={formFields.productInterest.required}>
+            <option value="" disabled>{c.product}</option>{products.map(product => <option key={product.id} value={product.id}>{product.title}</option>)}
+          </select></div>}
+        <div className="mc-layout-field" data-home-part="fullName"><label className="mc-sr-only" htmlFor="mc-name">{c.fullName}</label><input id="mc-name" className="mc-control" name="fullName" autoComplete="name" placeholder={c.fullName} required /></div>
+        <div className="mc-layout-field" data-home-part="email"><label className="mc-sr-only" htmlFor="mc-email">{c.email}</label><input id="mc-email" className="mc-control" type="email" name="email" autoComplete="email" placeholder={c.email} required /></div>
+        {formFields.company.visible && <div className="mc-layout-field" data-home-part="company"><label className="mc-sr-only" htmlFor="mc-company">{c.companyOptional}</label><input id="mc-company" className="mc-control" name="company" autoComplete="organization" placeholder={c.companyOptional} required={formFields.company.required} /></div>}
+        {formFields.phone.visible && <div className="mc-layout-field" data-home-part="phone"><label className="mc-sr-only" htmlFor="mc-phone">{c.phone}</label><input id="mc-phone" className="mc-control" type="tel" name="phone" autoComplete="tel" placeholder={c.phone} required={formFields.phone.required} /></div>}
+        {formFields.address.visible && <div className="mc-layout-field" data-home-part="address"><label className="mc-sr-only" htmlFor="mc-address">{c.address}</label><input id="mc-address" className="mc-control" name="address" autoComplete="street-address" placeholder={c.address} required={formFields.address.required} /></div>}
+        {formFields.message.visible && <div className="mc-layout-field" data-home-part="message"><label className="mc-sr-only" htmlFor="mc-message">{c.messageLabel}</label><textarea id="mc-message" className="mc-control" name="message" placeholder={c.messageLabel} maxLength={5000} required={formFields.message.required} /></div>}
+        <button data-home-part="submit" className="mc-button mc-submit" type="submit" disabled={status === "sending"}>{status === "sending" ? c.sending : c.submit}</button>
+      </LayoutElements>
+      <p className={`mc-form-feedback ${status}`} role="status" aria-live="polite">{status === "success" ? c.submitted : status === "error" ? formError : ""}</p>
+    </form>
+    {page.rating.enabled && <div className="mc-rating"><span>{page.rating.href ? <a href={page.rating.href}>{page.rating.score} {c.ratingLabel}</a> : <>{page.rating.score} {c.ratingLabel}</>}</span><span className="mc-stars" aria-label={`${page.rating.stars} stars`}>{Array.from({length:page.rating.stars},(_,index)=><i key={index} className="fa-solid fa-star" />)}</span></div>}
+  </div>;
+  const statsBlock = sections.stats && <div data-home-part="stats" className="mc-stats mc-reveal">{stats.map((item,index)=><div key={index}><strong>{item.value}</strong><span>{item.label}</span></div>)}</div>;
+  const categoryBlock = sections.categories && <div data-home-part="categories">
+    {isLoading ? <div className="mc-category-row" aria-label="Loading product categories">{[0,1,2].map(item=><div className="mc-category-skeleton" key={item}/>)}</div>
+      : isError ? <div className="mc-category-error"><p>{c.noCategories}</p><button type="button" onClick={()=>void refetch()}>{c.retry}</button></div>
+      : categories.length ? <div className="mc-category-row" aria-label="Shop product categories">{categories.map(category=>{
+        const slug=category.slug||category.name.toLowerCase().replace(/\s+/g,"-");
+        const validRoutes=["fuel-additives","water-treatment","paint-thinner","paint-solvents","agricultural-fertilizers","industrial-chemicals","technical-equipment","commercial-goods","other"];
+        return <Link className="mc-category-link" key={category.id} href={validRoutes.includes(slug)?`/products/${slug}`:"/products"}><span>{category.name}</span><small>{categoryCounts[category.name]??0} {locale==="fa"?"محصول":locale==="ar"?"منتج":locale==="tr"?"ürün":"products"}</small>{categorySamples[category.name]?.length?<small className="mc-category-samples">{categorySamples[category.name].join(" · ")}</small>:null}<i className="fa-solid fa-arrow-right" aria-hidden="true"/></Link>;
+      })}</div>:<div className="mc-category-empty"><span>{c.noCategories}</span><Link href="/products">{c.browseProducts}</Link></div>}
+  </div>;
   return (
     <div className="mc-landing" dir={direction} lang={locale}>
-      <OpenGraphTags title={locale === "fa" ? "ممتازکم | راهکارهای شیمیایی صنعتی" : "Momtaz Chem | Industrial Chemical Solutions"} description="Advanced chemical solutions for fuel additives, water treatment, paint & thinner products, and agricultural fertilizers." type="website" image="https://momtazchem.com/og-home.jpg" locale={locale === "fa" ? "fa_IR" : "en_US"} />
+      <OpenGraphTags title={c.seoTitle} description={c.seoDescription} type="website" image={landingContent?.images.seo ?? "https://momtazchem.com/og-home.jpg"} locale={locale === "fa" ? "fa_IR" : locale === "ar" ? "ar_IQ" : locale === "tr" ? "tr_TR" : "en_US"} />
       <CanonicalUrl path="/" />
       {landingError && <div className="mc-category-error" role="alert"><p>{locale === "fa" ? "بارگذاری محتوای به‌روز سایت ناموفق بود؛ ممکن است نسخه ذخیره‌شده قدیمی باشد." : "Could not refresh published site content. Previously loaded content is not being replaced."}</p><button type="button" onClick={() => void retryLanding()}>{c.retry}</button></div>}
       <header className="mc-header">
         <div className="mc-container mc-nav">
-          <Link href="/" className="mc-logo" aria-label="Momtaz Chem home"><CompanyBrandLogo /><span>MOMTAZ<span>CHEM</span></span></Link>
+          <Link href="/" className="mc-logo" aria-label={`${page.brandPrimary} ${page.brandAccent}`}><CompanyBrandLogo /><span>{page.brandPrimary}<span>{page.brandAccent}</span></span></Link>
           <nav className={`mc-nav-links ${mobileMenu ? "is-open" : ""}`} aria-label="Main navigation">
-            <a href="#about" onClick={() => setMobileMenu(false)}>{c.navAbout}</a>
-            <a href="#services" onClick={() => setMobileMenu(false)}>{c.navProducts}</a>
-            <a href="#process" onClick={() => setMobileMenu(false)}>{c.navProcess}</a>
-            <a href="#faq" onClick={() => setMobileMenu(false)}>{c.navFaq}</a>
-            <Link href="/shop" onClick={() => setMobileMenu(false)}>{c.navShop}</Link>
-            <Link href="/customer/login" onClick={() => setMobileMenu(false)}>{c.navAccount}</Link>
+            {page.navigation.filter(link => link.isActive && (!sectionForAnchor[link.href] || sections[sectionForAnchor[link.href]])).map(link =>
+              <a key={link.id} href={link.href} onClick={() => setMobileMenu(false)}>{linkLabel(link)}</a>)}
           </nav>
           <div className="mc-nav-actions">
             <label className="mc-language" aria-label={c.language}><i className="fa-solid fa-globe" aria-hidden="true" />
               <select value={locale} onChange={(event) => setLanguage(event.target.value as Language)} aria-label={c.language}>{Object.entries(LANGUAGES).map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select>
             </label>
-            <a className="mc-phone" href="tel:+9647500000000"><i className="fa-solid fa-phone" aria-hidden="true" /><span>+964 (750) 000-0000</span></a>
-            <button className="mc-menu-toggle" type="button" aria-label={mobileMenu ? "Close menu" : "Open menu"} aria-expanded={mobileMenu} onClick={() => setMobileMenu((value) => !value)}><i className={`fa-solid ${mobileMenu ? "fa-xmark" : "fa-bars"}`} aria-hidden="true" /></button>
+            {page.phoneLabel && <a className="mc-phone" href={page.phoneHref}><i className="fa-solid fa-phone" aria-hidden="true" /><span>{page.phoneLabel}</span></a>}
+            <button className="mc-menu-toggle" type="button" aria-label={mobileMenu ? c.closeMenu : c.openMenu} aria-expanded={mobileMenu} onClick={() => setMobileMenu((value) => !value)}><i className={`fa-solid ${mobileMenu ? "fa-xmark" : "fa-bars"}`} aria-hidden="true" /></button>
           </div>
         </div>
       </header>
 
       <main id="top">
-        <section className="mc-hero">
+        <LandingLayoutRenderer layout={page.layout} language={locale} images={landingContent?.images??{}} extraSections={{
+          quote: sections.quote && <section className="mc-layout-standalone mc-layout-quote"><div className="mc-container">{quoteBlock}</div></section>,
+          stats: sections.stats && <section className="mc-layout-standalone"><div className="mc-container">{statsBlock}</div></section>,
+          categories: sections.categories && <section className="mc-services mc-layout-standalone"><div className="mc-container">{categoryBlock}</div></section>,
+        }}>
+        {(sections.hero || sections.quote) && <section data-home-section="hero" className="mc-hero">
           <div className="mc-hero-slider" aria-hidden="true">
-            {heroImages.map((index) => {
-              const background = landingContent?.images[`hero-${index}`] || (loadedSlides.current.has(assetUrl(index)) ? assetUrl(index) : "");
-              return <div key={index} className={`mc-hero-slide ${slide === index ? "is-active" : ""}`} style={background ? { backgroundImage: `url("${background}")` } : undefined} />;
+            {heroImages.map((item, index) => {
+              const background = landingContent?.images[`hero-${item.id}`] || (["0","1","2"].includes(item.id) ? assetUrl(Number(item.id)) : "");
+              return <div key={item.id} className={`mc-hero-slide ${slideKey === item.id ? "is-active" : ""}`} style={background ? { backgroundImage: `url("${background}")` } : undefined} />;
             })}
           </div>
           <div className="mc-hero-overlay" />
           <div className="mc-container mc-hero-grid">
-            <div className="mc-hero-copy mc-reveal">
-              <span className="mc-eyebrow">{c.eyebrow}</span>
-              <h1>{c.heroTitle}</h1>
-              <p>{c.heroDesc}</p>
-              <div className="mc-hero-buttons"><a className="mc-button mc-button-gold" href="#services">{c.viewProducts}</a><a className="mc-button mc-button-outline" href="#quote">{c.getQuote}</a></div>
-              <div className="mc-slide-dots" aria-label="Hero slides">{heroImages.map((index) => <button key={index} type="button" aria-label={`Show slide ${index + 1}`} aria-pressed={slide === index} onClick={async () => { if (await ensureHeroLoaded(index)) setSlide(index); }} />)}</div>
-            </div>
-            <div className="mc-estimate-card mc-reveal" id="quote" ref={quoteRef}>
-              <h2>{c.quoteTitle}</h2>
-              <form onSubmit={submitEstimate} noValidate>
-                <label className="mc-sr-only" htmlFor="mc-product">{c.product}</label>
-                <select id="mc-product" name="productInterest" className="mc-control" value={selectedProduct} onChange={(event) => setSelectedProduct(event.target.value)} required>
-                  <option value="" disabled>{c.product}</option>{products.map((product) => <option key={product.id} value={product.id}>{product.title}</option>)}
-                </select>
-                <label className="mc-sr-only" htmlFor="mc-name">{c.fullName}</label><input id="mc-name" className="mc-control" name="fullName" autoComplete="name" placeholder={c.fullName} required />
-                <label className="mc-sr-only" htmlFor="mc-email">{c.email}</label><input id="mc-email" className="mc-control" type="email" name="email" autoComplete="email" placeholder={c.email} required />
-                <label className="mc-sr-only" htmlFor="mc-company">{c.companyOptional}</label><input id="mc-company" className="mc-control" name="company" autoComplete="organization" placeholder={c.companyOptional} />
-                <label className="mc-sr-only" htmlFor="mc-phone">{c.phone}</label><input id="mc-phone" className="mc-control" type="tel" name="phone" autoComplete="tel" placeholder={c.phone} required />
-                <label className="mc-sr-only" htmlFor="mc-address">{c.address}</label><input id="mc-address" className="mc-control" name="address" autoComplete="street-address" placeholder={c.address} required />
-                <button className="mc-button mc-submit" type="submit" disabled={status === "sending"}>{status === "sending" ? c.sending : c.submit}</button>
-                <p className={`mc-form-feedback ${status}`} role="status" aria-live="polite">{status === "success" ? c.submitted : status === "error" ? formError : ""}</p>
-              </form>
-              <div className="mc-rating"><span><i className="fa-brands fa-google mc-google-mark" aria-hidden="true" /> 5.0 Google Rating</span><span className="mc-stars" aria-label="5 stars"><i className="fa-solid fa-star" /><i className="fa-solid fa-star" /><i className="fa-solid fa-star" /><i className="fa-solid fa-star" /><i className="fa-solid fa-star" /></span></div>
-            </div>
+            <LayoutElements order={page.layout.elements.hero}>
+            {sections.hero && <div data-home-part="copy" className="mc-hero-copy mc-reveal">
+              <span className="mc-eyebrow">{localizedSetting(currentSlide?.eyebrow ?? {}, locale, c.eyebrow)}</span>
+              <h1>{localizedSetting(currentSlide?.title ?? {}, locale, c.heroTitle)}</h1>
+              <p>{localizedSetting(currentSlide?.description ?? {}, locale, c.heroDesc)}</p>
+              <div className="mc-hero-buttons"><a className="mc-button mc-button-gold" href={effectiveHref(page.actions.heroPrimary)}>{c.viewProducts}</a><a className="mc-button mc-button-outline" href={effectiveHref(page.actions.heroSecondary)}>{c.getQuote}</a></div>
+              <div className="mc-slide-dots" aria-label="Hero slides">{heroImages.map((item, index) => <button key={item.id} type="button" aria-label={`Show slide ${index + 1}`} aria-pressed={slideKey === item.id} onClick={async () => { if (await ensureHeroLoaded(index)) setSlide(index); }} />)}</div>
+            </div>}
+            {!detached.has("quote")&&quoteBlock}
+            </LayoutElements>
           </div>
-        </section>
+        </section>}
 
-        <section className="mc-trusted"><div className="mc-container mc-trusted-row mc-reveal"><span>{c.trusted}</span><div aria-hidden="true"><i className="fa-solid fa-industry" /><i className="fa-solid fa-vial-circle-check" /><i className="fa-solid fa-shield-halved" /><i className="fa-solid fa-truck-fast" /></div></div></section>
-        <section className="mc-about" id="about"><div className="mc-container">
-          <div className="mc-about-grid">
-            <div className="mc-about-image mc-reveal"><img src={imageFor("about", 3)} alt="Momtaz Chem industrial facility" loading="lazy" /></div>
-            <div className="mc-about-copy mc-reveal"><span className="mc-eyebrow mc-eyebrow-dark">{c.about}</span><h2>{c.aboutTitle}</h2><p>{c.aboutDesc}</p><Link className="mc-button mc-button-dark" href="/about">{c.explore}</Link></div>
-          </div>
-          <div className="mc-stats mc-reveal">{c.stats.map((label, index) => <div key={label}><strong>{c.statsValues[index]}</strong><span>{label}</span></div>)}</div>
-        </div></section>
+        {sections.trusted && <section data-home-section="trusted" className="mc-trusted"><div className="mc-container mc-trusted-row mc-reveal"><LayoutElements order={page.layout.elements.trusted}><span data-home-part="label">{c.trusted}</span><div data-home-part="partners">{page.partners.filter(item=>item.isActive).map(item=>{
+          const label=localizedSetting(item.labels,locale);
+          const content=<>{landingContent?.images[`partner-${item.id}`] ? <img src={landingContent.images[`partner-${item.id}`]} alt={label} style={{maxWidth:120,maxHeight:48,objectFit:"contain"}} loading="lazy" /> : <i className={`fa-solid fa-${item.icon}`} aria-hidden="true" />}{label&&<span>{label}</span>}</>;
+          return item.href?<a href={item.href} key={item.id}>{content}</a>:<span key={item.id}>{content}</span>;
+        })}</div></LayoutElements></div></section>}
+        {(sections.about || sections.stats) && <section data-home-section="about" className="mc-about" id="about"><div className="mc-container">
+          <div className="mc-about-grid"><LayoutElements order={page.layout.elements.about}>
+            {sections.about&&<div data-home-part="image" className="mc-about-image mc-reveal"><img src={imageFor("about", 3)} alt={c.aboutImageAlt} loading="lazy" /></div>}
+            {sections.about&&<div data-home-part="copy" className="mc-about-copy mc-reveal"><span className="mc-eyebrow mc-eyebrow-dark">{c.about}</span><h2>{c.aboutTitle}</h2><p>{c.aboutDesc}</p><a className="mc-button mc-button-dark" href={effectiveHref(page.actions.about)}>{c.explore}</a></div>}
+            {!detached.has("stats")&&statsBlock}
+          </LayoutElements></div>
+        </div></section>}
 
-        <section className="mc-services" id="services"><div className="mc-container">
-          <div className="mc-section-heading mc-reveal"><div><span className="mc-eyebrow">{c.packaging}</span><h2>{c.packagingTitle}</h2><p>{c.packagingHint}</p></div><Link href="/shop" className="mc-text-link">{c.shop}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></Link></div>
-          {isLoading ? <div className="mc-category-row" aria-label="Loading product categories">{[0,1,2].map((item) => <div className="mc-category-skeleton" key={item} />)}</div>
-            : isError ? <div className="mc-category-error"><p>{c.noCategories}</p><button type="button" onClick={() => void refetch()}>{c.retry}</button></div>
-              : categories.length > 0 ? <div className="mc-category-row" aria-label="Shop product categories">{categories.slice(0,8).map((category) => {
-                const slug = category.slug || category.name.toLowerCase().replace(/\s+/g, "-");
-                const count = categoryCounts[category.name] ?? 0;
-                const faNames: Record<string, string> = { "fuel-additives": "افزودنی‌های سوخت", "water-treatment": "تصفیه آب", "paint-thinner": "رنگ و تینر", "paint-solvents": "حلال‌های رنگ", "agricultural-fertilizers": "کودهای کشاورزی", "industrial-chemicals": "مواد شیمیایی صنعتی", "technical-equipment": "تجهیزات فنی", "commercial-goods": "کالاهای تجاری" };
-                const categoryName = locale === "fa" ? faNames[slug] ?? category.name : category.name;
-                const validRoutes = ["fuel-additives","water-treatment","paint-thinner","paint-solvents","agricultural-fertilizers","industrial-chemicals","technical-equipment","commercial-goods","other"];
-                const categoryHref = validRoutes.includes(slug) ? `/products/${slug}` : "/products";
-                return <Link className="mc-category-link" key={category.id} href={categoryHref}><span>{categoryName}</span><small>{count} {locale === "fa" ? "محصول" : locale === "ar" ? "منتج" : locale === "tr" ? "ürün" : "products"}</small>{categorySamples[category.name]?.length ? <small className="mc-category-samples">{categorySamples[category.name].join(" · ")}</small> : null}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></Link>;
-              })}</div> : <div className="mc-category-empty"><span>{c.noCategories}</span><Link href="/products">{c.browseProducts} <i className="fa-solid fa-arrow-right" aria-hidden="true" /></Link></div>}
-          <div className="mc-services-grid">{products.map((product, index) => {
+        {sections.services && <section data-home-section="services" className="mc-services" id="services"><div className="mc-container"><LayoutElements order={page.layout.elements.services}>
+          <div data-home-part="heading" className="mc-section-heading mc-reveal"><div><span className="mc-eyebrow">{c.packaging}</span><h2>{c.packagingTitle}</h2><p>{c.packagingHint}</p></div><a href={effectiveHref(page.actions.shop)} className="mc-text-link">{c.shop}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></a></div>
+          {!detached.has("categories")&&categoryBlock}
+          <div data-home-part="cards" className="mc-services-grid">{products.map((product, index) => {
             const assetIndex = product.asset;
             const imageKey = product.id;
             return <article className={`mc-service-card mc-reveal mc-delay-${index % 3 + 1}`} key={product.id}>
@@ -402,28 +466,30 @@ export default function Home() {
               </div>
             </article>;
           })}</div>
-        </div></section>
+        </LayoutElements></div></section>}
 
-        <section className="mc-process" id="process"><div className="mc-container"><div className="mc-reveal"><span className="mc-eyebrow mc-eyebrow-dark">{c.processEyebrow}</span><h2 className="mc-section-title">{c.processTitle}</h2></div>
-          <div className="mc-process-grid">{c.process.map(([title, description], index) => <article className="mc-process-card mc-reveal" key={title}><span className="mc-process-number">0{index + 1}</span><h3>{title}</h3><p>{description}</p></article>)}</div>
-        </div></section>
-        <section className="mc-faq" id="faq"><div className="mc-container mc-reveal"><span className="mc-eyebrow mc-eyebrow-dark">{c.faqEyebrow}</span><h2 className="mc-section-title">{c.faqTitle}</h2>
+        {sections.process && <section data-home-section="process" className="mc-process" id="process"><div className="mc-container"><LayoutElements order={page.layout.elements.process}><div data-home-part="heading" className="mc-reveal"><span className="mc-eyebrow mc-eyebrow-dark">{c.processEyebrow}</span><h2 className="mc-section-title">{c.processTitle}</h2></div>
+          <div data-home-part="steps" className="mc-process-grid">{processSteps.map(({title, description}, index) => <article className="mc-process-card mc-reveal" key={index}><span className="mc-process-number">{String(index + 1).padStart(2,"0")}</span><h3>{title}</h3><p>{description}</p></article>)}</div>
+        </LayoutElements></div></section>}
+        {sections.faq && <section data-home-section="faq" className="mc-faq" id="faq"><div className="mc-container mc-reveal"><LayoutElements order={page.layout.elements.faq}><div data-home-part="heading"><span className="mc-eyebrow mc-eyebrow-dark">{c.faqEyebrow}</span><h2 className="mc-section-title">{c.faqTitle}</h2></div>
+          <div data-home-part="items">
           {faqError && <p role="alert"><button type="button" onClick={() => void retryFaq()}>{locale === "fa" ? "دریافت سؤالات متداول ناموفق بود؛ تلاش دوباره" : locale === "ar" ? "تعذر تحميل الأسئلة؛ أعد المحاولة" : locale === "tr" ? "Sorular yüklenemedi; tekrar deneyin" : "Could not load FAQs. Retry"}</button></p>}
           <div className="mc-faq-list">{(publishedFaqs?.[locale] ?? []).map(({id, question, answer}, index) => <div className={`mc-faq-item ${openFaq === index ? "is-open" : ""}`} key={id}>
             <h3><button className="mc-faq-toggle" type="button" aria-expanded={openFaq === index} aria-controls={`mc-faq-${index}`} onClick={() => setOpenFaq((current) => current === index ? null : index)}>{question}<i className="fa-solid fa-plus" aria-hidden="true" /></button></h3>
             <div className="mc-faq-answer" id={`mc-faq-${index}`} hidden={openFaq !== index}><p style={{whiteSpace: "pre-wrap"}}>{answer}</p></div>
-          </div>)}</div>
-        </div></section>
+          </div>)}</div></div>
+        </LayoutElements></div></section>}
+      {sections.footer && <footer data-home-section="footer" className="mc-footer"><div className="mc-container">
+        <div className="mc-footer-grid"><LayoutElements order={page.layout.elements.footer}>
+          <div data-home-part="brand"><Link href="/" className="mc-logo"><CompanyBrandLogo /><span>{page.brandPrimary}<span>{page.brandAccent}</span></span></Link><p className="mc-footer-tagline">{c.tagline}</p><a className="mc-footer-cta" href={effectiveHref(page.actions.shop)}>{c.shop}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></a></div>
+          <div data-home-part="company"><h3>{c.company}</h3><ul>{renderLinks(page.footerCompany)}</ul></div>
+          <div data-home-part="packages"><h3>{c.packaging}</h3><ul>{Array.from(new Set(products.flatMap((product) => product.pack))).map((packId) => <li key={packId}><button className="mc-footer-product" type="button" onClick={() => { const target = products.find((product) => product.id === packId) ?? products.find((product) => product.pack.includes(packId)); if (target) openProduct(target.id); }}>{packages[packId].name}</button></li>)}</ul></div>
+          <div data-home-part="connect"><h3>{c.connect}</h3><ul>{renderLinks(page.footerConnect)}{renderLinks(page.social)}</ul></div>
+          <div data-home-part="bottom" className="mc-footer-bottom"><span>{c.copyright}</span><span><a href={page.actions.privacy}>{c.privacyLabel}</a><i /> <a href={page.actions.terms}>{c.termsLabel}</a></span></div>
+        </LayoutElements></div>
+      </div></footer>}
+        </LandingLayoutRenderer>
       </main>
-      <footer className="mc-footer"><div className="mc-container">
-        <div className="mc-footer-grid">
-          <div><Link href="/" className="mc-logo"><CompanyBrandLogo /><span>MOMTAZ<span>CHEM</span></span></Link><p className="mc-footer-tagline">{c.tagline}</p><Link className="mc-footer-cta" href="/shop">{c.shop}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></Link></div>
-          <div><h3>{c.company}</h3><ul><li><Link href="/about">{c.aboutLink}</Link></li><li><Link href="/services">{c.services}</Link></li><li><Link href="/contact">{c.getQuote}</Link></li></ul></div>
-          <div><h3>{c.packaging}</h3><ul>{Array.from(new Set(products.flatMap((product) => product.pack))).map((packId) => <li key={packId}><button className="mc-footer-product" type="button" onClick={() => { const target = products.find((product) => product.id === packId) ?? products.find((product) => product.pack.includes(packId)); if (target) openProduct(target.id); }}>{PACKAGES[packId].name}</button></li>)}</ul></div>
-          <div><h3>{c.connect}</h3><ul><li><Link href="/customer/login">{c.account}</Link></li><li><Link href="/shop">{c.shop}</Link></li><li><Link href="/contact">{c.getQuote}</Link></li><li><Link href="/site-management">Website management</Link></li></ul></div>
-        </div>
-        <div className="mc-footer-bottom"><span>© 2026 MOMTAZ CHEM. All rights reserved.</span><span><Link href="/privacy">Privacy Policy</Link><i /> <Link href="/terms">Terms of Service</Link></span></div>
-      </div></footer>
 
       <dialog className="mc-modal" ref={modalRef} aria-labelledby="mc-modal-title" onCancel={() => setActiveProductId(null)} onClick={(event) => { if (event.target === modalRef.current) closeProduct(); }} onClose={() => setActiveProductId(null)}>
         <button className="mc-modal-close" type="button" aria-label={detailLabels.close} onClick={closeProduct}><i className="fa-solid fa-xmark" aria-hidden="true" /></button>
@@ -431,8 +497,8 @@ export default function Home() {
           <div className="mc-modal-image"><img src={imageFor(activeProduct.id, activeProduct.asset)} alt={activeProduct.title} /></div>
           <div className="mc-modal-body"><span className="mc-eyebrow mc-eyebrow-dark">{detailLabels.detail}</span><h2 id="mc-modal-title">{activeProduct.title}</h2><p>{activeProduct.long}</p>
             {activeProduct.specs.length > 0 && <><h3>{detailLabels.specifications}</h3><ul className="mc-specs">{activeProduct.specs.map((spec) => <li key={spec}><i className="fa-solid fa-check" aria-hidden="true" /><span>{spec}</span></li>)}</ul></>}
-            <h3>{detailLabels.packaging}</h3><div className="mc-packs">{activeProduct.pack.map((packId) => {
-              const pack = PACKAGES[packId];
+            <h3>{detailLabels.packaging}</h3>{detailText("modalPackagingHint","") && <p>{detailText("modalPackagingHint","")}</p>}<div className="mc-packs">{activeProduct.pack.map((packId) => {
+              const pack = packages[packId];
               const linked = packageProductIds.has(packId);
               return <button key={packId} className={`mc-pack ${activeProduct.id === packId ? "current" : ""}`} type="button" disabled={!linked || activeProduct.id === packId} onClick={() => linked && openProduct(packId)} title={pack.description}>
                 <span className="mc-pack-icon">{linked ? <img src={imageFor(packId, products.find((item) => item.id === packId)?.asset ?? 9)} alt="" /> : <i className={`fa-solid ${pack.icon}`} aria-hidden="true" />}</span>

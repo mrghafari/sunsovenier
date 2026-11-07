@@ -21,7 +21,7 @@ try{
   page.on("pageerror",error=>errors.push(error.message));
   await page.setRequestInterception(true);
   page.on("request",request=>{
-    if(new URL(request.url()).pathname==="/api/contact"&&request.method()==="POST"){
+    if(new URL(request.url()).pathname==="/api/landing-estimate"&&request.method()==="POST"){
       requests.push(JSON.parse(request.postData()));
       return request.respond({status:failContact?503:201,contentType:"application/json",
         body:JSON.stringify(failContact?{message:"Probe unavailable"}:{success:true})});
@@ -60,9 +60,10 @@ try{
   await fill();
   await page.$eval(".mc-estimate-card form",form=>form.requestSubmit());
   await page.waitForFunction(()=>document.querySelector(".mc-form-feedback.success"));
-  assert.equal(requests[0].firstName,"Probe");
-  assert.equal(requests[0].lastName,"");
-  assert.ok(requests[0].message.includes("+964000000000")&&requests[0].message.includes("Synthetic address"));
+  assert.equal(requests[0].fullName,"Probe");
+  assert.equal(requests[0].productInterest,"drum220");
+  assert.equal(requests[0].phone,"+964000000000");
+  assert.equal(requests[0].address,"Synthetic address");
   failContact=true;
   await fill();
   await page.$eval(".mc-estimate-card form",form=>form.requestSubmit());

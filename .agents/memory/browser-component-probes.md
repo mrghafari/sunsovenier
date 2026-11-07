@@ -3,6 +3,18 @@ name: Browser component probes
 description: Avoid false failures when testing real authenticated components with synthetic data in Vite.
 ---
 
+Use HTML5 doctype in synthetic drag-and-drop documents, and scroll instantly before measuring controls for pointer gestures.
+
+**Why:** Quirks mode changes drag measurements; inherited smooth scrolling can move a handle after its coordinates are read, falsely suggesting cross-list dragging is broken.
+
+**How to apply:** Set `<!doctype html>` and use `scrollIntoView({behavior:"instant"})` in the fixture before reading bounding boxes. Test both keyboard and pointer dragging. Button-based drag handles need the drag library's explicit interactive-element opt-in.
+
+Bypass service workers when navigating from the real PWA back to a request-intercepted component fixture.
+
+**Why:** The PWA's navigation fallback can serve the application shell before the interception handler sees the synthetic URL, making a healthy fixture appear to time out.
+
+**How to apply:** Use the browser automation client's service-worker bypass for synthetic checks; do not disable the application's real service worker to make tests pass. Await completion of drag/drop animation before asserting the reordered DOM.
+
 Run synthetic component checks in a browser-only fixture document rather than
 waiting for the entire public application to initialize. Keep actual app
 authentication and production authorization unchanged.

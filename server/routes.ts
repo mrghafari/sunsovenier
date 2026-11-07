@@ -5394,7 +5394,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Get all contacts (for admin purposes)
-  app.get("/api/contacts", async (req, res) => {
+  app.get("/api/contacts", requireAuth, async (req, res) => {
     try {
       const contacts = await storage.getContacts();
       res.json(contacts);
@@ -47309,6 +47309,17 @@ momtazchem.com
   registerLandingContentRoutes(app,{
     view:requireModuleAccess("content_management","view"),
     edit:requireModuleAccess("content_management","edit"),
+  });
+  const {registerLandingInquiryRoutes}=await import("./landing-inquiries");
+  registerLandingInquiryRoutes(app,requireModuleAccess("content_management","view"),{
+    notify:async(contact)=>{
+      const categoryEmail=await getCategoryEmailAssignment(contact.productInterest);
+      await sendContactEmail({
+        firstName:contact.firstName,lastName:contact.lastName,email:contact.email,
+        company:contact.company??"",productInterest:contact.productInterest,message:contact.message??"",
+        categoryEmail:categoryEmail??undefined,
+      });
+    },
   });
   const {registerFaqContentRoutes}=await import("./faq-content-routes");
   registerFaqContentRoutes(app,{
