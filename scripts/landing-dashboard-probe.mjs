@@ -11,6 +11,10 @@ const queryUrl = source.match(/from ["']([^"']*react-query[^"']*)["']/)?.[1];
 const domUrl = main.match(/from ["']([^"']*react-dom_client[^"']*)["']/)?.[1];
 assert.ok(reactUrl && queryUrl && domUrl);
 let state = (await (await fetch(base + "/api/landing-content")).json()).data;
+// Fixture starts with these controls enabled, independent of live editor choices.
+state.page.sections.process = true;
+state.page.form.fields.address = { visible: true, required: true };
+if (state.page.cards.drum220) state.page.cards.drum220.isActive = true;
 let saves = 0, submissions = [];
 const browser = await puppeteer.launch({
   executablePath: execFileSync("bash", ["-c", "command -v chromium || command -v chromium-browser"], { encoding: "utf8" }).trim(),
@@ -24,8 +28,13 @@ try {
   await page.setRequestInterception(true);
   page.on("request", request => {
     const url = new URL(request.url());
+    if (url.pathname === "/api/company-information") return request.respond({
+      contentType: "application/json", body: JSON.stringify({ success: true, data: {
+        contactSettings: { landingPhone: "+964 123456789" },
+      } }),
+    });
     if (url.pathname === "/__landing-dashboard-probe") return request.respond({ contentType: "text/html", body: `
-      <div id="probe"></div><script type="module">
+      <!doctype html><div id="probe"></div><script type="module">
       localStorage.setItem("language","fa");localStorage.setItem("language-manually-selected","true");
       import RefreshRuntime from "/@react-refresh";
       RefreshRuntime.injectIntoGlobalHook(window);window.$RefreshReg$=()=>{};window.$RefreshSig$=()=>type=>type;window.__vite_plugin_react_preamble_installed__=true;
@@ -83,7 +92,7 @@ try {
   await field("text-hero", "عنوان بنر", "عنوان مدیریت‌شده آزمایشی");
   await field("text-about", "عنوان درباره", "درباره مدیریت‌شده");
   await field("text-footer", "حق نشر", "حقوق آزمایشی ممتاز");
-  await field("sections", "شماره نمایشی", "+964 123456789");
+  await open("sections");
   await page.click('[data-testid="landing-section-process"]');
   await open("stats");
   const faStats = await page.$$('[data-setting-group="stats"] fieldset');

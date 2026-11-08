@@ -436,11 +436,14 @@ export default function Home() {
           </div>
         </section>}
 
-        {sections.trusted && <section data-home-section="trusted" className="mc-trusted"><div className="mc-container mc-trusted-row mc-reveal"><LayoutElements order={page.layout.elements.trusted}><span data-home-part="label">{c.trusted}</span><div data-home-part="partners">{page.partners.filter(item=>item.isActive).map(item=>{
+        {sections.trusted && <section data-home-section="trusted" className="mc-trusted"><div className="mc-container mc-trusted-row mc-reveal"><LayoutElements order={page.layout.elements.trusted}><span data-home-part="label">{c.trusted}</span><div data-home-part="partners" className="mc-partner-marquee"><div className="mc-partner-marquee-track"><div className="mc-partner-track">{page.partners.filter(item=>item.isActive).map(item=>{
           const label=localizedSetting(item.labels,locale);
           const content=<>{landingContent?.images[`partner-${item.id}`] ? <img src={landingContent.images[`partner-${item.id}`]} alt={label} style={{maxWidth:120,maxHeight:48,objectFit:"contain"}} loading="lazy" /> : <i className={`fa-solid fa-${item.icon}`} aria-hidden="true" />}{label&&<span>{label}</span>}</>;
           return item.href?<a href={item.href} key={item.id}>{content}</a>:<span key={item.id}>{content}</span>;
-        })}</div></LayoutElements></div></section>}
+        })}</div><div className="mc-partner-track mc-partner-track-copy" aria-hidden="true">{page.partners.filter(item=>item.isActive).map(item=>{
+          const label=localizedSetting(item.labels,locale);
+          return <span key={item.id}>{landingContent?.images[`partner-${item.id}`] ? <img src={landingContent.images[`partner-${item.id}`]} alt="" style={{maxWidth:120,maxHeight:48,objectFit:"contain"}} loading="lazy" /> : <i className={`fa-solid fa-${item.icon}`} aria-hidden="true" />}{label&&<span>{label}</span>}</span>;
+        })}</div></div></div></LayoutElements></div></section>}
         {(sections.about || sections.stats) && <section data-home-section="about" className="mc-about" id="about"><div className="mc-container">
           <div className="mc-about-grid"><LayoutElements order={page.layout.elements.about}>
             {sections.about&&<div data-home-part="image" className="mc-about-image mc-reveal"><img src={imageFor("about", 3)} alt={c.aboutImageAlt} loading="lazy" /></div>}

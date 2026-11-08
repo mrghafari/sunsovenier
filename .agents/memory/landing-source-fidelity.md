@@ -15,6 +15,12 @@ The corrected blue/navy landing reference replaces the earlier gold design. The 
 
 **How to apply:** Carry the supplied visual identity through shared page themes and components, while retaining functional forms, permissions, and meaningful success/warning/error colors.
 
+The user approved a full landing redesign using the later SaaS-style text brief, with existing content, but explicitly rejected changing the current color theme: «تم رنگها را عوض نکن همن که هست خوبه».
+
+**Why:** The user selected «طراحی کامل با محتوای فعلی», then corrected the brief's orange/black palette.
+
+**How to apply:** Improve composition, cards, typography and lighting while retaining blue/navy, the light/dark section rhythm, real content and CMS controls. Do not introduce the brief's orange theme or fabricated SaaS data/prices.
+
 Manage landing images and the supplied settings controls in the existing content-management module, not an inline browser-only editor on the homepage.
 
 **Why:** The user explicitly corrected the location: «باید بیاد در ماژول محتوی».
