@@ -59,6 +59,32 @@ try {
   await load();
   const snapshot = await content();
   assert.equal(await page.$eval("h1", el => getComputedStyle(el).opacity), "1");
+  const layerPositions = () => page.evaluate(() => {
+    const quote = document.querySelector(".mc-hero .mc-estimate-card");
+    const background = document.querySelector(".mc-hero-slider");
+    return {
+      quote: quote ? quote.getBoundingClientRect().top + scrollY : null,
+      background: background ? new DOMMatrixReadOnly(getComputedStyle(background).transform).m42 : null,
+    };
+  });
+  await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+  await delay(150);
+  const layersAtTop = await layerPositions();
+  await page.evaluate(() => scrollTo({ top: 500, behavior: "instant" }));
+  await delay(250);
+  const layersScrolled = await layerPositions();
+  assert.ok(Math.abs(layersScrolled.quote - layersAtTop.quote) >= 45,
+    `Foreground depth must be perceptible, not just a few pixels: ${layersScrolled.quote - layersAtTop.quote}px`);
+  assert.ok(Math.abs(layersScrolled.background - layersAtTop.background) >= 20,
+    `Background should move at a distinct, noticeable speed: ${layersScrolled.background - layersAtTop.background}px`);
+  await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+  await delay(250);
+  const layersReturned = await layerPositions();
+  assert.ok(Math.abs(layersReturned.quote - layersAtTop.quote) <= 3, "Scroll depth follows reverse scrolling too");
+  console.log("Verified real desktop scroll deltas:", {
+    foreground: layersScrolled.quote - layersAtTop.quote,
+    background: layersScrolled.background - layersAtTop.background,
+  });
   // Observe actual animations while scrolling rather than relying on a still image.
   const animations = new Set();
   const height = await page.$eval("body", el => el.scrollHeight);
@@ -71,7 +97,10 @@ try {
   }
   assert.ok(animations.size > 0, "Scroll should trigger real transitions or animations");
   await delay(1100);
-  assert.ok(await page.$$eval(".mc-reveal", nodes => nodes.every(node => getComputedStyle(node).opacity === "1")), "Visited reveal content is visible");
+  assert.ok(await page.$$eval(".mc-reveal", nodes => nodes.filter(node => {
+    const bounds = node.getBoundingClientRect();
+    return bounds.top > 30 && bounds.bottom < innerHeight - 30;
+  }).every(node => getComputedStyle(node).opacity === "1")), "In-view reveal content is visible");
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await delay(300);
   await page.screenshot({ path: `${output}/desktop.png` });
@@ -82,6 +111,10 @@ try {
   await delay(100);
   assert.ok(await page.$$eval(".mc-reveal", nodes => nodes.every(node => getComputedStyle(node).opacity === "1")), "Live reduced-motion change exposes all content");
   assert.deepEqual(await content(), snapshot, "Motion must not replace copy, images, form fields or phone");
+  assert.ok(await page.evaluate(() => [...document.querySelectorAll(".mc-landing *")].every(node => {
+    const style = getComputedStyle(node);
+    return style.animationName === "none";
+  })), "Reduced motion disables all landing animations, including delayed ones");
   await load();
   assert.deepEqual(await content(), snapshot, "Reduced-motion initial render preserves content");
   await page.setViewport({ width: 390, height: 844 });

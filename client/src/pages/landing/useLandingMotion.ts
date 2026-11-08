@@ -13,11 +13,17 @@ export function useLandingMotion(contentRevision?: string | number) {
     const coarsePointer = window.matchMedia("(pointer: coarse)");
     const mobileViewport = window.matchMedia("(max-width: 767px)");
     const hero = root.querySelector<HTMLElement>(".mc-hero");
+    const heroDocumentTop = (hero?.getBoundingClientRect().top ?? 0) + window.scrollY;
     const revealSelector = ".mc-reveal";
     let revealObserver: IntersectionObserver | null = null;
     let heroObserver: IntersectionObserver | null = null;
     let frame = 0;
-    let heroInView = false;
+    const initialHeroBounds = hero?.getBoundingClientRect();
+    let heroInView = Boolean(initialHeroBounds &&
+      initialHeroBounds.bottom > 0 && initialHeroBounds.top < window.innerHeight);
+    if (heroInView) {
+      root.querySelector<HTMLElement>(".mc-hero-copy")?.classList.add("is-visible");
+    }
 
     const showAll = () => {
       root.querySelectorAll<HTMLElement>(revealSelector).forEach((node) => {
@@ -32,10 +38,8 @@ export function useLandingMotion(contentRevision?: string | number) {
           node.classList.add("is-visible");
           return;
         }
-        if (node.classList.contains("is-visible")) return;
         if (node.contains(document.activeElement)) {
           node.classList.add("is-visible");
-          return;
         }
         revealObserver?.observe(node);
       });
@@ -55,9 +59,13 @@ export function useLandingMotion(contentRevision?: string | number) {
       frame = 0;
       if (!canTrackScroll() || !hero) return;
       const bounds = hero.getBoundingClientRect();
-      const progress = Math.max(-1, Math.min(1, (window.innerHeight - bounds.top) /
-        (window.innerHeight + bounds.height) - 0.5));
-      hero.style.setProperty("--mc-parallax-y", `${(-progress * 17).toFixed(1)}px`);
+      const progress = Math.max(-0.6, Math.min(0.72,
+        (window.scrollY - Math.max(0, heroDocumentTop - 72)) / Math.max(1, bounds.height)));
+      hero.style.setProperty("--mc-motion-progress", progress.toFixed(3));
+      hero.style.setProperty("--mc-bg-offset", `${(-progress * 38).toFixed(1)}px`);
+      hero.style.setProperty("--mc-copy-offset", `${(-progress * 68).toFixed(1)}px`);
+      hero.style.setProperty("--mc-quote-offset", `${(-progress * 96).toFixed(1)}px`);
+      hero.dataset.motionProgress = progress.toFixed(3);
     };
 
     const scheduleDepth = () => {
@@ -70,7 +78,11 @@ export function useLandingMotion(contentRevision?: string | number) {
       if (reducedMotion.matches) {
         root.classList.remove("mc-motion-ready");
         hero?.classList.remove("is-motion-active");
-        hero?.style.removeProperty("--mc-parallax-y");
+        hero?.style.removeProperty("--mc-motion-progress");
+        hero?.style.removeProperty("--mc-bg-offset");
+        hero?.style.removeProperty("--mc-copy-offset");
+        hero?.style.removeProperty("--mc-quote-offset");
+        if (hero) delete hero.dataset.motionProgress;
         showAll();
         return;
       }
@@ -78,19 +90,32 @@ export function useLandingMotion(contentRevision?: string | number) {
       root.classList.add("mc-motion-ready");
       if (heroInView) hero?.classList.add("is-motion-active");
       else hero?.classList.remove("is-motion-active");
-      if (coarsePointer.matches || mobileViewport.matches) hero?.style.removeProperty("--mc-parallax-y");
+      if (coarsePointer.matches || mobileViewport.matches) {
+        hero?.style.removeProperty("--mc-motion-progress");
+        hero?.style.removeProperty("--mc-bg-offset");
+        hero?.style.removeProperty("--mc-copy-offset");
+        hero?.style.removeProperty("--mc-quote-offset");
+        if (hero) delete hero.dataset.motionProgress;
+      }
       else scheduleDepth();
     };
 
     if ("IntersectionObserver" in window) {
       revealObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            (entry.target as HTMLElement).classList.add("is-visible");
-            revealObserver?.unobserve(entry.target);
+          const node = entry.target as HTMLElement;
+          if (reducedMotion.matches || node.contains(document.activeElement)) {
+            node.classList.add("is-visible");
+            node.dataset.revealProgress = "1";
+          } else {
+            if (!entry.isIntersecting) {
+              node.dataset.revealExit = entry.boundingClientRect.top < 0 ? "above" : "below";
+            }
+            node.classList.toggle("is-visible", entry.isIntersecting);
+            node.dataset.revealProgress = entry.isIntersecting ? "1" : "0";
           }
         });
-      }, { threshold: 0.08, rootMargin: "0px 0px -32px 0px" });
+      }, { threshold: 0.015, rootMargin: "0px 0px -20px 0px" });
       observeReveals();
 
       if (hero) {
@@ -100,7 +125,11 @@ export function useLandingMotion(contentRevision?: string | number) {
           if (heroInView) scheduleDepth();
           else {
             clearFrame();
-            hero?.style.removeProperty("--mc-parallax-y");
+            hero?.style.removeProperty("--mc-motion-progress");
+            hero?.style.removeProperty("--mc-bg-offset");
+            hero?.style.removeProperty("--mc-copy-offset");
+            hero?.style.removeProperty("--mc-quote-offset");
+            if (hero) delete hero.dataset.motionProgress;
           }
         }, { threshold: 0 });
         heroObserver.observe(hero);
@@ -138,7 +167,7 @@ export function useLandingMotion(contentRevision?: string | number) {
       while (node && node !== root) {
         if (node.matches(revealSelector)) {
           node.classList.add("is-visible");
-          revealObserver?.unobserve(node);
+          node.dataset.revealProgress = "1";
         }
         node = node.parentElement;
       }
@@ -167,7 +196,11 @@ export function useLandingMotion(contentRevision?: string | number) {
       mobileViewport.removeEventListener?.("change", syncMotionMode);
       root.classList.remove("mc-motion-ready");
       hero?.classList.remove("is-motion-active");
-      hero?.style.removeProperty("--mc-parallax-y");
+      hero?.style.removeProperty("--mc-motion-progress");
+      hero?.style.removeProperty("--mc-bg-offset");
+      hero?.style.removeProperty("--mc-copy-offset");
+      hero?.style.removeProperty("--mc-quote-offset");
+      if (hero) delete hero.dataset.motionProgress;
     };
   }, [contentRevision]);
 }

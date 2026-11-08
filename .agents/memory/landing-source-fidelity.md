@@ -39,6 +39,12 @@ The supplied dark/orange landing video is a motion reference only, not a replace
 
 **How to apply:** Adapt staged entrances, scroll reveals, restrained depth and light effects to the existing blue/navy content. Do not copy the video's orange palette, dashboard imagery or text.
 
+Verify motion by meaningful positional change during actual scrolling, including reverse scrolling, rather than merely detecting an active CSS animation.
+
+**Why:** The user reported the animation had not been done even though the new code loaded; the initial implementation moved foreground layers only a few pixels and its short entrance finished before they noticed it.
+
+**How to apply:** Check visible foreground/background displacement separately, section entry and re-entry, and reduced-motion behavior. A passing animation-presence check alone does not establish fidelity to the supplied video.
+
 Use the company's real logo beside the brand name, not the reference's flask icon.
 
 **Why:** The user explicitly said: «از لوگوی شرکت کنار اسم برند استفاده کن».
