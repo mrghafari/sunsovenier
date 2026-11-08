@@ -25,9 +25,9 @@ The user approved a full landing redesign using the later SaaS-style text brief,
 
 The homepage About visual should be an animated four-pane photo window using existing landing images, at the same overall size as the replaced visual.
 
-**Why:** After trying the supplied chemical illustration, the user explicitly requested «عکسها را از داخل عکسهای سایت در لندینگ انتخاب کن و حالت متحرک بده در نهایت مانند پنجره 4 قسمتی به نظر برسد».
+**Why:** After trying the supplied chemical illustration, the user requested a four-pane window using existing landing photos, then independent CMS image editing, no blue window background, slight three-dimensional shadows and mouse-hover tick sounds.
 
-**How to apply:** Keep a two-by-two framed window on mobile as well as desktop, use existing landing photos rather than new external artwork, and preserve the blue/navy palette and total visual size.
+**How to apply:** Keep two-by-two panes on mobile and desktop at the existing total size. Default to current landing photos with independent CMS overrides. Let the section background show through the gaps, use modest depth, and keep hover ticks brief and mutable.
 
 Manage landing images and the supplied settings controls in the existing content-management module, not an inline browser-only editor on the homepage.
 
@@ -64,6 +64,12 @@ Packaging-section photos and cards should gradually brighten from dark to normal
 **Why:** The user requested a graphical dark-to-normal appearance for «Full-Scale Chemical Packaging» during scrolling.
 
 **How to apply:** Preserve the progressive reveal rather than showing every card at full brightness immediately; keep the normal final colors and respect reduced-motion preferences.
+
+Text should gradually change from faded to its full original color as the user scrolls down.
+
+**Why:** The user explicitly requested «اسکرول به سمت پایین که میکنیم تکستها از حالت محو به سمت رنگ کامل برود».
+
+**How to apply:** Progress opacity with section entry rather than changing text colors; retain the slower mobile reveal pacing and immediately show full text for reduced-motion users.
 
 Mobile card and text appearances should take three times the original duration; this request does not refer to changing the banner image.
 

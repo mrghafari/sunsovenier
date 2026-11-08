@@ -12,6 +12,7 @@ import LandingLayoutRenderer, { LayoutElements } from "./landing/LandingLayoutRe
 import { useLandingMotion } from "./landing/useLandingMotion";
 import AboutPhotoWindow from "./landing/AboutPhotoWindow";
 import { aboutContent } from "./landing/about-content";
+import { landingAboutWindowPanes } from "@shared/landing-about-window";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import type { ShopCategory, ShopProduct } from "@shared/shop-schema";
@@ -449,13 +450,10 @@ export default function Home() {
         {(sections.about || sections.stats) && <section data-home-section="about" className="mc-about" id="about"><div className="mc-container">
           <div className="mc-about-grid"><LayoutElements order={page.layout.elements.about}>
             {sections.about&&<div data-home-part="image" className={`${page.aboutVisual === "image" ? "mc-about-image" : "mc-about-art"} mc-reveal`}>
-              {page.aboutVisual === "image" ? <img src={imageFor("about", 3)} alt={c.aboutImageAlt} loading="lazy" /> : <AboutPhotoWindow label={detailText("aboutImageAlt", aboutContent[locale].imageAlt)} images={[
-                { src: imageFor("hero-0", 0), alt: c.eyebrow },
-                ...BASE_PRODUCTS.slice(0, 3).map((product, index) => ({
-                  src: imageFor(product.id, product.asset),
-                  alt: landingContent?.edits?.[locale]?.[product.id]?.title ?? localizedProducts?.[index]?.[0] ?? product.title,
-                })),
-              ]} />}
+              {page.aboutVisual === "image" ? <img src={imageFor("about", 3)} alt={c.aboutImageAlt} loading="lazy" /> : <AboutPhotoWindow label={detailText("aboutImageAlt", aboutContent[locale].imageAlt)} soundLabels={aboutContent[locale].sound} images={landingAboutWindowPanes.map(pane => ({
+                src: landingContent?.images[pane.key] || imageFor(pane.fallbackKey, pane.asset),
+                alt: detailText("aboutImageAlt", aboutContent[locale].imageAlt),
+              }))} />}
             </div>}
             {sections.about&&<div data-home-part="copy" className="mc-about-copy mc-reveal"><span className="mc-eyebrow mc-eyebrow-dark">{c.about}</span><h2>{c.aboutTitle}</h2><p>{c.aboutDesc}</p>
               <ul className="mc-about-facts">{(["aboutFactManufacturing", "aboutFactPackaging", "aboutFactSafety"] as const).map((key, index) => <li key={key}>{detailText(key, aboutContent[locale].facts[index])}</li>)}</ul>
@@ -491,7 +489,7 @@ export default function Home() {
           </div>)}</div></div>
         </LayoutElements></div></section>}
       {sections.footer && <footer data-home-section="footer" className="mc-footer"><div className="mc-container">
-        <div className="mc-footer-grid"><LayoutElements order={page.layout.elements.footer}>
+        <div className="mc-footer-grid mc-reveal"><LayoutElements order={page.layout.elements.footer}>
           <div data-home-part="brand"><Link href="/" className="mc-logo"><CompanyBrandLogo /><span>{page.brandPrimary}<span>{page.brandAccent}</span></span></Link><p className="mc-footer-tagline">{c.tagline}</p><a className="mc-footer-cta" href={effectiveHref(page.actions.shop)}>{c.shop}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></a></div>
           <div data-home-part="company"><h3>{c.company}</h3><ul>{renderLinks(page.footerCompany)}</ul></div>
           <div data-home-part="packages"><h3>{c.packaging}</h3><ul>{Array.from(new Set(products.flatMap((product) => product.pack))).map((packId) => <li key={packId}><button className="mc-footer-product" type="button" onClick={() => { const target = products.find((product) => product.id === packId) ?? products.find((product) => product.pack.includes(packId)); if (target) openProduct(target.id); }}>{packages[packId].name}</button></li>)}</ul></div>

@@ -1,5 +1,6 @@
 import {z} from "zod";
 import {defaultLandingPageSettings,landingPageSettingsSchema} from "./landing-page-settings";
+import {landingAboutWindowPanes} from "./landing-about-window";
 
 export const landingLanguages=["en","fa","ar","tr"] as const;
 export type LandingLanguage=typeof landingLanguages[number];
@@ -35,7 +36,8 @@ export const landingContentSchema=z.object({
     ids.add(item.id);
   }
   const imageKeys=new Set([...ids,...value.page.slides.map(slide=>`hero-${slide.id}`),...value.page.partners.map(partner=>`partner-${partner.id}`),
-    ...value.page.layout.rows.flatMap(row=>row.blocks.filter(block=>block.type==="image").map(block=>`layout-${block.id}`)),"about","seo"]);
+    ...value.page.layout.rows.flatMap(row=>row.blocks.filter(block=>block.type==="image").map(block=>`layout-${block.id}`)),
+    ...landingAboutWindowPanes.map(pane=>pane.key),"about","seo"]);
   for(const key of Object.keys(value.images)){
     if(!imageKeys.has(key))ctx.addIssue({code:"custom",message:"Unknown image slot",path:["images",key]});
   }

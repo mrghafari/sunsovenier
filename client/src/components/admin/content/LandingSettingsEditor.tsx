@@ -123,7 +123,7 @@ export default function LandingSettingsEditor({ page, language, onChange, conten
         <option value="window">پنجرهٔ متحرک چهارقسمتی / Animated four-pane photo window</option>
         <option value="image">عکس قابل ویرایش / Editable photo</option>
       </select>
-      <span className="block text-xs text-muted-foreground">پنجره از عکس بنر اول، بشکه، IBC و مخزن همین لندینگ استفاده می‌کند. در حالت عکس تکی، تصویر درباره ما را تغییر دهید. / The window uses the first hero, drum, IBC and tank images. Single-photo mode uses the About image.</span>
+      <span className="block text-xs text-muted-foreground">چهار عکس را از «تصاویر مشترک سایت ← پنجرهٔ درباره ما · قسمت ۱ تا ۴» مستقل تغییر دهید. بازنشانی هر قسمت، عکس اصلی لندینگ را برمی‌گرداند. / Edit panes 1–4 independently under Shared imagery → About window. Reset restores each pane's landing source.</span>
     </label>
     {uploadError&&<p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">{uploadError}</p>}
     <div className="rounded-xl border bg-card p-4"><h3 className="mb-3 font-semibold">متن‌های صفحه / Homepage copy</h3><p className="mb-4 text-sm text-muted-foreground">مقدار زبان انتخاب‌شده را ویرایش کنید؛ حذف override متن مبنا را بازمی‌گرداند. / Edit the selected language; restore removes its override.</p>

@@ -5,6 +5,7 @@ import type { LandingContent, LandingLanguage } from "@shared/landing-content";
 import { landingLanguages, landingPackageIds, landingProductIds, defaultLandingContent, landingContentSchema } from "@shared/landing-content";
 import { defaultLandingPageSettings, landingTextGroups } from "@shared/landing-page-settings";
 import { defaultLandingLayout } from "@shared/landing-layout";
+import { landingAboutWindowPanes } from "@shared/landing-about-window";
 import { BASE_PRODUCTS, LOCALIZED_PRODUCTS, PACKAGES, type LandingProduct, type PackageId } from "@/pages/landing/catalog";
 import { readLocalLanding } from "@/pages/landing/local-editor";
 import assets from "@/pages/landing/landing-assets.json";
@@ -22,10 +23,10 @@ const languages: Array<{ id: LandingLanguage; name: string }> = [
   { id: "en", name: "English" }, { id: "fa", name: "فارسی" }, { id: "ar", name: "العربية" }, { id: "tr", name: "Türkçe" },
 ];
 const visualWords = {
-  en: { slide: "Slide", about: "About image", product: "Product image" },
-  fa: { slide: "اسلاید", about: "تصویر درباره ما", product: "تصویر محصول" },
-  ar: { slide: "الشريحة", about: "صورة من نحن", product: "صورة المنتج" },
-  tr: { slide: "Slayt", about: "Hakkımızda görseli", product: "Ürün görseli" },
+  en: { slide: "Slide", about: "About image", aboutWindow: "About window · Pane", product: "Product image" },
+  fa: { slide: "اسلاید", about: "تصویر درباره ما", aboutWindow: "پنجرهٔ درباره ما · قسمت", product: "تصویر محصول" },
+  ar: { slide: "الشريحة", about: "صورة من نحن", aboutWindow: "نافذة من نحن · القسم", product: "صورة المنتج" },
+  tr: { slide: "Slayt", about: "Hakkımızda görseli", aboutWindow: "Hakkımızda penceresi · Bölüm", product: "Ürün görseli" },
 } as const;
 const labels = {
   en: { eyebrow: "Momtazchem · Site content", title: "Landing page editor", intro: "Changes stay in draft until saved. Publishing updates the public homepage for every visitor, not just this browser.", dirty: "Unsaved draft", current: "Revision", upToDate: "up to date", reset: "Reset originals", publish: "Save & publish", publishing: "Publishing…", loadTitle: "Landing content could not be loaded", retry: "Retry", shared: "Shared imagery", sharedHint: "Upload prepares a draft; use Save & publish to apply it. Reset an image to its original asset at any time.", textLanguage: "Text language", replace: "Replace", published: "Published. These changes are now visible to every visitor.", uploadReady: "Image ready in draft. Save to publish it.", uploading: "Uploading image…", uploadFailed: "Image upload failed.", saveFailed: "Could not publish changes.", conflict: "Another editor has published a newer revision. Reload to review it before continuing.", reload: "Reload latest", reloadConfirm: "Discard this unsaved draft and load the latest published revision?", resetConfirm: "Reset every landing-page image and text override to the original site defaults? Save the reset to publish it.", resetDraft: "Original defaults restored in draft. Save to publish.", products: "Product-card copy", productsHint: "Edit the selected language. Unset fields continue using the site's original translated copy.", titleField: "Title", short: "Card description", long: "Full description", restore: "Restore source text", delete: "Delete", deleteConfirm: "Delete this card from the homepage?", addTitle: "Add an informational card", addHint: "The card is included in the same shared publishing workflow. Choose one or more packaging types.", packaging: "Packaging options", add: "Add card to draft", required: "A title and at least one packaging option are required.", added: "Card added to draft. Save to publish.", inDraft: "custom card(s) in this draft", specs: "Specifications (one per line)", fallback: "Please try again.", image: "Image", importDraft: "Import previous browser preview → draft", importConfirm: "Replace the current draft with the saved browser preview? Nothing will be published or deleted.", importNone: "No previous browser preview was found.", importDone: "Previous browser preview imported into this draft. Save to publish.", importFailed: "Previous preview could not be imported.", imported: "Importing previous preview…" },
@@ -112,6 +113,7 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
            ...current.page.partners.map((partner) => `partner-${partner.id}`),
             ...current.page.layout.rows.flatMap((row) => row.blocks.filter((block) => block.type === "image").map((block) => `layout-${block.id}`)),
            "about", "seo",
+           ...landingAboutWindowPanes.map(pane => pane.key),
          ]);
          const retainedImages = Object.fromEntries(Object.entries(current.images).filter(([slot]) => validImageKeys.has(slot)));
          const retainedEdits = Object.fromEntries(landingLanguages.map((locale) => {
@@ -219,9 +221,10 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
   if (query.isError || !draft) return <section className="m-5 rounded-xl border border-destructive/30 bg-destructive/5 p-6" role="alert"><h2 className="font-semibold">{copy.loadTitle}</h2><p className="my-2 text-sm text-muted-foreground">{copy.fallback}</p><Button onClick={() => void query.refetch()}>{copy.retry}</Button></section>;
   const visualLocale = interfaceLanguage in visualWords ? interfaceLanguage as keyof typeof visualWords : "en";
   const visual = visualWords[visualLocale];
-  const slots = [
+  const slots: Array<{ key: string; label: string; asset: number; fallbackKey?: string }> = [
     ...draft.page.slides.map((slide, index) => ({ key: `hero-${slide.id}`, label: `${visual.slide} ${index + 1}`, asset: ["0", "1", "2"].includes(slide.id) ? Number(slide.id) : -1 })),
     { key: "about", label: visual.about, asset: 3 },
+    ...landingAboutWindowPanes.map((pane, index) => ({ ...pane, label: `${visual.aboutWindow} ${index + 1}` })),
     ...BASE_PRODUCTS.map((product) => {
       const index = BASE_PRODUCTS.findIndex((item) => item.id === product.id);
       const name = LOCALIZED_PRODUCTS[visualLocale]?.[index]?.[0] ?? product.title;
@@ -231,6 +234,9 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
     ...draft.page.partners.map((partner) => ({ key: `partner-${partner.id}`, label: `شریک / Partner: ${partner.id}`, asset: -1 })),
     { key: "seo", label: "تصویر سئو / SEO image", asset: -1 },
   ];
+  const slotSource = (slot: typeof slots[number]) => draft.images[slot.key]
+    || (slot.fallbackKey ? draft.images[slot.fallbackKey] : undefined)
+    || (slot.asset >= 0 ? sourceAssets[slot.asset]?.url : undefined);
   return <div className="space-y-6 p-4 md:p-6" dir={interfaceLanguage === "fa" || interfaceLanguage === "ar" ? "rtl" : "ltr"}>
     <header className="flex flex-col justify-between gap-4 rounded-2xl border bg-card p-5 md:flex-row md:items-center">
       <div><p className="text-xs font-semibold uppercase tracking-[.18em] text-primary">{copy.eyebrow}</p><h2 className="mt-1 text-2xl font-semibold">{copy.title}</h2><p className="mt-1 max-w-2xl text-sm text-muted-foreground">{copy.intro}</p></div>
@@ -245,11 +251,11 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
      <fieldset disabled={save.isPending} className="contents">
      <section data-setting-group="images" className="rounded-xl border bg-card p-4">
        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-semibold">{copy.shared}</h3><p className="text-sm text-muted-foreground">{copy.sharedHint}</p></div><label className="text-sm font-medium">{copy.textLanguage} <select data-testid="landing-language" className="ml-2 rounded-md border bg-background px-3 py-2" value={language} onChange={(event) => setLanguage(event.target.value as LandingLanguage)}>{languages.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{slots.map((slot) => <article key={slot.key} className="overflow-hidden rounded-xl border bg-background">
-         {(draft.images[slot.key] || (slot.asset >= 0 ? sourceAssets[slot.asset]?.url : undefined)) ? <img className="h-40 w-full object-cover" src={draft.images[slot.key] || sourceAssets[slot.asset]?.url} alt={`${slot.label} · ${copy.image}`} /> : <div className="flex h-40 items-center justify-center bg-muted text-xs text-muted-foreground">تصویر هنوز بارگذاری نشده / No image uploaded</div>}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{slots.map((slot) => <article key={slot.key} data-image-slot={slot.key} className="overflow-hidden rounded-xl border bg-background">
+         {slotSource(slot) ? <img className="h-40 w-full object-cover" src={slotSource(slot)} alt={`${slot.label} · ${copy.image}`} /> : <div className="flex h-40 items-center justify-center bg-muted text-xs text-muted-foreground">تصویر هنوز بارگذاری نشده / No image uploaded</div>}
         <div className="flex items-center justify-between gap-2 p-3"><span className="truncate text-sm font-medium">{slot.label}</span><div className="flex gap-1">
            <label className="inline-flex cursor-pointer items-center rounded-md border px-2 py-1.5 text-xs hover:bg-muted"><ImagePlus className="mr-1 h-3.5 w-3.5" />{copy.replace}<input className="sr-only" type="file" accept="image/*" disabled={save.isPending} onChange={(event) => { void replaceImage(slot.key, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} /></label>
-           {draft.images[slot.key] && <Button size="sm" variant="ghost" disabled={save.isPending} aria-label={`${copy.reset} ${slot.label}`} onClick={() => setDraft({ ...draft, images: Object.fromEntries(Object.entries(draft.images).filter(([keyName]) => keyName !== slot.key)) })}>{copy.reset}</Button>}
+           {draft.images[slot.key] && <Button size="sm" variant="ghost" disabled={save.isPending} aria-label={`${copy.reset} ${slot.label}`} onClick={() => setDraft(current => current ? { ...current, images: Object.fromEntries(Object.entries(current.images).filter(([keyName]) => keyName !== slot.key)) } : current)}>{copy.reset}</Button>}
         </div></div></article>)}</div>
     </section>
       <LandingBlockBuilder
@@ -276,6 +282,7 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
           ...current.page.partners.map((partner) => `partner-${partner.id}`),
            ...current.page.layout.rows.flatMap((row) => row.blocks.filter((block) => block.type === "image").map((block) => `layout-${block.id}`)),
           "about",
+          ...landingAboutWindowPanes.map(pane => pane.key),
           "seo",
         ]);
         return validSlots.has(slot) ? { ...current, images: { ...current.images, [slot]: url } } : current;

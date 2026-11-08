@@ -83,3 +83,9 @@ even though the storefront rendered and its controls worked.
 **How to apply:** Poll DOM readiness with `waitForFunction`, then locate controls
 after navigation settles. Wait for actual page content, not just the shared header,
 before capturing screenshots.
+
+Do not assume a real mouse event requires a fine primary-pointer media query.
+
+**Why:** Headless Chromium reported `(hover: hover) and (pointer: fine)` as false while delivering genuine Puppeteer mouse events. Hybrid devices can likewise retain a coarse primary pointer with a mouse attached.
+
+**How to apply:** Gate mouse-specific effects by the actual pointer event type. Test real trusted pointer gestures and audio activation instead of using media-query matching as proof of mouse capability.

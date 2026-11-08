@@ -18,6 +18,22 @@ try {
     await page.setBypassServiceWorker(true);
     await page.setViewport({ width, height: 1000 });
     await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+    if (language === "en" && width === 1440) {
+      await page.evaluateOnNewDocument(() => {
+        const NativeAudio = window.AudioContext;
+        const probe = { contexts: [], starts: 0 };
+        window.__windowAudioProbe = probe;
+        window.AudioContext = class extends NativeAudio {
+          constructor(...args) { super(...args); probe.contexts.push(this); }
+          createOscillator() {
+            const oscillator = super.createOscillator();
+            const start = oscillator.start.bind(oscillator);
+            oscillator.start = (...args) => { probe.starts++; return start(...args); };
+            return oscillator;
+          }
+        };
+      });
+    }
     await page.evaluateOnNewDocument(language => {
       localStorage.setItem("language", language);
       localStorage.setItem("language-manually-selected", "true");
@@ -42,6 +58,8 @@ try {
         columns: grid.gridTemplateColumns.split(" ").length,
         rows: grid.gridTemplateRows.split(" ").length,
         sources: [...panes].map(node => node.getAttribute("src")),
+        backgrounds: [photoWindow, photoWindow.parentElement, photoWindow.querySelector(".mc-about-window__panes")].map(node => getComputedStyle(node).backgroundColor),
+        shadow: getComputedStyle(photoWindow).boxShadow,
       };
     });
     assert.equal(result.dir, ["fa","ar"].includes(language) ? "rtl" : "ltr");
@@ -55,6 +73,8 @@ try {
     assert.equal(new Set(result.sources).size, 4);
     assert.ok(result.sources.every(src => src.startsWith("/api/landing-") || src.startsWith("https://")));
     assert.ok(result.label.length > 30 && result.animations);
+    assert.ok(result.backgrounds.every(color => color === "rgba(0, 0, 0, 0)"), "No blue backdrop or frame");
+    assert.notEqual(result.shadow, "none");
     await page.waitForFunction(() => [...document.querySelectorAll(".mc-about-window__pane img")].every(img => img.complete && img.naturalWidth > 0));
     if (language === "fa" || language === "en") {
       await page.$eval("#about", node => node.scrollIntoView({ behavior: "instant", block: "start" }));
@@ -67,6 +87,36 @@ try {
     const before = await transform();
     await new Promise(resolve => setTimeout(resolve, 400));
     assert.notEqual(await transform(), before, "Window photos must actually move");
+    if (language === "en" && width === 1440) {
+      const hover = async index => {
+        const node = await page.$(`.mc-about-window__pane--${index}`);
+        const box = await node.boundingBox();
+        await page.mouse.move(box.x + box.width * .65, box.y + box.height * .55);
+        await new Promise(resolve => setTimeout(resolve, 260));
+      };
+      const starts = () => page.evaluate(() => window.__windowAudioProbe.starts);
+      await hover(1);
+      assert.equal(await starts(), 0, "Hover must not autoplay before a trusted gesture");
+      await page.click(".mc-about-copy h2");
+      await page.waitForFunction(() => window.__windowAudioProbe.contexts.some(context => context.state === "running"));
+      const baseline = await starts();
+      await hover(1); await hover(2);
+      assert.ok(await starts() >= baseline + 2, JSON.stringify({
+        message: "Actual Web Audio tick starts on each pane entry",
+        baseline, starts: await starts(), errors,
+        audio: await page.evaluate(() => ({ states: window.__windowAudioProbe.contexts.map(context => context.state), fine: matchMedia("(hover: hover) and (pointer: fine)").matches })),
+      }));
+      assert.notEqual(await page.$eval(".mc-about-window", node => node.style.getPropertyValue("--mc-window-rotate-y")), "");
+      await page.click('[data-testid="about-window-sound"]');
+      assert.equal(await page.$eval('[data-testid="about-window-sound"]', node => node.getAttribute("aria-pressed")), "false");
+      const muted = await starts();
+      await hover(1); await hover(3);
+      assert.equal(await starts(), muted, "Muted hover must not create ticks");
+      await page.click('[data-testid="about-window-sound"]');
+      await hover(2);
+      assert.ok(await starts() > muted, "Ticks resume after unmuting");
+      console.log("PASS depth/audio: transparent background, pointer tilt, real tick synthesis after gesture, mute and unmute.");
+    }
     await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
     await page.waitForFunction(() => !document.querySelector(".mc-about-window")?.classList.contains("is-in-view"));
     assert.equal(await page.$eval(".mc-about-window__pane img", node => getComputedStyle(node).animationPlayState), "paused");

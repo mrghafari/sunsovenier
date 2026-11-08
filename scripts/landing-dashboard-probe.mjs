@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { readFile, writeFile, unlink } from "node:fs/promises";
 import puppeteer from "puppeteer";
 
 const base = `https://${process.env.REPLIT_DEV_DOMAIN}`;
@@ -16,6 +17,12 @@ state.page.sections.process = true;
 state.page.form.fields.address = { visible: true, required: true };
 if (state.page.cards.drum220) state.page.cards.drum220.isActive = true;
 let saves = 0, submissions = [];
+const assets = JSON.parse(await readFile("client/src/pages/landing/landing-assets.json", "utf8"));
+const paneUploads = [7, 8, 9, 3].map(index => assets.images[index].url);
+const sourceImagesBefore = { hero: state.images["hero-0"], drum: state.images.drum220 };
+let uploadCount = 0;
+const fixturePath = "/tmp/landing-window-upload-fixture.png";
+await writeFile(fixturePath, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9l8AAAAASUVORK5CYII=", "base64"));
 const browser = await puppeteer.launch({
   executablePath: execFileSync("bash", ["-c", "command -v chromium || command -v chromium-browser"], { encoding: "utf8" }).trim(),
   headless: true, args: ["--no-sandbox"],
@@ -28,6 +35,11 @@ try {
   await page.setRequestInterception(true);
   page.on("request", request => {
     const url = new URL(request.url());
+    if (url.pathname === "/api/content-management/landing/images" && request.method() === "POST") {
+      return request.respond({ contentType: "application/json", body: JSON.stringify({
+        success: true, data: { url: paneUploads[uploadCount++] },
+      }) });
+    }
     if (url.pathname === "/api/company-information") return request.respond({
       contentType: "application/json", body: JSON.stringify({ success: true, data: {
         contactSettings: { landingPhone: "+964 123456789" },
@@ -89,6 +101,13 @@ try {
   await page.goto(base + "/__landing-dashboard-probe", { waitUntil: "networkidle0", timeout: 60000 });
   await page.waitForSelector('[data-testid="landing-language"]', { timeout: 60000 });
   await page.select('[data-testid="landing-language"]', "fa");
+  for (let index = 0; index < 4; index++) {
+    const slot = `about-window-${index + 1}`;
+    const upload = await page.$(`[data-image-slot="${slot}"] input[type=file]`);
+    assert.ok(upload, `Pane ${index + 1} must have its own upload control`);
+    await upload.uploadFile(fixturePath);
+    await page.waitForFunction((slot, src) => document.querySelector(`[data-image-slot="${slot}"] img`)?.getAttribute("src") === src, {}, slot, paneUploads[index]);
+  }
   await field("text-hero", "عنوان بنر", "عنوان مدیریت‌شده آزمایشی");
   await field("text-about", "عنوان درباره", "درباره مدیریت‌شده");
   await field("text-about", "تولید مواد شیمیایی", "تولید آزمایشی مدیریت‌شده");
@@ -112,6 +131,10 @@ try {
   await page.click('[data-testid="landing-save"]');
   await page.waitForNetworkIdle({ idleTime: 300 });
   assert.equal(saves, 1, "Settings must save successfully");
+  assert.equal(uploadCount, 4);
+  paneUploads.forEach((src, index) => assert.equal(state.images[`about-window-${index + 1}`], src));
+  assert.equal(state.images["hero-0"], sourceImagesBefore.hero);
+  assert.equal(state.images.drum220, sourceImagesBefore.drum);
   assert.equal(state.page.texts.fa.heroTitle, "عنوان مدیریت‌شده آزمایشی");
   assert.equal(state.page.aboutVisual, "image");
   assert.equal(state.page.texts.fa.aboutFactManufacturing, "تولید آزمایشی مدیریت‌شده");
@@ -124,6 +147,14 @@ try {
   await page.waitForSelector('[data-testid="landing-save"]');
   assert.equal(await page.$eval('[data-testid="landing-save"]', el => el.disabled), true, "Reloaded state is saved, not dirty");
   assert.equal(await page.$eval('[data-testid="landing-about-visual"]', el => el.value), "image");
+  assert.equal(await page.$eval('[data-image-slot="about-window-4"] img', el => el.getAttribute("src")), paneUploads[3]);
+  await page.click('[data-image-slot="about-window-2"] button');
+  await page.click('[data-testid="landing-save"]');
+  await page.waitForNetworkIdle({ idleTime: 300 });
+  assert.equal(saves, 2);
+  assert.equal(state.images["about-window-2"], undefined);
+  assert.equal(state.images["about-window-1"], paneUploads[0]);
+  assert.equal(state.images["about-window-4"], paneUploads[3]);
   const inboxText = await page.$eval('[aria-label="درخواست‌های صفحه اصلی / Landing inquiries"]', el => el.textContent);
   assert.ok(inboxText.includes("Synthetic"));
   await page.goto(base + "/", { waitUntil: "domcontentloaded", timeout: 60000 });
@@ -148,8 +179,14 @@ try {
   assert.equal(submissions.length, 1);
   assert.equal(submissions[0].address, "");
   assert.equal(submissions[0].productInterest, "ibc1000");
+  state.page.aboutVisual = "window";
+  await page.reload({ waitUntil: "networkidle0", timeout: 60000 });
+  await page.waitForFunction(() => document.querySelectorAll(".mc-about-window__pane img").length === 4);
+  const displayedPanes = await page.$$eval(".mc-about-window__pane img", nodes => nodes.map(node => node.getAttribute("src")));
+  assert.deepEqual(displayedPanes, [paneUploads[0], sourceImagesBefore.drum || assets.images[4].url, paneUploads[2], paneUploads[3]]);
+  console.log("PASS independent pane uploads, shared save/reload, reset, public rendering and source-image isolation. All uploads/saves intercepted.");
   await page.setViewport({ width: 390, height: 844 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Mobile layout fits");
   assert.deepEqual(errors, []);
   console.log("Dashboard-to-home checks passed: Persian copy, links, contact, stats, section visibility, card visibility, optional fields, shared-save reload and inquiry display. Form requests/API saves were browser fixtures; real auth was not bypassed and live content was not changed.");
-} finally { await browser.close(); }
+} finally { await unlink(fixturePath).catch(() => undefined); await browser.close(); }

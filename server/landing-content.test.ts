@@ -3,6 +3,7 @@ import {test} from "node:test";
 import {defaultLandingContent,landingContentSchema} from "../shared/landing-content";
 import {readLandingContent,saveLandingContent,LandingConflictError,type LandingDatabase} from "./landing-content-store";
 import manifest from "../client/src/pages/landing/landing-assets.json";
+import {landingAboutWindowPanes} from "../shared/landing-about-window";
 
 function database(initial?:unknown,knownImages:string[]=[]):LandingDatabase{
   let stored=initial===undefined?undefined:JSON.stringify(initial);
@@ -41,6 +42,25 @@ test("stale saves never overwrite newer content",async()=>{
   const saved=await saveLandingContent(initial,db);
   await assert.rejects(saveLandingContent(initial,db),LandingConflictError);
   assert.deepEqual(await readLandingContent(db),saved);
+});
+test("About window panes save independently and reset without changing source images",async()=>{
+  const db=database();
+  const input=defaultLandingContent();
+  input.images["hero-0"]=manifest.images[1].url;
+  input.images.drum220=manifest.images[4].url;
+  for(const [index,pane] of landingAboutWindowPanes.entries()){
+    input.images[pane.key]=manifest.images[index+5].url;
+  }
+  let saved=await saveLandingContent(input,db);
+  assert.deepEqual((await readLandingContent(db)).images,input.images);
+  delete saved.images["about-window-2"];
+  saved=await saveLandingContent(saved,db);
+  const read=await readLandingContent(db);
+  assert.equal(read.images["about-window-2"],undefined);
+  assert.equal(read.images["about-window-1"],input.images["about-window-1"]);
+  assert.equal(read.images["about-window-4"],input.images["about-window-4"]);
+  assert.equal(read.images["hero-0"],input.images["hero-0"]);
+  assert.equal(read.images.drum220,input.images.drum220);
 });
 test("only actual registered landing uploads may be assigned to public image slots",async()=>{
   const input=defaultLandingContent();
