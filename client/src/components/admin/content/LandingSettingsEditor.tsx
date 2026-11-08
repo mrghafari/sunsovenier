@@ -119,11 +119,11 @@ export default function LandingSettingsEditor({ page, language, onChange, conten
   return <section className="space-y-4" aria-label="تنظیمات صفحه اصلی / Homepage settings">
     <label className="block space-y-2 rounded-xl border bg-card p-4 text-sm">
       <span className="font-medium">گرافیک بخش درباره ما / About visual</span>
-      <select data-testid="landing-about-visual" className="block w-full rounded-md border bg-background p-2" disabled={locked} value={page.aboutVisual ?? "illustration"} onChange={event => patch({ aboutVisual: event.target.value as "illustration" | "image" })}>
-        <option value="illustration">تصویر متحرک شیمی و بسته‌بندی / Animated chemical illustration</option>
+      <select data-testid="landing-about-visual" className="block w-full rounded-md border bg-background p-2" disabled={locked} value={page.aboutVisual === "image" ? "image" : "window"} onChange={event => patch({ aboutVisual: event.target.value as "window" | "image" })}>
+        <option value="window">پنجرهٔ متحرک چهارقسمتی / Animated four-pane photo window</option>
         <option value="image">عکس قابل ویرایش / Editable photo</option>
       </select>
-      <span className="block text-xs text-muted-foreground">در حالت عکس، تصویر را از بخش تصاویر همین صفحه تغییر دهید. / In photo mode, use this page's image controls.</span>
+      <span className="block text-xs text-muted-foreground">پنجره از عکس بنر اول، بشکه، IBC و مخزن همین لندینگ استفاده می‌کند. در حالت عکس تکی، تصویر درباره ما را تغییر دهید. / The window uses the first hero, drum, IBC and tank images. Single-photo mode uses the About image.</span>
     </label>
     {uploadError&&<p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">{uploadError}</p>}
     <div className="rounded-xl border bg-card p-4"><h3 className="mb-3 font-semibold">متن‌های صفحه / Homepage copy</h3><p className="mb-4 text-sm text-muted-foreground">مقدار زبان انتخاب‌شده را ویرایش کنید؛ حذف override متن مبنا را بازمی‌گرداند. / Edit the selected language; restore removes its override.</p>

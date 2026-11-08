@@ -130,7 +130,7 @@ try {
   await page.waitForFunction(() => document.querySelector(".mc-hero h1")?.textContent === "عنوان مدیریت‌شده آزمایشی", { timeout: 90000 });
   assert.equal(await page.$(".mc-process"), null);
   assert.ok(await page.$(".mc-about-image img"), "Saved photo mode preserves the existing image controls");
-  assert.equal(await page.$(".mc-chemical-art"), null);
+  assert.equal(await page.$(".mc-about-window"), null);
   assert.ok(await page.$eval(".mc-about-facts", el => el.textContent.includes("تولید آزمایشی مدیریت‌شده")));
   assert.equal(await page.$("#mc-address"), null);
   assert.equal(await page.$eval(".mc-phone", el => el.textContent), "+964 123456789");

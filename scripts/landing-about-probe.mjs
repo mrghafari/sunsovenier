@@ -23,43 +23,55 @@ try {
       localStorage.setItem("language-manually-selected", "true");
     }, language);
     await page.goto(base + "/", { waitUntil: "networkidle0", timeout: 60000 });
-    await page.waitForFunction(() => document.querySelector(".mc-chemical-art"));
+    await page.waitForFunction(() => document.querySelector(".mc-about-window"));
     await page.$eval("#about", node => node.scrollIntoView({ behavior: "instant", block: "start" }));
     const result = await page.evaluate(() => {
-      const svg = document.querySelector(".mc-chemical-art");
+      const photoWindow = document.querySelector(".mc-about-window");
+      const bounds = photoWindow.getBoundingClientRect();
+      const panes = photoWindow.querySelectorAll(".mc-about-window__pane img");
+      const grid = getComputedStyle(photoWindow.querySelector(".mc-about-window__panes"));
       return {
-        label: svg.getAttribute("aria-label"),
+        label: photoWindow.getAttribute("aria-label"),
         dir: document.querySelector(".mc-landing").dir,
         facts: document.querySelectorAll(".mc-about-facts li").length,
         photo: Boolean(document.querySelector(".mc-about-image img")),
         overflow: document.documentElement.scrollWidth > innerWidth,
-        bubbleCount: svg.querySelectorAll(".mc-chemical-art__bubble").length,
-        animations: [...svg.querySelectorAll("[class]")].every(node => getComputedStyle(node).animationName === "none"),
-        clip: Boolean(svg.querySelector("clipPath")),
+        paneCount: panes.length,
+        animations: [...panes].every(node => getComputedStyle(node).animationName === "none"),
+        aspectRatio: bounds.width / bounds.height,
+        columns: grid.gridTemplateColumns.split(" ").length,
+        rows: grid.gridTemplateRows.split(" ").length,
+        sources: [...panes].map(node => node.getAttribute("src")),
       };
     });
     assert.equal(result.dir, ["fa","ar"].includes(language) ? "rtl" : "ltr");
     assert.equal(result.facts, 3);
     assert.equal(result.photo, false);
     assert.equal(result.overflow, false);
-    assert.equal(result.bubbleCount, 4);
-    assert.ok(result.label.length > 30 && result.clip && result.animations);
+    assert.equal(result.paneCount, 4);
+    assert.equal(result.columns, 2);
+    assert.equal(result.rows, 2);
+    assert.ok(Math.abs(result.aspectRatio - 560 / 440) < .01, "Window must keep the replaced illustration's overall proportions");
+    assert.equal(new Set(result.sources).size, 4);
+    assert.ok(result.sources.every(src => src.startsWith("/api/landing-") || src.startsWith("https://")));
+    assert.ok(result.label.length > 30 && result.animations);
+    await page.waitForFunction(() => [...document.querySelectorAll(".mc-about-window__pane img")].every(img => img.complete && img.naturalWidth > 0));
     if (language === "fa" || language === "en") {
       await page.$eval("#about", node => node.scrollIntoView({ behavior: "instant", block: "start" }));
       await page.screenshot({ path: `${output}/${language}-${width}.jpg`, type: "jpeg", quality: 75 });
     }
     await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
-    await page.$eval(".mc-chemical-art", node => node.scrollIntoView({ behavior: "instant", block: "center" }));
-    await page.waitForFunction(() => document.querySelector(".mc-chemical-art")?.classList.contains("is-in-view"));
-    const transform = () => page.$eval(".mc-chemical-art__orbit", node => getComputedStyle(node).transform);
+    await page.$eval(".mc-about-window", node => node.scrollIntoView({ behavior: "instant", block: "center" }));
+    await page.waitForFunction(() => document.querySelector(".mc-about-window")?.classList.contains("is-in-view"));
+    const transform = () => page.$eval(".mc-about-window__pane--2 img", node => getComputedStyle(node).transform);
     const before = await transform();
     await new Promise(resolve => setTimeout(resolve, 400));
-    assert.notEqual(await transform(), before, "Supplied molecule orbit must actually move");
+    assert.notEqual(await transform(), before, "Window photos must actually move");
     await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
-    await page.waitForFunction(() => !document.querySelector(".mc-chemical-art")?.classList.contains("is-in-view"));
-    assert.equal(await page.$eval(".mc-chemical-art__orbit", node => getComputedStyle(node).animationPlayState), "paused");
+    await page.waitForFunction(() => !document.querySelector(".mc-about-window")?.classList.contains("is-in-view"));
+    assert.equal(await page.$eval(".mc-about-window__pane img", node => getComputedStyle(node).animationPlayState), "paused");
     await page.close();
-    console.log(`PASS About ${language} ${width}px: uploaded artwork, facts, layout, motion, offscreen pausing and reduced motion.`);
+    console.log(`PASS About ${language} ${width}px: four real photos, 2×2 window, original size, motion, offscreen pausing and reduced motion.`);
   }
   assert.deepEqual(errors, []);
 } finally {

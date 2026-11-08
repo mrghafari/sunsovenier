@@ -10,7 +10,7 @@ import { defaultLandingPageSettings, localizedSetting, type LandingLink } from "
 import { effectiveLayoutSections } from "@shared/landing-layout";
 import LandingLayoutRenderer, { LayoutElements } from "./landing/LandingLayoutRenderer";
 import { useLandingMotion } from "./landing/useLandingMotion";
-import AboutChemicalIllustration from "./landing/AboutChemicalIllustration";
+import AboutPhotoWindow from "./landing/AboutPhotoWindow";
 import { aboutContent } from "./landing/about-content";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
@@ -449,7 +449,13 @@ export default function Home() {
         {(sections.about || sections.stats) && <section data-home-section="about" className="mc-about" id="about"><div className="mc-container">
           <div className="mc-about-grid"><LayoutElements order={page.layout.elements.about}>
             {sections.about&&<div data-home-part="image" className={`${page.aboutVisual === "image" ? "mc-about-image" : "mc-about-art"} mc-reveal`}>
-              {page.aboutVisual === "image" ? <img src={imageFor("about", 3)} alt={c.aboutImageAlt} loading="lazy" /> : <AboutChemicalIllustration label={detailText("aboutImageAlt", aboutContent[locale].imageAlt)} />}
+              {page.aboutVisual === "image" ? <img src={imageFor("about", 3)} alt={c.aboutImageAlt} loading="lazy" /> : <AboutPhotoWindow label={detailText("aboutImageAlt", aboutContent[locale].imageAlt)} images={[
+                { src: imageFor("hero-0", 0), alt: c.eyebrow },
+                ...BASE_PRODUCTS.slice(0, 3).map((product, index) => ({
+                  src: imageFor(product.id, product.asset),
+                  alt: landingContent?.edits?.[locale]?.[product.id]?.title ?? localizedProducts?.[index]?.[0] ?? product.title,
+                })),
+              ]} />}
             </div>}
             {sections.about&&<div data-home-part="copy" className="mc-about-copy mc-reveal"><span className="mc-eyebrow mc-eyebrow-dark">{c.about}</span><h2>{c.aboutTitle}</h2><p>{c.aboutDesc}</p>
               <ul className="mc-about-facts">{(["aboutFactManufacturing", "aboutFactPackaging", "aboutFactSafety"] as const).map((key, index) => <li key={key}>{detailText(key, aboutContent[locale].facts[index])}</li>)}</ul>
