@@ -9,6 +9,8 @@
   --mc-ink: #19222e;
   --mc-muted: #64707d;
   --mc-border: #e1e6ed;
+  --mc-reveal-duration: .78s;
+  --mc-hero-enter-duration: .76s;
   color: var(--mc-ink); background: #f7f8fa;
   font: 16px/1.65 "Plus Jakarta Sans", "Vazirmatn", sans-serif;
   overflow: clip;
@@ -149,16 +151,14 @@
 .mc-footer-bottom > span:last-child { display: flex; align-items: center; gap: 8px; }
 .mc-footer-bottom i { display: inline-block; width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,.45); }
 .mc-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-.mc-reveal { opacity: 1; translate: 0 0; scale: 1; transition: opacity .78s cubic-bezier(.16,1,.3,1),translate .78s cubic-bezier(.16,1,.3,1),scale .78s cubic-bezier(.16,1,.3,1); }
-.mc-landing.mc-motion-ready .mc-reveal:not(.is-visible):not(:focus-within) { opacity: 0; translate: 0 60px; scale: .975; }
-.mc-landing.mc-motion-ready .mc-reveal[data-reveal-exit="above"]:not(.is-visible):not(:focus-within) { translate: 0 -60px; }
-.mc-landing .mc-reveal:focus-within { opacity: 1; translate: 0 0; scale: 1; transition: none; }
+.mc-reveal { opacity: var(--mc-reveal-opacity,1); translate: 0 var(--mc-reveal-rise,0px); scale: var(--mc-reveal-scale,1); }
+.mc-landing.mc-motion-ready .mc-reveal:focus-within { --mc-reveal-opacity: 1; --mc-reveal-rise: 0px; --mc-reveal-scale: 1; --mc-reveal-duration: 0s; }
 .mc-delay-1 { transition-delay: .1s; }.mc-delay-2 { transition-delay: .2s; }.mc-delay-3 { transition-delay: .3s; }
 .mc-hero-copy.is-visible > .mc-eyebrow,
 .mc-hero-copy.is-visible > h1,
 .mc-hero-copy.is-visible > p,
 .mc-hero-copy.is-visible > .mc-hero-buttons,
-.mc-hero-copy.is-visible > .mc-slide-dots { animation: mc-hero-enter .76s cubic-bezier(.18,.82,.25,1) both; }
+.mc-hero-copy.is-visible > .mc-slide-dots { animation: mc-hero-enter var(--mc-hero-enter-duration) cubic-bezier(.18,.82,.25,1) both; }
 .mc-hero-copy.is-visible > .mc-eyebrow { animation-delay: .06s; }
 .mc-hero-copy.is-visible > h1 { animation-delay: .16s; }
 .mc-hero-copy.is-visible > p { animation-delay: .27s; }
@@ -231,6 +231,14 @@
   .mc-services-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 @media (max-width: 767px) {
+  .mc-landing { --mc-reveal-duration: 2.34s; --mc-hero-enter-duration: 2.28s; }
+  .mc-landing.mc-motion-ready .mc-reveal { transition: opacity var(--mc-reveal-duration) ease-in-out,translate var(--mc-reveal-duration) ease-in-out,scale var(--mc-reveal-duration) ease-in-out; }
+  .mc-landing.mc-motion-ready .mc-service-card.mc-reveal { transition: opacity var(--mc-reveal-duration) ease-in-out,translate var(--mc-reveal-duration) ease-in-out,scale var(--mc-reveal-duration) ease-in-out,transform .3s ease,border-color .3s ease,box-shadow .3s ease; }
+  .mc-hero-copy.is-visible > .mc-eyebrow,
+  .mc-hero-copy.is-visible > h1,
+  .mc-hero-copy.is-visible > p,
+  .mc-hero-copy.is-visible > .mc-hero-buttons,
+  .mc-hero-copy.is-visible > .mc-slide-dots { animation-timing-function: ease-in-out; }
   .mc-container { width: min(100% - 36px,620px); }
   .mc-logo { font-size: 17px; }
   .mc-nav-actions { gap: 10px; }
@@ -246,8 +254,7 @@
   .mc-hero { min-height: 0; padding: 62px 0 50px; }
   .mc-hero-slider { transform: none; will-change: auto; }
   .mc-hero-copy,.mc-hero .mc-estimate-card { transform: none; will-change: auto; }
-  .mc-landing.mc-motion-ready .mc-reveal:not(.is-visible):not(:focus-within) { translate: 0 20px; scale: .99; }
-  .mc-landing.mc-motion-ready .mc-reveal[data-reveal-exit="above"]:not(.is-visible):not(:focus-within) { translate: 0 -20px; }
+  .mc-landing.mc-motion-ready .mc-reveal:not(.is-visible):not(:focus-within) { --mc-reveal-opacity: .42; --mc-reveal-rise: 20px; --mc-reveal-scale: .99; }
   .mc-hero-overlay::after { display: none; }
   .mc-hero-grid,.mc-about-grid,.mc-modal-grid { grid-template-columns: 1fr; }
   .mc-hero-grid { gap: 27px; }
@@ -303,10 +310,5 @@
   .mc-landing .mc-reveal { opacity: 1 !important; translate: none !important; scale: 1 !important; }
   .mc-hero-slider { transform: none !important; }
   .mc-hero-copy,.mc-hero .mc-estimate-card { transform: none !important; will-change: auto !important; }
-  .mc-hero-overlay::after { display: none; }
-}
-@media (pointer: coarse) {
-  .mc-hero-slider { transform: none; will-change: auto; }
-  .mc-hero-copy,.mc-hero .mc-estimate-card { transform: none; will-change: auto; }
   .mc-hero-overlay::after { display: none; }
 }

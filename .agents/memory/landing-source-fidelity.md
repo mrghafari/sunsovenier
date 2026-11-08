@@ -45,6 +45,12 @@ Verify motion by meaningful positional change during actual scrolling, including
 
 **How to apply:** Check visible foreground/background displacement separately, section entry and re-entry, and reduced-motion behavior. A passing animation-presence check alone does not establish fidelity to the supplied video.
 
+Mobile card and text appearances should take three times the original duration; this request does not refer to changing the banner image.
+
+**Why:** The user requested «این زمان را سه برابر کن» and clarified that they meant «ظاهرشدن کارت‌ها و متن‌ها».
+
+**How to apply:** Preserve the slower mobile reveal pacing and start it when content enters view, rather than consuming its fade time below the viewport. Keep slideshow timing separate.
+
 Use the company's real logo beside the brand name, not the reference's flask icon.
 
 **Why:** The user explicitly said: «از لوگوی شرکت کنار اسم برند استفاده کن».

@@ -48,6 +48,12 @@ request. A fresh navigation isolates the portal lifecycle.
 to a new browser-only fixture between cases instead of mutating global body
 styles or dispatching synthetic clicks.
 
+Use fresh browser pages for independent desktop, touch-desktop and mobile motion cases.
+
+**Why:** Reusing a page while changing touch/viewport emulation intermittently stalled subsequent navigation, while isolated cases rendered correctly. The stalled probe did not establish an application failure.
+
+**How to apply:** Configure emulation and request interception before navigation in each case. Check mobile opacity over elapsed time as well as its declared CSS duration.
+
 Puppeteer's installed package does not imply its expected browser is cached.
 
 **Why:** Default launch failed because the requested Chrome build was absent even
