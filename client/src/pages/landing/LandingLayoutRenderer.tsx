@@ -19,7 +19,7 @@ function CustomBlock({ block, locale, images }: { block: LandingLayoutBlock; loc
   const body = localizedSetting(block.body, locale);
   const image = <img src={images[`layout-${block.id}`]} alt={title} loading="lazy" />;
   const text = <>{title && <h2>{title}</h2>}{body && <p>{body}</p>}</>;
-  return <div className={`mc-layout-custom mc-layout-tone-${block.tone} mc-layout-space-${block.spacing}`}
+  return <div className={`mc-layout-custom mc-reveal mc-layout-tone-${block.tone} mc-layout-space-${block.spacing}`}
     data-layout-block={block.id} data-layout-type={block.type}
     style={{ textAlign: block.alignment }}>
     {block.type === "spacer" ? <div className={`mc-layout-spacer mc-layout-space-${block.spacing}`} aria-hidden="true" />

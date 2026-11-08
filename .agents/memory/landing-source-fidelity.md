@@ -33,6 +33,12 @@ The homepage must allow modular, block-based drag-and-drop editing: the administ
 
 **How to apply:** Preserve the supplied design as the default, not a restriction against administrator-authored layouts. Keep layout editing in Content Management and publish it through the same authorized shared save as homepage content.
 
+The supplied dark/orange landing video is a motion reference only, not a replacement for Momtazchem's content or visual identity.
+
+**Why:** The user said «منظورم حالت انیمیشن است نه محتوایی» and approved applying that animation style while preserving the existing landing page.
+
+**How to apply:** Adapt staged entrances, scroll reveals, restrained depth and light effects to the existing blue/navy content. Do not copy the video's orange palette, dashboard imagery or text.
+
 Use the company's real logo beside the brand name, not the reference's flask icon.
 
 **Why:** The user explicitly said: «از لوگوی شرکت کنار اسم برند استفاده کن».

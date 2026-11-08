@@ -9,6 +9,7 @@ import type { LandingContent } from "@shared/landing-content";
 import { defaultLandingPageSettings, localizedSetting, type LandingLink } from "@shared/landing-page-settings";
 import { effectiveLayoutSections } from "@shared/landing-layout";
 import LandingLayoutRenderer, { LayoutElements } from "./landing/LandingLayoutRenderer";
+import { useLandingMotion } from "./landing/useLandingMotion";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import type { ShopCategory, ShopProduct } from "@shared/shop-schema";
@@ -140,6 +141,7 @@ export default function Home() {
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,
   });
+  useLandingMotion(landingContent?.revision);
   const page = landingContent?.page ?? pageDefaults;
   const { data: companyContact } = useQuery<{ data?: { contactSettings?: { landingPhone?: string } | null } | null }>({
     queryKey: ["/api/company-information"],
@@ -291,20 +293,6 @@ export default function Home() {
     };
   }, [ensureHeroLoaded, page.autoplay, page.slideInterval]);
   useEffect(() => { setSlide(0); }, [page.slides]);
-
-  useEffect(() => {
-    const nodes = document.querySelectorAll<HTMLElement>(".mc-landing .mc-reveal");
-    if (!("IntersectionObserver" in window) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      nodes.forEach((node) => node.classList.add("is-visible"));
-      return;
-    }
-    document.documentElement.classList.add("mc-reveal-ready");
-    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
-      if (entry.isIntersecting) { entry.target.classList.add("is-visible"); observer.unobserve(entry.target); }
-    }), { threshold: 0.1, rootMargin: "0px 0px -35px 0px" });
-    nodes.forEach((node) => observer.observe(node));
-    return () => { observer.disconnect(); document.documentElement.classList.remove("mc-reveal-ready"); };
-  }, [landingContent?.revision]);
 
   useEffect(() => {
     if (activeProductId && modalRef.current && !modalRef.current.open) modalRef.current.showModal();
