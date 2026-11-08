@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v9-20261003';
+const CACHE_VERSION = 'v10-20261108';
 const STATIC_CACHE = `momtazchem-static-${CACHE_VERSION}`;
 const API_CACHE = `momtazchem-api-${CACHE_VERSION}`;
 
@@ -96,21 +96,31 @@ self.addEventListener('fetch', (event) => {
 
 async function networkFirstWithCache(request, cacheName, timeout) {
   const cache = await caches.open(cacheName);
+  let timer;
+  // A slow connection is not a failed connection. The timeout may select an
+  // existing offline copy, but must never abort an uncached application bundle.
+  const network = fetch(request).then((response) => {
+    if (response.ok) {
+      void cache.put(request, response.clone()).catch((error) => {
+        console.warn('[SW] Could not cache response:', error);
+      });
+    }
+    return response;
+  });
   try {
     const networkResponse = await Promise.race([
-      fetch(request),
+      network,
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), timeout)
+        { timer = setTimeout(() => reject(new Error('timeout')), timeout); }
       ),
     ]);
-    if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone());
-    }
     return networkResponse;
   } catch {
     const cached = await cache.match(request);
     if (cached) return cached;
-    throw new Error('Network failed and no cache available');
+    return await network;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
