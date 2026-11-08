@@ -44,9 +44,10 @@
 .mc-hero::after { position:absolute; content:""; z-index:1; width:min(75vw,1000px); height:min(37vw,500px); left:50%; bottom:-20%; transform:translateX(-50%); border:1px solid rgba(110,163,255,.38); border-bottom:0; border-radius:1000px 1000px 0 0; box-shadow:0 -10px 90px rgba(26,86,219,.14),inset 0 18px 70px rgba(110,163,255,.09); background:linear-gradient(180deg,rgba(26,86,219,.12),rgba(26,86,219,0) 70%); pointer-events:none; }
 .mc-hero-slider, .mc-hero-slide, .mc-hero-overlay { position: absolute; inset: 0; }
 .mc-hero-slider { z-index: 0; transform: translate3d(0,var(--mc-bg-offset,0px),0) scale(1.08); transform-origin: center; }
-.mc-hero-slide { background-size: cover; background-position: center; opacity: 0; transition: opacity 1.2s ease; filter:saturate(.7); }
-.mc-hero-slide.is-active { opacity: .34; }
-.mc-hero-overlay { z-index: 1; background:linear-gradient(90deg,rgba(17,25,35,.94),rgba(17,25,35,.76) 48%,rgba(17,25,35,.61)),linear-gradient(0deg,#111923 0%,transparent 46%,rgba(17,25,35,.3)); }
+.mc-hero-slide { background-size: cover; background-position: center; opacity: 0; transition: opacity 1.2s ease; filter:saturate(.95); }
+.mc-hero-slide.is-active { opacity: 1; }
+.mc-hero-overlay { z-index: 1; background:linear-gradient(var(--mc-hero-shade-direction,90deg),rgba(17,25,35,.65),rgba(17,25,35,.36) 48%,rgba(17,25,35,.16)),linear-gradient(0deg,#111923 0%,transparent 38%,rgba(17,25,35,.1)); }
+.mc-landing[dir="rtl"] .mc-hero-overlay { --mc-hero-shade-direction: 270deg; }
 .mc-hero-overlay::after { position: absolute; inset-block: 0; left: -42%; width: 34%; content: ""; pointer-events: none; opacity: 0; background: linear-gradient(100deg,transparent,rgba(110,163,255,.1),rgba(110,163,255,.17),transparent); transform: skewX(-18deg); }
 .mc-hero-grid { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0,1.1fr) minmax(350px,.7fr); gap: clamp(44px,8vw,120px); align-items: center; }
 .mc-hero-copy { padding-block: 15px; transform: translate3d(0,var(--mc-copy-offset,0px),0); }
@@ -54,7 +55,7 @@
 .mc-eyebrow { display: inline-flex; align-items:center; gap:10px; margin-bottom: 18px; color: var(--mc-blue-light); font-size: 11px; line-height: 1.5; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }
 .mc-eyebrow::before { content:""; width:25px; height:1px; background:linear-gradient(90deg,#1a56db,#6ea3ff); }
 .mc-hero-copy h1 { max-width: 760px; margin: 0 0 23px; font: 800 clamp(46px,6.6vw,88px)/.99 "Manrope","Vazirmatn",sans-serif; letter-spacing: -.075em; }
-.mc-hero-copy > p { max-width: 590px; margin: 0 0 32px; color: rgba(255,255,255,.67); font-size: clamp(15px,1.35vw,18px); line-height:1.8; }
+.mc-hero-copy > p { max-width: 590px; margin: 0 0 32px; color: rgba(255,255,255,.9); font-size: clamp(15px,1.35vw,18px); line-height:1.8; text-shadow:0 2px 8px rgba(0,0,0,.65); }
 .mc-hero-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
 .mc-button { display: inline-flex; justify-content: center; align-items: center; gap: 10px; min-height: 51px; padding: 14px 24px; border: 1px solid transparent; border-radius: 999px; font: inherit; font-size: 12px; line-height: 1.3; font-weight: 800; letter-spacing:.035em; cursor: pointer; transition: background-color .2s ease,border-color .2s ease,color .2s ease,transform .2s ease,box-shadow .2s ease; }
 .mc-button:hover { transform: translateY(-2px); }
@@ -135,6 +136,15 @@
 .mc-service-image::after { position:absolute; content:""; inset:45% 0 0; background:linear-gradient(0deg,rgba(21,21,23,.45),transparent); pointer-events:none; }
 .mc-service-image img { width: 100%; height: 100%; object-fit: cover; filter:saturate(.76) contrast(1.04); transition: transform .65s ease; }
 .mc-service-card:hover .mc-service-image img { transform: scale(1.055); }
+.mc-landing.mc-motion-ready .mc-service-card { --mc-reveal-progress: 0; --mc-image-reveal-duration: .18s; }
+.mc-landing.mc-motion-ready .mc-service-card.is-visible,
+.mc-landing.mc-motion-ready .mc-service-card:focus-within { --mc-reveal-progress: 1; }
+.mc-landing.mc-motion-ready .mc-service-card:focus-within { --mc-image-reveal-duration: 0s; }
+.mc-landing.mc-motion-ready .mc-service-card::before { position:absolute; content:""; inset:0; z-index:2; pointer-events:none; border-radius:inherit; background:linear-gradient(135deg,#08111e,rgba(17,25,35,.85)); opacity:calc(1 - var(--mc-reveal-progress,1)); transition:opacity var(--mc-image-reveal-duration) ease-out; }
+.mc-landing.mc-motion-ready .mc-service-image img { filter:brightness(calc(.55 + var(--mc-reveal-progress,1) * .45)) saturate(.76) contrast(1.04); transition:transform .65s ease,filter var(--mc-image-reveal-duration) ease-out; }
+@media (max-width:767px) {
+  .mc-landing.mc-motion-ready .mc-service-card { --mc-image-reveal-duration: var(--mc-reveal-duration); }
+}
 .mc-service-body { display: flex; min-height: 205px; flex-direction: column; align-items: flex-start; padding: 23px 23px 25px; }
 .mc-service-body h3 { margin: 0 0 10px; color: #fff; font:700 18px/1.35 "Manrope","Vazirmatn",sans-serif; letter-spacing:-.025em; }
 .mc-service-body p { flex: 1; margin: 0 0 19px; color: rgba(255,255,255,.58); font-size: 12px; line-height: 1.8; }
@@ -360,7 +370,6 @@
 .mc-phone:hover { border-color:rgba(110,163,255,.55);background:rgba(26,86,219,.1); }
 .mc-hero::before { background:radial-gradient(ellipse at 50% 48%,rgba(110,163,255,.28),rgba(26,86,219,.15) 27%,rgba(26,86,219,.055) 48%,transparent 69%); }
 .mc-hero::after { border-color:rgba(110,163,255,.38);box-shadow:0 -10px 90px rgba(26,86,219,.14),inset 0 18px 70px rgba(110,163,255,.09);background:linear-gradient(180deg,rgba(26,86,219,.12),rgba(26,86,219,0) 70%); }
-.mc-hero-overlay { background:linear-gradient(90deg,rgba(17,25,35,.94),rgba(17,25,35,.76) 48%,rgba(17,25,35,.61)),linear-gradient(0deg,#111923 0%,transparent 46%,rgba(17,25,35,.3)); }
 .mc-hero-overlay::after { background:linear-gradient(100deg,transparent,rgba(110,163,255,.1),rgba(110,163,255,.17),transparent); }
 .mc-button-gold,.mc-submit,.mc-manager-bar button,.mc-manager-add,.mc-manager-actions > button { background:linear-gradient(110deg,#1a56db,#1648b8);box-shadow:0 9px 28px rgba(26,86,219,.2); }
 .mc-button-gold:hover,.mc-submit:hover { background:linear-gradient(110deg,#2b68ec,#1a56db);box-shadow:0 12px 34px rgba(26,86,219,.32); }

@@ -5,7 +5,9 @@ description: User's preservation requirement for the supplied landing-page desig
 
 Preserve the uploaded landing page's graphics and content rather than redesigning or removing them to reduce size. The user said: «چیزی از دست نره همین گرافیک ها باشه و اپتیمایز کن که سبک بشه بدون افت کیفیت».
 
-**Why:** The user explicitly requested the supplied design and no quality loss.
+Keep the homepage hero background photo clearly visible, not obscured by dense dark overlays.
+
+**Why:** The user explicitly requested the supplied design and no quality loss, and later reported that the hero photo was too dark and barely visible.
 
 **How to apply:** Prefer externalized, cached media, deferred loading, and pixel-verified lossless optimization. Do not replace the supplied artwork or use lossy recompression without asking.
 
@@ -50,6 +52,12 @@ Verify motion by meaningful positional change during actual scrolling, including
 **Why:** The user reported the animation had not been done even though the new code loaded; the initial implementation moved foreground layers only a few pixels and its short entrance finished before they noticed it.
 
 **How to apply:** Check visible foreground/background displacement separately, section entry and re-entry, and reduced-motion behavior. A passing animation-presence check alone does not establish fidelity to the supplied video.
+
+Packaging-section photos and cards should gradually brighten from dark to normal as scrolling brings them into view.
+
+**Why:** The user requested a graphical dark-to-normal appearance for «Full-Scale Chemical Packaging» during scrolling.
+
+**How to apply:** Preserve the progressive reveal rather than showing every card at full brightness immediately; keep the normal final colors and respect reduced-motion preferences.
 
 Mobile card and text appearances should take three times the original duration; this request does not refer to changing the banner image.
 
