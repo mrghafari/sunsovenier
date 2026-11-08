@@ -91,6 +91,8 @@ try {
   await page.select('[data-testid="landing-language"]', "fa");
   await field("text-hero", "عنوان بنر", "عنوان مدیریت‌شده آزمایشی");
   await field("text-about", "عنوان درباره", "درباره مدیریت‌شده");
+  await field("text-about", "تولید مواد شیمیایی", "تولید آزمایشی مدیریت‌شده");
+  await page.select('[data-testid="landing-about-visual"]', "image");
   await field("text-footer", "حق نشر", "حقوق آزمایشی ممتاز");
   await open("sections");
   await page.click('[data-testid="landing-section-process"]');
@@ -111,6 +113,8 @@ try {
   await page.waitForNetworkIdle({ idleTime: 300 });
   assert.equal(saves, 1, "Settings must save successfully");
   assert.equal(state.page.texts.fa.heroTitle, "عنوان مدیریت‌شده آزمایشی");
+  assert.equal(state.page.aboutVisual, "image");
+  assert.equal(state.page.texts.fa.aboutFactManufacturing, "تولید آزمایشی مدیریت‌شده");
   assert.equal(state.page.sections.process, false);
   assert.equal(state.page.form.fields.address.visible, false);
   assert.equal(state.page.form.fields.address.required, false);
@@ -119,11 +123,15 @@ try {
   await page.reload({ waitUntil: "networkidle0", timeout: 60000 });
   await page.waitForSelector('[data-testid="landing-save"]');
   assert.equal(await page.$eval('[data-testid="landing-save"]', el => el.disabled), true, "Reloaded state is saved, not dirty");
+  assert.equal(await page.$eval('[data-testid="landing-about-visual"]', el => el.value), "image");
   const inboxText = await page.$eval('[aria-label="درخواست‌های صفحه اصلی / Landing inquiries"]', el => el.textContent);
   assert.ok(inboxText.includes("Synthetic"));
   await page.goto(base + "/", { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.waitForFunction(() => document.querySelector(".mc-hero h1")?.textContent === "عنوان مدیریت‌شده آزمایشی", { timeout: 90000 });
   assert.equal(await page.$(".mc-process"), null);
+  assert.ok(await page.$(".mc-about-image img"), "Saved photo mode preserves the existing image controls");
+  assert.equal(await page.$(".mc-chemical-art"), null);
+  assert.ok(await page.$eval(".mc-about-facts", el => el.textContent.includes("تولید آزمایشی مدیریت‌شده")));
   assert.equal(await page.$("#mc-address"), null);
   assert.equal(await page.$eval(".mc-phone", el => el.textContent), "+964 123456789");
   assert.ok(await page.$eval(".mc-stats", el => el.textContent.includes("۹۹۹")));

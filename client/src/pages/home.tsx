@@ -10,6 +10,8 @@ import { defaultLandingPageSettings, localizedSetting, type LandingLink } from "
 import { effectiveLayoutSections } from "@shared/landing-layout";
 import LandingLayoutRenderer, { LayoutElements } from "./landing/LandingLayoutRenderer";
 import { useLandingMotion } from "./landing/useLandingMotion";
+import AboutChemicalIllustration from "./landing/AboutChemicalIllustration";
+import { aboutContent } from "./landing/about-content";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import type { ShopCategory, ShopProduct } from "@shared/shop-schema";
@@ -446,8 +448,12 @@ export default function Home() {
         })}</div></div></div></LayoutElements></div></section>}
         {(sections.about || sections.stats) && <section data-home-section="about" className="mc-about" id="about"><div className="mc-container">
           <div className="mc-about-grid"><LayoutElements order={page.layout.elements.about}>
-            {sections.about&&<div data-home-part="image" className="mc-about-image mc-reveal"><img src={imageFor("about", 3)} alt={c.aboutImageAlt} loading="lazy" /></div>}
-            {sections.about&&<div data-home-part="copy" className="mc-about-copy mc-reveal"><span className="mc-eyebrow mc-eyebrow-dark">{c.about}</span><h2>{c.aboutTitle}</h2><p>{c.aboutDesc}</p><a className="mc-button mc-button-dark" href={effectiveHref(page.actions.about)}>{c.explore}</a></div>}
+            {sections.about&&<div data-home-part="image" className={`${page.aboutVisual === "image" ? "mc-about-image" : "mc-about-art"} mc-reveal`}>
+              {page.aboutVisual === "image" ? <img src={imageFor("about", 3)} alt={c.aboutImageAlt} loading="lazy" /> : <AboutChemicalIllustration label={detailText("aboutImageAlt", aboutContent[locale].imageAlt)} />}
+            </div>}
+            {sections.about&&<div data-home-part="copy" className="mc-about-copy mc-reveal"><span className="mc-eyebrow mc-eyebrow-dark">{c.about}</span><h2>{c.aboutTitle}</h2><p>{c.aboutDesc}</p>
+              <ul className="mc-about-facts">{(["aboutFactManufacturing", "aboutFactPackaging", "aboutFactSafety"] as const).map((key, index) => <li key={key}>{detailText(key, aboutContent[locale].facts[index])}</li>)}</ul>
+              <a className="mc-button mc-button-dark" href={effectiveHref(page.actions.about)}>{c.explore}</a></div>}
             {!detached.has("stats")&&statsBlock}
           </LayoutElements></div>
         </div></section>}

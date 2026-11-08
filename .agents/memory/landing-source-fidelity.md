@@ -23,6 +23,12 @@ The user approved a full landing redesign using the later SaaS-style text brief,
 
 **How to apply:** Improve composition, cards, typography and lighting while retaining blue/navy, the light/dark section rhythm, real content and CMS controls. Do not introduce the brief's orange theme or fabricated SaaS data/prices.
 
+Use the user's supplied animated chemical illustration for the homepage About section in place of its old photo.
+
+**Why:** The user explicitly requested replacing «About Us / High-Quality Chemical Services & Packaging» and its image with their supplied HTML, permitting adaptation to the site's theme.
+
+**How to apply:** Preserve the supplied flask, bubbles, molecule, safety shield and conveyor artwork; harmonize colors with blue/navy rather than substituting stock artwork.
+
 Manage landing images and the supplied settings controls in the existing content-management module, not an inline browser-only editor on the homepage.
 
 **Why:** The user explicitly corrected the location: «باید بیاد در ماژول محتوی».

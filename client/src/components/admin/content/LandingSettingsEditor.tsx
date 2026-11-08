@@ -26,6 +26,7 @@ const fieldNames: Record<string, string> = {
   eyebrow:"روتیتر / Eyebrow",heroTitle:"عنوان بنر / Hero title",heroDesc:"شرح بنر / Hero description",viewProducts:"مشاهده محصولات / View products",getQuote:"درخواست قیمت / Get a quote",
   quoteTitle:"عنوان فرم / Form title",product:"محصول / Product",fullName:"نام کامل / Full name",email:"ایمیل / Email",phone:"تلفن / Phone",address:"نشانی / Address",companyOptional:"شرکت / Company",messageLabel:"پیام / Message",submit:"ارسال / Submit",sending:"در حال ارسال / Sending",submitted:"ارسال شد / Submitted",failed:"ارسال ناموفق / Failed",formError:"خطای فرم / Form error",ratingLabel:"امتیاز / Rating",
   trusted:"متن اعتماد / Trust label",about:"بخش درباره / About section",aboutTitle:"عنوان درباره / About title",aboutDesc:"شرح درباره / About description",explore:"بیشتر بدانید / Explore",aboutImageAlt:"متن جایگزین تصویر / Image alt",
+  aboutFactManufacturing:"تولید مواد شیمیایی / Chemical manufacturing",aboutFactPackaging:"بسته‌بندی استاندارد / Standard packaging",aboutFactSafety:"رعایت ایمنی / Safety compliance",
   packaging:"بسته‌بندی / Packaging",packagingTitle:"عنوان بسته‌بندی / Packaging title",packagingHint:"راهنمای بسته‌بندی / Packaging hint",details:"جزئیات / Details",shop:"خرید / Shop",noCategories:"بدون دسته‌بندی / No categories",retry:"تلاش دوباره / Retry",browseProducts:"مرور محصولات / Browse products",
   processEyebrow:"روتیتر فرایند / Process eyebrow",processTitle:"عنوان فرایند / Process title",faqEyebrow:"روتیتر پرسش‌ها / FAQ eyebrow",faqTitle:"عنوان پرسش‌ها / FAQ title",
   company:"شرکت / Company",services:"خدمات / Services",connect:"ارتباط / Connect",aboutLink:"پیوند درباره / About link",tagline:"شعار / Tagline",account:"حساب / Account",copyright:"حق نشر / Copyright",privacyLabel:"حریم خصوصی / Privacy",termsLabel:"شرایط / Terms",managementLabel:"مدیریت / Management",
@@ -116,6 +117,14 @@ export default function LandingSettingsEditor({ page, language, onChange, conten
   };
 
   return <section className="space-y-4" aria-label="تنظیمات صفحه اصلی / Homepage settings">
+    <label className="block space-y-2 rounded-xl border bg-card p-4 text-sm">
+      <span className="font-medium">گرافیک بخش درباره ما / About visual</span>
+      <select data-testid="landing-about-visual" className="block w-full rounded-md border bg-background p-2" disabled={locked} value={page.aboutVisual ?? "illustration"} onChange={event => patch({ aboutVisual: event.target.value as "illustration" | "image" })}>
+        <option value="illustration">تصویر متحرک شیمی و بسته‌بندی / Animated chemical illustration</option>
+        <option value="image">عکس قابل ویرایش / Editable photo</option>
+      </select>
+      <span className="block text-xs text-muted-foreground">در حالت عکس، تصویر را از بخش تصاویر همین صفحه تغییر دهید. / In photo mode, use this page's image controls.</span>
+    </label>
     {uploadError&&<p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">{uploadError}</p>}
     <div className="rounded-xl border bg-card p-4"><h3 className="mb-3 font-semibold">متن‌های صفحه / Homepage copy</h3><p className="mb-4 text-sm text-muted-foreground">مقدار زبان انتخاب‌شده را ویرایش کنید؛ حذف override متن مبنا را بازمی‌گرداند. / Edit the selected language; restore removes its override.</p>
       {Object.entries(landingTextGroups).map(([group,keys])=><details key={group} data-setting-group={`text-${group}`} className="border-t py-3" open={group==="hero"}><summary className="cursor-pointer font-medium">{groupNames[group]??group}</summary><div className="mt-4 grid gap-4 md:grid-cols-2">{keys.map(key=><LocalizedInput key={key} label={fieldNames[key]??key} value={page.texts[language]?.[key]??page.texts.en?.[key]??""} inherited={page.texts.en?.[key]??""} hasOverride={page.texts[language]?.[key]!==undefined} dir={rtl?"rtl":"ltr"} multiline={["heroDesc","aboutDesc","seoDescription"].includes(key)} locked={locked} onChange={v=>patchText(key,v)} onRestore={()=>{const values={...page.texts[language]};delete values[key as keyof typeof values];patch({texts:{...page.texts,[language]:values}});}}/>)}</div></details>)}

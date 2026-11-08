@@ -7,7 +7,7 @@ export const landingTextGroups = {
   header: ["navAbout", "navProducts", "navProcess", "navFaq", "navShop", "navAccount", "language", "openMenu", "closeMenu"],
   hero: ["eyebrow", "heroTitle", "heroDesc", "viewProducts", "getQuote"],
   form: ["quoteTitle", "product", "fullName", "email", "phone", "address", "companyOptional", "messageLabel", "submit", "sending", "submitted", "failed", "formError", "ratingLabel"],
-  about: ["trusted", "about", "aboutTitle", "aboutDesc", "explore", "aboutImageAlt"],
+  about: ["trusted", "about", "aboutTitle", "aboutDesc", "explore", "aboutImageAlt", "aboutFactManufacturing", "aboutFactPackaging", "aboutFactSafety"],
   products: ["packaging", "packagingTitle", "packagingHint", "details", "shop", "noCategories", "retry", "browseProducts"],
   process: ["processEyebrow", "processTitle"],
   faq: ["faqEyebrow", "faqTitle"],
@@ -41,6 +41,7 @@ export const landingPageSettingsSchema = z.object({
   texts: z.record(z.enum(pageLanguages), z.record(z.enum(landingTextKeys), z.string().trim().max(12000))),
   sections: z.object(Object.fromEntries(landingSectionKeys.map(key => [key, z.boolean()])) as Record<typeof landingSectionKeys[number], z.ZodBoolean>).strict(),
   brandPrimary: z.string().trim().min(1).max(60), brandAccent: z.string().trim().max(60),
+  aboutVisual: z.enum(["illustration", "image"]).default("illustration"),
   phoneLabel: z.string().trim().max(100), phoneHref: safeLandingLink,
   slides: z.array(z.object({
     id: idSchema, isActive: z.boolean(),
@@ -81,6 +82,7 @@ export function defaultLandingPageSettings(): LandingPageSettings {
     texts: { en: {}, fa: {}, ar: {}, tr: {} },
     sections: { hero: true, quote: true, trusted: true, about: true, stats: true, services: true, categories: true, process: true, faq: true, footer: true },
     brandPrimary: "MOMTAZ", brandAccent: "CHEM", phoneLabel: "+964 (750) 000-0000", phoneHref: "tel:+9647500000000",
+    aboutVisual: "illustration",
     slides: [0, 1, 2].map(index => ({ id: String(index), isActive: true, eyebrow: {}, title: {}, description: {} })),
     autoplay: true, slideInterval: 5000,
     stats: {

@@ -1,0 +1,123 @@
+.mc-chemical-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+  border-radius: 24px;
+}
+
+.mc-about-art {
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid #e1e6ed;
+  background: #111923;
+  box-shadow: 0 20px 60px rgba(17,25,35,.18);
+}
+
+.mc-about-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 28px;
+  padding: 0;
+  list-style: none;
+}
+
+.mc-about-facts li {
+  padding: 10px 14px;
+  border: 1px solid #e1e6ed;
+  border-inline-start: 4px solid #1a56db;
+  border-radius: 10px;
+  background: #f4f6f9;
+  color: #19222e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mc-about-facts li:nth-child(2) { border-inline-start-color: #6ea3ff; }
+
+.mc-chemical-art__backdrop {
+  fill: #111923;
+}
+
+.mc-chemical-art__bubble {
+  transform-box: fill-box;
+  animation: mc-chemical-rise 3.2s ease-in infinite;
+}
+
+.mc-chemical-art__bubble--two {
+  animation-delay: .9s;
+}
+
+.mc-chemical-art__bubble--three {
+  animation-delay: 1.8s;
+}
+
+.mc-chemical-art__bubble--four {
+  animation-delay: 2.4s;
+}
+
+.mc-chemical-art__orbit {
+  transform-origin: 330px 120px;
+  animation: mc-chemical-spin 14s linear infinite;
+}
+
+.mc-chemical-art__liquid {
+  animation: mc-chemical-wave 4s ease-in-out infinite alternate;
+}
+
+.mc-chemical-art__belt {
+  animation: mc-chemical-slide 5s linear infinite;
+}
+
+.mc-chemical-art__shield {
+  transform-box: view-box;
+  transform-origin: 70px 90px;
+  animation: mc-chemical-pulse 2.6s ease-in-out infinite;
+}
+
+.mc-chemical-art:not(.is-in-view) :is(
+  .mc-chemical-art__bubble,
+  .mc-chemical-art__orbit,
+  .mc-chemical-art__liquid,
+  .mc-chemical-art__belt,
+  .mc-chemical-art__shield
+) {
+  animation-play-state: paused;
+}
+
+@keyframes mc-chemical-rise {
+  0% { transform: translateY(0); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-120px); opacity: 0; }
+}
+
+@keyframes mc-chemical-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes mc-chemical-wave {
+  to { transform: translateY(-6px); }
+}
+
+@keyframes mc-chemical-slide {
+  from { transform: translateX(-170px); }
+  to { transform: translateX(560px); }
+}
+
+@keyframes mc-chemical-pulse {
+  50% { transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-chemical-art__belt { transform: translateX(280px); }
+  .mc-chemical-art :is(
+    .mc-chemical-art__bubble,
+    .mc-chemical-art__orbit,
+    .mc-chemical-art__liquid,
+    .mc-chemical-art__belt,
+    .mc-chemical-art__shield
+  ) {
+    animation: none !important;
+  }
+}
