@@ -114,6 +114,7 @@ export default function Home() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState("");
   const [activeProductId, setActiveProductId] = useState<string | null>(null);
+  const [quoteExpanded, setQuoteExpanded] = useState(false);
   const modalRef = useRef<HTMLDialogElement>(null);
   const quoteRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
@@ -298,6 +299,39 @@ export default function Home() {
   useEffect(() => { setSlide(0); }, [page.slides]);
 
   useEffect(() => {
+    if (!sections.quote) return;
+
+    const openFromHash = () => {
+      if (window.location.hash === "#quote") setQuoteExpanded(true);
+    };
+    const handleQuoteLink = (event: MouseEvent) => {
+      if (!(event.target instanceof Element)) return;
+      const anchor = event.target.closest("a[href]");
+      if (!(anchor instanceof HTMLAnchorElement)) return;
+      const target = new URL(anchor.href, window.location.href);
+      if (target.origin !== window.location.origin || target.pathname !== window.location.pathname || target.hash !== "#quote") return;
+
+      event.preventDefault();
+      setQuoteExpanded(true);
+      if (window.location.hash !== "#quote") window.history.pushState(null, "", "#quote");
+      requestAnimationFrame(() => {
+        quoteRef.current?.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+          block: "center",
+        });
+      });
+    };
+
+    openFromHash();
+    window.addEventListener("hashchange", openFromHash);
+    document.addEventListener("click", handleQuoteLink);
+    return () => {
+      window.removeEventListener("hashchange", openFromHash);
+      document.removeEventListener("click", handleQuoteLink);
+    };
+  }, [sections.quote]);
+
+  useEffect(() => {
     if (activeProductId && modalRef.current && !modalRef.current.open) modalRef.current.showModal();
   }, [activeProductId]);
   useEffect(() => {
@@ -318,6 +352,7 @@ export default function Home() {
   function requestProductQuote(id: string) {
     if (!sections.quote) { window.location.assign("/contact"); return; }
     setSelectedProduct(id);
+    setQuoteExpanded(true);
     closeProduct();
     window.setTimeout(() => {
       quoteRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
@@ -360,7 +395,19 @@ export default function Home() {
   const processSteps = page.process[locale] ?? page.process.en ?? c.process.map(([title, description]) => ({title, description}));
   const formFields = page.form.fields;
   const quoteBlock = sections.quote && <div className="mc-estimate-card mc-reveal" id="quote" ref={quoteRef} data-home-part="quote">
-    <h2>{c.quoteTitle}</h2>
+    <h2 className="mc-estimate-heading">
+      <button
+        className="mc-estimate-toggle"
+        type="button"
+        aria-expanded={quoteExpanded}
+        aria-controls="mc-estimate-content"
+        onClick={() => setQuoteExpanded(expanded => !expanded)}
+      >
+        <span>{c.quoteTitle}</span>
+        <i className="fa-solid fa-chevron-down" aria-hidden="true" />
+      </button>
+    </h2>
+    <div id="mc-estimate-content" className="mc-estimate-content" hidden={!quoteExpanded}>
     <form onSubmit={submitEstimate} noValidate>
       <LayoutElements order={page.layout.elements.form}>
         {formFields.productInterest.visible && <div className="mc-layout-field" data-home-part="productInterest"><label className="mc-sr-only" htmlFor="mc-product">{c.product}</label>
@@ -378,6 +425,7 @@ export default function Home() {
       <p className={`mc-form-feedback ${status}`} role="status" aria-live="polite">{status === "success" ? c.submitted : status === "error" ? formError : ""}</p>
     </form>
     {page.rating.enabled && <div className="mc-rating"><span>{page.rating.href ? <a href={page.rating.href}>{page.rating.score} {c.ratingLabel}</a> : <>{page.rating.score} {c.ratingLabel}</>}</span><span className="mc-stars" aria-label={`${page.rating.stars} stars`}>{Array.from({length:page.rating.stars},(_,index)=><i key={index} className="fa-solid fa-star" />)}</span></div>}
+    </div>
   </div>;
   const statsBlock = sections.stats && <div data-home-part="stats" className="mc-stats mc-reveal">{stats.map((item,index)=><div key={index}><strong>{item.value}</strong><span>{item.label}</span></div>)}</div>;
   const categoryBlock = sections.categories && <div data-home-part="categories">
