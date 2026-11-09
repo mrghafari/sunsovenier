@@ -7,6 +7,17 @@ import { safeLandingLink, defaultLandingPageSettings } from "../shared/landing-p
 import { prepareLandingInquiry, LandingFormClosedError, registerLandingInquiryRoutes } from "./landing-inquiries";
 import manifest from "../client/src/pages/landing/landing-assets.json";
 
+test("homepage navigation includes an editable localized blog link", () => {
+  const page = defaultLandingPageSettings();
+  const blog = page.navigation.find(link => link.id === "blog");
+  assert.equal(blog?.href, "/blog");
+  assert.equal(blog?.isActive, true);
+  assert.deepEqual(blog?.labels, { en: "Blog", fa: "بلاگ", ar: "المدونة", tr: "Blog" });
+  assert.equal(landingContentSchema.safeParse({ ...defaultLandingContent(), page }).success, true);
+  blog!.isActive = false;
+  assert.equal(landingContentSchema.parse({ ...defaultLandingContent(), page }).page.navigation.find(link => link.id === "blog")?.isActive, false);
+});
+
 test("legacy persisted landing settings acquire defaults without losing content", () => {
   const old = { revision: 4, images: {}, edits: { fa: { drum220: { title: "محصول قدیمی" } } }, custom: [] };
   const parsed = landingContentSchema.parse(old);

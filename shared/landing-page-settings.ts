@@ -98,7 +98,7 @@ export function defaultLandingPageSettings(): LandingPageSettings {
       ar: [{title:"الفحص والاستفسار",description:"بعد تواصلكم معنا، نحلل متطلباتكم الكيميائية."},{title:"اختبار الجودة",description:"تخضع كل دفعة لاختبارات مخبرية دقيقة لضمان مطابقة النقاء."},{title:"تسليم آمن",description:"نوصل مباشرة إلى موقعكم الصناعي مع الوثائق الكاملة."}],
       tr: [{title:"İnceleme ve Talep",description:"Bizimle iletişime geçtikten sonra kimyasal gereksinimlerinizi analiz ederiz."},{title:"Kalite Testi",description:"Saflık uyumluluğunu doğrulamak için her parti titiz laboratuvar testlerinden geçer."},{title:"Güvenli Teslimat",description:"Tam belgelerle doğrudan endüstriyel tesisinize teslimat yaparız."}],
     },
-    navigation: [link("about", "#about", "navAbout"), link("products", "#services", "navProducts"), link("process", "#process", "navProcess"), link("faq", "#faq", "navFaq"), link("shop", "/shop", "navShop"), link("account", "/customer/login", "navAccount")],
+    navigation: [link("about", "#about", "navAbout"), link("products", "#services", "navProducts"), link("process", "#process", "navProcess"), link("faq", "#faq", "navFaq"), { id: "blog", href: "/blog", labels: { en: "Blog", fa: "بلاگ", ar: "المدونة", tr: "Blog" }, isActive: true }, link("shop", "/shop", "navShop"), link("account", "/customer/login", "navAccount")],
     footerCompany: [link("about", "/about", "aboutLink"), link("services", "/services", "services"), link("contact", "/contact", "getQuote")],
     footerConnect: [link("account", "/customer/login", "account"), link("shop", "/shop", "shop"), link("contact", "/contact", "getQuote"), { ...link("management", "/site-management", "managementLabel") }],
     social: [],
