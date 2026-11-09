@@ -25,9 +25,9 @@ The user approved a full landing redesign using the later SaaS-style text brief,
 
 The homepage About visual should show one continuous photo behind four window panes, at the same overall size as the replaced visual.
 
-**Why:** The user clarified that one supplied image must be split into four quarters, as if behind a window, superseding the earlier request for four independently editable photos. The transparent background, slight depth and hover ticks remain requested.
+**Why:** The user clarified that one supplied image must be split into four quarters, as if behind a window, superseding the earlier request for four independently editable photos. They later requested removal of the speaker icon; the transparent background, slight depth and hover ticks remain requested.
 
-**How to apply:** Use one CMS-managed About image, cropped continuously across two-by-two panes on mobile and desktop. Keep crops spatially aligned in RTL and any motion synchronized. Retain transparent gaps, modest depth and mutable hover ticks.
+**How to apply:** Use one CMS-managed About image, cropped continuously across two-by-two panes on mobile and desktop. Keep crops spatially aligned in RTL and any motion synchronized. Retain transparent gaps, modest depth and hover ticks, without a visible speaker control.
 
 Manage landing images and the supplied settings controls in the existing content-management module, not an inline browser-only editor on the homepage.
 

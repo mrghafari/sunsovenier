@@ -1,21 +1,18 @@
 import { useEffect, useRef } from "react";
-import { Volume2, VolumeX } from "lucide-react";
 import { usePhotoWindowEffects } from "./usePhotoWindowEffects";
 import "./about-window.css";
 
 type AboutPhotoWindowProps = {
   label: string;
   image: { src: string; alt: string };
-  soundLabels: { mute: string; unmute: string };
 };
 
 export default function AboutPhotoWindow({
   label,
   image,
-  soundLabels,
 }: AboutPhotoWindowProps) {
   const windowRef = useRef<HTMLDivElement>(null);
-  const { soundEnabled, toggleSound, playTick, tilt, resetTilt } = usePhotoWindowEffects();
+  const { playTick, tilt, resetTilt } = usePhotoWindowEffects();
 
   useEffect(() => {
     const photoWindow = windowRef.current;
@@ -63,12 +60,6 @@ export default function AboutPhotoWindow({
           </div>
         ))}
       </div>
-      <button type="button" className="mc-about-window__sound" data-testid="about-window-sound"
-        onClick={toggleSound} aria-pressed={soundEnabled}
-        aria-label={soundEnabled ? soundLabels.mute : soundLabels.unmute}
-        title={soundEnabled ? soundLabels.mute : soundLabels.unmute}>
-        {soundEnabled ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}
-      </button>
     </div>
   );
 }

@@ -118,15 +118,8 @@ try {
         audio: await page.evaluate(() => ({ states: window.__windowAudioProbe.contexts.map(context => context.state), fine: matchMedia("(hover: hover) and (pointer: fine)").matches })),
       }));
       assert.notEqual(await page.$eval(".mc-about-window", node => node.style.getPropertyValue("--mc-window-rotate-y")), "");
-      await page.click('[data-testid="about-window-sound"]');
-      assert.equal(await page.$eval('[data-testid="about-window-sound"]', node => node.getAttribute("aria-pressed")), "false");
-      const muted = await starts();
-      await hover(1); await hover(3);
-      assert.equal(await starts(), muted, "Muted hover must not create ticks");
-      await page.click('[data-testid="about-window-sound"]');
-      await hover(2);
-      assert.ok(await starts() > muted, "Ticks resume after unmuting");
-      console.log("PASS depth/audio: transparent background, pointer tilt, real tick synthesis after gesture, mute and unmute.");
+      assert.equal(await page.$('[data-testid="about-window-sound"]'), null, "No speaker button overlays the image");
+      console.log("PASS depth/audio: transparent background, pointer tilt, real tick synthesis after gesture, no speaker overlay.");
     }
     // A collapsed quote makes the About image visible at the top on tall phones.
     await page.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));

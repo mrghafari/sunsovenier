@@ -91,29 +91,6 @@
   box-shadow: none;
 }
 
-.mc-about-window__sound {
-  position: absolute;
-  z-index: 3;
-  inset-inline-end: 10px;
-  bottom: 10px;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: 1px solid rgba(25, 34, 46, 0.15);
-  border-radius: 50%;
-  color: #19222e;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 3px 10px rgba(17, 25, 35, 0.12);
-  cursor: pointer;
-}
-
-.mc-about-window__sound:focus-visible {
-  outline: 2px solid #1a56db;
-  outline-offset: 3px;
-}
-
 .mc-about-facts {
   display: flex;
   flex-wrap: wrap;

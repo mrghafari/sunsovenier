@@ -500,7 +500,7 @@ export default function Home() {
         {(sections.about || sections.stats) && <section data-home-section="about" className="mc-about" id="about"><div className="mc-container">
           <div className="mc-about-grid"><LayoutElements order={page.layout.elements.about}>
             {sections.about&&<div data-home-part="image" className={`${page.aboutVisual === "image" ? "mc-about-image" : "mc-about-art"} mc-reveal`}>
-              {page.aboutVisual === "image" ? <img src={imageFor("about", 3)} alt={c.aboutImageAlt} loading="lazy" /> : <AboutPhotoWindow label={detailText("aboutImageAlt", aboutContent[locale].imageAlt)} soundLabels={aboutContent[locale].sound} image={{
+              {page.aboutVisual === "image" ? <img src={imageFor("about", 3)} alt={c.aboutImageAlt} loading="lazy" /> : <AboutPhotoWindow label={detailText("aboutImageAlt", aboutContent[locale].imageAlt)} image={{
                 src: imageFor("about", 3),
                 alt: detailText("aboutImageAlt", aboutContent[locale].imageAlt),
               }} />}
