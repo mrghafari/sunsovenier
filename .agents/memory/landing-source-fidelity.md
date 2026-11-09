@@ -47,6 +47,12 @@ Use “Get A Quote” as the estimate form entry point, without a separate “Ge
 
 **How to apply:** Keep one shared estimate form, hidden until requested; preserve its transparent appearance and existing product-specific request links.
 
+Opening the estimate form must move only the document, never create an internal scroll position inside the clipped hero.
+
+**Why:** The user reported an apparent freeze on iPhone 15 Pro Max. The same symptom was reproduced when the document returned to the top but the hero retained its own scroll offset, hiding its upper content.
+
+**How to apply:** Preserve a non-scrollable hero clip and explicit document scrolling, aligning the form below the header. Verify real touch swipes back to the top, repeated opening, direct quote links and smaller mobile viewports.
+
 The homepage must allow modular, block-based drag-and-drop editing: the administrator should be able to create new arrangements without code changes.
 
 **Why:** The user explicitly requested dynamic placement of homepage blocks and elements.

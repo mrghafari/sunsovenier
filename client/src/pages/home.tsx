@@ -116,6 +116,17 @@ export default function Home() {
   const [quoteExpanded, setQuoteExpanded] = useState(false);
   const modalRef = useRef<HTMLDialogElement>(null);
   const quoteRef = useRef<HTMLDivElement>(null);
+  const scrollToQuote = useCallback((focusProduct = false) => {
+    const quote = quoteRef.current;
+    if (!quote || quote.hidden) return;
+    const headerHeight = document.querySelector(".mc-header")?.getBoundingClientRect().height ?? 0;
+    const top = Math.max(0, quote.getBoundingClientRect().top + window.scrollY - headerHeight - 16);
+    // scrollIntoView also scrolls overflow-hidden ancestors, trapping the hero's
+    // content above its clip on mobile. Only move the document, never the hero.
+    const immediate = window.matchMedia("(max-width: 767px), (prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top, behavior: immediate ? "instant" : "smooth" });
+    if (focusProduct) document.getElementById("mc-product")?.focus({ preventScroll: true });
+  }, []);
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
   const [formError, setFormError] = useState("");
   const { data: publishedFaqs, isError: faqError, refetch: retryFaq } = useQuery<Record<string, Array<{id: string; question: string; answer: string}>>>({
@@ -304,7 +315,10 @@ export default function Home() {
     if (!sections.quote) return;
 
     const openFromHash = () => {
-      if (window.location.hash === "#quote") setQuoteExpanded(true);
+      if (window.location.hash === "#quote") {
+        setQuoteExpanded(true);
+        requestAnimationFrame(() => scrollToQuote());
+      }
     };
     const handleQuoteLink = (event: MouseEvent) => {
       if (!(event.target instanceof Element)) return;
@@ -317,10 +331,7 @@ export default function Home() {
       setQuoteExpanded(true);
       if (window.location.hash !== "#quote") window.history.pushState(null, "", "#quote");
       requestAnimationFrame(() => {
-        quoteRef.current?.scrollIntoView({
-          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-          block: "center",
-        });
+        scrollToQuote();
       });
     };
 
@@ -331,7 +342,7 @@ export default function Home() {
       window.removeEventListener("hashchange", openFromHash);
       document.removeEventListener("click", handleQuoteLink);
     };
-  }, [sections.quote]);
+  }, [sections.quote, scrollToQuote]);
 
   useEffect(() => {
     if (activeProductId && modalRef.current && !modalRef.current.open) modalRef.current.showModal();
@@ -357,8 +368,7 @@ export default function Home() {
     setQuoteExpanded(true);
     closeProduct();
     window.setTimeout(() => {
-      quoteRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
-      document.getElementById("mc-product")?.focus({ preventScroll: true });
+      scrollToQuote(true);
     }, 80);
   }
 
