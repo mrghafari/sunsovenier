@@ -1,4 +1,5 @@
 .mc-about-window {
+  --mc-window-mullion: 9px;
   position: relative;
   display: block;
   width: 100%;
@@ -17,13 +18,13 @@
 }
 
 .mc-about-window__panes {
+  direction: ltr;
   position: absolute;
   inset: 0;
   display: grid;
   grid-template: repeat(2, minmax(0, 1fr)) / repeat(2, minmax(0, 1fr));
-  gap: 9px;
+  gap: var(--mc-window-mullion);
   overflow: visible;
-  border-radius: 0;
   background: transparent;
   transform-style: preserve-3d;
 }
@@ -37,39 +38,49 @@
   background: transparent;
   box-shadow: 0 9px 20px -13px rgba(16, 29, 44, 0.42);
   transform: translateZ(0);
-  transition: transform 240ms ease-out, box-shadow 240ms ease-out;
 }
 
 .mc-about-window__pane img {
+  position: absolute;
   display: block;
-  width: 100%;
-  height: 100%;
+  width: calc(200% + var(--mc-window-mullion));
+  height: calc(200% + var(--mc-window-mullion));
+  max-width: none;
   object-fit: cover;
   object-position: center;
-  transform: scale(1.045);
-}
-
-.mc-about-window__pane--1 img {
-  animation: mc-window-view-one 27s ease-in-out infinite alternate;
-}
-
-.mc-about-window__pane--2 img {
-  animation: mc-window-view-two 31s ease-in-out infinite alternate;
-  animation-delay: -8s;
-}
-
-.mc-about-window__pane--3 img {
-  animation: mc-window-view-three 29s ease-in-out infinite alternate;
-  animation-delay: -15s;
-}
-
-.mc-about-window__pane--4 img {
-  animation: mc-window-view-four 34s ease-in-out infinite alternate;
-  animation-delay: -11s;
+  pointer-events: none;
+  user-select: none;
+  animation: mc-window-photo-drift 30s ease-in-out infinite alternate;
 }
 
 .mc-about-window:not(.is-in-view) .mc-about-window__pane img {
   animation-play-state: paused;
+}
+
+@keyframes mc-window-photo-drift {
+  from {
+    transform: scale(1.045) translate3d(-0.35%, -0.25%, 0);
+  }
+  to {
+    transform: scale(1.075) translate3d(0.35%, 0.25%, 0);
+  }
+}
+
+/* Each pane reveals its exact crop from one shared, full-window image. */
+.mc-about-window__pane--1 img {
+  inset: 0 auto auto 0;
+}
+
+.mc-about-window__pane--2 img {
+  inset: 0 auto auto calc(-100% - var(--mc-window-mullion));
+}
+
+.mc-about-window__pane--3 img {
+  inset: calc(-100% - var(--mc-window-mullion)) auto auto 0;
+}
+
+.mc-about-window__pane--4 img {
+  inset: calc(-100% - var(--mc-window-mullion)) auto auto calc(-100% - var(--mc-window-mullion));
 }
 
 .mc-about-art {
@@ -78,14 +89,6 @@
   border: 1px solid transparent;
   background: transparent;
   box-shadow: none;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .mc-about-window__pane:is(.is-pointer-over, :hover) {
-    z-index: 1;
-    transform: translateZ(7px);
-    box-shadow: 0 13px 24px -13px rgba(16, 29, 44, 0.5);
-  }
 }
 
 .mc-about-window__sound {
@@ -98,12 +101,17 @@
   width: 30px;
   height: 30px;
   padding: 0;
-  border: 1px solid rgba(25,34,46,.15);
+  border: 1px solid rgba(25, 34, 46, 0.15);
   border-radius: 50%;
   color: #19222e;
-  background: rgba(255,255,255,.94);
-  box-shadow: 0 3px 10px rgba(17,25,35,.12);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 3px 10px rgba(17, 25, 35, 0.12);
   cursor: pointer;
+}
+
+.mc-about-window__sound:focus-visible {
+  outline: 2px solid #1a56db;
+  outline-offset: 3px;
 }
 
 .mc-about-facts {
@@ -130,42 +138,14 @@
   border-inline-start-color: #6ea3ff;
 }
 
-@keyframes mc-window-view-one {
-  from { transform: scale(1.045) translate3d(-1.1%, -0.8%, 0); }
-  to { transform: scale(1.13) translate3d(1.1%, 0.8%, 0); }
-}
-
-@keyframes mc-window-view-two {
-  from { transform: scale(1.08) translate3d(1%, -1%, 0); }
-  to { transform: scale(1.16) translate3d(-1%, 1%, 0); }
-}
-
-@keyframes mc-window-view-three {
-  from { transform: scale(1.1) translate3d(-0.9%, 0.8%, 0); }
-  to { transform: scale(1.17) translate3d(0.9%, -0.8%, 0); }
-}
-
-@keyframes mc-window-view-four {
-  from { transform: scale(1.06) translate3d(0.8%, 1%, 0); }
-  to { transform: scale(1.15) translate3d(-0.8%, -1%, 0); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .mc-about-window {
     transform: none;
     transition: none;
   }
 
-  .mc-about-window__pane {
-    transition: none;
-  }
-
-  .mc-about-window__pane:is(.is-pointer-over, :hover) {
-    transform: none;
-  }
-
   .mc-about-window__pane img {
-    animation: none !important;
-    transform: scale(1.045);
+    animation: none;
+    transform: none;
   }
 }

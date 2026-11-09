@@ -23,11 +23,11 @@ The user approved a full landing redesign using the later SaaS-style text brief,
 
 **How to apply:** Improve composition, cards, typography and lighting while retaining blue/navy, the light/dark section rhythm, real content and CMS controls. Do not introduce the brief's orange theme or fabricated SaaS data/prices.
 
-The homepage About visual should be an animated four-pane photo window using existing landing images, at the same overall size as the replaced visual.
+The homepage About visual should show one continuous photo behind four window panes, at the same overall size as the replaced visual.
 
-**Why:** After trying the supplied chemical illustration, the user requested a four-pane window using existing landing photos, then independent CMS image editing, no blue window background, slight three-dimensional shadows and mouse-hover tick sounds.
+**Why:** The user clarified that one supplied image must be split into four quarters, as if behind a window, superseding the earlier request for four independently editable photos. The transparent background, slight depth and hover ticks remain requested.
 
-**How to apply:** Keep two-by-two panes on mobile and desktop at the existing total size. Default to current landing photos with independent CMS overrides. Let the section background show through the gaps, use modest depth, and keep hover ticks brief and mutable.
+**How to apply:** Use one CMS-managed About image, cropped continuously across two-by-two panes on mobile and desktop. Keep crops spatially aligned in RTL and any motion synchronized. Retain transparent gaps, modest depth and mutable hover ticks.
 
 Manage landing images and the supplied settings controls in the existing content-management module, not an inline browser-only editor on the homepage.
 

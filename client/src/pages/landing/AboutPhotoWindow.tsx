@@ -5,13 +5,13 @@ import "./about-window.css";
 
 type AboutPhotoWindowProps = {
   label: string;
-  images: Array<{ src: string; alt: string }>;
+  image: { src: string; alt: string };
   soundLabels: { mute: string; unmute: string };
 };
 
 export default function AboutPhotoWindow({
   label,
-  images,
+  image,
   soundLabels,
 }: AboutPhotoWindowProps) {
   const windowRef = useRef<HTMLDivElement>(null);
@@ -42,32 +42,26 @@ export default function AboutPhotoWindow({
       ref={windowRef}
       className="mc-about-window"
       role="group"
-      aria-label={label}
+      aria-label={image.alt || label}
       onPointerMove={tilt}
       onPointerLeave={resetTilt}
     >
       <div className="mc-about-window__panes" aria-hidden="true">
-        {[0, 1, 2, 3].map((index) => {
-          const image = images[index];
-
-          return (
-            <div
-              className={`mc-about-window__pane mc-about-window__pane--${index + 1}`}
-              key={image?.src ?? `pane-${index}`}
-              onPointerEnter={playTick}
-            >
-              {image && (
-                <img
-                  src={image.src}
-                  alt=""
-                  draggable="false"
-                  loading="lazy"
-                  decoding="async"
-                />
-              )}
-            </div>
-          );
-        })}
+        {[0, 1, 2, 3].map((index) => (
+          <div
+            className={`mc-about-window__pane mc-about-window__pane--${index + 1}`}
+            key={`${image.src}-${index}`}
+            onPointerEnter={playTick}
+          >
+            <img
+              src={image.src}
+              alt=""
+              draggable="false"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        ))}
       </div>
       <button type="button" className="mc-about-window__sound" data-testid="about-window-sound"
         onClick={toggleSound} aria-pressed={soundEnabled}

@@ -58,6 +58,11 @@ try {
         columns: grid.gridTemplateColumns.split(" ").length,
         rows: grid.gridTemplateRows.split(" ").length,
         sources: [...panes].map(node => node.getAttribute("src")),
+        crops: [...panes].map(node => {
+          const rect = node.getBoundingClientRect();
+          return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        }),
+        aboutLink: document.querySelector(".mc-about-copy .mc-button").textContent,
         backgrounds: [photoWindow, photoWindow.parentElement, photoWindow.querySelector(".mc-about-window__panes")].map(node => getComputedStyle(node).backgroundColor),
         shadow: getComputedStyle(photoWindow).boxShadow,
       };
@@ -70,7 +75,13 @@ try {
     assert.equal(result.columns, 2);
     assert.equal(result.rows, 2);
     assert.ok(Math.abs(result.aspectRatio - 560 / 440) < .01, "Window must keep the replaced illustration's overall proportions");
-    assert.equal(new Set(result.sources).size, 4);
+    assert.equal(new Set(result.sources).size, 1, "All four panes must show portions of one image");
+    for (const crop of result.crops) {
+      for (const key of ["x", "y", "width", "height"]) {
+        assert.ok(Math.abs(crop[key] - result.crops[0][key]) < 1, `Image crop ${key} must align across all panes, including RTL`);
+      }
+    }
+    assert.equal(result.aboutLink, { en: "About Us", fa: "درباره ما", ar: "من نحن", tr: "Hakkımızda" }[language]);
     assert.ok(result.sources.every(src => src.startsWith("/api/landing-") || src.startsWith("https://")));
     assert.ok(result.label.length > 30 && result.animations);
     assert.ok(result.backgrounds.every(color => color === "rgba(0, 0, 0, 0)"), "No blue backdrop or frame");
@@ -117,11 +128,12 @@ try {
       assert.ok(await starts() > muted, "Ticks resume after unmuting");
       console.log("PASS depth/audio: transparent background, pointer tilt, real tick synthesis after gesture, mute and unmute.");
     }
-    await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+    // A collapsed quote makes the About image visible at the top on tall phones.
+    await page.evaluate(() => scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
     await page.waitForFunction(() => !document.querySelector(".mc-about-window")?.classList.contains("is-in-view"));
     assert.equal(await page.$eval(".mc-about-window__pane img", node => getComputedStyle(node).animationPlayState), "paused");
     await page.close();
-    console.log(`PASS About ${language} ${width}px: four real photos, 2×2 window, original size, motion, offscreen pausing and reduced motion.`);
+    console.log(`PASS About ${language} ${width}px: one continuous image, aligned 2×2 window, About Us label, motion, offscreen pausing and reduced motion.`);
   }
   assert.deepEqual(errors, []);
 } finally {

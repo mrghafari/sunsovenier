@@ -23,10 +23,10 @@ const languages: Array<{ id: LandingLanguage; name: string }> = [
   { id: "en", name: "English" }, { id: "fa", name: "فارسی" }, { id: "ar", name: "العربية" }, { id: "tr", name: "Türkçe" },
 ];
 const visualWords = {
-  en: { slide: "Slide", about: "About image", aboutWindow: "About window · Pane", product: "Product image" },
-  fa: { slide: "اسلاید", about: "تصویر درباره ما", aboutWindow: "پنجرهٔ درباره ما · قسمت", product: "تصویر محصول" },
-  ar: { slide: "الشريحة", about: "صورة من نحن", aboutWindow: "نافذة من نحن · القسم", product: "صورة المنتج" },
-  tr: { slide: "Slayt", about: "Hakkımızda görseli", aboutWindow: "Hakkımızda penceresi · Bölüm", product: "Ürün görseli" },
+  en: { slide: "Slide", about: "About window · One full image", product: "Product image" },
+  fa: { slide: "اسلاید", about: "پنجرهٔ درباره ما · یک تصویر کامل", product: "تصویر محصول" },
+  ar: { slide: "الشريحة", about: "نافذة من نحن · صورة واحدة كاملة", product: "صورة المنتج" },
+  tr: { slide: "Slayt", about: "Hakkımızda penceresi · Tek tam görsel", product: "Ürün görseli" },
 } as const;
 const labels = {
   en: { eyebrow: "Momtazchem · Site content", title: "Landing page editor", intro: "Changes stay in draft until saved. Publishing updates the public homepage for every visitor, not just this browser.", dirty: "Unsaved draft", current: "Revision", upToDate: "up to date", reset: "Reset originals", publish: "Save & publish", publishing: "Publishing…", loadTitle: "Landing content could not be loaded", retry: "Retry", shared: "Shared imagery", sharedHint: "Upload prepares a draft; use Save & publish to apply it. Reset an image to its original asset at any time.", textLanguage: "Text language", replace: "Replace", published: "Published. These changes are now visible to every visitor.", uploadReady: "Image ready in draft. Save to publish it.", uploading: "Uploading image…", uploadFailed: "Image upload failed.", saveFailed: "Could not publish changes.", conflict: "Another editor has published a newer revision. Reload to review it before continuing.", reload: "Reload latest", reloadConfirm: "Discard this unsaved draft and load the latest published revision?", resetConfirm: "Reset every landing-page image and text override to the original site defaults? Save the reset to publish it.", resetDraft: "Original defaults restored in draft. Save to publish.", products: "Product-card copy", productsHint: "Edit the selected language. Unset fields continue using the site's original translated copy.", titleField: "Title", short: "Card description", long: "Full description", restore: "Restore source text", delete: "Delete", deleteConfirm: "Delete this card from the homepage?", addTitle: "Add an informational card", addHint: "The card is included in the same shared publishing workflow. Choose one or more packaging types.", packaging: "Packaging options", add: "Add card to draft", required: "A title and at least one packaging option are required.", added: "Card added to draft. Save to publish.", inDraft: "custom card(s) in this draft", specs: "Specifications (one per line)", fallback: "Please try again.", image: "Image", importDraft: "Import previous browser preview → draft", importConfirm: "Replace the current draft with the saved browser preview? Nothing will be published or deleted.", importNone: "No previous browser preview was found.", importDone: "Previous browser preview imported into this draft. Save to publish.", importFailed: "Previous preview could not be imported.", imported: "Importing previous preview…" },
@@ -224,7 +224,6 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
   const slots: Array<{ key: string; label: string; asset: number; fallbackKey?: string }> = [
     ...draft.page.slides.map((slide, index) => ({ key: `hero-${slide.id}`, label: `${visual.slide} ${index + 1}`, asset: ["0", "1", "2"].includes(slide.id) ? Number(slide.id) : -1 })),
     { key: "about", label: visual.about, asset: 3 },
-    ...landingAboutWindowPanes.map((pane, index) => ({ ...pane, label: `${visual.aboutWindow} ${index + 1}` })),
     ...BASE_PRODUCTS.map((product) => {
       const index = BASE_PRODUCTS.findIndex((item) => item.id === product.id);
       const name = LOCALIZED_PRODUCTS[visualLocale]?.[index]?.[0] ?? product.title;

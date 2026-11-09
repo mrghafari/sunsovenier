@@ -12,7 +12,6 @@ import LandingLayoutRenderer, { LayoutElements } from "./landing/LandingLayoutRe
 import { useLandingMotion } from "./landing/useLandingMotion";
 import AboutPhotoWindow from "./landing/AboutPhotoWindow";
 import { aboutContent } from "./landing/about-content";
-import { landingAboutWindowPanes } from "@shared/landing-about-window";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import type { ShopCategory, ShopProduct } from "@shared/shop-schema";
@@ -35,7 +34,7 @@ const translations = {
     sending: "SENDING…", submitted: "Thank you! Your request was received. We will contact you shortly.", failed: "We couldn’t send your request. Please try again or contact us directly.",
     trusted: "TRUSTED BY", about: "About Us", aboutTitle: "High-Quality Chemical Services & Packaging",
     aboutDesc: "Momtaz Chem provides top-tier chemical manufacturing and standard packaging solutions with an unwavering commitment to quality and safety compliance.",
-    explore: "EXPLORE PACKAGING", stats: ["Projects Completed", "Years Of Excellence", "Satisfied Clients"], statsValues: ["500+", "25+", "100%"],
+    explore: "About Us", stats: ["Projects Completed", "Years Of Excellence", "Satisfied Clients"], statsValues: ["500+", "25+", "100%"],
     packaging: "Products & Packaging", packagingTitle: "Full-Scale Chemical Packaging", packagingHint: "Select any item to see its full description and the packaging types available.",
     processEyebrow: "Our Process", processTitle: "From inquiry to delivery",
     process: [["Inspection & Inquiry", "After you contact us, we analyze your chemical requirements."], ["Quality Testing", "Every batch undergoes lab testing to ensure purity compliance."], ["Secure Delivery", "We deliver directly to your industrial site with full documentation."]],
@@ -54,7 +53,7 @@ const translations = {
     sending: "در حال ارسال…", submitted: "سپاسگزاریم! درخواست شما دریافت شد و به‌زودی با شما تماس می‌گیریم.", failed: "ارسال درخواست انجام نشد. دوباره تلاش کنید یا مستقیماً تماس بگیرید.",
     trusted: "مورد اعتماد", about: "درباره ما", aboutTitle: "خدمات و بسته‌بندی باکیفیت مواد شیمیایی",
     aboutDesc: "ممتاز شیمی تولید مواد شیمیایی ممتاز و راهکارهای بسته‌بندی استاندارد را با تعهدی پایدار به کیفیت و رعایت ایمنی ارائه می‌کند.",
-    explore: "مشاهده بسته‌بندی", stats: ["پروژه انجام‌شده", "سال تجربه", "رضایت مشتریان"], statsValues: ["۵۰۰+", "۲۵+", "۱۰۰٪"],
+    explore: "درباره ما", stats: ["پروژه انجام‌شده", "سال تجربه", "رضایت مشتریان"], statsValues: ["۵۰۰+", "۲۵+", "۱۰۰٪"],
     packaging: "محصولات و بسته‌بندی", packagingTitle: "بسته‌بندی کامل مواد شیمیایی", packagingHint: "برای مشاهده توضیحات کامل و انواع بسته‌بندی، یک مورد را انتخاب کنید.",
     processEyebrow: "فرایند ما", processTitle: "از درخواست تا تحویل",
     process: [["بازبینی و درخواست", "پس از تماس شما، نیازهای شیمیایی‌تان را بررسی می‌کنیم."], ["آزمایش کیفیت", "هر بچ برای اطمینان از خلوص و انطباق، در آزمایشگاه بررسی می‌شود."], ["تحویل ایمن", "محصول را با مستندات کامل مستقیماً به محل صنعتی شما تحویل می‌دهیم."]],
@@ -71,7 +70,7 @@ const translations = {
     sending: "جارٍ الإرسال…", submitted: "شكراً لك! تم استلام طلبك وسنتواصل معك قريباً.", failed: "تعذر إرسال الطلب. حاول مجدداً أو تواصل معنا مباشرة.",
     trusted: "موثوقون لدى", about: "من نحن", aboutTitle: "خدمات وتعبئة كيميائية عالية الجودة",
     aboutDesc: "تقدم ممتاز كيم تصنيعاً كيميائياً متميزاً وحلول تعبئة قياسية مع التزام راسخ بالجودة والامتثال للسلامة.",
-    explore: "استكشف التعبئة", stats: ["مشروع منجز", "سنوات من التميز", "عملاء راضون"], statsValues: ["500+", "25+", "100%"],
+    explore: "من نحن", stats: ["مشروع منجز", "سنوات من التميز", "عملاء راضون"], statsValues: ["500+", "25+", "100%"],
     packaging: "المنتجات والتعبئة", packagingTitle: "تعبئة كيميائية متكاملة", packagingHint: "اختر أي منتج للاطلاع على وصفه الكامل وأنواع التعبئة المتاحة.",
     processEyebrow: "آلية العمل", processTitle: "من الاستفسار إلى التسليم",
     process: [["الفحص والاستفسار", "بعد تواصلكم معنا، نحلل متطلباتكم الكيميائية."], ["اختبار الجودة", "تخضع كل دفعة لاختبارات مخبرية دقيقة لضمان مطابقة النقاء."], ["تسليم آمن", "نوصل مباشرة إلى موقعكم الصناعي مع الوثائق الكاملة."]],
@@ -88,7 +87,7 @@ const translations = {
     sending: "GÖNDERİLİYOR…", submitted: "Teşekkürler! Talebiniz alındı. Ekibimiz kısa süre içinde sizinle iletişime geçecek.", failed: "Talebiniz gönderilemedi. Yeniden deneyin veya doğrudan bize ulaşın.",
     trusted: "GÜVENİLİR", about: "HAKKIMIZDA", aboutTitle: "Yüksek Kaliteli Kimyasal Hizmetler ve Ambalaj",
     aboutDesc: "Momtaz Chem, kalite ve güvenlik standartlarına sarsılmaz bağlılıkla üst düzey kimyasal üretim ve standart ambalaj çözümleri sunar.",
-    explore: "AMBALAJI KEŞFET", stats: ["Tamamlanan Proje", "Yıllık Deneyim", "Memnun Müşteri"], statsValues: ["500+", "25+", "100%"],
+    explore: "Hakkımızda", stats: ["Tamamlanan Proje", "Yıllık Deneyim", "Memnun Müşteri"], statsValues: ["500+", "25+", "100%"],
     packaging: "Ürünler ve Ambalaj", packagingTitle: "Kapsamlı Kimyasal Ambalaj", packagingHint: "Tam açıklama ve mevcut ambalaj türleri için bir ürün seçin.",
     processEyebrow: "SÜRECİMİZ", processTitle: "Talep aşamasından teslimata",
     process: [["İnceleme ve Talep", "Bizimle iletişime geçtikten sonra kimyasal gereksinimlerinizi analiz ederiz."], ["Kalite Testi", "Saflık uyumluluğunu doğrulamak için her parti titiz laboratuvar testlerinden geçer."], ["Güvenli Teslimat", "Tam belgelerle doğrudan endüstriyel tesisinize teslimat yaparız."]],
@@ -161,6 +160,9 @@ export default function Home() {
     tr: { messageLabel: "Mesaj", ratingLabel: "Google Puanı", copyright: "© 2026 MOMTAZ CHEM. Tüm hakları saklıdır.", privacyLabel: "Gizlilik Politikası", termsLabel: "Kullanım Şartları", managementLabel: "Site yönetimi", aboutImageAlt: "Momtaz Chem endüstriyel tesisi", openMenu: "Menüyü aç", closeMenu: "Menüyü kapat", seoTitle: "Momtaz Chem | Endüstriyel Kimyasal Çözümler", seoDescription: translations.tr.heroDesc },
   }[locale];
   const c = { ...translations[locale], ...extras, ...page.texts.en, ...page.texts[locale] };
+  // Correct old published defaults without discarding a deliberately customized label.
+  const aboutLinkLabel = /^(explore packaging|مشاهده بسته‌بندی|استكشف التعبئة|ambalaji keşfet)$/i.test(c.explore.trim())
+    ? translations[locale].explore : c.explore;
   const originalDetailLabels = PRODUCT_DETAILS_UI[locale] ?? PRODUCT_DETAILS_UI.en;
   const detailText = (key: string, fallback: string) => page.texts[locale]?.[key] ?? page.texts.en?.[key] ?? fallback;
   const detailLabels = { ...originalDetailLabels,
@@ -498,14 +500,14 @@ export default function Home() {
         {(sections.about || sections.stats) && <section data-home-section="about" className="mc-about" id="about"><div className="mc-container">
           <div className="mc-about-grid"><LayoutElements order={page.layout.elements.about}>
             {sections.about&&<div data-home-part="image" className={`${page.aboutVisual === "image" ? "mc-about-image" : "mc-about-art"} mc-reveal`}>
-              {page.aboutVisual === "image" ? <img src={imageFor("about", 3)} alt={c.aboutImageAlt} loading="lazy" /> : <AboutPhotoWindow label={detailText("aboutImageAlt", aboutContent[locale].imageAlt)} soundLabels={aboutContent[locale].sound} images={landingAboutWindowPanes.map(pane => ({
-                src: landingContent?.images[pane.key] || imageFor(pane.fallbackKey, pane.asset),
+              {page.aboutVisual === "image" ? <img src={imageFor("about", 3)} alt={c.aboutImageAlt} loading="lazy" /> : <AboutPhotoWindow label={detailText("aboutImageAlt", aboutContent[locale].imageAlt)} soundLabels={aboutContent[locale].sound} image={{
+                src: imageFor("about", 3),
                 alt: detailText("aboutImageAlt", aboutContent[locale].imageAlt),
-              }))} />}
+              }} />}
             </div>}
             {sections.about&&<div data-home-part="copy" className="mc-about-copy mc-reveal"><span className="mc-eyebrow mc-eyebrow-dark">{c.about}</span><h2>{c.aboutTitle}</h2><p>{c.aboutDesc}</p>
               <ul className="mc-about-facts">{(["aboutFactManufacturing", "aboutFactPackaging", "aboutFactSafety"] as const).map((key, index) => <li key={key}>{detailText(key, aboutContent[locale].facts[index])}</li>)}</ul>
-              <a className="mc-button mc-button-dark" href={effectiveHref(page.actions.about)}>{c.explore}</a></div>}
+              <a className="mc-button mc-button-dark" href={effectiveHref(page.actions.about)}>{aboutLinkLabel}</a></div>}
             {!detached.has("stats")&&statsBlock}
           </LayoutElements></div>
         </div></section>}
