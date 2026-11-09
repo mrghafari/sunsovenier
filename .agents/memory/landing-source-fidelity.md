@@ -41,6 +41,12 @@ The user requires complete dashboard control of the homepage: «تمامی بخ�
 
 **How to apply:** When adding homepage content or forms, include authorized editing and public rendering together. Submitted forms must reach a real administrative inbox; browser-only previews do not satisfy this requirement.
 
+Use “Get A Quote” as the estimate form entry point, without a separate “Get A Free Estimate” bar.
+
+**Why:** The user explicitly said the duplicate control was unnecessary because both perform the same function.
+
+**How to apply:** Keep one shared estimate form, hidden until requested; preserve its transparent appearance and existing product-specific request links.
+
 The homepage must allow modular, block-based drag-and-drop editing: the administrator should be able to create new arrangements without code changes.
 
 **Why:** The user explicitly requested dynamic placement of homepage blocks and elements.

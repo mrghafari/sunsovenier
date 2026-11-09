@@ -396,16 +396,19 @@ export default function Home() {
   const stats = page.stats[locale] ?? page.stats.en ?? c.stats.map((label, index) => ({label, value: c.statsValues[index]}));
   const processSteps = page.process[locale] ?? page.process.en ?? c.process.map(([title, description]) => ({title, description}));
   const formFields = page.form.fields;
-  const quoteBlock = sections.quote && <div className="mc-estimate-card mc-reveal" id="quote" ref={quoteRef} data-home-part="quote">
+  const quoteBlock = sections.quote && <div className="mc-estimate-card mc-reveal" id="quote" ref={quoteRef} data-home-part="quote" hidden={!quoteExpanded}>
     <h2 className="mc-estimate-heading">
       <button
         className="mc-estimate-toggle"
         type="button"
         aria-expanded={quoteExpanded}
         aria-controls="mc-estimate-content"
-        onClick={() => setQuoteExpanded(expanded => !expanded)}
+        onClick={() => {
+          setQuoteExpanded(false);
+          document.querySelector<HTMLAnchorElement>('.mc-hero-buttons a[href="#quote"]')?.focus({ preventScroll: true });
+        }}
       >
-        <span>{c.quoteTitle}</span>
+        <span>{c.getQuote}</span>
         <i className="fa-solid fa-chevron-down" aria-hidden="true" />
       </button>
     </h2>

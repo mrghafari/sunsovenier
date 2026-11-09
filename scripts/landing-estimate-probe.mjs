@@ -25,14 +25,15 @@ try {
     await page.waitForSelector(trigger);
     assert.equal(await page.$eval(trigger, node => node.getAttribute("aria-expanded")), "false");
     assert.equal(await page.$eval("#quote form", node => node.getBoundingClientRect().height), 0);
+    assert.equal(await page.$eval("#quote", node => node.hidden), true, "No separate collapsed estimate card");
     const collapsedHeight = await page.$eval("#quote", node => node.getBoundingClientRect().height);
-    await page.click(trigger);
+    await page.click('a[href="#quote"]');
     await page.waitForFunction(() => document.querySelector("#quote form").getBoundingClientRect().height > 0);
     assert.equal(await page.$eval(trigger, node => node.getAttribute("aria-expanded")), "true");
     assert.ok(await page.$eval("#quote", node => node.getBoundingClientRect().height) > collapsedHeight + 200);
     await page.type("#mc-name", "Estimate toggle test");
     await page.click(trigger);
-    await page.focus(trigger);
+    await page.focus('a[href="#quote"]');
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => document.querySelector("#mc-name").getBoundingClientRect().height > 0);
     assert.equal(await page.$eval("#mc-name", node => node.value), "Estimate toggle test");
