@@ -66,7 +66,7 @@
 .mc-slide-dots { display: flex; gap: 8px; margin-top: 35px; }
 .mc-slide-dots button { width: 26px; height: 3px; padding: 0; border: 0; border-radius: 4px; background: rgba(255,255,255,.35); cursor: pointer; transition:width .25s ease,background .25s ease; }
 .mc-slide-dots button[aria-pressed="true"] { width:44px; background: var(--mc-blue-light); }
-.mc-estimate-card { position:relative; z-index:3; padding: 31px; border: 1px solid rgba(255,255,255,.75); border-radius: 24px; color: #19222e; background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(244,246,249,.86)); box-shadow: 0 32px 100px rgba(0,0,0,.38),0 0 70px rgba(26,86,219,.12); backdrop-filter:blur(22px); }
+.mc-estimate-card { position:relative; z-index:3; padding: 31px; border: 1px solid rgba(255,255,255,.4); border-radius: 24px; color: #19222e; background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(244,246,249,.18)); box-shadow: 0 32px 100px rgba(0,0,0,.38),0 0 70px rgba(26,86,219,.12); backdrop-filter:blur(2px); }
 .mc-estimate-card::before { position:absolute; content:""; inset:0 22% auto; height:1px; background:linear-gradient(90deg,transparent,rgba(110,163,255,.65),transparent); }
 .mc-hero .mc-estimate-card { transform: translate3d(0,var(--mc-quote-offset,0px),0); }
 .mc-estimate-card h2 { margin: 0; color: #19222e; text-align: start; font:700 24px/1.2 "Manrope","Vazirmatn",sans-serif; letter-spacing:-.04em; }
@@ -397,8 +397,11 @@
 .mc-button-gold:hover,.mc-submit:hover { background:linear-gradient(110deg,#2b68ec,#1a56db);box-shadow:0 12px 34px rgba(26,86,219,.32); }
 .mc-button-outline:hover,.mc-button-dark:hover { border-color:rgba(110,163,255,.7);background:rgba(26,86,219,.1); }
 .mc-slide-dots button[aria-pressed="true"] { background:#6ea3ff; }
-.mc-estimate-card { color:#19222e;background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(244,246,249,.86));border-color:rgba(255,255,255,.75);box-shadow:0 32px 100px rgba(0,0,0,.38),0 0 70px rgba(26,86,219,.12); }
+.mc-estimate-card { color:#19222e;background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(244,246,249,.18));border-color:rgba(255,255,255,.4);box-shadow:0 32px 100px rgba(0,0,0,.38),0 0 70px rgba(26,86,219,.12); }
 .mc-estimate-card h2 { color:#19222e; }
+.mc-hero .mc-estimate-card h2 { color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.75); }
+.mc-hero .mc-estimate-toggle > i { color:#fff;border-color:rgba(255,255,255,.5); }
+.mc-hero .mc-estimate-card .mc-rating { color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.8); }
 .mc-estimate-card::before { background:linear-gradient(90deg,transparent,rgba(110,163,255,.65),transparent); }
 .mc-control { color:#19222e;border-color:#dfe4ea;background:#fff; }
 .mc-control::placeholder { color:#7a8490; }
