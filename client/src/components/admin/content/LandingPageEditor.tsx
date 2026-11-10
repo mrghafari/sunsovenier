@@ -197,7 +197,7 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
       const url = await upload(file);
       setDraft((current) => current ? { ...current, images: { ...current.images, [slot]: url } } : current);
       setMessage(copy.uploadReady);
-    } catch { setMessage(copy.uploadFailed); }
+    } catch (error) { setMessage(`${copy.uploadFailed}${error instanceof Error ? ` ${error.message}` : ""}`); }
   };
   const addCustom = () => {
     const title = newCard.title.trim();
@@ -253,7 +253,7 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{slots.map((slot) => <article key={slot.key} data-image-slot={slot.key} className="overflow-hidden rounded-xl border bg-background">
          {slotSource(slot) ? <img className="h-40 w-full object-cover" src={slotSource(slot)} alt={`${slot.label} · ${copy.image}`} /> : <div className="flex h-40 items-center justify-center bg-muted text-xs text-muted-foreground">تصویر هنوز بارگذاری نشده / No image uploaded</div>}
         <div className="flex items-center justify-between gap-2 p-3"><span className="truncate text-sm font-medium">{slot.label}</span><div className="flex gap-1">
-           <label className="inline-flex cursor-pointer items-center rounded-md border px-2 py-1.5 text-xs hover:bg-muted"><ImagePlus className="mr-1 h-3.5 w-3.5" />{copy.replace}<input className="sr-only" type="file" accept="image/*" disabled={save.isPending} onChange={(event) => { void replaceImage(slot.key, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} /></label>
+           <label className="inline-flex cursor-pointer items-center rounded-md border px-2 py-1.5 text-xs hover:bg-muted"><ImagePlus className="mr-1 h-3.5 w-3.5" />{copy.replace}<input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/svg+xml,.svg" disabled={save.isPending} onChange={(event) => { void replaceImage(slot.key, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} /></label>
            {draft.images[slot.key] && <Button size="sm" variant="ghost" disabled={save.isPending} aria-label={`${copy.reset} ${slot.label}`} onClick={() => setDraft(current => current ? { ...current, images: Object.fromEntries(Object.entries(current.images).filter(([keyName]) => keyName !== slot.key)) } : current)}>{copy.reset}</Button>}
         </div></div></article>)}</div>
     </section>

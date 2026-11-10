@@ -490,10 +490,10 @@ export default function Home() {
           <div className="mc-hero-overlay" />
           <div className="mc-container mc-hero-grid">
             <LayoutElements order={page.layout.elements.hero}>
-            {sections.hero && <div data-home-part="copy" className="mc-hero-copy mc-reveal">
-              <span className="mc-eyebrow">{localizedSetting(currentSlide?.eyebrow ?? {}, locale, c.eyebrow)}</span>
-              <h1>{localizedSetting(currentSlide?.title ?? {}, locale, c.heroTitle)}</h1>
-              <p>{localizedSetting(currentSlide?.description ?? {}, locale, c.heroDesc)}</p>
+            {sections.hero && <div data-home-part="copy" className="mc-hero-copy mc-reveal" data-slide-text-visible={currentSlide?.showText !== false}>
+              <span className="mc-eyebrow" aria-hidden={currentSlide?.showText === false || undefined}>{localizedSetting(currentSlide?.eyebrow ?? {}, locale, c.eyebrow)}</span>
+              <h1 aria-hidden={currentSlide?.showText === false || undefined}>{localizedSetting(currentSlide?.title ?? {}, locale, c.heroTitle)}</h1>
+              <p aria-hidden={currentSlide?.showText === false || undefined}>{localizedSetting(currentSlide?.description ?? {}, locale, c.heroDesc)}</p>
               <div className="mc-hero-buttons"><a className="mc-button mc-button-gold" href={effectiveHref(page.actions.heroPrimary)}>{c.viewProducts}</a><a className="mc-button mc-button-outline" href={effectiveHref(page.actions.heroSecondary)}>{c.getQuote}</a></div>
               <div className="mc-slide-dots" aria-label="Hero slides">{heroImages.map((item, index) => <button key={item.id} type="button" aria-label={`Show slide ${index + 1}`} aria-pressed={slideKey === item.id} onClick={async () => { if (await ensureHeroLoaded(index)) setSlide(index); }} />)}</div>
             </div>}

@@ -1,12 +1,12 @@
 import type {Express,RequestHandler} from "express";
 import multer from "multer";
-import sharp,{type Metadata} from "sharp";
 import path from "node:path";
 import {createHash} from "node:crypto";
 import {ZodError} from "zod";
 import {pool} from "./db";
 import {getAwsS3Service} from "./aws-s3-service";
 import {readLandingContent,saveLandingContent,LandingConflictError} from "./landing-content-store";
+import {prepareLandingImage,LandingImageValidationError} from "./landing-image-processing";
 
 const upload=multer({storage:multer.memoryStorage(),limits:{fileSize:8*1024*1024,files:1,fields:0}});
 const mediaName=/^[a-f0-9]{64}\.(jpg|png|webp|gif|avif)$/;
@@ -36,30 +36,21 @@ export function registerLandingContentRoutes(app:Express,permissions:{view:Reque
     upload.single("file")(req,res,async(error)=>{
       if(error){res.status(error.code==="LIMIT_FILE_SIZE"?413:400).json({success:false,message:"Choose one image up to 8 MB."});return;}
       if(!req.file){res.status(400).json({success:false,message:"An image is required."});return;}
-      let metadata:Metadata;
+      let image:Awaited<ReturnType<typeof prepareLandingImage>>;
       try{
-        metadata=await sharp(req.file.buffer,{limitInputPixels:40_000_000}).metadata();
-      }catch{res.status(400).json({success:false,message:"The file is not a valid raster image."});return;}
-      const format=metadata.format;
-      const extension=format==="jpeg"?"jpg":format==="heif"&&metadata.compression==="av1"?"avif":format;
-      if(!extension||!mediaTypes[extension]){
-        res.status(400).json({success:false,message:"Use JPEG, PNG, WebP, GIF or AVIF. SVG is not allowed."});return;
-      }
-      try{
-        // Reject SVG before decoding, then validate actual raster pixels.
-        await sharp(req.file.buffer,{limitInputPixels:40_000_000}).stats();
-      }catch{res.status(400).json({success:false,message:"The image could not be decoded."});return;}
-      const filename=`${createHash("sha256").update(req.file.buffer).digest("hex")}.${extension}`;
+        image=await prepareLandingImage(req.file.buffer);
+      }catch(error){res.status(400).json({success:false,message:error instanceof LandingImageValidationError?error.message:"The image could not be processed."});return;}
+      const filename=`${createHash("sha256").update(image.buffer).digest("hex")}.${image.extension}`;
       const url=`/api/landing-media/${filename}`;
       try{
-        // Keep the uploaded pixels and original resolution; no lossy recompression.
-        const ok=await getAwsS3Service().uploadPrivateFileToKey(req.file.buffer,`landing-media/${filename}`,mediaTypes[extension]);
+        // Raster originals stay unchanged; SVGs are stored as safe, lossless PNG.
+        const ok=await getAwsS3Service().uploadPrivateFileToKey(image.buffer,`landing-media/${filename}`,image.mimeType);
         if(!ok)throw new Error("Storage unavailable");
         await pool.query(`INSERT INTO image_assets(filename,original_name,mime_type,size,url,alt,section,is_active)
           SELECT $1,$2,$3,$4,$5,'','landing_page',true
           WHERE NOT EXISTS(SELECT 1 FROM image_assets WHERE url=$5 AND section='landing_page')`,
-          [filename,path.basename(req.file.originalname).replace(/[\x00-\x1f]/g,"").slice(0,255),mediaTypes[extension],req.file.size,url]);
-        res.status(201).json({success:true,data:{url,width:metadata.width,height:metadata.height,bytes:req.file.size}});
+          [filename,path.basename(req.file.originalname).replace(/[\x00-\x1f]/g,"").slice(0,255),image.mimeType,image.bytes,url]);
+        res.status(201).json({success:true,data:{url,width:image.width,height:image.height,bytes:image.bytes}});
       }catch{res.status(503).json({success:false,message:"Image upload failed. The published page has not changed."});}
     });
   });

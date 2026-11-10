@@ -51,6 +51,7 @@
 .mc-hero-overlay::after { position: absolute; inset-block: 0; left: -42%; width: 34%; content: ""; pointer-events: none; opacity: 0; background: linear-gradient(100deg,transparent,rgba(110,163,255,.1),rgba(110,163,255,.17),transparent); transform: skewX(-18deg); }
 .mc-hero-grid { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0,1.1fr) minmax(350px,.7fr); gap: clamp(44px,8vw,120px); align-items: center; }
 .mc-hero-copy { padding-block: 15px; transform: translate3d(0,var(--mc-copy-offset,0px),0); }
+.mc-hero-copy[data-slide-text-visible="false"] > :is(.mc-eyebrow,h1,p) { visibility: hidden; }
 .mc-hero.is-motion-active .mc-hero-slider,.mc-hero.is-motion-active .mc-hero-copy,.mc-hero.is-motion-active .mc-estimate-card { will-change: transform; }
 .mc-eyebrow { display: inline-flex; align-items:center; gap:10px; margin-bottom: 18px; color: var(--mc-blue-light); font-size: 11px; line-height: 1.5; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; }
 .mc-eyebrow::before { content:""; width:25px; height:1px; background:linear-gradient(90deg,#1a56db,#6ea3ff); }

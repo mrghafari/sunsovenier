@@ -59,6 +59,12 @@ The homepage must allow modular, block-based drag-and-drop editing: the administ
 
 **How to apply:** Preserve the supplied design as the default, not a restriction against administrator-authored layouts. Keep layout editing in Content Management and publish it through the same authorized shared save as homepage content.
 
+The three shared hero text blocks (eyebrow, heading and description) must be independently hideable for each slide without hiding its product/quote buttons or erasing the text.
+
+**Why:** The user explicitly identified “Momtaz Chem Industrial”, “Industrial Chemical Solutions & High-Grade Solvents” and its description as the text they want to hide or reveal per slide.
+
+**How to apply:** Keep the control in the existing slide editor. Treat older slides without a visibility preference as visible, and preserve the banner geometry when text is hidden.
+
 The supplied dark/orange landing video is a motion reference only, not a replacement for Momtazchem's content or visual identity.
 
 **Why:** The user said «منظورم حالت انیمیشن است نه محتوایی» and approved applying that animation style while preserving the existing landing page.

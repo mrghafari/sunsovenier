@@ -46,6 +46,7 @@ export const landingPageSettingsSchema = z.object({
   phoneLabel: z.string().trim().max(100), phoneHref: safeLandingLink,
   slides: z.array(z.object({
     id: idSchema, isActive: z.boolean(),
+    showText: z.boolean().optional(),
     eyebrow: localizedTextSchema, title: localizedTextSchema, description: localizedTextSchema,
   }).strict()).min(1).max(10),
   autoplay: z.boolean(), slideInterval: z.number().int().min(3000).max(60000),

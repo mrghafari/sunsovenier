@@ -7,6 +7,19 @@ import { safeLandingLink, defaultLandingPageSettings } from "../shared/landing-p
 import { prepareLandingInquiry, LandingFormClosedError, registerLandingInquiryRoutes } from "./landing-inquiries";
 import manifest from "../client/src/pages/landing/landing-assets.json";
 
+test("slide text visibility is independent, defaults to visible and preserves text", () => {
+  const content = defaultLandingContent();
+  content.page.slides[0].title.en = "Keep this text";
+  content.page.slides[0].showText = false;
+  const saved = landingContentSchema.parse(content);
+  assert.equal(saved.page.slides[0].showText, false);
+  assert.equal(saved.page.slides[0].title.en, "Keep this text");
+  assert.equal(saved.page.slides[1].showText, undefined);
+  saved.page.slides[0].showText = true;
+  assert.equal(landingContentSchema.parse(saved).page.slides[0].showText, true);
+  assert.equal(landingContentSchema.safeParse({ ...saved, page: { ...saved.page, slides: [{ ...saved.page.slides[0], showText: "false" }] } }).success, false);
+});
+
 test("homepage navigation includes an editable localized blog link", () => {
   const page = defaultLandingPageSettings();
   const blog = page.navigation.find(link => link.id === "blog");
