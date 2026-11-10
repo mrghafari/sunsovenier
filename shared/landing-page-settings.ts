@@ -36,6 +36,17 @@ const cardSchema = z.object({
   specs: z.record(z.enum(pageLanguages), z.array(z.string().trim().max(500)).max(30)),
   pack: z.array(z.enum(["drum220", "ibc1000", "tank1500", "bag25", "bigbag"])).min(1).max(5),
 }).strict();
+const heroArtworkLayerSchema = z.object({
+  id: idSchema,
+  text: z.string().max(4000),
+  x: z.number().min(0).max(4096),
+  y: z.number().min(0).max(4096),
+  width: z.number().min(1).max(4096),
+  fontSize: z.number().min(1).max(256),
+  fontWeight: z.number().int().min(100).max(900),
+  lineHeight: z.number().min(1).max(512),
+  align: z.enum(["start", "middle", "end"]).optional(),
+}).strict();
 export const landingPageSettingsSchema = z.object({
   layout: landingLayoutSchema.default(defaultLandingLayout),
   texts: z.record(z.enum(pageLanguages), z.record(z.enum(landingTextKeys), z.string().trim().max(12000))),
@@ -47,6 +58,8 @@ export const landingPageSettingsSchema = z.object({
   slides: z.array(z.object({
     id: idSchema, isActive: z.boolean(),
     eyebrow: localizedTextSchema, title: localizedTextSchema, description: localizedTextSchema,
+    // Optional for backwards compatibility with already-published landing settings.
+    artwork: z.object({ enabled: z.boolean().optional(), layers: z.array(heroArtworkLayerSchema).max(80).optional() }).strict().optional(),
   }).strict()).min(1).max(10),
   autoplay: z.boolean(), slideInterval: z.number().int().min(3000).max(60000),
   stats: z.record(z.enum(pageLanguages), z.array(z.object({ label: z.string().trim().max(180), value: z.string().trim().max(80) }).strict()).max(12)),
