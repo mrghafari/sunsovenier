@@ -13,4 +13,10 @@ Record manufacturer/test evidence without implying certification or compatibilit
 
 **Why:** Test pressure and allowable working pressure have different meanings; a populated technical form is not proof that a container is approved for a substance or transport route.
 
-**How to apply:** Preserve explicit units, distinguish unknown ratings from zero/false, leave old records unspecified, and do not invent standardized limits or backfill them from product names. Customer-facing publication and attached certificates are separate scope.
+**How to apply:** Preserve explicit units, distinguish unknown ratings from zero/false, leave old records unspecified, and do not invent standardized limits or backfill them from product names. Attached certificates remain separate scope.
+
+Show populated Kardex container specifications to customers through a “Packing” popup, with its button at the opposite end of the product-name row.
+
+**Why:** The user requested all filled packaging fields in a shop popup, then clarified «دکمه را ببر نقطه مقابل نام روبرو».
+
+**How to apply:** Preserve this placement in grid/list and RTL layouts. Hide empty fields, not valid zero or false values; include custom properties and their units. Use live Kardex evidence rather than a second editable shop copy. When several batches share a shop product, retain a stable base record rather than silently substituting another batch’s container claims.

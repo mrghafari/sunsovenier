@@ -481,7 +481,7 @@ export function PackagingSpecificationsView({ value, language }: ViewProps) {
         <div className="space-y-2">
           <h4 className="text-xs font-semibold text-muted-foreground">{text.custom}</h4>
           {additional.map((row, index) => (
-            <div key={`${row.name}-${index}`} className="flex flex-wrap gap-x-2 text-sm">
+            <div key={`${row.name}-${index}`} className="flex min-w-0 flex-wrap gap-x-2 text-sm [overflow-wrap:anywhere]">
               <span className="font-medium">{row.name}:</span><span>{row.value}</span>
               {row.unit && <span className="text-muted-foreground">{row.unit}</span>}
             </div>

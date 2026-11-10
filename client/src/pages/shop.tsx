@@ -36,6 +36,8 @@ import { formatIQDAmount } from "@/lib/currency-utils";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import ProductModel3DViewer from "@/components/ProductModel3DViewer";
+import ProductPackingDialog from "@/components/products/ProductPackingDialog";
+import type { PackagingSpecifications } from "@shared/product-packaging";
 
 const Shop = () => {
   const { toast } = useMultilingualToast();
@@ -1785,12 +1787,19 @@ const Shop = () => {
                         </div>
                         <CardContent className="p-3 sm:p-4">
                           <div className="mb-1.5 sm:mb-2">
-                            <h3
-                              className="font-semibold text-base sm:text-lg cursor-pointer hover:text-blue-600 transition-colors"
-                              onClick={() => navigate(`/shop/product/${product.id}`)}
-                            >
-                              {product.name}
-                            </h3>
+                            <div className="flex w-full min-w-0 items-start justify-between gap-3">
+                              <h3
+                                className="min-w-0 flex-1 break-words font-semibold text-base sm:text-lg cursor-pointer hover:text-blue-600 transition-colors"
+                                onClick={() => navigate(`/shop/product/${product.id}`)}
+                              >
+                                {product.name}
+                              </h3>
+                              <ProductPackingDialog
+                                productName={product.name}
+                                value={(product as typeof product & { packagingSpecifications?: PackagingSpecifications | null }).packagingSpecifications}
+                                language={language}
+                              />
+                            </div>
                             {product.contractOnly && (
                               <Badge variant="outline" className="mt-2 w-fit border-amber-300 bg-amber-50 text-amber-800">
                                 {contractOnlyCopy.badge}
@@ -2365,14 +2374,21 @@ const Shop = () => {
                         </div>
                         <CardContent className="p-6 flex-1">
                           <div className="flex justify-between items-start">
-                            <div className="flex-1">
+                            <div className="min-w-0 flex-1">
                               <div className="mb-2">
-                                <h3
-                                  className="font-semibold text-xl cursor-pointer hover:text-blue-600 transition-colors"
-                                  onClick={() => navigate(`/shop/product/${product.id}`)}
-                                >
-                                  {product.name}
-                                </h3>
+                                <div className="flex w-full min-w-0 items-start justify-between gap-3">
+                                  <h3
+                                    className="min-w-0 flex-1 break-words font-semibold text-xl cursor-pointer hover:text-blue-600 transition-colors"
+                                    onClick={() => navigate(`/shop/product/${product.id}`)}
+                                  >
+                                    {product.name}
+                                  </h3>
+                                  <ProductPackingDialog
+                                    productName={product.name}
+                                    value={(product as typeof product & { packagingSpecifications?: PackagingSpecifications | null }).packagingSpecifications}
+                                    language={language}
+                                  />
+                                </div>
                                 {product.contractOnly && (
                                   <Badge variant="outline" className="mt-2 w-fit border-amber-300 bg-amber-50 text-amber-800">
                                     {contractOnlyCopy.badge}

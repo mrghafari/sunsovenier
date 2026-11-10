@@ -25116,7 +25116,9 @@ ${procedure.content}
       const availableQuantities = await getAvailableQuantities(customerProducts.map(product => product.id));
       
       // Map database fields to frontend expected format
-      const mappedProducts = customerProducts.map(product => {
+      const { withShopPackaging } = await import("./shop-packaging");
+      const productsWithPackaging = await withShopPackaging(customerProducts);
+      const mappedProducts = productsWithPackaging.map(product => {
         const available = availableQuantities[product.id] ?? Number(product.stockQuantity || 0);
         return {
         ...product,
@@ -25183,8 +25185,10 @@ ${procedure.content}
       }
       
       // Map database fields to frontend expected format
+      const { withShopPackaging } = await import("./shop-packaging");
+      const [productWithPackaging] = await withShopPackaging([product]);
       const mappedProduct = {
-        ...product,
+        ...productWithPackaging,
         imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
         imageUrls: product.imageUrls || [], // Include the full array of images
         unitPrice: product.price,
