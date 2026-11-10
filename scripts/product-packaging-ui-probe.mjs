@@ -53,6 +53,42 @@ try {
     });
     await page.goto(base + "/__packaging-probe", { waitUntil: "networkidle0", timeout: 60000 });
     await page.waitForSelector("#packaging-nominalCapacityL");
+    const panel = '[data-testid="packaging-editor-panel"]';
+    const sections = '[data-testid^="packaging-section-"]';
+    const expandAll = async () => {
+      if (!await page.$eval(panel, node => node.open)) await page.click(`${panel} > summary`);
+      for (const id of ["identity", "capacity", "conditions", "evidence", "custom", "notes"]) {
+        const selector = `[data-testid="packaging-section-${id}"]`;
+        if (!await page.$eval(selector, node => node.open)) await page.click(`${selector} > summary`);
+      }
+    };
+    assert.equal(await page.$eval(panel, node => node.open), false, "Packing is collapsed initially");
+    assert.equal(await page.$$eval(sections, nodes => nodes.length), 6);
+    assert.equal(await page.$$eval(sections, nodes => nodes.some(node => node.open)), false);
+    await page.focus(`${panel} > summary`);
+    await page.keyboard.press("Enter");
+    assert.equal(await page.$eval(panel, node => node.open), true);
+    await new Promise(resolve => setTimeout(resolve, 250));
+    assert.equal(await page.$eval('[data-testid="packaging-section-identity"] > summary svg',
+      node => getComputedStyle(node).transform), "none", "Opening parent must not rotate closed subgroup arrows");
+    await page.click('[data-testid="packaging-section-capacity"] > summary');
+    assert.equal(await page.$$eval(sections, nodes => nodes.filter(node => node.open).length), 1,
+      "Subgroups expand independently");
+    for (const dark of [false, true]) {
+      await page.evaluate(dark => document.documentElement.classList.toggle("dark", dark), dark);
+      const colors = await page.$eval(panel, node => ({
+        panel: getComputedStyle(node).backgroundColor,
+        body: getComputedStyle(document.body).backgroundColor,
+      }));
+      assert.notEqual(colors.panel, colors.body, "Packing has a distinct background in both themes");
+    }
+    if (language === "fa") {
+      await page.click('[data-testid="packaging-section-capacity"] > summary');
+      await page.screenshot({ path: "generated-artifacts/packaging-verification/fa-groups.jpg", type: "jpeg", quality: 80 });
+      await page.click(`${panel} > summary`);
+      await page.screenshot({ path: "generated-artifacts/packaging-verification/fa-collapsed.jpg", type: "jpeg", quality: 80 });
+    }
+    await expandAll();
     const setNumber = async (id, value) => {
       await page.click("#packaging-" + id);
       await page.keyboard.down("Control");
@@ -74,6 +110,8 @@ try {
       await setNumber("nominalCapacityL", 200);
       await setNumber("usableCapacityL", 250);
       assert.equal(await page.$eval("#save-fixture", node => node.disabled), true);
+      assert.ok(await page.$eval('[role="alert"]', node => node.getBoundingClientRect().height > 0),
+        "Validation feedback stays visible");
       await setNumber("usableCapacityL", 190);
       await setNumber("wallThicknessMm", 1.2);
       await setNumber("workingPressureBar", 0);
@@ -98,9 +136,19 @@ try {
       assert.equal(saved.workingPressureBar, 0);
       assert.equal(saved.minTemperatureC, -20);
       await page.reload({ waitUntil: "networkidle0", timeout: 60000 });
+      await page.waitForSelector(panel);
+      assert.equal(await page.$eval(panel, node => node.open), false);
+      await expandAll();
       assert.equal(await page.$eval("#packaging-wallThicknessMm", node => node.value), "1.2");
       await setNumber("wallThicknessMm", 1.4);
       assert.equal(await page.evaluate(() => window.__packaging.wallThicknessMm), 1.4);
+      await page.click('[data-testid="packaging-section-capacity"] > summary');
+      assert.equal(await page.$eval('[data-testid="packaging-section-capacity"]', node => node.open), false);
+      await page.click(`${panel} > summary`);
+      await page.click(`${panel} > summary`);
+      await page.click('[data-testid="packaging-section-capacity"] > summary');
+      assert.equal(await page.$eval("#packaging-wallThicknessMm", node => node.value), "1.4",
+        "Collapsing subgroup and panel must retain edits");
     }
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
     assert.equal(await page.$eval("#read-view", node => node.textContent.includes("DN50")), true);
@@ -114,7 +162,7 @@ try {
     assert.equal(await page.evaluate(() => window.__packaging), null);
     assert.equal(await page.$eval("#packaging-nominalCapacityL", node => node.value), "");
     assert.deepEqual(errors, []);
-    console.log(`PASS ${language}: controlled editor, labels, read-only values, no overflow, confirmed clear${language === "en" ? ", numeric validation, custom rows, fixture save/reload/edit" : ""}.`);
+    console.log(`PASS ${language}: initially collapsed, independent keyboard disclosures, distinct light/dark backgrounds, retained edits, no overflow, confirmed clear${language === "en" ? ", validation, custom rows, fixture save/reload" : ""}.`);
     await page.close();
   }
 } finally {

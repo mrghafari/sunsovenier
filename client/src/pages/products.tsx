@@ -27,6 +27,7 @@ import VisualBarcode from "@/components/ui/visual-barcode";
 import FIFOBatchDisplay from "@/components/ui/fifo-batch-display";
 import ProductModel3DViewer from "@/components/ProductModel3DViewer";
 import PackagingSpecificationsEditor, { PackagingSpecificationsView, hasPackagingSpecifications } from "@/components/products/PackagingSpecificationsEditor";
+import { KardexFormSection, revealKardexSectionForField } from "@/components/products/KardexFormSection";
 
 // Custom form schema that handles numeric inputs properly  
 // Note: Validation messages will be handled in the form, not in schema
@@ -200,6 +201,18 @@ export default function ProductsPage() {
   const { toast } = useToast();
   const barcodeCanvasRef = useRef<HTMLCanvasElement>(null);
   const keepDialogOpenAfterUpdateRef = useRef(false);
+
+  useEffect(() => {
+    if (!dialogOpen) return;
+    requestAnimationFrame(() => {
+      document.querySelectorAll<HTMLDetailsElement>('[data-testid^="kardex-section-"]').forEach((section) => {
+        section.open = false;
+      });
+      document.querySelectorAll<HTMLDetailsElement>('[data-testid^="packaging-section-"], [data-testid="packaging-editor-panel"]').forEach((section) => {
+        section.open = false;
+      });
+    });
+  }, [dialogOpen]);
   
   // Fetch vendor session if in vendor mode
   const { data: vendorSession, isLoading: isLoadingVendorSession } = useQuery<{ vendorId: number; vendorName: string }>({
@@ -766,6 +779,7 @@ export default function ProductsPage() {
     setValidationErrors(errors);
     
     if (Object.keys(errors).length > 0) {
+      revealKardexSectionForField(Object.keys(errors)[0]);
       keepDialogOpenAfterUpdateRef.current = false;
       toast({
         title: t.productManagement.enterNameCategory,
@@ -861,8 +875,10 @@ export default function ProductsPage() {
       keepDialogOpenAfterUpdateRef.current = true;
       onSubmit(data);
     },
-    () => {
+    (errors) => {
       keepDialogOpenAfterUpdateRef.current = false;
+      const firstError = Object.keys(errors)[0];
+      if (firstError) revealKardexSectionForField(firstError);
     }
   );
 
@@ -1933,8 +1949,8 @@ export default function ProductsPage() {
                       )}
 
                       {hasPackagingSpecifications(product.packagingSpecifications) && (
-                        <details className="my-3 rounded-lg border p-3" data-testid={`packaging-summary-${product.id}`}>
-                          <summary className="cursor-pointer text-sm font-medium">
+                        <details className="my-3 rounded-lg border border-amber-500 bg-amber-100 p-3 text-amber-950 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-50" data-testid={`packaging-summary-${product.id}`}>
+                          <summary className="cursor-pointer rounded-sm text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                             {language === "fa" ? "مشخصات فنی بسته‌بندی" : language === "ar" ? "المواصفات الفنية للتعبئة" : language === "tr" ? "Ambalaj teknik özellikleri" : "Container packaging specifications"}
                           </summary>
                           <div className="mt-3"><PackagingSpecificationsView language={language} value={product.packagingSpecifications} /></div>
@@ -2076,9 +2092,19 @@ export default function ProductsPage() {
               }, (errors) => {
                 keepDialogOpenAfterUpdateRef.current = false;
                 console.log('❌ [DEBUG] Form validation failed:', errors);
-              })} className="space-y-4">
+                const firstError = Object.keys(errors)[0];
+                if (firstError) revealKardexSectionForField(firstError);
+              })} onInvalidCapture={(event) => {
+                const field = event.target as HTMLInputElement;
+                if (field.name) revealKardexSectionForField(field.name);
+              }} className="space-y-4">
                 
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <KardexFormSection
+                  id="classification"
+                  title={language === "fa" ? "دسته‌بندی و ویژگی‌های محصول" : language === "ar" ? "تصنيف المنتج وخصائصه" : language === "tr" ? "Ürün sınıflandırması ve özellikleri" : "Product classification & handling"}
+                  icon={<Package className="h-4 w-4 text-muted-foreground" />}
+                >
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="isNonChemical"
@@ -2174,7 +2200,9 @@ export default function ProductsPage() {
                     )}
                   />
                 </div>
+                </KardexFormSection>
 
+                <KardexFormSection id="basic" title={t.productManagement.baseInfo} icon={<Package className="h-4 w-4 text-muted-foreground" />}>
                 <div className={`p-4 rounded-lg border ${form.watch('isNonChemical') ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'}`}>
                   <h3 className={`text-lg font-semibold mb-3 flex items-center gap-2 ${form.watch('isNonChemical') ? 'text-green-800' : 'text-blue-800'}`}>
                     <Package className="h-5 w-5" />
@@ -2213,7 +2241,7 @@ export default function ProductsPage() {
                       control={form.control}
                       name="category"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem data-kardex-field="category">
                           <FormLabel className="text-sm font-medium flex items-center gap-2">
                             {t.productManagement.categoryLabel}
                             <Tooltip>
@@ -2447,7 +2475,9 @@ export default function ProductsPage() {
                     />
                   </div>
                 </div>
+                </KardexFormSection>
 
+                <KardexFormSection id="pricing" title={t.productManagement.identificationPricing} icon={<QrCode className="h-4 w-4 text-muted-foreground" />}>
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
                   <h3 className="text-lg font-semibold text-green-800 mb-3 flex items-center gap-2">
                     <QrCode className="h-5 w-5" />
@@ -2706,7 +2736,9 @@ export default function ProductsPage() {
                     />
                   </div>
                 </div>
+                </KardexFormSection>
 
+                <KardexFormSection id="inventory" title={t.productManagement.stockManagement} icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />}>
                 <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-lg border border-orange-200">
                   <h3 className="text-lg font-semibold text-orange-800 mb-3 flex items-center gap-2">
                     <BarChart3 className="h-5 w-5" />
@@ -2788,15 +2820,6 @@ export default function ProductsPage() {
                                 disabled={!editingProduct || isSubmitting}
                               />
                             </FormControl>
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={applyStockWithoutClosing}
-                              disabled={!editingProduct || isSubmitting || Number(field.value || 0) <= 0}
-                              className="h-9 shrink-0 bg-orange-600 hover:bg-orange-700"
-                            >
-                              {isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : t.apply}
-                            </Button>
                           </div>
                           <FormMessage />
                         </FormItem>
@@ -3081,7 +3104,7 @@ export default function ProductsPage() {
                     />
                   </div>
                   <FormField control={form.control} name="packagingSpecifications" render={({ field }) => (
-                    <FormItem className="mt-6" data-testid="kardex-packaging-block">
+                    <FormItem className="mt-6 rounded-lg border border-amber-500 bg-amber-200 p-3 text-amber-950 sm:p-4 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-50" data-testid="kardex-packaging-block">
                       <PackagingSpecificationsEditor
                         key={editingProduct?.id ?? "new-product"}
                         language={language} value={field.value} onChange={field.onChange}
@@ -3112,8 +3135,10 @@ export default function ProductsPage() {
                     </div>
                   )}
                 </div>
+                </KardexFormSection>
 
                 {/* Tags and additional settings */}
+                <KardexFormSection id="display" title={t.shopSettings} icon={<Tag className="h-4 w-4 text-muted-foreground" />}>
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
                   <h3 className="text-lg font-semibold text-purple-800 mb-3 flex items-center gap-2">
                     <Tag className="h-5 w-5" />
@@ -3193,8 +3218,10 @@ export default function ProductsPage() {
                     />
                   </div>
                 </div>
+                </KardexFormSection>
 
                 {/* File and document management */}
+                <KardexFormSection id="media" title={t.productManagement.fileManagement} icon={<FileText className="h-4 w-4 text-muted-foreground" />}>
                 <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-4 rounded-lg border border-indigo-200">
                   <h3 className="text-lg font-semibold text-indigo-800 mb-3 flex items-center gap-2">
                     <FileText className="h-5 w-5" />
@@ -3253,6 +3280,7 @@ export default function ProductsPage() {
                   
                   {/* Product images upload (max 3 images) - Conditional rendering based on displayMode */}
                   {form.watch('displayMode') === 'images' && (
+                  <KardexFormSection id="images" title={t.productManagement.productImages} icon={<Image className="h-4 w-4 text-muted-foreground" />}>
                   <div className="space-y-4">
                     <div className="space-y-3">
                       <FormLabel className="text-sm font-medium flex items-center gap-2">
@@ -3477,10 +3505,12 @@ export default function ProductsPage() {
                       </div>
                     </div>
                   </div>
+                  </KardexFormSection>
                   )}
 
                   {/* 3D Model upload section - Conditional rendering based on displayMode */}
                   {form.watch('displayMode') === '3d_model' && (
+                    <KardexFormSection id="model3d" title={t.productManagement.model3dFile} icon={<Package className="h-4 w-4 text-muted-foreground" />}>
                     <div className="space-y-4">
                       <div className="space-y-3">
                         <FormLabel className="text-sm font-medium flex items-center gap-2">
@@ -3634,10 +3664,12 @@ export default function ProductsPage() {
                         </div>
                       </div>
                     </div>
+                    </KardexFormSection>
                   )}
 
                   <div className="space-y-4">
                     {/* Catalog PDF upload */}
+                    <KardexFormSection id="catalog" title={t.productCatalog} icon={<Eye className="h-4 w-4 text-muted-foreground" />}>
                     <div className="space-y-3 border-t pt-4">
                       <FormLabel className="text-sm font-medium flex items-center gap-2">
                         <Eye className="h-4 w-4" />
@@ -3822,9 +3854,11 @@ export default function ProductsPage() {
                         </div>
                       </div>
                     </div>
+                    </KardexFormSection>
 
                     {/* MSDS upload - hidden for non-chemical products */}
                     {!form.watch('isNonChemical') && (
+                    <KardexFormSection id="msds" title={t.msdsDocument} icon={<FileText className="h-4 w-4 text-muted-foreground" />}>
                     <div className="space-y-3 border-t pt-4">
                       <FormLabel className="text-sm font-medium flex items-center gap-2">
                         <FileText className="h-4 w-4" />
@@ -4009,11 +4043,22 @@ export default function ProductsPage() {
                         </div>
                       </div>
                     </div>
+                    </KardexFormSection>
                     )}
                   </div>
                 </div>
+                </KardexFormSection>
 
                 <div className="flex justify-end gap-3 pt-4 border-t">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={applyStockWithoutClosing}
+                    disabled={!editingProduct || isSubmitting || Number(form.watch("inventoryAddition") || 0) <= 0}
+                    className="bg-orange-600 hover:bg-orange-700"
+                  >
+                    {isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : t.apply}
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"

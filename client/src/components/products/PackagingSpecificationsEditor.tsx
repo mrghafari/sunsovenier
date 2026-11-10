@@ -5,6 +5,7 @@ import {
   Plus,
   Trash2,
   PackageCheck,
+  ChevronDown,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -364,12 +365,22 @@ function FieldLabel({ children, htmlFor }: { children: ReactNode; htmlFor?: stri
   return <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-medium text-foreground">{children}</label>;
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({
+  title, testId, children,
+}: { title: string; testId: string; children: ReactNode }) {
   return (
-    <section className="space-y-3 rounded-md border bg-card p-3 sm:p-4">
-      <h3 className="border-b pb-2 text-sm font-semibold">{title}</h3>
-      {children}
-    </section>
+    <details
+      data-testid={testId}
+      className="group/packing-section rounded-md border border-border/80 bg-card text-card-foreground transition-colors open:border-primary/30"
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md px-3 py-3 text-sm font-semibold outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden sm:px-4">
+        <span>{title}</span>
+        <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-open/packing-section:rotate-180" />
+      </summary>
+      <div className="space-y-3 border-t border-border/70 px-3 py-3 sm:px-4 sm:py-4">
+        {children}
+      </div>
+    </details>
   );
 }
 
@@ -468,22 +479,22 @@ export function PackagingSpecificationsView({ value, language }: ViewProps) {
   const filled = rows.filter((row): row is [string, string] => row[1] !== undefined && row[1].trim() !== "");
   const additional = value.additionalProperties?.filter((row) => row.name.trim() || row.value.trim() || row.unit?.trim()) ?? [];
   return (
-    <div className="space-y-3" data-testid="product-packaging-editor" dir={locale === "fa" || locale === "ar" ? "rtl" : "ltr"}>
+    <div className="space-y-3 rounded-lg border border-amber-500 bg-amber-100 p-3 text-amber-950 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-50" data-testid="product-packaging-editor" dir={locale === "fa" || locale === "ar" ? "rtl" : "ltr"}>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
         {filled.map(([label, display]) => (
-          <div key={label} className="min-w-0 border-b border-border/70 pb-2">
-            <dt className="text-xs text-muted-foreground">{label}</dt>
+          <div key={label} className="min-w-0 border-b border-amber-400/80 pb-2 dark:border-amber-800">
+            <dt className="text-xs text-amber-900/75 dark:text-amber-200">{label}</dt>
             <dd className="mt-0.5 whitespace-pre-wrap break-words text-sm font-medium">{display}</dd>
           </div>
         ))}
       </dl>
       {additional.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-muted-foreground">{text.custom}</h4>
+          <h4 className="text-xs font-semibold text-amber-900/75 dark:text-amber-200">{text.custom}</h4>
           {additional.map((row, index) => (
             <div key={`${row.name}-${index}`} className="flex min-w-0 flex-wrap gap-x-2 text-sm [overflow-wrap:anywhere]">
               <span className="font-medium">{row.name}:</span><span>{row.value}</span>
-              {row.unit && <span className="text-muted-foreground">{row.unit}</span>}
+              {row.unit && <span className="text-amber-900/75 dark:text-amber-200">{row.unit}</span>}
             </div>
           ))}
         </div>
@@ -584,17 +595,37 @@ export default function PackagingSpecificationsEditor({
 
   return (
     <div className="space-y-3" dir={locale === "fa" || locale === "ar" ? "rtl" : "ltr"}>
-      <header className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h2 className="flex items-center gap-2 text-base font-semibold"><PackageCheck className="h-4 w-4 text-muted-foreground" />{text.title}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{text.subtitle}</p>
+      {errors.length > 0 && (
+        <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          <p className="mb-1 font-medium">{text.validation}</p>
+          <ul className="list-inside list-disc space-y-0.5">
+            {[...new Set(errors)].map((error, index) => <li key={`${error}-${index}`}>{error}</li>)}
+          </ul>
         </div>
-        <Button type="button" data-testid="packaging-clear" variant="outline" size="sm" disabled={disabled} onClick={clearSpecifications} className="h-8 text-xs">
-          <Trash2 className="me-1.5 h-3.5 w-3.5" />{text.clear}
-        </Button>
-      </header>
+      )}
 
-      <Section title={text.identity}>
+      <details
+        data-testid="packaging-editor-panel"
+        className="group/packing-panel rounded-lg border border-amber-500 bg-amber-100 p-2 text-amber-950 shadow-sm transition-colors open:border-amber-600 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-50 sm:p-3"
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md px-2 py-2 outline-none transition-colors hover:bg-amber-200/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden dark:hover:bg-amber-900 sm:px-3">
+          <span className="min-w-0">
+            <span className="flex items-center gap-2 text-base font-semibold">
+              <PackageCheck aria-hidden="true" className="h-4 w-4 shrink-0 text-amber-800 dark:text-amber-300" />
+              {text.title}
+            </span>
+            <span className="mt-1 block text-xs font-normal text-amber-900/80 dark:text-amber-200">{text.subtitle}</span>
+          </span>
+          <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-amber-800 transition-transform duration-200 group-open/packing-panel:rotate-180 dark:text-amber-300" />
+        </summary>
+        <div className="space-y-3 px-1 pb-1 pt-2 sm:px-2 sm:pb-2">
+          <div className="flex justify-end">
+            <Button type="button" data-testid="packaging-clear" variant="outline" size="sm" disabled={disabled} onClick={clearSpecifications} className="h-8 text-xs">
+              <Trash2 className="me-1.5 h-3.5 w-3.5" />{text.clear}
+            </Button>
+          </div>
+
+      <Section title={text.identity} testId="packaging-section-identity">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <EnumField label={text.containerType} value={current.containerType} options={enumTypes.map((key): [string, string] => [key, text.containerTypes[key]])} placeholder={text.select} disabled={disabled} onChange={(next) => update({ containerType: next as PackagingSpecifications["containerType"] })} />
           <EnumField label={text.material} value={current.material} options={enumMaterials.map((key): [string, string] => [key, text.materials[key]])} placeholder={text.select} disabled={disabled} onChange={(next) => update({ material: next as PackagingSpecifications["material"] })} />
@@ -604,13 +635,13 @@ export default function PackagingSpecificationsEditor({
         </div>
       </Section>
 
-      <Section title={text.capacity}>
+      <Section title={text.capacity} testId="packaging-section-capacity">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {(["nominalCapacityL", "usableCapacityL", "wallThicknessMm", "tareWeightKg", "lengthMm", "widthMm", "heightMm", "diameterMm"] as const).map(numericField)}
         </div>
       </Section>
 
-      <Section title={text.conditions}>
+      <Section title={text.conditions} testId="packaging-section-conditions">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(["workingPressureBar", "testPressureKpa", "minTemperatureC", "maxTemperatureC", "maxGrossMassKg", "stackingLoadKg"] as const).map(numericField)}
           <BooleanField label={text.reusable} value={current.reusable} text={text} disabled={disabled} onChange={(next) => update({ reusable: next })} />
@@ -619,7 +650,7 @@ export default function PackagingSpecificationsEditor({
         </div>
       </Section>
 
-      <Section title={text.evidence}>
+      <Section title={text.evidence} testId="packaging-section-evidence">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <TextField label={text.standardReference} value={current.standardReference} disabled={disabled} onChange={(next) => update({ standardReference: next })} />
           <TextField label={text.unMark} value={current.unMark} disabled={disabled} onChange={(next) => update({ unMark: next })} />
@@ -628,7 +659,7 @@ export default function PackagingSpecificationsEditor({
         </div>
       </Section>
 
-      <Section title={text.custom}>
+      <Section title={text.custom} testId="packaging-section-custom">
         <div className="space-y-2">
           {rowValues.map((row, index) => (
             <div key={index} className="grid grid-cols-1 items-end gap-2 sm:grid-cols-[1fr_1fr_0.7fr_auto]">
@@ -646,7 +677,7 @@ export default function PackagingSpecificationsEditor({
         </div>
       </Section>
 
-      <Section title={text.notesGroup}>
+      <Section title={text.notesGroup} testId="packaging-section-notes">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <TextField label={text.compatibilityNotes} value={current.compatibilityNotes} disabled={disabled} multiline onChange={(next) => update({ compatibilityNotes: next })} />
           <TextField label={text.notes} value={current.notes} disabled={disabled} multiline onChange={(next) => update({ notes: next })} />
@@ -660,14 +691,8 @@ export default function PackagingSpecificationsEditor({
         </a>
       </div>
 
-      {errors.length > 0 && (
-        <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-          <p className="mb-1 font-medium">{text.validation}</p>
-          <ul className="list-inside list-disc space-y-0.5">
-            {[...new Set(errors)].map((error, index) => <li key={`${error}-${index}`}>{error}</li>)}
-          </ul>
         </div>
-      )}
+      </details>
     </div>
   );
 }

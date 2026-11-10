@@ -20,3 +20,9 @@ Show populated Kardex container specifications to customers through a “Packing
 **Why:** The user requested all filled packaging fields in a shop popup, then clarified «دکمه را ببر نقطه مقابل نام روبرو».
 
 **How to apply:** Preserve this placement in grid/list and RTL layouts. Hide empty fields, not valid zero or false values; include custom properties and their units. Use live Kardex evidence rather than a second editable shop copy. When several batches share a shop product, retain a stable base record rather than silently substituting another batch’s container claims.
+
+All Kardex form blocks must support independent expand/collapse, with packing kept in place and given an unmistakably different background.
+
+**Why:** The user requested collapsed packing blocks, then clarified «قابلیت اکسپد و هیدن را به همه بلوکهای کاردکس اضافه کن و رنگ بلوک پکینگ را حتما متفاوت کن الان باز یکی است». A subtle shared-theme tint was not visually different enough.
+
+**How to apply:** Start form-block disclosures closed and let staff expand each group independently, including media/document groups. Preserve edited values when closing a block and reveal hidden invalid fields on failed validation. Give packing a visibly distinct, opaque color treatment in both light and dark themes, not another subtle blue/gray tint.
