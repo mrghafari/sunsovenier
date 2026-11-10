@@ -63,7 +63,7 @@ The three shared hero text blocks (eyebrow, heading and description) must be ind
 
 **Why:** The user explicitly identified “Momtaz Chem Industrial”, “Industrial Chemical Solutions & High-Grade Solvents” and its description as the text they want to hide or reveal per slide.
 
-**How to apply:** Keep the control in the existing slide editor. Treat older slides without a visibility preference as visible, and preserve the banner geometry when text is hidden.
+**How to apply:** Expose the same control directly on each slide image card as well as in detailed slide settings; the user looks for it beside the uploaded slide, not below the layout builder. Treat older slides without a visibility preference as visible, and preserve the banner geometry when text is hidden.
 
 The supplied dark/orange landing video is a motion reference only, not a replacement for Momtazchem's content or visual identity.
 

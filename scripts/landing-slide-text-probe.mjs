@@ -5,10 +5,12 @@ import puppeteer from "puppeteer";
 const base = `https://${process.env.REPLIT_DEV_DOMAIN}`;
 const component = "/src/components/admin/content/LandingSettingsEditor.tsx";
 const source = await (await fetch(base + component)).text();
+const parentSource = await (await fetch(base + "/src/components/admin/content/LandingPageEditor.tsx")).text();
+const queryUrl = parentSource.match(/from ["']([^"']*tanstack_react-query[^"']*)["']/)?.[1];
 const main = await (await fetch(base + "/src/main.tsx")).text();
 const reactUrl = source.match(/from ["']([^"']*\/react\.js[^"']*)["']/)?.[1];
 const domUrl = main.match(/from ["']([^"']*react-dom_client[^"']*)["']/)?.[1];
-assert.ok(reactUrl && domUrl);
+assert.ok(reactUrl && domUrl && queryUrl);
 let state = structuredClone((await (await fetch(base + "/api/landing-content")).json()).data);
 state.page.autoplay = false;
 for (const slide of state.page.slides) delete slide.showText;
@@ -41,14 +43,24 @@ try {
           return React.createElement(React.Fragment,null,
             React.createElement("button",{id:"save-fixture",onClick:()=>fetch("/__save-slide-fixture",{method:"POST",body:JSON.stringify(content)})},"Save fixture"),
             React.createElement(Editor,{page:content.page,content,language:"fa",onChange:page=>setContent(current=>({...current,page})),onContentChange:setContent,onImageUploaded:()=>{},uploadImage:async()=>{throw new Error("Not part of this probe")}}));
-        }createRoot(document.getElementById("probe")).render(React.createElement(Harness));
+        }
+        let view=React.createElement(Harness);
+        if(${url.searchParams.has("full")}){
+          localStorage.setItem("language","fa");localStorage.setItem("language-manually-selected","true");
+          const {LanguageProvider}=await import("/src/contexts/LanguageContext.tsx");
+          const {QueryClient,QueryClientProvider}=await import(${JSON.stringify(queryUrl)});
+          const Parent=(await import("/src/components/admin/content/LandingPageEditor.tsx")).default;
+          view=React.createElement(QueryClientProvider,{client:new QueryClient()},React.createElement(LanguageProvider,null,React.createElement(Parent,{})));
+        }
+        createRoot(document.getElementById("probe")).render(view);
       </script>` });
     }
     if (url.pathname === "/__save-slide-fixture") {
       state = JSON.parse(request.postData());
       return request.respond({ contentType: "application/json", body: '{"success":true}' });
     }
-    if (url.pathname === "/api/landing-content") {
+    if (url.pathname === "/api/landing-content" || url.pathname === "/api/content-management/landing") {
+      assert.equal(request.method(), "GET", "Probe must not change live content");
       return request.respond({ contentType: "application/json", body: JSON.stringify({ success: true, data: state }) });
     }
     if (request.resourceType() === "image" && url.pathname.startsWith("/api/landing-")) {
@@ -60,19 +72,31 @@ try {
   await page.goto(base + "/__slide-text-probe", { waitUntil: "networkidle0", timeout: 60000 });
   const control = `[data-testid="slide-text-${first}"]`;
   await page.waitForSelector(control);
-  assert.equal(await page.$eval(control, node => node.checked), true);
+  assert.equal(await page.$eval(control, node => node.getAttribute("aria-checked")), "true");
   await page.click(control);
   assert.equal(await page.evaluate(id => window.__slideDraft.page.slides.find(slide => slide.id === id).showText, first), false);
   assert.equal(await page.evaluate(id => window.__slideDraft.page.slides.find(slide => slide.id === id).showText, second), undefined);
   await page.click("#save-fixture");
   await page.waitForNetworkIdle({ idleTime: 300, timeout: 15000 });
   await page.reload({ waitUntil: "networkidle0", timeout: 60000 });
-  assert.equal(await page.$eval(control, node => node.checked), false);
+  assert.equal(await page.$eval(control, node => node.getAttribute("aria-checked")), "false");
   await page.click(control);
   assert.equal(await page.evaluate(id => window.__slideDraft.page.slides.find(slide => slide.id === id).showText, first), true);
   console.log("PASS actual settings component: independent switch, fixture save/reload, restore; no live data changed.");
 
-  for (const width of process.env.SLIDE_TEXT_WIDTH ? [Number(process.env.SLIDE_TEXT_WIDTH)] : [1440, 430]) {
+  await page.goto(base + "/__slide-text-probe?full=1", { waitUntil: "networkidle0", timeout: 60000 });
+  const imageControl = `[data-testid="slide-image-text-${first}"]`;
+  await page.waitForSelector(imageControl, { visible: true });
+  assert.equal(await page.$eval(imageControl, node => node.getAttribute("aria-checked")), "false");
+  await page.click(imageControl);
+  assert.equal(await page.$eval(control, node => node.getAttribute("aria-checked")), "true");
+  assert.equal(await page.$eval('[data-testid="landing-save"]', node => node.disabled), false);
+  await page.click(control);
+  assert.equal(await page.$eval(imageControl, node => node.getAttribute("aria-checked")), "false");
+  assert.equal(await page.$eval('[data-testid="landing-save"]', node => node.disabled), true);
+  console.log("PASS full landing editor: text button appears on slide image card, stays synchronized with settings and enables Save.");
+
+  for (const width of process.env.SLIDE_EDITOR_ONLY ? [] : process.env.SLIDE_TEXT_WIDTH ? [Number(process.env.SLIDE_TEXT_WIDTH)] : [1440, 430]) {
     await page.close();
     page = await browser.newPage();
     page.on("pageerror", error => errors.push(error.message));

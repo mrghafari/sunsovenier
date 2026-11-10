@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, ChevronUp, ChevronDown, ImagePlus } from "lucide-react";
 import { BASE_PRODUCTS, PACKAGES } from "@/pages/landing/catalog";
+import SlideTextVisibilityToggle from "./SlideTextVisibilityToggle";
 
 type Props = {
   page: LandingPageSettings;
@@ -95,7 +96,6 @@ export default function LandingSettingsEditor({ page, language, onChange, conten
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState("");
   const rtl = language === "fa" || language === "ar";
-  const slideTextLabel = { en: "Show text on this slide", fa: "نمایش متن روی این اسلاید", ar: "إظهار النص على هذه الشريحة", tr: "Bu slaytta metni göster" }[language];
   const sourceDefaults = defaultLandingPageSettings();
   const patch = (changes: Partial<LandingPageSettings>) => onChange({ ...page, ...changes });
   const patchText = (key: string, value: string) => patch({ texts: { ...page.texts, [language]: { ...page.texts[language], [key]: value } } });
@@ -136,7 +136,9 @@ export default function LandingSettingsEditor({ page, language, onChange, conten
         <div className="flex flex-wrap items-center justify-between gap-2"><strong>بنر {i+1} / Slide {i+1} · {slide.id}</strong><div className="flex items-center gap-1">{moveButtons(i,page.slides.length,d=>editArray("slides",move([...page.slides],i,d)))}<Button type="button" size="sm" variant="ghost" disabled={locked||page.slides.length<=1} aria-label="حذف بنر / Delete slide" onClick={()=>{const images={...content.images};delete images[`hero-${slide.id}`];onContentChange({...content,images});editArray("slides",page.slides.filter(x=>x.id!==slide.id));}}><Trash2 className="h-4 w-4"/></Button></div></div>
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" disabled={locked} checked={slide.isActive} onChange={e=>editArray("slides",page.slides.map(x=>x.id===slide.id?{...x,isActive:e.target.checked}:x))}/>فعال / Active</label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" role="switch" data-testid={`slide-text-${slide.id}`} disabled={locked} checked={slide.showText !== false} onChange={e=>editArray("slides",page.slides.map(x=>x.id===slide.id?{...x,showText:e.target.checked}:x))}/>{slideTextLabel}</label>
+          <SlideTextVisibilityToggle language={language} visible={slide.showText !== false} disabled={locked}
+            testId={`slide-text-${slide.id}`}
+            onChange={showText=>editArray("slides",page.slides.map(x=>x.id===slide.id?{...x,showText}:x))} />
           {imageControl(`hero-${slide.id}`,"بارگذاری تصویر / Upload image")}
           <span className="text-xs text-muted-foreground">{content.images[`hero-${slide.id}`]?"تصویر سفارشی آماده است / Custom image ready":(["0","1","2"].includes(slide.id)?"تصویر اصلی پیش‌فرض / Original fallback":"تصویر الزامی است / Image required")}</span>
         </div>
