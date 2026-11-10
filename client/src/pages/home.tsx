@@ -12,8 +12,6 @@ import LandingLayoutRenderer, { LayoutElements } from "./landing/LandingLayoutRe
 import { useLandingMotion } from "./landing/useLandingMotion";
 import AboutPhotoWindow from "./landing/AboutPhotoWindow";
 import { aboutContent } from "./landing/about-content";
-import HeroArtworkOverlay from "./landing/HeroArtworkOverlay";
-import { effectiveHeroImageUrl, resolveHeroArtwork } from "./landing/hero-artwork";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import type { ShopCategory, ShopProduct } from "@shared/shop-schema";
@@ -196,11 +194,6 @@ export default function Home() {
   const visibleSlides = page.slides.filter(item => item.isActive);
   const slideKey = visibleSlides[slide]?.id ?? visibleSlides[0]?.id ?? "0";
   const currentSlide = visibleSlides[slide] ?? visibleSlides[0];
-  const currentSlideSource = currentSlide
-    ? landingContent?.images[`hero-${currentSlide.id}`] || (["0", "1", "2"].includes(currentSlide.id) ? assetUrl(Number(currentSlide.id)) : "")
-    : "";
-  const resolvedCurrentArtwork = currentSlide ? resolveHeroArtwork(currentSlideSource, currentSlide.artwork) : null;
-  const currentArtwork = resolvedCurrentArtwork?.layers.some(layer => layer.text.trim()) ? resolvedCurrentArtwork : null;
   const linkLabel = (link: LandingLink) => localizedSetting(link.labels, locale, (c as unknown as Record<string, string>)[link.textKey ?? ""] ?? link.id);
   const sectionForAnchor: Record<string, keyof typeof sections> = { "#about": "about", "#services": "services", "#process": "process", "#faq": "faq", "#quote": "quote" };
   const effectiveHref = (href: string) => sectionForAnchor[href] && !sections[sectionForAnchor[href]] ? "/contact" : href;
@@ -272,10 +265,9 @@ export default function Home() {
   [landingContent, localizedProducts, locale, page.cards]);
 
   const ensureHeroLoaded = useCallback((index: number): Promise<boolean> => {
-    const target = visibleSlides[index];
-    if (!target) return Promise.resolve(false);
-    const sourceUrl = landingContent?.images[`hero-${target.id}`] || (["0","1","2"].includes(target.id) ? assetUrl(Number(target.id)) : "");
-    const url = effectiveHeroImageUrl(sourceUrl, target.artwork);
+    const id = visibleSlides[index]?.id;
+    if (id === undefined) return Promise.resolve(false);
+    const url = landingContent?.images[`hero-${id}`] || (["0","1","2"].includes(id) ? assetUrl(Number(id)) : "");
     if (!url) return Promise.resolve(false);
     if (loadedSlides.current.has(url)) return Promise.resolve(true);
     const pending = pendingSlides.current.get(url);
@@ -488,24 +480,20 @@ export default function Home() {
           stats: sections.stats && <section className="mc-layout-standalone"><div className="mc-container">{statsBlock}</div></section>,
           categories: sections.categories && <section className="mc-services mc-layout-standalone"><div className="mc-container">{categoryBlock}</div></section>,
         }}>
-        {(sections.hero || sections.quote) && <section data-home-section="hero" className={`mc-hero${currentArtwork ? " has-banner-artwork" : ""}`}>
+        {(sections.hero || sections.quote) && <section data-home-section="hero" className="mc-hero">
           <div className="mc-hero-slider" aria-hidden="true">
             {heroImages.map((item, index) => {
-              const sourceUrl = landingContent?.images[`hero-${item.id}`] || (["0","1","2"].includes(item.id) ? assetUrl(Number(item.id)) : "");
-              const background = effectiveHeroImageUrl(sourceUrl, item.artwork);
+              const background = landingContent?.images[`hero-${item.id}`] || (["0","1","2"].includes(item.id) ? assetUrl(Number(item.id)) : "");
               return <div key={item.id} className={`mc-hero-slide ${slideKey === item.id ? "is-active" : ""}`} style={background ? { backgroundImage: `url("${background}")` } : undefined} />;
             })}
           </div>
           <div className="mc-hero-overlay" />
-          {sections.hero && currentArtwork && <HeroArtworkOverlay artwork={currentArtwork} />}
           <div className="mc-container mc-hero-grid">
             <LayoutElements order={page.layout.elements.hero}>
             {sections.hero && <div data-home-part="copy" className="mc-hero-copy mc-reveal">
-              {!currentArtwork && <>
-                <span className="mc-eyebrow">{localizedSetting(currentSlide?.eyebrow ?? {}, locale, c.eyebrow)}</span>
-                <h1>{localizedSetting(currentSlide?.title ?? {}, locale, c.heroTitle)}</h1>
-                <p>{localizedSetting(currentSlide?.description ?? {}, locale, c.heroDesc)}</p>
-              </>}
+              <span className="mc-eyebrow">{localizedSetting(currentSlide?.eyebrow ?? {}, locale, c.eyebrow)}</span>
+              <h1>{localizedSetting(currentSlide?.title ?? {}, locale, c.heroTitle)}</h1>
+              <p>{localizedSetting(currentSlide?.description ?? {}, locale, c.heroDesc)}</p>
               <div className="mc-hero-buttons"><a className="mc-button mc-button-gold" href={effectiveHref(page.actions.heroPrimary)}>{c.viewProducts}</a><a className="mc-button mc-button-outline" href={effectiveHref(page.actions.heroSecondary)}>{c.getQuote}</a></div>
               <div className="mc-slide-dots" aria-label="Hero slides">{heroImages.map((item, index) => <button key={item.id} type="button" aria-label={`Show slide ${index + 1}`} aria-pressed={slideKey === item.id} onClick={async () => { if (await ensureHeroLoaded(index)) setSlide(index); }} />)}</div>
             </div>}

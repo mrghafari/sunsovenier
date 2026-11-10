@@ -106,9 +106,3 @@ The storefront must offer an icon-only day/night button; night mode should use t
 **Why:** The user requested «دکمه روز و شب» with «در حالت شب همان تم اصلی که تیره است», then clarified «نیاز به نوشته هم نیست فقط نشانه اش باشه کافیه» and asked for a blue discount banner.
 
 **How to apply:** Reuse the existing navy dark palette rather than introduce an unrelated night theme. Keep the control icon-only with an accessible name and tooltip.
-
-Lettering in the supplied banner artwork must be real selectable, CMS-editable text at its original position; those banners must not also show the site's generic hero copy.
-
-**Why:** The user explicitly requested extracting text from banner images and suppressing duplicate site text only on banners containing their own text.
-
-**How to apply:** Keep the original English wording and relative artwork positions unless asked to translate. Match background and text coordinate planes, including RTL pages and mobile. Bind cleaned artwork to its source image rather than silently applying it to replacement uploads. Reconstruct only lettering regions: unrestricted AI edits can stretch or rearrange the source image.
