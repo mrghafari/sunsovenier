@@ -46,6 +46,29 @@ try {
     await page.goto(base + "/__shop-packing-probe", { waitUntil: "networkidle0", timeout: 60000 });
     await page.waitForSelector('[data-testid="product-packing-trigger"]');
     const triggers = await page.$$('[data-testid="product-packing-trigger"]');
+    for (const dark of [false, true]) {
+      await page.evaluate(dark => document.documentElement.classList.toggle("dark", dark), dark);
+      for (const hovered of [false, true]) {
+        if (hovered) await triggers[0].hover();
+        else await page.mouse.move(0, 0);
+        await new Promise(resolve => setTimeout(resolve, 350));
+        const colors = await triggers[0].evaluate(node => {
+          const style = getComputedStyle(node);
+          return { text: style.color, background: style.backgroundColor, icon: getComputedStyle(node.querySelector("svg")).color };
+        });
+        const luminance = color => {
+          const rgb = color.match(/[\d.]+/g).slice(0, 3).map(Number).map(value => {
+            const component = value / 255;
+            return component <= .04045 ? component / 12.92 : ((component + .055) / 1.055) ** 2.4;
+          });
+          return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722;
+        };
+        const a = luminance(colors.text), b = luminance(colors.background);
+        const ratio = (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+        assert.ok(ratio >= 4.5, `Packing contrast ${ratio.toFixed(2)}:1, dark=${dark}, hover=${hovered}`);
+        assert.equal(colors.icon, colors.text);
+      }
+    }
     await triggers[0].click();
     await page.waitForSelector('[data-testid="product-packing-dialog"]');
     const result = await page.$eval('[data-testid="product-packing-dialog"]', node => ({
@@ -75,7 +98,7 @@ try {
     await page.click('[data-testid="product-packing-dialog"] button');
     await page.waitForFunction(() => !document.querySelector('[data-testid="product-packing-dialog"]'));
     assert.deepEqual(errors, []);
-    console.log(`PASS ${language} ${width}px: populated fields only, zero/false/custom values, scroll/RTL, empty state, Escape, close and focus restoration.`);
+    console.log(`PASS ${language} ${width}px: light/dark normal/hover contrast >=4.5:1, matching icon, popup values/scroll/RTL, close and focus restoration.`);
     await page.close();
   }
 } finally {

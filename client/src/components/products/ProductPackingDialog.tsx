@@ -43,7 +43,7 @@ export default function ProductPackingDialog({
           data-testid="product-packing-trigger"
           aria-label={`Packing specifications for ${productName}`}
           onClick={(event) => event.stopPropagation()}
-          className="h-7 shrink-0 gap-1.5 border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500"
+          className="h-7 shrink-0 gap-1.5 border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-blue-400/70 dark:bg-slate-800 dark:text-blue-100 dark:hover:border-blue-300 dark:hover:bg-slate-700 dark:hover:text-white dark:focus-visible:ring-blue-300"
         >
           <PackageCheck aria-hidden="true" className="h-3.5 w-3.5" />
           <span>Packing</span>
