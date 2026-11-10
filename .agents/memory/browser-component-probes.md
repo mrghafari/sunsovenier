@@ -89,3 +89,9 @@ Do not assume a real mouse event requires a fine primary-pointer media query.
 **Why:** Headless Chromium reported `(hover: hover) and (pointer: fine)` as false while delivering genuine Puppeteer mouse events. Hybrid devices can likewise retain a coarse primary pointer with a mouse attached.
 
 **How to apply:** Gate mouse-specific effects by the actual pointer event type. Test real trusted pointer gestures and audio activation instead of using media-query matching as proof of mouse capability.
+
+Replace number-input values using Control+A and Backspace rather than relying on triple-click selection.
+
+**Why:** Chromium selected only part of an existing number during a probe; typing a replacement appended digits and produced an apparent capacity-validation regression.
+
+**How to apply:** Inspect the controlled value after editing numeric fields, and distinguish incorrect test gestures from application validation failures.

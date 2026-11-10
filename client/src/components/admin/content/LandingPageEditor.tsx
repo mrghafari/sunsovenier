@@ -16,7 +16,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import LandingSettingsEditor from "./LandingSettingsEditor";
 import LandingBlockBuilder from "./LandingBlockBuilder";
 import LandingInquiryList from "./LandingInquiryList";
-import SlideTextVisibilityToggle from "./SlideTextVisibilityToggle";
+import SlideCaptionEditor from "./SlideCaptionEditor";
 
 const key = ["/api/content-management/landing"];
 const sourceAssets = (assets as { images: Array<{ url: string }> }).images;
@@ -258,14 +258,12 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
            {draft.images[slot.key] && <Button size="sm" variant="ghost" disabled={save.isPending} aria-label={`${copy.reset} ${slot.label}`} onClick={() => setDraft(current => current ? { ...current, images: Object.fromEntries(Object.entries(current.images).filter(([keyName]) => keyName !== slot.key)) } : current)}>{copy.reset}</Button>}
         </div></div>
         {draft.page.slides.filter(slide => slot.key === `hero-${slide.id}`).map(slide =>
-          <div key={slide.id} className="border-t p-3">
-            <SlideTextVisibilityToggle language={visualLocale} visible={slide.showText !== false}
-              disabled={save.isPending} testId={`slide-image-text-${slide.id}`}
-              onChange={showText => setDraft(current => current ? {
-                ...current, page: { ...current.page, slides: current.page.slides.map(item =>
-                  item.id === slide.id ? { ...item, showText } : item) },
-              } : current)} />
-          </div>
+          <SlideCaptionEditor key={slide.id} slide={slide} language={language}
+            interfaceLanguage={visualLocale} onLanguageChange={setLanguage} disabled={save.isPending}
+            onChange={patch => setDraft(current => current ? {
+              ...current, page: { ...current.page, slides: current.page.slides.map(item =>
+                item.id === slide.id ? { ...item, ...patch } : item) },
+            } : current)} />
         )}
       </article>)}</div>
     </section>

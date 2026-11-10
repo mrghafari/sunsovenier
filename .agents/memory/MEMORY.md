@@ -95,3 +95,4 @@
 - [Customer electronic contract signing](customer-electronic-contract-signing.md) — customer signs after reading in their profile; email a copy using the Legal Affairs sender and email templates.
 - [Accounting order references](accounting-order-references.md) — loading-invoice selection accepts both the displayed M order number and an internal numeric ID.
 - [Landing source fidelity](landing-source-fidelity.md) — preserve the supplied landing graphics and content; reduce weight without visual quality loss.
+- [Container specifications](product-container-specifications.md) — technical Kardex packaging is separate from freight weights and contract charges; recorded ratings are not certification.

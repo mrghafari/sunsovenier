@@ -10,6 +10,7 @@ import { defaultLandingPageSettings, localizedSetting, type LandingLink } from "
 import { effectiveLayoutSections } from "@shared/landing-layout";
 import LandingLayoutRenderer, { LayoutElements } from "./landing/LandingLayoutRenderer";
 import { useLandingMotion } from "./landing/useLandingMotion";
+import { useSlideCaptionTransition } from "./landing/useSlideCaptionTransition";
 import AboutPhotoWindow from "./landing/AboutPhotoWindow";
 import { aboutContent } from "./landing/about-content";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
@@ -194,6 +195,13 @@ export default function Home() {
   const visibleSlides = page.slides.filter(item => item.isActive);
   const slideKey = visibleSlides[slide]?.id ?? visibleSlides[0]?.id ?? "0";
   const currentSlide = visibleSlides[slide] ?? visibleSlides[0];
+  const { caption: slideCaption, phase: captionPhase } = useSlideCaptionTransition({
+    key: `${slideKey}:${locale}`,
+    eyebrow: localizedSetting(currentSlide?.eyebrow ?? {}, locale, c.eyebrow),
+    title: localizedSetting(currentSlide?.title ?? {}, locale, c.heroTitle),
+    description: localizedSetting(currentSlide?.description ?? {}, locale, c.heroDesc),
+    visible: currentSlide?.showText !== false,
+  });
   const linkLabel = (link: LandingLink) => localizedSetting(link.labels, locale, (c as unknown as Record<string, string>)[link.textKey ?? ""] ?? link.id);
   const sectionForAnchor: Record<string, keyof typeof sections> = { "#about": "about", "#services": "services", "#process": "process", "#faq": "faq", "#quote": "quote" };
   const effectiveHref = (href: string) => sectionForAnchor[href] && !sections[sectionForAnchor[href]] ? "/contact" : href;
@@ -490,10 +498,11 @@ export default function Home() {
           <div className="mc-hero-overlay" />
           <div className="mc-container mc-hero-grid">
             <LayoutElements order={page.layout.elements.hero}>
-            {sections.hero && <div data-home-part="copy" className="mc-hero-copy mc-reveal" data-slide-text-visible={currentSlide?.showText !== false}>
-              <span className="mc-eyebrow" aria-hidden={currentSlide?.showText === false || undefined}>{localizedSetting(currentSlide?.eyebrow ?? {}, locale, c.eyebrow)}</span>
-              <h1 aria-hidden={currentSlide?.showText === false || undefined}>{localizedSetting(currentSlide?.title ?? {}, locale, c.heroTitle)}</h1>
-              <p aria-hidden={currentSlide?.showText === false || undefined}>{localizedSetting(currentSlide?.description ?? {}, locale, c.heroDesc)}</p>
+            {sections.hero && <div data-home-part="copy" className="mc-hero-copy mc-reveal"
+              data-slide-text-visible={slideCaption.visible} data-caption-phase={captionPhase} data-caption-key={slideCaption.key}>
+              <span className="mc-eyebrow" aria-hidden={!slideCaption.visible || undefined}>{slideCaption.eyebrow}</span>
+              <h1 aria-hidden={!slideCaption.visible || undefined}>{slideCaption.title}</h1>
+              <p aria-hidden={!slideCaption.visible || undefined}>{slideCaption.description}</p>
             </div>}
             {!detached.has("quote")&&quoteBlock}
             </LayoutElements>

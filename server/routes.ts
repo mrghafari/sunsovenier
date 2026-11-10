@@ -220,6 +220,7 @@ import {
 // Import sync service for automatic table synchronization
 import { globalSyncService } from './sync-service';
 import { generateSitemap } from './sitemap';
+import { validateProductPackaging } from "./product-packaging-validation";
 import { incomingCorrespondence, insertIncomingCorrespondenceSchema, outgoingCorrespondence, insertOutgoingCorrespondenceSchema, insertCompanyDocumentSchema, insertBusinessCardSchema, insertCompanyImageSchema } from "@shared/company-info-schema.js";
 import { id } from "date-fns/locale";
 import { SessionData } from "express-session";
@@ -5547,7 +5548,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Protected admin routes for product management (کاردکس)
-  app.post("/api/products", requireProductManagerAuth, async (req, res) => {
+  app.post("/api/products", requireProductManagerAuth, validateProductPackaging, async (req, res) => {
     try {
       const productData = req.body;
       
@@ -5606,6 +5607,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         weight: productData.weight || 11,
         imageUrl: productData.imageUrl || null,
         specifications: productData.specifications || productData.description || "این یک محصول شیمیایی تولید شرکت ممتاز شیمی است",
+        packagingSpecifications: productData.packagingSpecifications ?? null,
         features: productData.features || productData.description || "این یک محصول شیمیایی تولید شرکت ممتاز شیمی است",
         applications: productData.applications || productData.description || "این یک محصول شیمیایی تولید شرکت ممتاز شیمی است",
         tags: productData.tags || ["شیمیایی"],
@@ -5790,7 +5792,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Update product (PATCH method)
-  app.patch("/api/products/:id", requireProductManagerAuth, async (req, res) => {
+  app.patch("/api/products/:id", requireProductManagerAuth, validateProductPackaging, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -6249,7 +6251,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Update product (PUT method - for compatibility)
-  app.put("/api/products/:id", requireProductManagerAuth, async (req, res) => {
+  app.put("/api/products/:id", requireProductManagerAuth, validateProductPackaging, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {

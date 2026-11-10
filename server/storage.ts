@@ -191,6 +191,10 @@ export class DatabaseStorage implements IStorage {
 
   // Showcase Product management methods
   async createProduct(insertProduct: InsertShowcaseProduct): Promise<ShowcaseProduct> {
+    if (insertProduct.packagingSpecifications !== undefined) {
+      const { packagingSpecificationsSchema } = await import("../shared/product-packaging");
+      insertProduct = { ...insertProduct, packagingSpecifications: packagingSpecificationsSchema.nullable().parse(insertProduct.packagingSpecifications) };
+    }
     // بررسی الزامی بودن بارکد
     if (!insertProduct.barcode || insertProduct.barcode.trim() === '') {
       throw new Error('خطا: بارکد الزامی است. محصولات بدون بارکد مجاز نیستند.');
@@ -285,6 +289,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProduct(id: number, productUpdate: Partial<InsertShowcaseProduct>): Promise<ShowcaseProduct> {
+    if (productUpdate.packagingSpecifications !== undefined) {
+      const { packagingSpecificationsSchema } = await import("../shared/product-packaging");
+      productUpdate = { ...productUpdate, packagingSpecifications: packagingSpecificationsSchema.nullable().parse(productUpdate.packagingSpecifications) };
+    }
     const currentProduct = await this.getProductById(id);
     if (!currentProduct) {
       throw new Error('خطا: محصول مورد نظر پیدا نشد.');

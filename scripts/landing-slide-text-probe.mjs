@@ -60,6 +60,11 @@ try {
       return request.respond({ contentType: "application/json", body: '{"success":true}' });
     }
     if (url.pathname === "/api/landing-content" || url.pathname === "/api/content-management/landing") {
+      if (url.pathname === "/api/content-management/landing" && request.method() === "PUT") {
+        assert.ok(page.url().includes("/__slide-text-probe"), "Only the isolated fixture may save");
+        state = { ...JSON.parse(request.postData()), revision: state.revision + 1 };
+        return request.respond({ contentType: "application/json", body: JSON.stringify({ success: true, data: state }) });
+      }
       assert.equal(request.method(), "GET", "Probe must not change live content");
       return request.respond({ contentType: "application/json", body: JSON.stringify({ success: true, data: state }) });
     }
@@ -96,17 +101,54 @@ try {
   assert.equal(await page.$eval('[data-testid="landing-save"]', node => node.disabled), true);
   console.log("PASS full landing editor: text button appears on slide image card, stays synchronized with settings and enables Save.");
 
+  const fillCaption = async (slideId, part, text) => {
+    const selector = `[data-testid="slide-caption-${slideId}-${part}"]`;
+    await page.click(selector);
+    await page.keyboard.down("Control");
+    await page.keyboard.press("A");
+    await page.keyboard.up("Control");
+    await page.keyboard.press("Backspace");
+    await page.type(selector, text);
+  };
+  await fillCaption(first, "eyebrow", "Image one");
+  await fillCaption(first, "title", "Image one independent headline");
+  await fillCaption(first, "description", "Only the first image description");
+  await fillCaption(second, "title", "Image two independent headline");
+  await page.select(`[data-testid="slide-caption-language-${first}"]`, "fa");
+  await fillCaption(first, "title", "عنوان تصویر اول");
+  await page.select(`[data-testid="slide-caption-language-${first}"]`, "en");
+  assert.equal(await page.$eval(`[data-testid="slide-caption-${first}-title"]`, node => node.value), "Image one independent headline");
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === "/api/content-management/landing" && response.request().method() === "PUT"),
+    page.click('[data-testid="landing-save"]'),
+  ]);
+  await page.waitForNetworkIdle({ idleTime: 300, timeout: 15000 });
+  assert.equal(state.page.slides[0].title.en, "Image one independent headline");
+  assert.equal(state.page.slides[0].title.fa, "عنوان تصویر اول");
+  assert.equal(state.page.slides[0].showText, false);
+  assert.equal(state.page.slides[1].title.en, "Image two independent headline");
+  await page.reload({ waitUntil: "networkidle0", timeout: 60000 });
+  await page.waitForSelector(`[data-testid="slide-caption-${first}-title"]`);
+  assert.equal(await page.$eval(`[data-testid="slide-caption-${first}-title"]`, node => node.value), "Image one independent headline");
+  assert.equal(await page.$eval(imageControl, node => node.getAttribute("aria-checked")), "false");
+  console.log("PASS per-image captions: independent slides/languages, real editor Save against isolated fixture, reload retains text and visibility; no live records written.");
+
   for (const width of process.env.SLIDE_EDITOR_ONLY ? [] : process.env.SLIDE_TEXT_WIDTH ? [Number(process.env.SLIDE_TEXT_WIDTH)] : [1440, 430]) {
     await page.close();
     page = await browser.newPage();
     page.on("pageerror", error => errors.push(error.message));
     await page.setBypassServiceWorker(true);
+    await page.evaluateOnNewDocument(() => {
+      localStorage.setItem("language", "en");
+      localStorage.setItem("language-manually-selected", "true");
+    });
     await page.setRequestInterception(true);
     page.on("request", requestHandler);
     await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
     await page.setViewport({ width, height: 932 });
     await page.goto(base + "/", { waitUntil: "networkidle2", timeout: 60000 });
     await page.waitForFunction(() => document.querySelector('.mc-hero-copy[data-slide-text-visible="false"]'));
+    assert.equal(await page.$eval(".mc-hero-copy > h1", node => node.textContent), "Image one independent headline");
     const textState = await page.$$eval(".mc-hero-copy > .mc-eyebrow,.mc-hero-copy > h1,.mc-hero-copy > p", nodes => nodes.map(node => getComputedStyle(node).visibility));
     assert.deepEqual(textState, ["hidden", "hidden", "hidden"]);
     await page.waitForSelector(".mc-hero-buttons a", { visible: true });
@@ -117,6 +159,7 @@ try {
     await page.waitForFunction(() => document.querySelector('.mc-hero-copy[data-slide-text-visible="true"]'), { timeout: 30000 });
     const restored = await page.$$eval(".mc-hero-copy > .mc-eyebrow,.mc-hero-copy > h1,.mc-hero-copy > p", nodes => nodes.every(node => getComputedStyle(node).visibility === "visible"));
     assert.equal(restored, true);
+    assert.equal(await page.$eval(".mc-hero-copy > h1", node => node.textContent), "Image two independent headline");
     console.log(`PASS ${width}px public rendering: exactly three text sections hidden, CTA controls retained, next slide text visible.`);
   }
   assert.deepEqual(errors, []);

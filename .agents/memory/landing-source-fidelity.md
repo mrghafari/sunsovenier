@@ -59,11 +59,17 @@ The homepage must allow modular, block-based drag-and-drop editing: the administ
 
 **How to apply:** Preserve the supplied design as the default, not a restriction against administrator-authored layouts. Keep layout editing in Content Management and publish it through the same authorized shared save as homepage content.
 
-The three shared hero text blocks (eyebrow, heading and description) must be independently hideable for each slide without hiding its product/quote buttons or erasing the text.
+Each hero slide needs its own localized eyebrow, heading and description, independently hideable without hiding its product/quote buttons or erasing its text.
 
-**Why:** The user explicitly identified “Momtaz Chem Industrial”, “Industrial Chemical Solutions & High-Grade Solvents” and its description as the text they want to hide or reveal per slide.
+**Why:** The user explicitly identified “Momtaz Chem Industrial”, “Industrial Chemical Solutions & High-Grade Solvents” and its description, then requested text matching each slide's own photo with independent visibility.
 
-**How to apply:** Expose the same control directly on each slide image card as well as in detailed slide settings; the user looks for it beside the uploaded slide, not below the layout builder. Treat older slides without a visibility preference as visible, and preserve the banner geometry when text is hidden.
+**How to apply:** Keep the image, localized caption fields, language selector and visibility control together on each slide card, synchronized with detailed settings. Empty fields retain the general site-text fallback; explain this in the editor. Treat older slides without a visibility preference as visible, and preserve banner geometry when text is hidden.
+
+Slide captions should fade in and fade out when slides change.
+
+**Why:** The user explicitly requested «تکستی که قرار است روی اسلاید نشان داده شود فید این فید اوت شود».
+
+**How to apply:** Fade the outgoing words before replacing them, then reveal the incoming caption for both automatic and manual slide selection. Keep CTA controls outside this transition, retain per-slide visibility, cancel stale transitions after rapid selections, and respect reduced-motion preferences.
 
 Keep the product/quote buttons and slide indicators at the bottom edge of the hero image, independently of the slide text.
 

@@ -26,6 +26,7 @@ import JsBarcode from "jsbarcode";
 import VisualBarcode from "@/components/ui/visual-barcode";
 import FIFOBatchDisplay from "@/components/ui/fifo-batch-display";
 import ProductModel3DViewer from "@/components/ProductModel3DViewer";
+import PackagingSpecificationsEditor, { PackagingSpecificationsView, hasPackagingSpecifications } from "@/components/products/PackagingSpecificationsEditor";
 
 // Custom form schema that handles numeric inputs properly  
 // Note: Validation messages will be handled in the form, not in schema
@@ -637,6 +638,7 @@ export default function ProductsPage() {
       netWeight: 0,
       grossWeight: 0,
       weightUnit: "kg",
+      packagingSpecifications: null,
       batchNumber: "",
       tags: "",
       // Variant fields
@@ -1255,6 +1257,7 @@ export default function ProductsPage() {
       priceRange: product.priceRange || "",
       weight: product.weight || "",
       weightUnit: product.weightUnit || "kg",
+      packagingSpecifications: product.packagingSpecifications ?? null,
       netWeight: Number(product.netWeight) || 0,
       grossWeight: Number(product.grossWeight) || 0,
       batchNumber: product.batchNumber || "",
@@ -1929,6 +1932,14 @@ export default function ProductsPage() {
                         </div>
                       )}
 
+                      {hasPackagingSpecifications(product.packagingSpecifications) && (
+                        <details className="my-3 rounded-lg border p-3" data-testid={`packaging-summary-${product.id}`}>
+                          <summary className="cursor-pointer text-sm font-medium">
+                            {language === "fa" ? "مشخصات فنی بسته‌بندی" : language === "ar" ? "المواصفات الفنية للتعبئة" : language === "tr" ? "Ambalaj teknik özellikleri" : "Container packaging specifications"}
+                          </summary>
+                          <div className="mt-3"><PackagingSpecificationsView language={language} value={product.packagingSpecifications} /></div>
+                        </details>
+                      )}
                       {/* FIFO Batch Information - Enhanced Display */}
                       <FIFOBatchDisplay 
                         productName={product.name}
@@ -3069,6 +3080,23 @@ export default function ProductsPage() {
                       )}
                     />
                   </div>
+                  <FormField control={form.control} name="packagingSpecifications" render={({ field }) => (
+                    <FormItem className="mt-6" data-testid="kardex-packaging-block">
+                      <PackagingSpecificationsEditor
+                        key={editingProduct?.id ?? "new-product"}
+                        language={language} value={field.value} onChange={field.onChange}
+                        disabled={!!((form.watch("inventoryAddition") || 0) > 0 && form.watch("newBatchNumber")?.trim())}
+                      />
+                      {!!((form.watch("inventoryAddition") || 0) > 0 && form.watch("newBatchNumber")?.trim()) && (
+                        <p className="text-sm text-muted-foreground">{language === "fa"
+                          ? "برای تغییر مشخصات ظرف، محصول را ویرایش کنید؛ افزودن بچ فقط موجودی و اطلاعات بچ را ثبت می‌کند."
+                          : language === "ar" ? "لتعديل مواصفات الوعاء، حرر المنتج؛ إضافة دفعة تسجل المخزون وبيانات الدفعة فقط."
+                          : language === "tr" ? "Kap özelliklerini değiştirmek için ürünü düzenleyin; parti eklemek yalnızca stok ve parti bilgilerini kaydeder."
+                          : "Edit the product to change container specifications; adding a batch records stock and batch information only."}</p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                   {editingProduct && (
                     <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
                       <p>{t.productManagement.shopGrossWeightHint}</p>

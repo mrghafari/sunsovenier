@@ -1,6 +1,7 @@
-import { pgTable, text, serial, timestamp, decimal, boolean, integer, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, decimal, boolean, integer, json, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { packagingSpecificationsSchema, type PackagingSpecifications } from "./product-packaging";
 
 // =============================================================================
 // SHOWCASE WEBSITE SCHEMA - For product presentation and company information
@@ -41,6 +42,7 @@ export const showcaseProducts = pgTable("showcase_products", {
   catalogFileName: text("catalog_file_name"), // Original filename for display
   catalogUploadDate: timestamp("catalog_upload_date"), // When catalog was uploaded
   specifications: json("specifications"), // Technical specifications for display
+  packagingSpecifications: jsonb("packaging_specifications").$type<PackagingSpecifications | null>(),
   features: json("features"), // Product features array
   applications: json("applications"), // Applications array
   technicalDataSheet: text("technical_data_sheet_url"),
@@ -110,6 +112,7 @@ export const insertShowcaseProductSchema = createInsertSchema(showcaseProducts).
   updatedAt: true,
 }).extend({
   unitPrice: z.coerce.number().min(0),
+  packagingSpecifications: packagingSpecificationsSchema.nullable().optional(),
 });
 
 export type InsertShowcaseProduct = z.infer<typeof insertShowcaseProductSchema>;

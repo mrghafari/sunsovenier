@@ -7,6 +7,24 @@ import { safeLandingLink, defaultLandingPageSettings } from "../shared/landing-p
 import { prepareLandingInquiry, LandingFormClosedError, registerLandingInquiryRoutes } from "./landing-inquiries";
 import manifest from "../client/src/pages/landing/landing-assets.json";
 
+test("each slide retains its own multilingual captions when edited or hidden", () => {
+  const content = defaultLandingContent();
+  content.page.slides[0].title = { en: "First image", fa: "تصویر اول", ar: "الصورة الأولى", tr: "İlk görsel" };
+  content.page.slides[1].title = { en: "Second image", fa: "تصویر دوم" };
+  content.page.slides[0].description = { en: "First description", fa: "شرح تصویر اول" };
+  content.page.slides[0].showText = false;
+  const saved = landingContentSchema.parse(content);
+  saved.page.slides[0].title.fa = "عنوان جدید";
+  saved.page.slides[0].showText = true;
+  const edited = landingContentSchema.parse(saved);
+  assert.equal(edited.page.slides[0].title.en, "First image");
+  assert.equal(edited.page.slides[0].title.fa, "عنوان جدید");
+  assert.equal(edited.page.slides[0].title.ar, "الصورة الأولى");
+  assert.equal(edited.page.slides[0].title.tr, "İlk görsel");
+  assert.equal(edited.page.slides[1].title.fa, "تصویر دوم");
+  assert.equal(edited.page.slides[0].description.en, "First description");
+});
+
 test("slide text visibility is independent, defaults to visible and preserves text", () => {
   const content = defaultLandingContent();
   content.page.slides[0].title.en = "Keep this text";
