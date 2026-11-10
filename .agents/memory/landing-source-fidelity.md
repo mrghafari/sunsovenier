@@ -65,6 +65,12 @@ The three shared hero text blocks (eyebrow, heading and description) must be ind
 
 **How to apply:** Expose the same control directly on each slide image card as well as in detailed slide settings; the user looks for it beside the uploaded slide, not below the layout builder. Treat older slides without a visibility preference as visible, and preserve the banner geometry when text is hidden.
 
+Keep the product/quote buttons and slide indicators at the bottom edge of the hero image, independently of the slide text.
+
+**Why:** The user marked those controls in a screenshot and requested «این آیتم ها را بیار لبه پایین تصویر».
+
+**How to apply:** Anchor the group to the hero's lower area, not the viewport. Preserve RTL alignment and keep the expanded estimate form clear of the controls without internal hero scrolling.
+
 The supplied dark/orange landing video is a motion reference only, not a replacement for Momtazchem's content or visual identity.
 
 **Why:** The user said «منظورم حالت انیمیشن است نه محتوایی» and approved applying that animation style while preserving the existing landing page.

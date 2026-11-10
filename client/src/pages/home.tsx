@@ -494,12 +494,17 @@ export default function Home() {
               <span className="mc-eyebrow" aria-hidden={currentSlide?.showText === false || undefined}>{localizedSetting(currentSlide?.eyebrow ?? {}, locale, c.eyebrow)}</span>
               <h1 aria-hidden={currentSlide?.showText === false || undefined}>{localizedSetting(currentSlide?.title ?? {}, locale, c.heroTitle)}</h1>
               <p aria-hidden={currentSlide?.showText === false || undefined}>{localizedSetting(currentSlide?.description ?? {}, locale, c.heroDesc)}</p>
-              <div className="mc-hero-buttons"><a className="mc-button mc-button-gold" href={effectiveHref(page.actions.heroPrimary)}>{c.viewProducts}</a><a className="mc-button mc-button-outline" href={effectiveHref(page.actions.heroSecondary)}>{c.getQuote}</a></div>
-              <div className="mc-slide-dots" aria-label="Hero slides">{heroImages.map((item, index) => <button key={item.id} type="button" aria-label={`Show slide ${index + 1}`} aria-pressed={slideKey === item.id} onClick={async () => { if (await ensureHeroLoaded(index)) setSlide(index); }} />)}</div>
             </div>}
             {!detached.has("quote")&&quoteBlock}
             </LayoutElements>
           </div>
+          {sections.hero && <div className="mc-container mc-hero-controls">
+            <div className="mc-hero-buttons">
+              <a className="mc-button mc-button-gold" href={effectiveHref(page.actions.heroPrimary)}>{c.viewProducts}</a>
+              <a className="mc-button mc-button-outline" href={effectiveHref(page.actions.heroSecondary)}>{c.getQuote}</a>
+            </div>
+            <div className="mc-slide-dots" aria-label="Hero slides">{heroImages.map((item, index) => <button key={item.id} type="button" aria-label={`Show slide ${index + 1}`} aria-pressed={slideKey === item.id} onClick={async () => { if (await ensureHeroLoaded(index)) setSlide(index); }} />)}</div>
+          </div>}
         </section>}
 
         {sections.trusted && <section data-home-section="trusted" className="mc-trusted"><div className="mc-container mc-trusted-row mc-reveal"><LayoutElements order={page.layout.elements.trusted}><span data-home-part="label">{c.trusted}</span><div data-home-part="partners" className="mc-partner-marquee"><div className="mc-partner-marquee-track"><div className="mc-partner-track">{page.partners.filter(item=>item.isActive).map(item=>{
