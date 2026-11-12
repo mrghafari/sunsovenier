@@ -148,3 +148,9 @@ The public `/products` catalog and all category subpages are retired; customers 
 **Why:** The user explicitly requested removing the old Products route and its subpages, naming `/products/agricultural-fertilizers` as an example.
 
 **How to apply:** Do not restore the old header category dropdown or sitemap entries. Send old public catalog URLs and saved navigation links to `/shop`; preserve Kardex, vendor management, product APIs and stored product data.
+
+Every landing category card needs a localized Purchase button on the physical right, opposite View Details; its details popup needs the same button at the bottom right.
+
+**Why:** The user explicitly requested both placements and language-sensitive text.
+
+**How to apply:** Keep the right-hand placement in RTL as well as LTR. Purchase opens the shop; retain the independent details and quote actions.

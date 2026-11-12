@@ -179,6 +179,7 @@ export default function Home() {
     ? translations[locale].explore : c.explore;
   const originalDetailLabels = PRODUCT_DETAILS_UI[locale] ?? PRODUCT_DETAILS_UI.en;
   const detailText = (key: string, fallback: string) => page.texts[locale]?.[key] ?? page.texts.en?.[key] ?? fallback;
+  const purchaseLabel = detailText("purchase", { en: "Purchase", fa: "خرید", ar: "شراء", tr: "Satın Al" }[locale]);
   const detailLabels = { ...originalDetailLabels,
     close: detailText("modalClose", originalDetailLabels.close),
     detail: detailText("modalDetail", originalDetailLabels.detail),
@@ -548,7 +549,10 @@ export default function Home() {
             return <article className={`mc-service-card mc-reveal mc-delay-${index % 3 + 1}`} key={product.id}>
               <div className="mc-service-image"><img src={imageFor(imageKey, assetIndex)} alt={product.title} loading="lazy" /></div>
               <div className="mc-service-body"><h3>{product.title}</h3><p>{product.short}</p>
-                <button type="button" className="mc-detail-link" onClick={() => openProduct(product.id)}>{c.details}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></button>
+                <div className="mc-card-actions">
+                  <button type="button" className="mc-detail-link" dir={direction} onClick={() => openProduct(product.id)}>{c.details}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></button>
+                  <a href="/shop" className="mc-purchase-button" dir={direction} data-testid={`card-purchase-${product.id}`}>{purchaseLabel}<i className="fa-solid fa-cart-shopping" aria-hidden="true" /></a>
+                </div>
               </div>
             </article>;
           })}</div>
@@ -591,7 +595,10 @@ export default function Home() {
                 <span><b>{pack.name}</b><small>{pack.capacity}</small></span>
               </button>;
             })}</div>
-            <button type="button" className="mc-button mc-button-gold" onClick={() => requestProductQuote(activeProduct.id)}>{detailLabels.request}</button>
+            <div className="mc-modal-actions">
+              <button type="button" className="mc-button mc-button-gold" dir={direction} onClick={() => requestProductQuote(activeProduct.id)}>{detailLabels.request}</button>
+              <a href="/shop" className="mc-purchase-button" dir={direction} data-testid="modal-purchase">{purchaseLabel}<i className="fa-solid fa-cart-shopping" aria-hidden="true" /></a>
+            </div>
           </div>
         </div>}
       </dialog>

@@ -8,7 +8,7 @@ export const landingTextGroups = {
   hero: ["eyebrow", "heroTitle", "heroDesc", "viewProducts", "getQuote"],
   form: ["quoteTitle", "product", "fullName", "email", "phone", "address", "companyOptional", "messageLabel", "submit", "sending", "submitted", "failed", "formError", "ratingLabel"],
   about: ["trusted", "about", "aboutTitle", "aboutDesc", "explore", "aboutImageAlt", "aboutFactManufacturing", "aboutFactPackaging", "aboutFactSafety"],
-  products: ["packaging", "packagingTitle", "packagingHint", "details", "shop", "noCategories", "retry", "browseProducts"],
+  products: ["packaging", "packagingTitle", "packagingHint", "details", "purchase", "shop", "noCategories", "retry", "browseProducts"],
   process: ["processEyebrow", "processTitle"],
   faq: ["faqEyebrow", "faqTitle"],
   footer: ["company", "services", "connect", "aboutLink", "tagline", "account", "copyright", "privacyLabel", "termsLabel", "managementLabel"],

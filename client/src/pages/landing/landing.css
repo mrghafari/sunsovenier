@@ -160,6 +160,13 @@
 .mc-service-body h3 { margin: 0 0 10px; color: #fff; font:700 18px/1.35 "Manrope","Vazirmatn",sans-serif; letter-spacing:-.025em; }
 .mc-service-body p { flex: 1; margin: 0 0 19px; color: rgba(255,255,255,.58); font-size: 12px; line-height: 1.8; }
 .mc-detail-link { display: inline-flex; align-items: center; gap: 9px; border:0; padding:0; color: var(--mc-blue-light); background:transparent; font:inherit; font-size: 11px; font-weight: 800; cursor:pointer; }
+.mc-card-actions,.mc-modal-actions { display:flex; width:100%; align-items:center; justify-content:space-between; gap:12px; direction:ltr; }
+.mc-card-actions { margin-top:auto; }
+.mc-purchase-button { display:inline-flex; flex-shrink:0; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:10px 16px; border:1px solid #4d83ee; border-radius:999px; background:#1a56db; color:#fff; font:inherit; font-size:12px; font-weight:800; line-height:1.3; text-decoration:none; transition:background-color .2s ease,box-shadow .2s ease; }
+.mc-purchase-button:hover { color:#fff; background:#1748b5; box-shadow:0 4px 16px rgba(26,86,219,.25); }
+.mc-purchase-button:focus-visible { outline:3px solid #93b8ff; outline-offset:3px; }
+.mc-modal-actions { margin-top:24px; flex-wrap:wrap; }
+.mc-modal-actions .mc-purchase-button { margin-left:auto; }
 .mc-detail-link i,.mc-text-link i,.mc-footer-cta i { transition:transform .2s ease; }
 .mc-detail-link:hover i,.mc-text-link:hover i,.mc-footer-cta:hover i { transform:translateX(4px); }
 .mc-process { position:relative; padding: 126px 0; background:radial-gradient(ellipse at 15% 20%,rgba(110,163,255,.07),transparent 35%),#f4f6f9; }

@@ -39,6 +39,7 @@ try {
     page.on("request", request => {
       const path = new URL(request.url()).pathname;
       const json = (body, status = 200) => request.respond({ status, contentType: "application/json", body: JSON.stringify(body) });
+      if (path === "/shop" && request.isNavigationRequest()) return request.respond({ contentType: "text/html", body: '<h1 id="shop-destination">Shop destination fixture</h1>' });
       if (path === "/__categories-probe" || path === "/__categories-home-probe") {
         const component = path.endsWith("home-probe") ? "/src/pages/home.tsx" : "/src/pages/content-management.tsx";
         return request.respond({ contentType: "text/html", body: `<!doctype html><html><body><div id="root"></div><script type="module">
@@ -132,6 +133,45 @@ try {
     await page.$eval(".mc-services-grid", node => node.scrollIntoView({ block: "start" }));
     await new Promise(resolve => setTimeout(resolve, 1200));
     await page.screenshot({ path: `generated-artifacts/homepage-categories/${language}-cards.jpg` });
+    for (const [locale, label] of [["en", "Purchase"], ["fa", "خرید"], ["ar", "شراء"], ["tr", "Satın Al"]]) {
+      await page.select(".mc-language select", locale);
+      await page.waitForFunction(label => document.querySelector('[data-testid^="card-purchase-"]')?.textContent.includes(label), {}, label);
+      const buttons = await page.$$eval('[data-testid^="card-purchase-"]', nodes => nodes.map(node => {
+        const detail = node.parentElement.querySelector(".mc-detail-link").getBoundingClientRect();
+        const box = node.getBoundingClientRect();
+        return { href: node.getAttribute("href"), text: node.textContent, rightOfDetails: box.left >= detail.right - 1, fits: box.right <= innerWidth + 1 };
+      }));
+      assert.equal(buttons.length, 7);
+      assert.ok(buttons.every(button => button.href === "/shop" && button.text.includes(label) && button.rightOfDetails && button.fits), JSON.stringify(buttons));
+      const ids = await page.$$eval('[data-testid^="card-purchase-"]', nodes => nodes.map(node => node.dataset.testid));
+      for (const id of ids) {
+        await page.$eval(`[data-testid="${id}"]`, node => node.parentElement.querySelector(".mc-detail-link").click());
+        await page.waitForSelector("dialog[open] [data-testid='modal-purchase']");
+        assert.equal(await page.$eval('[data-testid="modal-purchase"]', (node, label) => node.textContent.includes(label), label), true);
+        assert.equal(await page.$eval('[data-testid="modal-purchase"]', node => node.getAttribute("href")), "/shop");
+        const placement = await page.$eval('[data-testid="modal-purchase"]', node => {
+          const box = node.getBoundingClientRect(), row = node.parentElement.getBoundingClientRect();
+          return { rightGap: row.right - box.right, fits: box.right <= innerWidth + 1 };
+        });
+        assert.ok(Math.abs(placement.rightGap) <= 1 && placement.fits, JSON.stringify(placement));
+        if (locale === language && id === ids[0]) {
+          await page.$eval('[data-testid="modal-purchase"]', node => node.scrollIntoView({ block: "end" }));
+          await page.screenshot({ path: `generated-artifacts/homepage-categories/${language}-purchase-modal.jpg` });
+        }
+        await page.evaluate(() => new Promise(resolve => {
+          const dialog = document.querySelector(".mc-modal");
+          dialog.addEventListener("close", () => requestAnimationFrame(resolve), { once: true });
+          dialog.querySelector(".mc-modal-close").click();
+        }));
+      }
+    }
+    await page.$eval(".mc-detail-link", node => node.click());
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: "domcontentloaded" }),
+      page.click('[data-testid="modal-purchase"]'),
+    ]);
+    assert.equal(new URL(page.url()).pathname, "/shop");
+    await page.waitForSelector("#shop-destination");
     assert.deepEqual(errors, []);
     console.log(`${language}: five editable categories, create, duplicate, edit, reload, six shop links passed`);
     await context.close();
