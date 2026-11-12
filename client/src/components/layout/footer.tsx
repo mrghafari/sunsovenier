@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useQuery } from "@tanstack/react-query";
 import company_logo from "@assets/company-logo.png";
+import { currentPublicProductLink } from "@shared/retired-product-paths";
 
 interface FooterSetting {
   id: number;
@@ -105,7 +106,8 @@ const Footer = () => {
   const parseLinks = (linksJson?: string): LinkItem[] => {
     if (!linksJson) return [];
     try {
-      return JSON.parse(linksJson);
+      const links = JSON.parse(linksJson);
+      return Array.isArray(links) ? links.map(link => ({ ...link, href: currentPublicProductLink(link.href) })) : [];
     } catch {
       return [];
     }

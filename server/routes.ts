@@ -580,6 +580,9 @@ const requireCustomerAuth = (req: Request, res: Response, next: NextFunction) =>
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Retire the public showcase tree, including arbitrary old subpaths.
+  // This never matches /api/products, /mrg/products or /vendor/products.
+  app.get(/^\/products(?:\/.*)?$/, (_req, res) => res.redirect(301, "/shop"));
   const {registerLandingAssets}=await import("./landing-assets");
   registerLandingAssets(app);
   async function getCanonicalCheckoutCartFacts(cart: unknown) {
@@ -30367,6 +30370,10 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       });
     } catch (error) {
       console.error("Error creating category:", error);
+      const { isDuplicateCategoryError } = await import("./shop-category-errors");
+      if (isDuplicateCategoryError(error)) {
+        return res.status(409).json({ success: false, message: "This category slug is already in use." });
+      }
       if (error.name === 'ZodError') {
         return res.status(400).json({
           success: false,
@@ -30391,6 +30398,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       
       const categoryData = insertShopCategorySchema.partial().parse(req.body);
       const category = await shopStorage.updateCategory(id, categoryData);
+      if (!category) return res.status(404).json({ success: false, message: "Category not found" });
       
       res.json({
         success: true,
@@ -30399,6 +30407,10 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       });
     } catch (error) {
       console.error("Error updating category:", error);
+      const { isDuplicateCategoryError } = await import("./shop-category-errors");
+      if (isDuplicateCategoryError(error)) {
+        return res.status(409).json({ success: false, message: "This category slug is already in use." });
+      }
       if (error.name === 'ZodError') {
         return res.status(400).json({
           success: false,
@@ -40370,10 +40382,10 @@ momtazchem.com
           companyEmail: 'info@momtazchem.com',
           companyCodal: '44001',
           productLinks: JSON.stringify([
-            { name: 'Fuel Additives', href: '/products/fuel-additives' },
-            { name: 'Water Treatment', href: '/products/water-treatment' },
-            { name: 'Paint & Thinner', href: '/products/paint-thinner' },
-            { name: 'Agricultural Fertilizers', href: '/products/agricultural-fertilizers' }
+            { name: 'Fuel Additives', href: '/shop' },
+            { name: 'Water Treatment', href: '/shop' },
+            { name: 'Paint & Thinner', href: '/shop' },
+            { name: 'Agricultural Fertilizers', href: '/shop' }
           ]),
           companyLinks: JSON.stringify([
             { name: 'About Us', href: '/about' },

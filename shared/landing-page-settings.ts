@@ -77,6 +77,22 @@ export const landingPageSettingsSchema = z.object({
 });
 export type LandingPageSettings = z.infer<typeof landingPageSettingsSchema>;
 export type LandingLink = LandingPageSettings["navigation"][number];
+
+export function logisticsNavigationLink(): LandingLink {
+  return {
+    id: "logistics", href: "/logistics", isActive: true,
+    labels: { en: "Logistics", fa: "لجستیک", ar: "الخدمات اللوجستية", tr: "Lojistik" },
+  };
+}
+
+/** Upgrade older saved header links without changing customer-account links elsewhere. */
+export function landingHeaderNavigation(links: LandingLink[]): LandingLink[] {
+  const hasLogistics = links.some(link => link.id === "logistics" || link.href === "/logistics");
+  return links.flatMap(link => {
+    if (link.id !== "account" && link.textKey !== "navAccount" && link.href !== "/customer/login") return [link];
+    return hasLogistics ? [] : [{ ...logisticsNavigationLink(), isActive: link.isActive }];
+  });
+}
 export function defaultLandingPageSettings(): LandingPageSettings {
   const link = (id: string, href: string, textKey: string): LandingLink => ({ id, href, textKey, labels: {}, isActive: true });
   return {
@@ -99,7 +115,7 @@ export function defaultLandingPageSettings(): LandingPageSettings {
       ar: [{title:"الفحص والاستفسار",description:"بعد تواصلكم معنا، نحلل متطلباتكم الكيميائية."},{title:"اختبار الجودة",description:"تخضع كل دفعة لاختبارات مخبرية دقيقة لضمان مطابقة النقاء."},{title:"تسليم آمن",description:"نوصل مباشرة إلى موقعكم الصناعي مع الوثائق الكاملة."}],
       tr: [{title:"İnceleme ve Talep",description:"Bizimle iletişime geçtikten sonra kimyasal gereksinimlerinizi analiz ederiz."},{title:"Kalite Testi",description:"Saflık uyumluluğunu doğrulamak için her parti titiz laboratuvar testlerinden geçer."},{title:"Güvenli Teslimat",description:"Tam belgelerle doğrudan endüstriyel tesisinize teslimat yaparız."}],
     },
-    navigation: [link("about", "#about", "navAbout"), link("products", "#services", "navProducts"), link("process", "#process", "navProcess"), link("faq", "#faq", "navFaq"), { id: "blog", href: "/blog", labels: { en: "Blog", fa: "بلاگ", ar: "المدونة", tr: "Blog" }, isActive: true }, link("shop", "/shop", "navShop"), link("account", "/customer/login", "navAccount")],
+    navigation: [link("about", "#about", "navAbout"), link("products", "#services", "navProducts"), link("process", "#process", "navProcess"), link("faq", "#faq", "navFaq"), { id: "blog", href: "/blog", labels: { en: "Blog", fa: "بلاگ", ar: "المدونة", tr: "Blog" }, isActive: true }, link("shop", "/shop", "navShop"), logisticsNavigationLink()],
     footerCompany: [link("about", "/about", "aboutLink"), link("services", "/services", "services"), link("contact", "/contact", "getQuote")],
     footerConnect: [link("account", "/customer/login", "account"), link("shop", "/shop", "shop"), link("contact", "/contact", "getQuote"), { ...link("management", "/site-management", "managementLabel") }],
     social: [],

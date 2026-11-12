@@ -1,5 +1,5 @@
 import React, { lazy } from "react";
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { useBrowserLocation } from "wouter/use-browser-location";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import Home from "@/pages/home";
 import About from "@/pages/about";
+import Logistics from "@/pages/logistics";
 import Services from "@/pages/services";
 import Contact from "@/pages/contact";
 import { PrivacyPolicy, TermsOfService } from "@/pages/legal-pages";
@@ -73,19 +74,11 @@ import WalletManagement from "@/pages/admin/wallet-management";
 import ProductVariants from "@/pages/admin/product-variants";
 import SalesAnalytics from "@/pages/sales-analytics";
 import FinancialWorkflowDashboard from "@/pages/admin/financial-workflow-dashboard";
-import Products from "@/pages/products";
 import ProductsPage from "@/pages/products";
 import BatchManagement from "@/pages/batch-management";
 
 import ProductReviews from "@/pages/product-reviews";
 import TestProductImageUpload from "@/pages/test-product-image-upload";
-import FuelAdditives from "@/pages/products/fuel-additives";
-import WaterTreatment from "@/pages/products/water-treatment";
-import PaintThinner from "@/pages/products/paint-thinner";
-import AgriculturalFertilizers from "@/pages/products/agricultural-fertilizers";
-import OtherProducts from "@/pages/products/other";
-import TechnicalEquipment from "@/pages/products/technical-equipment";
-import CommercialGoods from "@/pages/products/commercial-goods";
 import WebRTC from "@/pages/webrtc";
 import JitsiMeetPage from "@/pages/jitsi";
 import QuotePage from "@/pages/quote";
@@ -225,6 +218,7 @@ function Router() {
         <PublicAdminSwitch>
           <Route path="/" component={Home} />
           <Route path="/about" component={About} />
+          <Route path="/logistics" component={Logistics} />
           <Route path="/services" component={Services} />
           <Route path="/contact" component={Contact} />
           <Route path="/privacy" component={PrivacyPolicy} />
@@ -400,17 +394,9 @@ function Router() {
           <Route path="/super-admin/order-management" component={() => <AdminRoute><SuperAdminOrderManagement /></AdminRoute>} />
           
           <Route path="/analytics/sales" component={() => <AdminRoute><SalesAnalytics /></AdminRoute>} />
-          <Route path="/products" component={Products} />
+          <Route path="/products"><Redirect to="/shop" replace /></Route>
+          <Route path="/products/*"><Redirect to="/shop" replace /></Route>
           <Route path="/test-product-image-upload" component={TestProductImageUpload} />
-          <Route path="/products/fuel-additives" component={FuelAdditives} />
-          <Route path="/products/water-treatment" component={WaterTreatment} />
-          <Route path="/products/paint-thinner" component={PaintThinner} />
-          <Route path="/products/paint-solvents" component={PaintThinner} />
-          <Route path="/products/agricultural-fertilizers" component={AgriculturalFertilizers} />
-          <Route path="/products/other" component={OtherProducts} />
-          <Route path="/products/industrial-chemicals" component={OtherProducts} />
-          <Route path="/products/commercial-goods" component={CommercialGoods} />
-          <Route path="/products/technical-equipment" component={TechnicalEquipment} />
           <Route path="/product-reviews/:id" component={ProductReviews} />
           <Route path="/quote" component={QuotePage} />
           <Route path="/documentation" component={DocumentationPage} />

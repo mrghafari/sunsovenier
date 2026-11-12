@@ -3,10 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Check, ImagePlus, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
 import type { LandingContent, LandingLanguage } from "@shared/landing-content";
 import { landingLanguages, landingPackageIds, landingProductIds, defaultLandingContent, landingContentSchema } from "@shared/landing-content";
-import { defaultLandingPageSettings, landingTextGroups } from "@shared/landing-page-settings";
+import { defaultLandingPageSettings, landingHeaderNavigation, landingTextGroups } from "@shared/landing-page-settings";
 import { defaultLandingLayout } from "@shared/landing-layout";
 import { landingAboutWindowPanes } from "@shared/landing-about-window";
 import { BASE_PRODUCTS, LOCALIZED_PRODUCTS, PACKAGES, type LandingProduct, type PackageId } from "@/pages/landing/catalog";
+import { categoryCardHeading } from "@/pages/landing/category-card-headings";
 import { readLocalLanding } from "@/pages/landing/local-editor";
 import assets from "@/pages/landing/landing-assets.json";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ async function readLanding(): Promise<LandingContent> {
   if (!response.ok || !result.success || !result.data) throw new Error(result.message || "Landing content could not be loaded.");
   const data = result.data as LandingContent;
   const defaults = defaultLandingPageSettings();
-  return { ...data, page: { ...defaults, ...(data.page ?? {}), layout: data.page?.layout ?? defaultLandingLayout() } };
+  return { ...data, page: { ...defaults, ...(data.page ?? {}), navigation: landingHeaderNavigation(data.page?.navigation ?? defaults.navigation), layout: data.page?.layout ?? defaultLandingLayout() } };
 }
 
 export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (dirty: boolean) => void }) {
@@ -227,7 +228,7 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
     { key: "about", label: visual.about, asset: 3 },
     ...BASE_PRODUCTS.map((product) => {
       const index = BASE_PRODUCTS.findIndex((item) => item.id === product.id);
-      const name = LOCALIZED_PRODUCTS[visualLocale]?.[index]?.[0] ?? product.title;
+      const name = categoryCardHeading(product.id, visualLocale, LOCALIZED_PRODUCTS[visualLocale]?.[index]?.[0] ?? product.title);
       return { key: product.id, label: `${visual.product}: ${name}`, asset: product.asset };
     }),
     ...draft.custom.map((card) => ({ key: card.id, label: card.title, asset: card.asset })),

@@ -258,6 +258,94 @@ export default function ContentManagement() {
   const [categoryDrafts, setCategoryDrafts] = useState<Record<number, Partial<HomepageCategory>>>({});
   const [categoryImageUploading, setCategoryImageUploading] = useState<number | null>(null);
   const categoryImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const [newCategory, setNewCategory] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    imageUrl: '',
+    isActive: true,
+    displayOrder: 0,
+  });
+  const [categoryFormError, setCategoryFormError] = useState('');
+  const categorySlug = (name: string) => name.trim().toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
+  const categoryText = (key: string) => {
+    const dictionary: Record<string, Record<string, string>> = {
+      en: {
+        "Add category": "Add category", "Create a shop category": "Create a shop category",
+        "Slug": "Slug", "Image URL (optional)": "Image URL (optional)", "Display order": "Display order",
+        "Create category": "Create category", "Creating...": "Creating...", "Category created": "Category created",
+        "The category was added to the site.": "The category was added to the site.",
+        "Category creation failed. Please try again.": "Category creation failed. Please try again.",
+        "Active": "Active", "Inactive": "Inactive", "Order": "Order",
+      },
+      ar: {
+        "Add category": "إضافة فئة", "Create a shop category": "إنشاء فئة للمتجر",
+        "Slug": "الرابط المختصر", "Image URL (optional)": "رابط الصورة (اختياري)", "Display order": "ترتيب العرض",
+        "Create category": "إنشاء الفئة", "Creating...": "جارٍ الإنشاء...", "Category created": "تم إنشاء الفئة",
+        "The category was added to the site.": "تمت إضافة الفئة إلى الموقع.",
+        "Category creation failed. Please try again.": "تعذر إنشاء الفئة. حاول مرة أخرى.",
+        "Active": "نشط", "Inactive": "غير نشط", "Order": "الترتيب",
+      },
+      ku: {
+        "Add category": "زیادکردنی پۆل", "Create a shop category": "دروستکردنی پۆلی فرۆشگا",
+        "Slug": "ناونیشانی کورت", "Image URL (optional)": "بەستەری وێنە (ئارەزوومەندانە)", "Display order": "ڕیزبەندی پیشاندان",
+        "Create category": "دروستکردنی پۆل", "Creating...": "لە دروستکردندایە...", "Category created": "پۆل دروستکرا",
+        "The category was added to the site.": "پۆلەکە زیادکرا بۆ ماڵپەڕ.",
+        "Category creation failed. Please try again.": "دروستکردنی پۆل سەرکەوتوو نەبوو. دووبارە هەوڵ بدەرەوە.",
+        "Active": "چالاک", "Inactive": "ناچالاک", "Order": "ڕیز",
+      },
+      tr: {
+        "Add category": "Kategori ekle", "Create a shop category": "Mağaza kategorisi oluştur",
+        "Slug": "Kısa ad", "Image URL (optional)": "Görsel URL'si (isteğe bağlı)", "Display order": "Görüntüleme sırası",
+        "Create category": "Kategori oluştur", "Creating...": "Oluşturuluyor...", "Category created": "Kategori oluşturuldu",
+        "The category was added to the site.": "Kategori siteye eklendi.",
+        "Category creation failed. Please try again.": "Kategori oluşturulamadı. Lütfen tekrar deneyin.",
+        "Active": "Aktif", "Inactive": "Pasif", "Order": "Sıra",
+      },
+      fa: {
+        "Add category": "افزودن دسته‌بندی", "Create a shop category": "ایجاد دسته‌بندی فروشگاه",
+        "Slug": "شناسهٔ URL", "Image URL (optional)": "نشانی تصویر (اختیاری)", "Display order": "ترتیب نمایش",
+        "Create category": "ایجاد دسته‌بندی", "Creating...": "در حال ایجاد...", "Category created": "دسته‌بندی ایجاد شد",
+        "The category was added to the site.": "دسته‌بندی به سایت اضافه شد.",
+        "Category creation failed. Please try again.": "ایجاد دسته‌بندی انجام نشد. دوباره تلاش کنید.",
+        "Active": "فعال", "Inactive": "غیرفعال", "Order": "ترتیب",
+      },
+    };
+    return dictionary[interfaceLanguage]?.[key] ?? dictionary.en[key] ?? key;
+  };
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (category: typeof newCategory) => {
+      const result = await apiRequest('/api/admin/categories', {
+        method: 'POST',
+        body: {
+          name: category.name.trim(),
+          slug: category.slug.trim(),
+          description: category.description.trim() || null,
+          imageUrl: category.imageUrl.trim() || null,
+          isActive: category.isActive,
+          displayOrder: Number(category.displayOrder),
+        },
+      });
+      if ((result as any)?.success === false) {
+        throw new Error((result as any)?.message || categoryText("Category creation failed. Please try again."));
+      }
+      return result;
+    },
+    onSuccess: () => {
+      setCategoryFormError('');
+      setNewCategory({ name: '', slug: '', description: '', imageUrl: '', isActive: true, displayOrder: 0 });
+      toast({ title: categoryText("Category created"), description: categoryText("The category was added to the site.") });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/categories'] });
+    },
+    onError: (error: Error) => {
+      const message = error.message || categoryText("Category creation failed. Please try again.");
+      setCategoryFormError(message);
+      toast({ title: categoryText("Category creation failed. Please try again."), description: message, variant: "destructive" });
+    },
+  });
 
   const uploadCategoryImageMutation = useMutation({
     mutationFn: async ({ id, file }: { id: number; file: File }) => {
@@ -288,15 +376,20 @@ export default function ContentManagement() {
 
   const updateCategoryMutation = useMutation({
     mutationFn: async ({ id, ...data }: Partial<HomepageCategory> & { id: number }) => {
-      return apiRequest(`/api/admin/categories/${id}`, {
+      const result = await apiRequest(`/api/admin/categories/${id}`, {
         method: 'PUT',
         body: data
       });
+      if (result?.success !== true) throw new Error(result?.message || tx("Changes could not be saved."));
+      return result;
     },
     onSuccess: () => {
       toast({ title: tx("Category updated"), description: tx("Changes saved successfully.") });
       refetchHomepageCategories();
       queryClient.invalidateQueries({ queryKey: ['/api/public/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/shop/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/shop/products'] });
     },
     onError: () => {
       toast({ title: tx("Error"), description: tx("Changes could not be saved."), variant: "destructive" });
@@ -1828,6 +1921,110 @@ s0.parentNode.insertBefore(s1,s0);
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50/60 p-4">
+                  <div className="mb-4">
+                    <h3 className="font-semibold text-gray-900">{categoryText("Add category")}</h3>
+                    <p className="mt-1 text-sm text-gray-600">{categoryText("Create a shop category")}</p>
+                  </div>
+                  <form
+                    data-testid="category-create-form"
+                    className="grid gap-4 md:grid-cols-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      setCategoryFormError('');
+                      createCategoryMutation.mutate(newCategory);
+                    }}
+                  >
+                    <div className="space-y-1">
+                      <Label htmlFor="new-category-name">{tx("Category name")}</Label>
+                      <Input
+                        id="new-category-name"
+                        data-testid="category-create-name"
+                        required
+                        maxLength={120}
+                        value={newCategory.name}
+                        onChange={(event) => {
+                          const name = event.target.value;
+                          setNewCategory((current) => ({
+                            ...current,
+                            name,
+                            slug: current.slug === '' || current.slug === categorySlug(current.name)
+                              ? categorySlug(name)
+                              : current.slug,
+                          }));
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="new-category-slug">{categoryText("Slug")}</Label>
+                      <Input
+                        id="new-category-slug"
+                        data-testid="category-create-slug"
+                        required
+                        maxLength={140}
+                        dir="ltr"
+                        value={newCategory.slug}
+                        onChange={(event) => setNewCategory((current) => ({ ...current, slug: event.target.value.toLowerCase().replace(/\s+/g, '-') }))}
+                        placeholder="e.g. water-treatment"
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <Label htmlFor="new-category-description">{tx("Description")}</Label>
+                      <Textarea
+                        id="new-category-description"
+                        data-testid="category-create-description"
+                        value={newCategory.description}
+                        onChange={(event) => setNewCategory((current) => ({ ...current, description: event.target.value }))}
+                        className="min-h-[72px] resize-y"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="new-category-image">{categoryText("Image URL (optional)")}</Label>
+                      <Input
+                        id="new-category-image"
+                        data-testid="category-create-image-url"
+                        type="url"
+                        dir="ltr"
+                        value={newCategory.imageUrl}
+                        onChange={(event) => setNewCategory((current) => ({ ...current, imageUrl: event.target.value }))}
+                        placeholder="https://"
+                      />
+                    </div>
+                    <div className="flex items-end gap-5">
+                      <div className="w-32 space-y-1">
+                        <Label htmlFor="new-category-order">{categoryText("Display order")}</Label>
+                        <Input
+                          id="new-category-order"
+                          data-testid="category-create-order"
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={newCategory.displayOrder}
+                          onChange={(event) => setNewCategory((current) => ({ ...current, displayOrder: Number(event.target.value) }))}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 pb-2">
+                        <Switch
+                          id="new-category-active"
+                          data-testid="category-create-active"
+                          checked={newCategory.isActive}
+                          onCheckedChange={(isActive) => setNewCategory((current) => ({ ...current, isActive }))}
+                        />
+                        <Label htmlFor="new-category-active">{categoryText("Active")}</Label>
+                      </div>
+                    </div>
+                    {categoryFormError && (
+                      <p role="alert" data-testid="category-create-error" className="text-sm text-red-700 md:col-span-2">{categoryFormError}</p>
+                    )}
+                    <div className="md:col-span-2">
+                      <Button type="submit" data-testid="category-create-submit" disabled={createCategoryMutation.isPending}>
+                        {createCategoryMutation.isPending ? (
+                          <><RefreshCw className="mr-2 h-4 w-4 animate-spin" />{categoryText("Creating...")}</>
+                        ) : categoryText("Create category")}
+                      </Button>
+                    </div>
+                  </form>
+                </div>
                 {loadingHomepageCategories ? (
                   <div className="flex items-center justify-center p-10">
                     <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
@@ -1843,9 +2040,11 @@ s0.parentNode.insertBefore(s1,s0);
                       const currentName = isEditing ? (draft.name ?? cat.name) : cat.name;
                       const currentDesc = isEditing ? (draft.description ?? cat.description ?? '') : (cat.description ?? '');
                       const currentImage = isEditing ? (draft.imageUrl ?? cat.imageUrl ?? '') : (cat.imageUrl ?? '');
+                      const currentActive = isEditing ? (draft.isActive ?? cat.isActive) : cat.isActive;
+                      const currentOrder = isEditing ? (draft.displayOrder ?? cat.displayOrder) : cat.displayOrder;
 
                       return (
-                        <Card key={cat.id} className={`border ${isEditing ? 'border-blue-400 shadow-md' : 'border-gray-200'}`}>
+                        <Card key={cat.id} data-testid={`category-item-${cat.id}`} className={`border ${isEditing ? 'border-blue-400 shadow-md' : 'border-gray-200'}`}>
                           <CardContent className="p-4">
                             <div className="flex items-start gap-4">
                               {/* Preview image */}
@@ -1865,6 +2064,7 @@ s0.parentNode.insertBefore(s1,s0);
                                       <Label className="text-xs font-medium text-gray-600 mb-1 block">{tx("Category name")}</Label>
                                       <Input
                                         value={currentName}
+                                        data-testid={`category-edit-name-${cat.id}`}
                                         onChange={(e) => setCategoryDrafts(prev => ({ ...prev, [cat.id]: { ...prev[cat.id], name: e.target.value } }))}
                                         className="h-8 text-sm"
                                         placeholder={tx("Category name")}
@@ -1874,10 +2074,39 @@ s0.parentNode.insertBefore(s1,s0);
                                       <Label className="text-xs font-medium text-gray-600 mb-1 block">{tx("Description")}</Label>
                                       <Textarea
                                         value={currentDesc}
+                                        data-testid={`category-edit-description-${cat.id}`}
                                         onChange={(e) => setCategoryDrafts(prev => ({ ...prev, [cat.id]: { ...prev[cat.id], description: e.target.value } }))}
                                         className="text-sm min-h-[60px] resize-none"
                                         placeholder={tx("Short description of this category...")}
                                       />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div className="space-y-1">
+                                        <Label className="text-xs font-medium text-gray-600">{categoryText("Display order")}</Label>
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          step="1"
+                                          value={currentOrder}
+                                          data-testid={`category-edit-order-${cat.id}`}
+                                          onChange={(e) => setCategoryDrafts(prev => ({
+                                            ...prev,
+                                            [cat.id]: { ...prev[cat.id], displayOrder: Number(e.target.value) },
+                                          }))}
+                                          className="h-8 text-sm"
+                                        />
+                                      </div>
+                                      <div className="flex items-center gap-2 pt-5">
+                                        <Switch
+                                          checked={currentActive}
+                                          data-testid={`category-edit-active-${cat.id}`}
+                                          onCheckedChange={(isActive) => setCategoryDrafts(prev => ({
+                                            ...prev,
+                                            [cat.id]: { ...prev[cat.id], isActive },
+                                          }))}
+                                        />
+                                        <Label className="text-xs">{categoryText("Active")}</Label>
+                                      </div>
                                     </div>
                                     <div>
                                       <Label className="text-xs font-medium text-gray-600 mb-1 block">{tx("Category image")}</Label>
@@ -1887,6 +2116,7 @@ s0.parentNode.insertBefore(s1,s0);
                                         accept="image/jpeg,image/jpg,image/png,image/webp"
                                         className="hidden"
                                         ref={(el) => { categoryImageInputRefs.current[cat.id] = el; }}
+                                        data-testid={`category-edit-image-file-${cat.id}`}
                                         onChange={(e) => {
                                           const file = e.target.files?.[0];
                                           if (file) {
@@ -1907,6 +2137,7 @@ s0.parentNode.insertBefore(s1,s0);
                                             className="h-8 text-xs border-blue-300 text-blue-700 hover:bg-blue-50 mb-2"
                                             disabled={categoryImageUploading === cat.id}
                                             onClick={() => categoryImageInputRefs.current[cat.id]?.click()}
+                                            data-testid={`category-edit-image-upload-${cat.id}`}
                                           >
                                             {categoryImageUploading === cat.id ? (
                                               <><RefreshCw className="w-3 h-3 ml-1 animate-spin" />{tx("Uploading...")}</>
@@ -1959,6 +2190,7 @@ s0.parentNode.insertBefore(s1,s0);
                                       <Button
                                         size="sm"
                                         className="bg-blue-600 hover:bg-blue-700 text-white"
+                                        data-testid={`category-save-${cat.id}`}
                                         disabled={updateCategoryMutation.isPending}
                                         onClick={() => {
                                           const d = categoryDrafts[cat.id] ?? {};
@@ -1968,8 +2200,8 @@ s0.parentNode.insertBefore(s1,s0);
                                             slug: cat.slug,
                                             description: d.description !== undefined ? d.description : cat.description,
                                             imageUrl: d.imageUrl !== undefined ? d.imageUrl : cat.imageUrl,
-                                            isActive: cat.isActive,
-                                            displayOrder: cat.displayOrder,
+                                             isActive: d.isActive ?? cat.isActive,
+                                             displayOrder: d.displayOrder ?? cat.displayOrder,
                                           }, {
                                             onSuccess: () => {
                                               setEditingCategory(null);
@@ -1979,17 +2211,18 @@ s0.parentNode.insertBefore(s1,s0);
                                         }}
                                       >
                                         <Save className="w-3 h-3 ml-1" />
-                                        ذخیره
+                                         {tx("Save")}
                                       </Button>
                                       <Button
                                         size="sm"
                                         variant="outline"
+                                        data-testid={`category-cancel-${cat.id}`}
                                         onClick={() => {
                                           setEditingCategory(null);
                                           setCategoryDrafts(prev => { const n = { ...prev }; delete n[cat.id]; return n; });
                                         }}
                                       >
-                                        انصراف
+                                         {tx("Cancel")}
                                       </Button>
                                     </div>
                                   </div>
@@ -1999,22 +2232,26 @@ s0.parentNode.insertBefore(s1,s0);
                                       <h3 className="font-semibold text-gray-900">{cat.name}</h3>
                                       <div className="flex items-center gap-2">
                                         <Badge variant={cat.isActive ? "default" : "secondary"} className="text-xs">
-                                          {cat.isActive ? "فعال" : "غیرفعال"}
+                                          {cat.isActive ? categoryText("Active") : categoryText("Inactive")}
                                         </Badge>
                                         <Button
                                           size="sm"
                                           variant="outline"
+                                          data-testid={`category-edit-${cat.id}`}
                                           onClick={() => setEditingCategory(cat)}
                                           className="h-7 px-2"
                                           aria-label={tx("Edit")}
                                         >
                                           <Edit3 className="w-3 h-3 ml-1" />
-                                          ویرایش
+                                          {tx("Edit")}
                                         </Button>
                                       </div>
                                     </div>
                                     <p className="text-sm text-gray-500 line-clamp-2">
                                       {cat.description || <span className="italic text-gray-400">{tx("No description provided")}</span>}
+                                    </p>
+                                    <p className="mt-2 text-xs text-gray-400" dir="ltr">
+                                      {cat.slug} · {categoryText("Order")}: {cat.displayOrder}
                                     </p>
                                     {cat.imageUrl && (
                                       <p className="text-xs text-blue-500 truncate mt-1" dir="ltr">{cat.imageUrl}</p>

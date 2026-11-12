@@ -1,5 +1,5 @@
 import { db } from './db';
-import { shopProducts, shopCategories } from '../shared/shop-schema';
+import { shopProducts } from '../shared/shop-schema';
 import { blogPosts, blogPostTranslations } from '../shared/blog-schema';
 import { sql, eq } from 'drizzle-orm';
 
@@ -56,20 +56,6 @@ export async function generateSitemap(language?: string): Promise<string> {
         changefreq: 'weekly',
         priority: 0.7,
       });
-    });
-
-    // Get all categories
-    const allCategories = await db.select().from(shopCategories);
-
-    // Add category pages
-    allCategories.forEach((category: any) => {
-      if (category.slug) {
-        urls.push({
-          loc: `${BASE_URL}/products/${encodeURIComponent(category.slug)}`,
-          changefreq: 'weekly',
-          priority: 0.6,
-        });
-      }
     });
 
     // Get all published blog posts with translations

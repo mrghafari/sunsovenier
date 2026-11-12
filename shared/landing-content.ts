@@ -4,7 +4,7 @@ import {landingAboutWindowPanes} from "./landing-about-window";
 
 export const landingLanguages=["en","fa","ar","tr"] as const;
 export type LandingLanguage=typeof landingLanguages[number];
-export const landingProductIds=["drum220","ibc1000","tank1500","fert","logistics","water"] as const;
+export const landingProductIds=["drum220","ibc1000","tank1500","fert","logistics","water","water-treatment","commercial-goods"] as const;
 export const landingPackageIds=["drum220","ibc1000","tank1500","bag25","bigbag"] as const;
 const textFields=z.object({
   title:z.string().trim().min(1).max(180).optional(),

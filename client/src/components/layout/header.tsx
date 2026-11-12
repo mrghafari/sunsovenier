@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Menu, X, ChevronDown, Beaker, Droplet, Package, Wheat, Wallet, User, LogOut, ShoppingBag, Shield, Heart } from 'lucide-react';
+import { Menu, X, ChevronDown, Wallet, User, LogOut, ShoppingBag, Shield, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -17,14 +17,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
 import { ShopThemeToggle } from "@/components/ShopTheme";
 
 // Import the logo into the frontend bundle so it is available in production
@@ -108,80 +100,6 @@ export default function Header() {
   ];
   const isCustomerStorefront = location === '/shop' || location === '/shop-search' || /^\/shop\/product\/[^/]+$/.test(location);
 
-  const productCategories = [
-    {
-      title: t.fuelAdditives,
-      href: "/products/fuel-additives",
-      description: t.fuelAdditivesDesc,
-      icon: <Beaker className="h-6 w-6" />,
-      color: "blue",
-      hoverBg: "hover:bg-blue-50 dark:hover:bg-blue-900/20",
-      iconColor: "text-blue-600 dark:text-blue-400",
-      titleHover: "group-hover:text-blue-600 dark:group-hover:text-blue-400"
-    },
-    {
-      title: t.waterTreatment,
-      href: "/products/water-treatment", 
-      description: t.waterTreatmentDesc,
-      icon: <Droplet className="h-6 w-6" />,
-      color: "cyan",
-      hoverBg: "hover:bg-cyan-50 dark:hover:bg-cyan-900/20",
-      iconColor: "text-cyan-600 dark:text-cyan-400",
-      titleHover: "group-hover:text-cyan-600 dark:group-hover:text-cyan-400"
-    },
-    {
-      title: t.paintSolvents,
-      href: "/products/paint-solvents",
-      description: t.paintSolventsDesc,
-      icon: <Package className="h-6 w-6" />,
-      color: "orange",
-      hoverBg: "hover:bg-orange-50 dark:hover:bg-orange-900/20",
-      iconColor: "text-orange-600 dark:text-orange-400",
-      titleHover: "group-hover:text-orange-600 dark:group-hover:text-orange-400"
-    },
-
-    {
-      title: t.agriculturalFertilizers, 
-      href: "/products/agricultural-fertilizers",
-      description: t.agriculturalFertilizersDesc,
-      icon: <Wheat className="h-6 w-6" />,
-      color: "emerald",
-      hoverBg: "hover:bg-emerald-50 dark:hover:bg-emerald-900/20",
-      iconColor: "text-emerald-600 dark:text-emerald-400",
-      titleHover: "group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
-    },
-    {
-      title: t.industrialChemicals,
-      href: "/products/industrial-chemicals",
-      description: t.industrialChemicalsDesc,
-      icon: <Package className="h-6 w-6" />,
-      color: "purple",
-      hoverBg: "hover:bg-purple-50 dark:hover:bg-purple-900/20",
-      iconColor: "text-purple-600 dark:text-purple-400",
-      titleHover: "group-hover:text-purple-600 dark:group-hover:text-purple-400"
-    },
-    {
-      title: t.technicalEquipment,
-      href: "/products/technical-equipment",
-      description: t.technicalEquipmentDesc,
-      icon: <Package className="h-6 w-6" />,
-      color: "indigo",
-      hoverBg: "hover:bg-indigo-50 dark:hover:bg-indigo-900/20",
-      iconColor: "text-indigo-600 dark:text-indigo-400",
-      titleHover: "group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
-    },
-    {
-      title: t.commercialGoods,
-      href: "/products/commercial-goods",
-      description: t.commercialGoodsDesc,
-      icon: <Package className="h-6 w-6" />,
-      color: "slate",
-      hoverBg: "hover:bg-slate-50 dark:hover:bg-slate-900/20",
-      iconColor: "text-slate-600 dark:text-slate-400",
-      titleHover: "group-hover:text-slate-600 dark:group-hover:text-slate-400"
-    }
-  ];
-
   const isActive = (path: string) => {
     if (path === '/') return location === '/';
     return location.startsWith(path);
@@ -255,52 +173,6 @@ export default function Header() {
               </Link>
             ))}
 
-            {/* Products Dropdown */}
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className={cn(
-                    "px-3 py-2 text-sm font-medium transition-colors",
-                    location.startsWith('/products')
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                  )}>
-                    {t.products}
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent className="!left-auto !right-0 !origin-top-right">
-                    <div className="grid w-[400px] gap-3 p-4 md:w-[600px] md:grid-cols-2 lg:w-[750px] lg:grid-cols-3">
-                      {productCategories.map((category) => (
-                        <Link key={category.href} href={category.href}>
-                          <NavigationMenuLink asChild>
-                            <motion.div
-                              className={`group block select-none space-y-1 rounded-lg p-4 leading-none no-underline outline-none transition-all duration-300 ${category.hoverBg} focus:bg-accent focus:text-accent-foreground border border-transparent hover:shadow-lg`}
-                              whileHover={{ 
-                                scale: 1.03, 
-                                y: -4,
-                                transition: { duration: 0.2 }
-                              }}
-                              whileTap={{ scale: 0.97 }}
-                            >
-                              <div className="flex items-center gap-2 mb-2">
-                                <div className={`transition-colors duration-200 ${category.iconColor}`}>
-                                  {category.icon}
-                                </div>
-                                <div className={`text-sm font-medium leading-none transition-colors duration-200 ${category.titleHover}`}>
-                                  {category.title}
-                                </div>
-                              </div>
-                              <p className="line-clamp-2 text-sm leading-snug text-muted-foreground group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors duration-200">
-                                {category.description}
-                              </p>
-                            </motion.div>
-                          </NavigationMenuLink>
-                        </Link>
-                      ))}
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
           </nav>
 
           {/* Right side actions */}
@@ -464,54 +336,6 @@ export default function Header() {
                   </motion.div>
                 ))}
 
-                {/* Mobile Products Menu */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: navigation.length * 0.1 }}
-                >
-                  <div className="px-4 py-2">
-                    <div className={cn(
-                      "text-sm font-medium rounded-md transition-colors mb-2",
-                      location.startsWith('/products')
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-gray-600 dark:text-gray-300"
-                    )}>
-                      {t.products}
-                    </div>
-                    <div className="ml-4 space-y-1">
-                      {productCategories.map((category, categoryIndex) => (
-                        <motion.div
-                          key={category.href}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: (navigation.length + categoryIndex + 1) * 0.1 }}
-                        >
-                          <Link href={category.href}>
-                            <motion.div
-                              className={cn(
-                                "flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-all duration-200",
-                                isActive(category.href)
-                                  ? `${category.hoverBg.replace('hover:', '')} ${category.titleHover.replace('group-hover:', '')}`
-                                  : `text-gray-600 ${category.hoverBg} dark:text-gray-300 dark:hover:text-white`
-                              )}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                              <div className={cn(
-                                "transition-colors duration-200",
-                                isActive(category.href) ? category.iconColor : `text-gray-500 ${category.iconColor.replace('text-', 'hover:text-')}`
-                              )}>
-                                {category.icon}
-                              </div>
-                              <span className="transition-colors duration-200">{category.title}</span>
-                            </motion.div>
-                          </Link>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
 
 
 
@@ -520,7 +344,7 @@ export default function Header() {
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: (navigation.length + productCategories.length + 2) * 0.1 }}
+                    transition={{ delay: (navigation.length + 2) * 0.1 }}
                     className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 mt-4 pt-4"
                   >
                     <div className="space-y-2">

@@ -47,7 +47,7 @@ export interface IShopStorage {
   getCategoryById(id: number): Promise<ShopCategory | undefined>;
   getCategoryBySlug(slug: string): Promise<ShopCategory | undefined>;
   createCategory(category: InsertShopCategory): Promise<ShopCategory>;
-  updateCategory(id: number, category: Partial<InsertShopCategory>): Promise<ShopCategory>;
+  updateCategory(id: number, category: Partial<InsertShopCategory>): Promise<ShopCategory | undefined>;
   deleteCategory(id: number): Promise<void>;
   getSubcategories(parentId: number): Promise<ShopCategory[]>;
   getProductsByCategory(categoryId: number): Promise<ShopProduct[]>;
@@ -210,13 +210,21 @@ export class ShopStorage implements IShopStorage {
     return result[0];
   }
 
-  async updateCategory(id: number, categoryData: Partial<InsertShopCategory>): Promise<ShopCategory> {
-    const result = await shopDb
-      .update(shopCategories)
-      .set({ ...categoryData, updatedAt: new Date() })
-      .where(eq(shopCategories.id, id))
-      .returning();
-    return result[0];
+  async updateCategory(id: number, categoryData: Partial<InsertShopCategory>): Promise<ShopCategory | undefined> {
+    return shopDb.transaction(async tx => {
+      const [previous] = await tx.select().from(shopCategories).where(eq(shopCategories.id, id)).for("update");
+      if (!previous) return undefined;
+      const [updated] = await tx.update(shopCategories)
+        .set({ ...categoryData, updatedAt: new Date() })
+        .where(eq(shopCategories.id, id)).returning();
+      // Shop products refer to category names, not IDs. Preserve their membership
+      // when content staff edit the category's displayed name.
+      if (updated.name !== previous.name) {
+        await tx.update(shopProducts).set({ category: updated.name })
+          .where(eq(shopProducts.category, previous.name));
+      }
+      return updated;
+    });
   }
 
   async deleteCategory(id: number): Promise<void> {

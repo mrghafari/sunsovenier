@@ -6,13 +6,15 @@ import CompanyBrandLogo from "@/components/company-brand-logo";
 import { resolveLandingPhone } from "@shared/landing-phone";
 import { apiRequest } from "@/lib/queryClient";
 import type { LandingContent } from "@shared/landing-content";
-import { defaultLandingPageSettings, localizedSetting, type LandingLink } from "@shared/landing-page-settings";
+import { defaultLandingPageSettings, landingHeaderNavigation, localizedSetting, type LandingLink } from "@shared/landing-page-settings";
 import { effectiveLayoutSections } from "@shared/landing-layout";
 import LandingLayoutRenderer, { LayoutElements } from "./landing/LandingLayoutRenderer";
 import { useLandingMotion } from "./landing/useLandingMotion";
 import { useSlideCaptionTransition } from "./landing/useSlideCaptionTransition";
 import AboutPhotoWindow from "./landing/AboutPhotoWindow";
 import { aboutContent } from "./landing/about-content";
+import { categoryCardHeading, categoryCardOrder } from "./landing/category-card-headings";
+import { currentPublicProductLink } from "@shared/retired-product-paths";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import type { ShopCategory, ShopProduct } from "@shared/shop-schema";
@@ -204,7 +206,7 @@ export default function Home() {
   });
   const linkLabel = (link: LandingLink) => localizedSetting(link.labels, locale, (c as unknown as Record<string, string>)[link.textKey ?? ""] ?? link.id);
   const sectionForAnchor: Record<string, keyof typeof sections> = { "#about": "about", "#services": "services", "#process": "process", "#faq": "faq", "#quote": "quote" };
-  const effectiveHref = (href: string) => sectionForAnchor[href] && !sections[sectionForAnchor[href]] ? "/contact" : href;
+  const effectiveHref = (href: string) => sectionForAnchor[href] && !sections[sectionForAnchor[href]] ? "/contact" : currentPublicProductLink(href);
   const renderLinks = (links: LandingLink[]) => links.filter(link => link.isActive).map(link =>
     <li key={link.id}><a href={effectiveHref(link.href)}>{linkLabel(link)}</a></li>,
   );
@@ -247,7 +249,7 @@ export default function Home() {
     const englishOverride = landingContent?.edits?.en?.[product.id];
     return {
       ...product,
-      title: localeOverride?.title ?? englishOverride?.title ?? localized?.[0] ?? product.title,
+      title: localeOverride?.title ?? englishOverride?.title ?? categoryCardHeading(product.id, locale, localized?.[0] ?? product.title),
       short: localeOverride?.short ?? englishOverride?.short ?? localized?.[1] ?? product.short,
       long: localeOverride?.long ?? englishOverride?.long ?? product.long,
     };
@@ -262,13 +264,13 @@ export default function Home() {
       categoryPath: "/contact",
       custom: true as const,
     };
-  })).filter(product => page.cards[product.id]?.isActive !== false).map(product => ({
+  })).filter(product => product.id !== "logistics" && page.cards[product.id]?.isActive !== false).map(product => ({
     ...product, pack: page.cards[product.id]?.pack ?? product.pack,
     specs: page.cards[product.id]?.specs[locale] ?? page.cards[product.id]?.specs.en ?? product.specs,
   })).sort((a,b) => {
     const originals = [...BASE_PRODUCTS, ...(landingContent?.custom ?? [])];
-    return (page.cards[a.id]?.order ?? originals.findIndex(item=>item.id===a.id))
-      - (page.cards[b.id]?.order ?? originals.findIndex(item=>item.id===b.id));
+    return (page.cards[a.id]?.order ?? categoryCardOrder(a.id, originals.findIndex(item=>item.id===a.id)))
+      - (page.cards[b.id]?.order ?? categoryCardOrder(b.id, originals.findIndex(item=>item.id===b.id)));
   }),
   [landingContent, localizedProducts, locale, page.cards]);
 
@@ -455,10 +457,8 @@ export default function Home() {
     {isLoading ? <div className="mc-category-row" aria-label="Loading product categories">{[0,1,2].map(item=><div className="mc-category-skeleton" key={item}/>)}</div>
       : isError ? <div className="mc-category-error"><p>{c.noCategories}</p><button type="button" onClick={()=>void refetch()}>{c.retry}</button></div>
       : categories.length ? <div className="mc-category-row" aria-label="Shop product categories">{categories.map(category=>{
-        const slug=category.slug||category.name.toLowerCase().replace(/\s+/g,"-");
-        const validRoutes=["fuel-additives","water-treatment","paint-thinner","paint-solvents","agricultural-fertilizers","industrial-chemicals","technical-equipment","commercial-goods","other"];
-        return <Link className="mc-category-link" key={category.id} href={validRoutes.includes(slug)?`/products/${slug}`:"/products"}><span>{category.name}</span><small>{categoryCounts[category.name]??0} {locale==="fa"?"محصول":locale==="ar"?"منتج":locale==="tr"?"ürün":"products"}</small>{categorySamples[category.name]?.length?<small className="mc-category-samples">{categorySamples[category.name].join(" · ")}</small>:null}<i className="fa-solid fa-arrow-right" aria-hidden="true"/></Link>;
-      })}</div>:<div className="mc-category-empty"><span>{c.noCategories}</span><Link href="/products">{c.browseProducts}</Link></div>}
+        return <Link className="mc-category-link" key={category.id} href="/shop"><span>{category.name}</span><small>{categoryCounts[category.name]??0} {locale==="fa"?"محصول":locale==="ar"?"منتج":locale==="tr"?"ürün":"products"}</small>{categorySamples[category.name]?.length?<small className="mc-category-samples">{categorySamples[category.name].join(" · ")}</small>:null}<i className="fa-solid fa-arrow-right" aria-hidden="true"/></Link>;
+      })}</div>:<div className="mc-category-empty"><span>{c.noCategories}</span><Link href="/shop">{c.browseProducts}</Link></div>}
   </div>;
   return (
     <div className="mc-landing" dir={direction} lang={locale}>
@@ -469,8 +469,8 @@ export default function Home() {
         <div className="mc-container mc-nav">
           <Link href="/" className="mc-logo" aria-label={`${page.brandPrimary} ${page.brandAccent}`}><CompanyBrandLogo /><span>{page.brandPrimary}<span>{page.brandAccent}</span></span></Link>
           <nav className={`mc-nav-links ${mobileMenu ? "is-open" : ""}`} aria-label="Main navigation">
-            {page.navigation.filter(link => link.isActive && (!sectionForAnchor[link.href] || sections[sectionForAnchor[link.href]])).map(link =>
-              <a key={link.id} href={link.href} onClick={() => setMobileMenu(false)}>{linkLabel(link)}</a>)}
+            {landingHeaderNavigation(page.navigation).filter(link => link.isActive && (!sectionForAnchor[link.href] || sections[sectionForAnchor[link.href]])).map(link =>
+              <a key={link.id} href={effectiveHref(link.href)} onClick={() => setMobileMenu(false)}>{linkLabel(link)}</a>)}
           </nav>
           <div className="mc-nav-actions">
             <label className="mc-language" aria-label={c.language}><i className="fa-solid fa-globe" aria-hidden="true" />

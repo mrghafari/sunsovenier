@@ -124,3 +124,27 @@ The storefront must offer an icon-only day/night button; night mode should use t
 **Why:** The user requested «دکمه روز و شب» with «در حالت شب همان تم اصلی که تیره است», then clarified «نیاز به نوشته هم نیست فقط نشانه اش باشه کافیه» and asked for a blue discount banner.
 
 **How to apply:** Reuse the existing navy dark palette rather than introduce an unrelated night theme. Keep the control icon-only with an accessible name and tooltip.
+
+Homepage category links must open the shop, and staff must be able to edit the existing categories and add more from Site Content.
+
+**Why:** The user referred specifically to the five categories below “Select any item to see its full description and the packaging types available.” and requested editable, extensible categories with shop navigation.
+
+**How to apply:** Keep these database-backed shop categories distinct from the separate packaging illustration cards. Do not replace their shop links with informational product pages.
+
+The decorative photo cards below the packaging hint use seven headings: Fuel Additives, Water Treatment, Paint & Solvents, Agricultural Fertilizers, Industrial Chemicals, Technical Equipment and Commercial Goods.
+
+**Why:** The user clarified which pictures they meant, then supplied a screenshot with these exact seven category headings.
+
+**How to apply:** Preserve the supplied photos and show all seven subjects, localized to the chosen site language. Do not limit them to the five currently active shop categories or substitute container-size headings.
+
+The landing header's Customer account entry is replaced by Logistics. The homepage Logistics card is removed, and its photo belongs behind the new localized under-construction page.
+
+**Why:** The user requested this move and said Logistics content would be built later.
+
+**How to apply:** Preserve the existing logistics image and its CMS override. Keep the placeholder in the selected site language; do not invent Logistics content or remove customer-account access elsewhere.
+
+The public `/products` catalog and all category subpages are retired; customers use the shop instead.
+
+**Why:** The user explicitly requested removing the old Products route and its subpages, naming `/products/agricultural-fertilizers` as an example.
+
+**How to apply:** Do not restore the old header category dropdown or sitemap entries. Send old public catalog URLs and saved navigation links to `/shop`; preserve Kardex, vendor management, product APIs and stored product data.

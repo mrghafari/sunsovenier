@@ -50,7 +50,7 @@ export default function TestProductImageUpload() {
             سیستم آپلود و فشردگی تصاویر محصولات با حداکثر کیفیت و حداقل حجم
           </p>
         </div>
-        <Link href="/products">
+        <Link href="/mrg/products">
           <Button variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
             بازگشت به محصولات

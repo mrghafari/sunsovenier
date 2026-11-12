@@ -330,7 +330,16 @@ export const shopCategories = pgTable("shop_categories", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertShopCategorySchema = createInsertSchema(shopCategories).omit({
+export const insertShopCategorySchema = createInsertSchema(shopCategories, {
+  name: z.string().trim().min(1).max(180),
+  slug: z.string().trim().min(1).max(180).regex(/^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u),
+  description: z.string().trim().max(4000).nullable().optional(),
+  imageUrl: z.string().trim().max(2000).refine(
+    value => !value || /^\/(?!\/)/.test(value) || /^https?:\/\/[^\s]+$/i.test(value),
+    "Use a relative image path or an HTTP(S) URL",
+  ).nullable().optional(),
+  displayOrder: z.number().int().min(0).max(100000).nullable().optional(),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,

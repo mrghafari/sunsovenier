@@ -223,7 +223,7 @@ const InquiryDetail = () => {
 
   const handleViewRelatedProducts = () => {
     const category = inquiry?.category || "";
-    window.open(`/products?category=${encodeURIComponent(category)}`, "_blank");
+    window.open("/shop", "_blank");
   };
   const dateLabel = (value: string) => new Intl.DateTimeFormat(t.dateLocale, {
     year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
