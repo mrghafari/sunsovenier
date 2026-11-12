@@ -130,16 +130,18 @@ try {
       ? ["Fuel Additives", "Water Treatment", "Paint & Solvents", "Agricultural Fertilizers", "Industrial Chemicals", "Technical Equipment", "Commercial Goods"]
       : ["افزودنی‌های سوخت", "تصفیه آب", "رنگ و حلال‌ها", "کودهای کشاورزی", "مواد شیمیایی صنعتی", "تجهیزات فنی", "کالاهای تجاری"]);
     assert.ok(!cardHeadings.includes("220L Standard Drums"));
+    assert.equal(await page.$$eval(".mc-purchase-button i", nodes => nodes.length), 0);
+    assert.equal(await page.$$eval(".mc-purchase-button svg", nodes => nodes.length), 7);
     await page.$eval(".mc-services-grid", node => node.scrollIntoView({ block: "start" }));
     await new Promise(resolve => setTimeout(resolve, 1200));
     await page.screenshot({ path: `generated-artifacts/homepage-categories/${language}-cards.jpg` });
     for (const [locale, label] of [["en", "Purchase"], ["fa", "خرید"], ["ar", "شراء"], ["tr", "Satın Al"]]) {
       await page.select(".mc-language select", locale);
-      await page.waitForFunction(label => document.querySelector('[data-testid^="card-purchase-"]')?.textContent.includes(label), {}, label);
+      await page.waitForFunction(label => document.querySelector('[data-testid^="card-purchase-"]')?.getAttribute("aria-label") === label, {}, label);
       const buttons = await page.$$eval('[data-testid^="card-purchase-"]', nodes => nodes.map(node => {
         const detail = node.parentElement.querySelector(".mc-detail-link").getBoundingClientRect();
         const box = node.getBoundingClientRect();
-        return { href: node.getAttribute("href"), text: node.textContent, rightOfDetails: box.left >= detail.right - 1, fits: box.right <= innerWidth + 1 };
+        return { href: node.getAttribute("href"), text: node.getAttribute("aria-label"), rightOfDetails: box.left >= detail.right - 1, fits: box.right <= innerWidth + 1 };
       }));
       assert.equal(buttons.length, 7);
       assert.ok(buttons.every(button => button.href === "/shop" && button.text.includes(label) && button.rightOfDetails && button.fits), JSON.stringify(buttons));
@@ -147,7 +149,7 @@ try {
       for (const id of ids) {
         await page.$eval(`[data-testid="${id}"]`, node => node.parentElement.querySelector(".mc-detail-link").click());
         await page.waitForSelector("dialog[open] [data-testid='modal-purchase']");
-        assert.equal(await page.$eval('[data-testid="modal-purchase"]', (node, label) => node.textContent.includes(label), label), true);
+        assert.equal(await page.$eval('[data-testid="modal-purchase"]', (node, label) => node.getAttribute("aria-label") === label && !node.textContent.trim() && !node.querySelector("i") && !!node.querySelector("svg"), label), true);
         assert.equal(await page.$eval('[data-testid="modal-purchase"]', node => node.getAttribute("href")), "/shop");
         const placement = await page.$eval('[data-testid="modal-purchase"]', node => {
           const box = node.getBoundingClientRect(), row = node.parentElement.getBoundingClientRect();

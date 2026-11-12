@@ -154,3 +154,9 @@ Every landing category card needs a localized Purchase button on the physical ri
 **Why:** The user explicitly requested both placements and language-sensitive text.
 
 **How to apply:** Keep the right-hand placement in RTL as well as LTR. Purchase opens the shop; retain the independent details and quote actions.
+
+Purchase controls use an icon-only shopping cart instead of visible Purchase text.
+
+**Why:** After asking to remove the white square and animate the text, the user chose a shopping-cart icon instead of the text.
+
+**How to apply:** Use an SVG icon rather than a font glyph to avoid missing-icon squares. Keep a localized accessible name and tooltip; the button remains a link to the shop.

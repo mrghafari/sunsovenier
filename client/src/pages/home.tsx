@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "wouter";
+import { ShoppingCart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
 import CompanyBrandLogo from "@/components/company-brand-logo";
@@ -551,7 +552,7 @@ export default function Home() {
               <div className="mc-service-body"><h3>{product.title}</h3><p>{product.short}</p>
                 <div className="mc-card-actions">
                   <button type="button" className="mc-detail-link" dir={direction} onClick={() => openProduct(product.id)}>{c.details}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></button>
-                  <a href="/shop" className="mc-purchase-button" dir={direction} data-testid={`card-purchase-${product.id}`}>{purchaseLabel}<i className="fa-solid fa-cart-shopping" aria-hidden="true" /></a>
+                  <a href="/shop" className="mc-purchase-button" dir={direction} aria-label={purchaseLabel} title={purchaseLabel} data-testid={`card-purchase-${product.id}`}><ShoppingCart size={21} aria-hidden="true" /></a>
                 </div>
               </div>
             </article>;
@@ -597,7 +598,7 @@ export default function Home() {
             })}</div>
             <div className="mc-modal-actions">
               <button type="button" className="mc-button mc-button-gold" dir={direction} onClick={() => requestProductQuote(activeProduct.id)}>{detailLabels.request}</button>
-              <a href="/shop" className="mc-purchase-button" dir={direction} data-testid="modal-purchase">{purchaseLabel}<i className="fa-solid fa-cart-shopping" aria-hidden="true" /></a>
+              <a href="/shop" className="mc-purchase-button" dir={direction} aria-label={purchaseLabel} title={purchaseLabel} data-testid="modal-purchase"><ShoppingCart size={21} aria-hidden="true" /></a>
             </div>
           </div>
         </div>}
