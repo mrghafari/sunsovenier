@@ -13,12 +13,14 @@ import LandingLayoutRenderer, { LayoutElements } from "./landing/LandingLayoutRe
 import { useLandingMotion } from "./landing/useLandingMotion";
 import { useSlideCaptionTransition } from "./landing/useSlideCaptionTransition";
 import AboutPhotoWindow from "./landing/AboutPhotoWindow";
+import CategoryProductCarousel from "./landing/CategoryProductCarousel";
 import { aboutContent } from "./landing/about-content";
 import { categorySamples as managedCategorySamples } from "@shared/category-samples";
 import { currentPublicProductLink } from "@shared/retired-product-paths";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
-import type { ShopCategory, ShopProduct } from "@shared/shop-schema";
+import type { ShopCategory } from "@shared/shop-schema";
+import type { CategoryCatalogProduct } from "@shared/category-product-slides";
 import assets from "./landing/landing-assets.json";
 import { LIQUID_PACKAGES, PACKAGES, PRODUCT_DETAILS_UI, type LandingProduct } from "./landing/catalog";
 import "./landing/landing.css";
@@ -223,12 +225,12 @@ export default function Home() {
       return data.success ? data.data as ShopCategory[] : [];
     },
   });
-  const { data: productsResponse } = useQuery({
+  const { data: productsResponse, isLoading: loadingCatalog, isError: catalogError, refetch: retryCatalog } = useQuery({
     queryKey: ["/api/products"],
     queryFn: async () => {
       const response = await fetch("/api/products");
       if (!response.ok) throw new Error("Unable to load products");
-      return response.json() as Promise<ShopProduct[]>;
+      return response.json() as Promise<CategoryCatalogProduct[]>;
     },
   });
   const categories = Array.isArray(categoriesResponse) ? categoriesResponse : [];
@@ -569,24 +571,16 @@ export default function Home() {
 
       <dialog className="mc-modal" ref={modalRef} aria-labelledby="mc-modal-title" onCancel={() => setActiveProductId(null)} onClick={(event) => { if (event.target === modalRef.current) closeProduct(); }} onClose={() => setActiveProductId(null)}>
         <button className="mc-modal-close" type="button" aria-label={detailLabels.close} onClick={closeProduct}><i className="fa-solid fa-xmark" aria-hidden="true" /></button>
-        {activeProduct && <div className="mc-modal-grid">
-          <div className="mc-modal-image"><img src={activeProduct.imageUrl} alt={activeProduct.title} /></div>
-          <div className="mc-modal-body"><span className="mc-eyebrow mc-eyebrow-dark">{detailLabels.detail}</span><h2 id="mc-modal-title">{activeProduct.title}</h2><p>{activeProduct.long}</p>
-            {activeProduct.specs.length > 0 && <><h3>{detailLabels.specifications}</h3><ul className="mc-specs">{activeProduct.specs.map((spec) => <li key={spec}><i className="fa-solid fa-check" aria-hidden="true" /><span>{spec}</span></li>)}</ul></>}
-            {activeProduct.pack.length > 0 && <><h3>{detailLabels.packaging}</h3>{detailText("modalPackagingHint","") && <p>{detailText("modalPackagingHint","")}</p>}<div className="mc-packs">{activeProduct.pack.map((packId) => {
-              const pack = packages[packId];
-              const linked = packageProductIds.has(packId);
-              return <button key={packId} className={`mc-pack ${activeProduct.id === packId ? "current" : ""}`} type="button" disabled={!linked || activeProduct.id === packId} onClick={() => linked && openProduct(packId)} title={pack.description}>
-                <span className="mc-pack-icon">{linked ? <img src={imageFor(packId, products.find((item) => item.id === packId)?.asset ?? 9)} alt="" /> : <i className={`fa-solid ${pack.icon}`} aria-hidden="true" />}</span>
-                <span><b>{pack.name}</b><small>{pack.capacity}</small></span>
-              </button>;
-            })}</div></>}
-            <div className="mc-modal-actions">
+        {activeProduct && <CategoryProductCarousel
+          key={activeProduct.id}
+          category={categories.find(category => category.id === activeProduct.categoryId)!}
+          products={shopProducts} language={locale} loading={loadingCatalog} error={catalogError} retry={() => void retryCatalog()}
+          intro={<><span className="mc-eyebrow mc-eyebrow-dark">{detailLabels.detail}</span><h2 id="mc-modal-title">{activeProduct.title}</h2><p>{activeProduct.long}</p></>}
+          footer={<div className="mc-modal-actions">
               <button type="button" className="mc-button mc-button-gold" dir={direction} onClick={() => requestProductQuote(activeProduct.id)}>{detailLabels.request}</button>
               <a href="/shop" className="mc-purchase-button" dir={direction} aria-label={purchaseLabel} title={purchaseLabel} data-testid="modal-purchase"><ShoppingCart size={21} aria-hidden="true" /></a>
-            </div>
-          </div>
-        </div>}
+            </div>}
+        />}
       </dialog>
     </div>
   );

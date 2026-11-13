@@ -52,7 +52,11 @@ try {
       if (pathname === "/api/admin/categories") return json(categories);
       if (pathname === "/api/public/categories") return json({ success: true, data: categories.filter(cat => cat.isActive) });
       if (pathname === "/api/landing-content") return json({ success: true, data: landing });
-      if (pathname === "/api/products") return json([]);
+      if (pathname === "/api/products") return json([
+        { id: 101, name: "First category product", category: "Renamed category", description: "First product description", imageUrls: ["/api/landing-assets/fbbcfa42ad4cf8943bbea5fc.jpg", "/wrong-second-image.jpg"], specifications: { Purity: "98%" }, packagingSpecifications: { version: 1, nominalCapacityL: 200 }, isActive: true },
+        { id: 102, name: "Second category product", category: "Renamed category", description: "Second product description", imageUrls: ["/api/landing-assets/f7d7890b0064971506413cbc.jpg"], specifications: { Density: "1.2" }, packagingSpecifications: { version: 1, nominalCapacityL: 1000 }, isActive: true },
+        { id: 103, name: "Unrelated product", category: "Other category", imageUrls: ["/unrelated.jpg"], isActive: true },
+      ]);
       return json({ success: true, data: [] });
     });
     const fill = async (selector, value) => page.$eval(selector, (node, value) => {
@@ -92,7 +96,29 @@ try {
     await page.$eval(".mc-services-grid", node => node.scrollIntoView()); await new Promise(resolve => setTimeout(resolve, 700));
     await page.screenshot({ path: `generated-artifacts/homepage-categories/${language}-cards.jpg` });
     await page.$eval(".mc-detail-link", node => node.click()); await page.waitForSelector("dialog[open]");
-    assert.equal(await page.$eval("dialog[open] img", node => node.getAttribute("src")), images[0]);
+    assert.equal(await page.$eval("dialog[open] img", node => node.getAttribute("src")), "/api/landing-assets/fbbcfa42ad4cf8943bbea5fc.jpg");
+    assert.equal(await page.$eval('[data-testid="category-slide-name"]', node => node.textContent), "First category product");
+    assert.match(await page.$eval('[data-testid="category-slide-technical"]', node => node.textContent), /98%/);
+    assert.match(await page.$eval('[data-testid="category-slide-packing"]', node => node.textContent), /[2۲٢][0۰٠]{2}/);
+    await page.$eval('[data-testid="category-product-next"]', node => node.click());
+    await page.waitForFunction(() => document.querySelector('[data-testid="category-slide-name"]')?.textContent === "Second category product");
+    assert.equal(await page.$eval("dialog[open] img", node => node.getAttribute("src")), "/api/landing-assets/f7d7890b0064971506413cbc.jpg");
+    assert.match(await page.$eval('[data-testid="category-slide-technical"]', node => node.textContent), /1.2/);
+    assert.match(await page.$eval('[data-testid="category-slide-packing"]', node => node.textContent), /[1۱١][,.٬]?[0۰٠]{3}/);
+    assert.doesNotMatch(await page.$eval('[data-testid="category-slide-details"]', node => node.textContent), /98%|Unrelated/);
+    await page.$eval('[data-testid="category-product-prev"]', node => node.click());
+    await page.waitForFunction(() => document.querySelector('[data-testid="category-slide-name"]')?.textContent === "First category product");
+    const panels = await page.evaluate(() => {
+      const technical = document.querySelector('[data-testid="category-slide-technical"]');
+      const packing = document.querySelector('[data-testid="category-slide-packing"]');
+      const image = document.querySelector(".mc-carousel-visual").getBoundingClientRect();
+      const details = document.querySelector(".mc-product-carousel .mc-modal-body").getBoundingClientRect();
+      return { different: getComputedStyle(technical).backgroundColor !== getComputedStyle(packing).backgroundColor, imageOnLeft: image.right <= details.left + 1 };
+    });
+    assert.equal(panels.different, true);
+    if (width > 1024) assert.equal(panels.imageOnLeft, true);
+    await page.$eval('[data-testid="category-slide-packing"]', node => node.scrollIntoView({ block: "center" }));
+    await page.screenshot({ path: `generated-artifacts/homepage-categories/${language}-product-carousel.jpg` });
     assert.equal(await page.$eval('[data-testid="modal-purchase"]', node => node.getAttribute("href")), "/shop");
     assert.equal(await page.$eval('[data-testid^="card-purchase-"]', node => node.getAttribute("href")), "/shop");
     assert.deepEqual(errors, []);

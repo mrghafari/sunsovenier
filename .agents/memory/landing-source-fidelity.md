@@ -166,3 +166,9 @@ Purchase controls use an icon-only shopping cart instead of visible Purchase tex
 **Why:** After asking to remove the white square and animate the text, the user chose a shopping-cart icon instead of the text.
 
 **How to apply:** Use an SVG icon rather than a font glyph to avoid missing-icon squares. Keep a localized accessible name and tooltip; the button remains a link to the shop. The user requested no background or surrounding circle, including on hover; retain a usable invisible touch target and keyboard-focus indicator.
+
+The details action under category sample photos opens a carousel of actual products belonging to that category. Each slide uses the product's first image, with technical specifications and packing in separate, visibly different panels on the physical right.
+
+**Why:** The user requested previous/next product navigation inside the same category, synchronized with that product's technical and packaging details, while retaining the other existing popup information.
+
+**How to apply:** Do not cycle through the category's decorative images or mix in another category's products. Keep category/sample information and quote/shop actions. On narrow screens stack the image above the details without horizontal overflow.
