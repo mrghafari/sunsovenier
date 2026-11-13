@@ -1,6 +1,7 @@
 import { pgTable, text, serial, timestamp, decimal, boolean, integer, json, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { categorySamplesSchema, type CategorySample } from "./category-samples";
 
 // =============================================================================
 // SHOP/ECOMMERCE SCHEMA - For actual product sales and inventory management
@@ -321,6 +322,7 @@ export const shopCategories = pgTable("shop_categories", {
   slug: text("slug").unique().notNull(),
   description: text("description"),
   imageUrl: text("image_url"),
+  sampleImages: json("sample_images").$type<CategorySample[] | null>(),
   parentId: integer("parent_id"), // For subcategories
   isActive: boolean("is_active").default(true),
   displayOrder: integer("display_order").default(0),
@@ -331,6 +333,7 @@ export const shopCategories = pgTable("shop_categories", {
 });
 
 export const insertShopCategorySchema = createInsertSchema(shopCategories, {
+  sampleImages: categorySamplesSchema.nullable().optional(),
   name: z.string().trim().min(1).max(180),
   slug: z.string().trim().min(1).max(180).regex(/^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u),
   description: z.string().trim().max(4000).nullable().optional(),

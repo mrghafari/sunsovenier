@@ -125,17 +125,23 @@ The storefront must offer an icon-only day/night button; night mode should use t
 
 **How to apply:** Reuse the existing navy dark palette rather than introduce an unrelated night theme. Keep the control icon-only with an accessible name and tooltip.
 
-Homepage category links must open the shop, and staff must be able to edit the existing categories and add more from Site Content.
+Homepage category links must open the shop. Category Management is the sole editor for category names and decorative sample photos; Site Content links to that module instead of maintaining a second editor.
 
-**Why:** The user referred specifically to the five categories below “Select any item to see its full description and the packaging types available.” and requested editable, extensible categories with shop navigation.
+**Why:** After initially requesting editing through Site Content, the user clarified that categories are introduced in the category management module and the same categories and their sample photos must appear on the homepage.
 
-**How to apply:** Keep these database-backed shop categories distinct from the separate packaging illustration cards. Do not replace their shop links with informational product pages.
+**How to apply:** Use managed category records as the public source, preserve the existing photo-card appearance and group samples beneath their owning category. Do not maintain an independent hardcoded category list or resurrect old public product pages.
 
-The decorative photo cards below the packaging hint use seven headings: Fuel Additives, Water Treatment, Paint & Solvents, Agricultural Fertilizers, Industrial Chemicals, Technical Equipment and Commercial Goods.
+The user originally supplied seven example headings for decorative photo cards, but later made the actual managed categories authoritative.
 
-**Why:** The user clarified which pictures they meant, then supplied a screenshot with these exact seven category headings.
+**Why:** The latest instruction explicitly connects the homepage and its sample pictures to Category Management, replacing the previously separate illustration headings.
 
-**How to apply:** Preserve the supplied photos and show all seven subjects, localized to the chosen site language. Do not limit them to the five currently active shop categories or substitute container-size headings.
+**How to apply:** Preserve existing photos when transferring ownership; do not force seven cards or substitute container sizes for the names entered in Category Management.
+
+Category Management starts with a thumbnail preview of each category's decorative photo. New category photo uploads must stay in the existing configured Amazon S3 bucket.
+
+**Why:** The user requested thumbnails at the beginning of Category Management and explicitly said the photo storage must remain the same Amazon bucket.
+
+**How to apply:** Keep storage in S3, not local disk or another provider. A storage error must fail visibly rather than silently saving elsewhere.
 
 The landing header's Customer account entry is replaced by Logistics. The homepage Logistics card is removed, and its photo belongs behind the new localized under-construction page.
 

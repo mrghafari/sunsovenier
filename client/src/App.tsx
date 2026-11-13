@@ -1,4 +1,4 @@
-import React, { lazy } from "react";
+import React, { lazy, Suspense } from "react";
 import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { useBrowserLocation } from "wouter/use-browser-location";
 import { queryClient } from "./lib/queryClient";
@@ -24,142 +24,142 @@ import Checkout from "@/pages/checkout";
 import Payment from "@/pages/payment";
 import CheckoutSuccess from "@/pages/checkout-success";
 import PaymentOptionsPage from "@/pages/payment-options";
-import ShopAdmin from "@/pages/shop-admin";
-import LegalAffairs from "@/pages/legal-affairs";
-import InvoiceManagement from "@/pages/admin/invoice-management";
-import PaymentSettings from "@/pages/admin/payment-settings";
-import PaymentTestPage from "@/pages/PaymentTestPage";
-import AdminPage from "@/pages/admin";
+const ShopAdmin = lazy(() => import("@/pages/shop-admin"));
+const LegalAffairs = lazy(() => import("@/pages/legal-affairs"));
+const InvoiceManagement = lazy(() => import("@/pages/admin/invoice-management"));
+const PaymentSettings = lazy(() => import("@/pages/admin/payment-settings"));
+const PaymentTestPage = lazy(() => import("@/pages/PaymentTestPage"));
+const AdminPage = lazy(() => import("@/pages/admin"));
 import AdminLogin from "@/pages/admin-login";
-import AdminUsers from "@/pages/admin-users";
+const AdminUsers = lazy(() => import("@/pages/admin-users"));
 
-import BarcodeInventory from "@/pages/admin/barcode-inventory";
-import DatabaseManagement from "@/pages/admin/database-management";
-import UserManagementRedesign from "@/pages/admin/user-management-redesign";
-import FactoryManagement from "@/pages/admin/factory-management";
-import ProceduresManagement from "@/pages/admin/procedures-management";
+const BarcodeInventory = lazy(() => import("@/pages/admin/barcode-inventory"));
+const DatabaseManagement = lazy(() => import("@/pages/admin/database-management"));
+const UserManagementRedesign = lazy(() => import("@/pages/admin/user-management-redesign"));
+const FactoryManagement = lazy(() => import("@/pages/admin/factory-management"));
+const ProceduresManagement = lazy(() => import("@/pages/admin/procedures-management"));
 
-import EmailSettingsPage from "@/pages/admin/email-settings";
-import AdvancedEmailSettingsPage from "@/pages/admin/advanced-email-settings";
-import EmailAddressManagerFixed from "@/pages/admin/email-address-manager-fixed";
-import EmailProgressPage from "@/pages/admin/email-progress";
-import EmailTemplates from '@/pages/admin/email-templates';
-import EmailTemplatesFixed from '@/pages/admin/email-templates-fixed';
-import EmailTemplatesCentral from '@/pages/admin/email-templates-central';
-import Template05View from '@/pages/admin/template05-view';
-import Template05StaticView from '@/pages/admin/template05-static-view';
-import MarketingModule from '@/pages/admin/marketing-module';
+const EmailSettingsPage = lazy(() => import("@/pages/admin/email-settings"));
+const AdvancedEmailSettingsPage = lazy(() => import("@/pages/admin/advanced-email-settings"));
+const EmailAddressManagerFixed = lazy(() => import("@/pages/admin/email-address-manager-fixed"));
+const EmailProgressPage = lazy(() => import("@/pages/admin/email-progress"));
+const EmailTemplates = lazy(() => import("@/pages/admin/email-templates"));
+const EmailTemplatesFixed = lazy(() => import("@/pages/admin/email-templates-fixed"));
+const EmailTemplatesCentral = lazy(() => import("@/pages/admin/email-templates-central"));
+const Template05View = lazy(() => import("@/pages/admin/template05-view"));
+const Template05StaticView = lazy(() => import("@/pages/admin/template05-static-view"));
+const MarketingModule = lazy(() => import("@/pages/admin/marketing-module"));
 
-import EmailRoutingStats from "@/pages/admin/email-routing-stats";
-import AutomatedEmailLogs from "@/pages/admin/automated-email-logs";
-import AdminEmailLogs from "@/pages/admin-email-logs";
-import InquiryResponses from '@/pages/admin/inquiry-responses';
-import ServerConfig from "@/components/admin/server-config";
-import AwsS3Settings from "@/pages/admin/aws-s3-settings";
-import AdminMissingImages from "@/pages/admin-missing-images";
-import FibSettings from "@/pages/admin/fib-settings";
+const EmailRoutingStats = lazy(() => import("@/pages/admin/email-routing-stats"));
+const AutomatedEmailLogs = lazy(() => import("@/pages/admin/automated-email-logs"));
+const AdminEmailLogs = lazy(() => import("@/pages/admin-email-logs"));
+const InquiryResponses = lazy(() => import("@/pages/admin/inquiry-responses"));
+const ServerConfig = lazy(() => import("@/components/admin/server-config"));
+const AwsS3Settings = lazy(() => import("@/pages/admin/aws-s3-settings"));
+const AdminMissingImages = lazy(() => import("@/pages/admin-missing-images"));
+const FibSettings = lazy(() => import("@/pages/admin/fib-settings"));
 import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
 import PasswordReset from "@/pages/password-reset";
 import CustomerForgotPassword from "@/pages/customer-forgot-password";
 import CustomerResetPassword from "@/pages/customer-reset-password";
-import CRMPage from "@/pages/crm";
+const CRMPage = lazy(() => import("@/pages/crm"));
 import CustomerProfile from "@/pages/customer-profile";
 import CustomerProfileEdit from "@/pages/customer-profile-edit";
 import CustomerRegister from "@/pages/customer-register";
 import CustomerLogin from "@/pages/customer-login";
 import CompleteProfile from "@/pages/complete-profile";
 import CustomerWallet from "@/pages/customer-wallet";
-import WalletManagement from "@/pages/admin/wallet-management";
-import ProductVariants from "@/pages/admin/product-variants";
-import SalesAnalytics from "@/pages/sales-analytics";
-import FinancialWorkflowDashboard from "@/pages/admin/financial-workflow-dashboard";
-import ProductsPage from "@/pages/products";
-import BatchManagement from "@/pages/batch-management";
+const WalletManagement = lazy(() => import("@/pages/admin/wallet-management"));
+const ProductVariants = lazy(() => import("@/pages/admin/product-variants"));
+const SalesAnalytics = lazy(() => import("@/pages/sales-analytics"));
+const FinancialWorkflowDashboard = lazy(() => import("@/pages/admin/financial-workflow-dashboard"));
+const ProductsPage = lazy(() => import("@/pages/products"));
+const BatchManagement = lazy(() => import("@/pages/batch-management"));
 
 import ProductReviews from "@/pages/product-reviews";
-import TestProductImageUpload from "@/pages/test-product-image-upload";
-import WebRTC from "@/pages/webrtc";
-import JitsiMeetPage from "@/pages/jitsi";
+const TestProductImageUpload = lazy(() => import("@/pages/test-product-image-upload"));
+const WebRTC = lazy(() => import("@/pages/webrtc"));
+const JitsiMeetPage = lazy(() => import("@/pages/jitsi"));
 import QuotePage from "@/pages/quote";
-import Dashboard from "@/pages/dashboard";
-import InquiryDetail from "@/pages/inquiry-detail";
-import CategoryManagement from "@/pages/category-management";
-import SeoManagement from "@/pages/seo-management";
-import AdminSmsManagement from "@/pages/admin-sms-management";
-import WidgetRecommendations from "@/pages/widget-recommendations";
+const Dashboard = lazy(() => import("@/pages/dashboard"));
+const InquiryDetail = lazy(() => import("@/pages/inquiry-detail"));
+const CategoryManagement = lazy(() => import("@/pages/category-management"));
+const SeoManagement = lazy(() => import("@/pages/seo-management"));
+const AdminSmsManagement = lazy(() => import("@/pages/admin-sms-management"));
+const WidgetRecommendations = lazy(() => import("@/pages/widget-recommendations"));
 // Removed AdminOrderManagement - replaced with OrderTrackingManagement for order-management module
-import AbandonedCartManagement from "@/pages/abandoned-cart-management";
-import FinancialDepartment from "@/pages/financial-department";
-import FinanceOrders from "@/pages/admin/finance-orders";
+const AbandonedCartManagement = lazy(() => import("@/pages/abandoned-cart-management"));
+const FinancialDepartment = lazy(() => import("@/pages/financial-department"));
+const FinanceOrders = lazy(() => import("@/pages/admin/finance-orders"));
 import FinancialLogin from "@/pages/financial-login";
 import WarehouseLogin from "@/pages/warehouse-login";
 import LogisticsLogin from "@/pages/logistics-login";
-import TicketingSystemFixed from "@/pages/admin/ticketing-system-fixed";
+const TicketingSystemFixed = lazy(() => import("@/pages/admin/ticketing-system-fixed"));
 
-import SuperAdminSettings from "@/pages/super-admin-settings";
-import SuperAdminOrderManagement from "@/pages/admin/super-admin-order-management";
-import SiteManagementFixed from "@/pages/site-management-fixed";
-import GeographicReports from "@/pages/geographic-reports";
-import GeographicAnalytics from "@/pages/admin/geographic-analytics";
-import IraqiGeography from "@/pages/admin/iraqi-geography";
-import AISettings from "@/pages/admin/ai-settings";
-import DocumentationPage from "@/pages/documentation";
-import LogisticsOrders from "@/pages/admin/logistics-orders";
-import LogisticsManagement from "@/pages/admin/logistics-management";
-import DeliveredOrders from "@/pages/admin/delivered-orders";
+const SuperAdminSettings = lazy(() => import("@/pages/super-admin-settings"));
+const SuperAdminOrderManagement = lazy(() => import("@/pages/admin/super-admin-order-management"));
+const SiteManagementFixed = lazy(() => import("@/pages/site-management-fixed"));
+const GeographicReports = lazy(() => import("@/pages/geographic-reports"));
+const GeographicAnalytics = lazy(() => import("@/pages/admin/geographic-analytics"));
+const IraqiGeography = lazy(() => import("@/pages/admin/iraqi-geography"));
+const AISettings = lazy(() => import("@/pages/admin/ai-settings"));
+const DocumentationPage = lazy(() => import("@/pages/documentation"));
+const LogisticsOrders = lazy(() => import("@/pages/admin/logistics-orders"));
+const LogisticsManagement = lazy(() => import("@/pages/admin/logistics-management"));
+const DeliveredOrders = lazy(() => import("@/pages/admin/delivered-orders"));
 import PaymentOptions from "@/pages/payment-options";
-import GlobalRefreshSettings from "@/pages/admin/global-refresh-settings";
+const GlobalRefreshSettings = lazy(() => import("@/pages/admin/global-refresh-settings"));
 
-import InventoryNotificationSettings from "@/pages/admin/inventory-notification-settings";
-import WarehouseManagement from "@/pages/admin/warehouse-management";
-import WarehouseManagementFixed from "@/pages/admin/warehouse-management-fixed";
-import WarehouseInventoryManagement from "@/pages/admin/warehouse-inventory-management";
-import ContentManagement from "@/pages/content-management";
+const InventoryNotificationSettings = lazy(() => import("@/pages/admin/inventory-notification-settings"));
+const WarehouseManagement = lazy(() => import("@/pages/admin/warehouse-management"));
+const WarehouseManagementFixed = lazy(() => import("@/pages/admin/warehouse-management-fixed"));
+const WarehouseInventoryManagement = lazy(() => import("@/pages/admin/warehouse-inventory-management"));
+const ContentManagement = lazy(() => import("@/pages/content-management"));
 
-import SecurityManagement from "@/pages/security-management-new";
-import RemoteDesktop from "@/pages/admin/remote-desktop";
+const SecurityManagement = lazy(() => import("@/pages/security-management-new"));
+const RemoteDesktop = lazy(() => import("@/pages/admin/remote-desktop"));
 import TawkToChat from "@/components/TawkToChat";
 
-import TemplateDistribution from "@/pages/admin/template-distribution";
-import WhatsAppCRM from "@/pages/admin/whatsapp-crm";
+const TemplateDistribution = lazy(() => import("@/pages/admin/template-distribution"));
+const WhatsAppCRM = lazy(() => import("@/pages/admin/whatsapp-crm"));
 
 import BankReceiptUpload from "@/pages/bank-receipt-upload";
-import WalletCorrection from "@/pages/admin/wallet-correction";
-import WalletDebugTest from "@/pages/wallet-debug-test";
-import TestLogistics from "@/pages/test-logistics";
-import KpiDashboard from "@/pages/kpi-dashboard";
-import KpiReport from "@/pages/kpi-report";
-import ManagementDashboard from "@/pages/management-dashboard";
-import AccountingManagement from "@/pages/admin/accounting-management";
-import CompanyInformation from "@/pages/admin/company-information";
-import VehicleOptimization from "@/pages/admin/vehicle-optimization";
-import LogisticsGeography from "@/pages/admin/logistics-geography";
+const WalletCorrection = lazy(() => import("@/pages/admin/wallet-correction"));
+const WalletDebugTest = lazy(() => import("@/pages/wallet-debug-test"));
+const TestLogistics = lazy(() => import("@/pages/test-logistics"));
+const KpiDashboard = lazy(() => import("@/pages/kpi-dashboard"));
+const KpiReport = lazy(() => import("@/pages/kpi-report"));
+const ManagementDashboard = lazy(() => import("@/pages/management-dashboard"));
+const AccountingManagement = lazy(() => import("@/pages/admin/accounting-management"));
+const CompanyInformation = lazy(() => import("@/pages/admin/company-information"));
+const VehicleOptimization = lazy(() => import("@/pages/admin/vehicle-optimization"));
+const LogisticsGeography = lazy(() => import("@/pages/admin/logistics-geography"));
 import UserGuide from "@/pages/user-guide";
 import HybridPayment from "@/pages/hybrid-payment";
 import PaymentCallback from "@/pages/payment-callback";
 import OrderSuccess from "@/pages/order-success";
-import AdminAbandonedOrders from "@/pages/admin-abandoned-orders";
-import FooterManagement from "@/pages/admin/footer-management";
-import ShopManagement from "@/pages/admin/shop-management";
-import MarketplaceManagement from "@/pages/admin/marketplace-management";
+const AdminAbandonedOrders = lazy(() => import("@/pages/admin-abandoned-orders"));
+const FooterManagement = lazy(() => import("@/pages/admin/footer-management"));
+const ShopManagement = lazy(() => import("@/pages/admin/shop-management"));
+const MarketplaceManagement = lazy(() => import("@/pages/admin/marketplace-management"));
 import VendorRegistration from "@/pages/vendor-registration";
 import VendorLogin from "@/pages/vendor-login";
 import VendorForgotPassword from "@/pages/vendor-forgot-password";
 import VendorResetPassword from "@/pages/vendor-reset-password";
-import VendorDashboard from "@/pages/vendor-dashboard";
-import VendorAddProduct from "@/pages/vendor-add-product";
-import VendorEditProduct from "@/pages/vendor-edit-product";
+const VendorDashboard = lazy(() => import("@/pages/vendor-dashboard"));
+const VendorAddProduct = lazy(() => import("@/pages/vendor-add-product"));
+const VendorEditProduct = lazy(() => import("@/pages/vendor-edit-product"));
 import VendorPortal from "@/pages/vendor-portal";
-import VehicleHistoryPage from "@/pages/admin/vehicle-history";
-import BlogManagement from "@/pages/admin/blog-management";
+const VehicleHistoryPage = lazy(() => import("@/pages/admin/vehicle-history"));
+const BlogManagement = lazy(() => import("@/pages/admin/blog-management"));
 import Blog from "@/pages/blog";
 import BlogPost from "@/pages/blog-post";
 import FibPaymentPage from "@/pages/fib-payment";
 
 import NotFound from "@/pages/not-found";
 import AdminRoute from "@/components/AdminRoute";
-import LoadingManagement from "@/modules/loading/LoadingManagement";
+const LoadingManagement = lazy(() => import("@/modules/loading/LoadingManagement"));
 import { ShopThemeProvider } from "@/components/ShopTheme";
 
 const INTERNAL_ADMIN_PREFIX = "/admin";
@@ -193,6 +193,7 @@ const usePublicAdminLocation = (
 
 function PublicAdminSwitch({ children }: { children: React.ReactNode }) {
   return (
+    <Suspense fallback={<div role="status" aria-label="Loading page" className="flex min-h-[40vh] items-center justify-center"><span className="h-7 w-7 animate-spin rounded-full border-2 border-current border-t-transparent" /></div>}>
     <Switch>
       {React.Children.map(children, (child) => {
         if (!React.isValidElement<{ path?: string }>(child) || typeof child.props.path !== "string") {
@@ -204,6 +205,7 @@ function PublicAdminSwitch({ children }: { children: React.ReactNode }) {
         });
       })}
     </Switch>
+    </Suspense>
   );
 }
 

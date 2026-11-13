@@ -30434,6 +30434,10 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         return res.status(400).json({ success: false, message: "No image file uploaded" });
       }
 
+      if (!await shopStorage.getCategoryById(id)) {
+        return res.status(404).json({ success: false, message: "Category not found" });
+      }
+
       const s3Service = getAwsS3Service();
       const uploadResult = await s3Service.uploadPublicFile(
         req.file.buffer,
@@ -30450,7 +30454,8 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       }
 
       // Update the category imageUrl in the database
-      await shopStorage.updateCategory(id, { imageUrl: uploadResult.url });
+      // Gallery uploads are drafts until the category form itself is saved.
+      if (req.query.sample !== "1") await shopStorage.updateCategory(id, { imageUrl: uploadResult.url });
 
       console.log(`✅ [S3 UPLOAD] Category ${id} image uploaded: ${uploadResult.key}`);
 

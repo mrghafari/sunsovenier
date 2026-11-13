@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
-import { ArrowLeft, Edit2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit2, Image as ImageIcon, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +17,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import CategorySamplesEditor from "@/components/admin/CategorySamplesEditor";
+import { categorySamples, categorySamplesSchema, type CategorySample } from "@shared/category-samples";
+import { apiRequest } from "@/lib/queryClient";
 
 type Language = "en" | "fa" | "ar" | "tr";
 type Catalog = {
@@ -107,7 +110,7 @@ const catalog: Record<Language, Catalog> = {
   },
 };
 
-type CategoryForm = { name: string; slug: string; description?: string; imageUrl?: string; parentId?: number; isActive: boolean; displayOrder: number; metaTitle?: string; metaDescription?: string };
+type CategoryForm = { name: string; slug: string; description?: string; imageUrl?: string; sampleImages?: CategorySample[]; parentId?: number; isActive: boolean; displayOrder: number; metaTitle?: string; metaDescription?: string };
 type Category = CategoryForm & { id: number; description: string | null; imageUrl: string | null; parentId: number | null; metaTitle: string | null; metaDescription: string | null; createdAt: string; updatedAt: string };
 
 export default function CategoryManagement() {
@@ -118,9 +121,11 @@ export default function CategoryManagement() {
   const queryClient = useQueryClient();
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const schema = useMemo(() => z.object({
     name: z.string().min(1, t.requiredName), slug: z.string().min(1, t.requiredSlug),
     description: z.string().optional(), imageUrl: z.string().optional(), parentId: z.number().optional(),
+    sampleImages: categorySamplesSchema.optional(),
     isActive: z.boolean().default(true), displayOrder: z.number().default(0),
     metaTitle: z.string().optional(), metaDescription: z.string().optional(),
   }), [t]);
@@ -128,29 +133,34 @@ export default function CategoryManagement() {
   const form = useForm<CategoryForm>({ resolver: zodResolver(schema), defaultValues: { name: "", slug: "", description: "", imageUrl: "", parentId: undefined, isActive: true, displayOrder: 0, metaTitle: "", metaDescription: "" } });
   const categoriesArray = Array.isArray(categories) ? categories : [];
   const parentCategories = categoriesArray.filter((cat) => !cat.parentId);
+  const refreshCategories = () => {
+    void queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
+    void queryClient.invalidateQueries({ queryKey: ["/api/public/categories"] });
+    void queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+  };
   const numberLocale = { en: "en-US", fa: "fa-IR", ar: "ar-IQ", tr: "tr-TR" }[language as Language] ?? "en-US";
   const formatNumber = (value: number) => new Intl.NumberFormat(numberLocale).format(value);
 
   const createCategoryMutation = useMutation({
-    mutationFn: (data: CategoryForm) => fetch("/api/admin/categories", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(data) }).then(res => res.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] }); toast({ title: t.createSuccess, description: t.createSuccess }); setIsDialogOpen(false); form.reset(); },
+    mutationFn: (data: CategoryForm) => apiRequest("/api/admin/categories", { method: "POST", body: data }),
+    onSuccess: () => { refreshCategories(); toast({ title: t.createSuccess, description: t.createSuccess }); setIsDialogOpen(false); form.reset(); },
     onError: (error: Error) => toast({ title: t.createError, description: error.message || t.createError, variant: "destructive" }),
   });
   const updateCategoryMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: CategoryForm }) => fetch(`/api/admin/categories/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(data) }).then(res => res.json()),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] }); toast({ title: t.updateSuccess, description: t.updateSuccess }); setIsDialogOpen(false); setEditingCategory(null); form.reset(); },
+    mutationFn: ({ id, data }: { id: number; data: CategoryForm }) => apiRequest(`/api/admin/categories/${id}`, { method: "PUT", body: data }),
+    onSuccess: () => { refreshCategories(); toast({ title: t.updateSuccess, description: t.updateSuccess }); setIsDialogOpen(false); setEditingCategory(null); form.reset(); },
     onError: (error: Error) => toast({ title: t.updateError, description: error.message || t.updateError, variant: "destructive" }),
   });
   const deleteCategoryMutation = useMutation({
     mutationFn: async (id: number) => { const response = await fetch(`/api/admin/categories/${id}`, { method: "DELETE", credentials: "include" }); const result = await response.json().catch(() => null); if (!response.ok) throw new Error(result?.message || t.deleteError); return result; },
-    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] }); toast({ title: t.deleteSuccess, description: t.deleteSuccess }); },
+    onSuccess: async () => { refreshCategories(); toast({ title: t.deleteSuccess, description: t.deleteSuccess }); },
     onError: (error: Error) => toast({ title: t.deleteError, description: error.message || t.deleteError, variant: "destructive" }),
   });
-  const generateSlug = (name: string) => name.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
-  const handleEdit = (category: Category) => { setEditingCategory(category); form.reset({ name: category.name, slug: category.slug, description: category.description || "", imageUrl: category.imageUrl || "", parentId: category.parentId || undefined, isActive: category.isActive, displayOrder: category.displayOrder, metaTitle: category.metaTitle || "", metaDescription: category.metaDescription || "" }); setIsDialogOpen(true); };
+  const generateSlug = (name: string) => name.toLowerCase().trim().replace(/[^\p{L}\p{N}\s-]/gu, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  const handleEdit = (category: Category) => { setEditingCategory(category); form.reset({ name: category.name, slug: category.slug, description: category.description || "", imageUrl: category.imageUrl || "", sampleImages: categorySamples(category), parentId: category.parentId || undefined, isActive: category.isActive, displayOrder: category.displayOrder, metaTitle: category.metaTitle || "", metaDescription: category.metaDescription || "" }); setIsDialogOpen(true); };
   const handleNewCategory = () => { setEditingCategory(null); form.reset(); setIsDialogOpen(true); };
   const handleDelete = (id: number) => { if (confirm(t.deleteConfirm)) deleteCategoryMutation.mutate(id); };
-  const pending = createCategoryMutation.isPending || updateCategoryMutation.isPending;
+  const pending = createCategoryMutation.isPending || updateCategoryMutation.isPending || uploading;
   const field = (name: keyof CategoryForm, label: string, placeholder: string, multiline = false) => (
     <FormField control={form.control} name={name} render={({ field: input }) => <FormItem><FormLabel>{label}</FormLabel><FormControl>{multiline ? <Textarea {...input} value={input.value as string ?? ""} placeholder={placeholder} rows={3} /> : <Input {...input} value={input.value as string ?? ""} placeholder={placeholder} />}</FormControl><FormMessage /></FormItem>} />
   );
@@ -163,6 +173,16 @@ export default function CategoryManagement() {
       <div><h1 className="text-3xl font-bold">{t.title}</h1><p className="mt-2 text-muted-foreground">{t.subtitle}</p></div>
       <Button variant="outline" className="gap-2 self-start" onClick={() => setLocation("/admin")}><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t.backToAdmin}</Button>
     </div>
+    {categoriesArray.length > 0 && <Card className="mb-6" data-testid="category-photo-previews">
+      <CardHeader><CardTitle>{language === "fa" ? "عکس‌های تزئینی کتگوری‌ها" : language === "ar" ? "الصور النموذجية للفئات" : language === "tr" ? "Kategori örnek fotoğrafları" : "Category sample photos"}</CardTitle></CardHeader>
+      <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">{categoriesArray.map(category => {
+        const image = categorySamples(category)[0];
+        return <button type="button" key={category.id} className="overflow-hidden rounded-lg border bg-background text-start transition-colors hover:border-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" onClick={() => handleEdit(category)} aria-label={`${t.edit}: ${category.name}`} data-testid={`category-photo-preview-${category.id}`}>
+          {image ? <img src={image.imageUrl} alt={image.title || category.name} className="h-24 w-full object-cover" loading="lazy" /> : <div className="flex h-24 items-center justify-center bg-muted text-muted-foreground"><ImageIcon className="h-8 w-8" aria-hidden="true" /></div>}
+          <span className="block px-3 py-2 text-sm font-medium">{category.name}</span>
+        </button>;
+      })}</CardContent>
+    </Card>}
     <div className="mb-6"><Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}><DialogTrigger asChild><Button onClick={handleNewCategory} className="gap-2"><Plus className="h-4 w-4" aria-hidden="true" />{t.newCategory}</Button></DialogTrigger>
       <DialogContent dir={direction} lang={language} aria-describedby={undefined} className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader><DialogTitle>{editingCategory ? t.editCategoryTitle : t.createCategoryTitle}</DialogTitle></DialogHeader>
@@ -172,6 +192,7 @@ export default function CategoryManagement() {
             {field("slug", t.slug, t.enterSlug)}
           </div>
           {field("description", t.description, t.enterDescription, true)}{field("imageUrl", t.imageUrl, t.enterImageUrl)}
+          <FormField control={form.control} name="sampleImages" render={({ field: input }) => <FormItem><CategorySamplesEditor value={input.value ?? []} onChange={input.onChange} categoryId={editingCategory?.id} language={language} disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending} onBusyChange={setUploading} /><FormMessage /></FormItem>} />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <FormField control={form.control} name="parentId" render={({ field: input }) => <FormItem><FormLabel>{t.parentCategory}</FormLabel><Select onValueChange={(value) => input.onChange(value === "none" ? undefined : parseInt(value))} value={input.value?.toString() || "none"}><FormControl><SelectTrigger aria-label={t.selectParent}><SelectValue placeholder={t.selectParent} /></SelectTrigger></FormControl><SelectContent dir={direction}><SelectItem value="none">{t.none}</SelectItem>{parentCategories.map((category) => <SelectItem key={category.id} value={category.id.toString()}>{category.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
             <FormField control={form.control} name="displayOrder" render={({ field: input }) => <FormItem><FormLabel>{t.displayOrder}</FormLabel><FormControl><Input type="number" {...input} onChange={(e) => input.onChange(parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>} />

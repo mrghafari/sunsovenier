@@ -169,6 +169,11 @@
 .mc-modal .mc-purchase-button:hover { color:#1748b5; }
 .mc-modal-actions { margin-top:24px; flex-wrap:wrap; }
 .mc-modal-actions .mc-purchase-button { margin-left:auto; }
+.mc-category-photo-group { min-width:0; }
+.mc-category-photo-group .mc-services-grid { grid-template-columns:1fr; }
+.mc-category-photo-heading { margin:0 0 18px; font-size:24px; font-weight:700; color:#f4f7fb; }
+.mc-category-photo-heading a { color:inherit; text-decoration:none; }
+.mc-category-no-samples { color:#a6b0bd; }
 .mc-detail-link i,.mc-text-link i,.mc-footer-cta i { transition:transform .2s ease; }
 .mc-detail-link:hover i,.mc-text-link:hover i,.mc-footer-cta:hover i { transform:translateX(4px); }
 .mc-process { position:relative; padding: 126px 0; background:radial-gradient(ellipse at 15% 20%,rgba(110,163,255,.07),transparent 35%),#f4f6f9; }

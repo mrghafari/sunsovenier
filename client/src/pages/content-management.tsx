@@ -1910,6 +1910,9 @@ s0.parentNode.insertBefore(s1,s0);
 
           {/* Homepage Categories Tab */}
           <TabsContent value="homepage-categories" className="space-y-6">
+            <Card><CardContent className="p-6"><a className="font-medium text-primary underline" href="/category-management">{interfaceLanguage === "fa" ? "نام کتگوری‌ها و عکس‌های نمونه را در مدیریت کتگوری ویرایش کنید." : interfaceLanguage === "ar" ? "إدارة أسماء الفئات وصورها النموذجية من إدارة الفئات." : interfaceLanguage === "tr" ? "Kategori adlarını ve örnek fotoğrafları kategori yönetiminde düzenleyin." : "Manage category names and sample photos in Category Management."}</a></CardContent></Card>
+          </TabsContent>
+          <TabsContent value="retired-homepage-categories" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

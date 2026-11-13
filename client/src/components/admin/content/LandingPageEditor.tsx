@@ -226,12 +226,7 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
   const slots: Array<{ key: string; label: string; asset: number; fallbackKey?: string }> = [
     ...draft.page.slides.map((slide, index) => ({ key: `hero-${slide.id}`, label: `${visual.slide} ${index + 1}`, asset: ["0", "1", "2"].includes(slide.id) ? Number(slide.id) : -1 })),
     { key: "about", label: visual.about, asset: 3 },
-    ...BASE_PRODUCTS.map((product) => {
-      const index = BASE_PRODUCTS.findIndex((item) => item.id === product.id);
-      const name = categoryCardHeading(product.id, visualLocale, LOCALIZED_PRODUCTS[visualLocale]?.[index]?.[0] ?? product.title);
-      return { key: product.id, label: `${visual.product}: ${name}`, asset: product.asset };
-    }),
-    ...draft.custom.map((card) => ({ key: card.id, label: card.title, asset: card.asset })),
+    { key: "logistics", label: "Logistics / لجستیک", asset: 8 },
     ...draft.page.partners.map((partner) => ({ key: `partner-${partner.id}`, label: `شریک / Partner: ${partner.id}`, asset: -1 })),
     { key: "seo", label: "تصویر سئو / SEO image", asset: -1 },
   ];
@@ -298,45 +293,7 @@ export default function LandingPageEditor({ onDirtyChange }: { onDirtyChange?: (
         return validSlots.has(slot) ? { ...current, images: { ...current.images, [slot]: url } } : current;
       })} uploadImage={upload} locked={save.isPending || builderBusy} />
      <LandingInquiryList />
-     <section data-setting-group="edits" className="space-y-4">
-      <div><h3 className="text-lg font-semibold">{copy.products}</h3><p className="text-sm text-muted-foreground">{copy.productsHint}</p></div>
-      {[...BASE_PRODUCTS, ...draft.custom].map((item) => {
-        const override = draft.edits[language]?.[item.id];
-        const englishOverride = draft.edits.en?.[item.id];
-        const original = productMap[item.id];
-        const text = (field: "title" | "short" | "long") => {
-          if (override?.[field] !== undefined) return override[field] as string;
-          if (englishOverride?.[field] !== undefined) return englishOverride[field] as string;
-          if (original && field !== "long") {
-            const translationIndex = BASE_PRODUCTS.findIndex((product) => product.id === item.id);
-            return LOCALIZED_PRODUCTS[language]?.[translationIndex]?.[field === "title" ? 0 : 1] ?? original[field];
-          }
-          return original ? original[field] : item[field];
-        };
-         return <article key={item.id} className="grid gap-4 rounded-xl border bg-card p-4 md:grid-cols-[150px_1fr]">
-          <img className="h-32 w-full rounded-lg object-cover md:h-full" src={draft.images[item.id] || sourceAssets[item.asset]?.url} alt="" />
-          <div className="space-y-3">
-             <div className="flex items-center justify-between gap-3"><h4 className="font-semibold">{item.title}</h4>{item.custom && <Button variant="ghost" size="sm" className="text-destructive" disabled={save.isPending} onClick={() => { if (!window.confirm(copy.deleteConfirm)) return; setDraft((current) => current ? { ...current, custom: current.custom.filter((card) => card.id !== item.id), images: Object.fromEntries(Object.entries(current.images).filter(([imageKey]) => imageKey !== item.id)), page: { ...current.page, cards: Object.fromEntries(Object.entries(current.page.cards).filter(([productId]) => productId !== item.id)) }, edits: Object.fromEntries(landingLanguages.map((locale) => [locale, Object.fromEntries(Object.entries(current.edits[locale] ?? {}).filter(([productId]) => productId !== item.id))])) } : current); }}><Trash2 className="mr-1 h-4 w-4" />{copy.delete}</Button>}</div>
-            <Input dir={language === "fa" || language === "ar" ? "rtl" : "ltr"} aria-label={`${item.title} ${copy.titleField}`} value={text("title")} onChange={(event) => updateText(item.id, "title", event.target.value)} placeholder={copy.titleField} />
-            <Textarea dir={language === "fa" || language === "ar" ? "rtl" : "ltr"} aria-label={`${item.title} ${copy.short}`} value={text("short")} onChange={(event) => updateText(item.id, "short", event.target.value)} placeholder={copy.short} rows={2} />
-            <Textarea dir={language === "fa" || language === "ar" ? "rtl" : "ltr"} aria-label={`${item.title} ${copy.long}`} value={text("long")} onChange={(event) => updateText(item.id, "long", event.target.value)} placeholder={copy.long} rows={3} />
-            {override && <Button size="sm" variant="outline" onClick={() => setDraft((current) => { if (!current) return current; const localeEdits = { ...current.edits[language] }; delete localeEdits[item.id]; return { ...current, edits: { ...current.edits, [language]: localeEdits } }; })}>{copy.restore}</Button>}
-          </div>
-        </article>;
-      })}
-    </section>
-     <section data-setting-group="custom" className="rounded-xl border bg-card p-4">
-      <div className="mb-4"><h3 className="text-lg font-semibold">{copy.addTitle}</h3><p className="text-sm text-muted-foreground">{copy.addHint}</p></div>
-      <div className="grid gap-3 md:grid-cols-2">
-        <Input placeholder={copy.titleField} value={newCard.title} onChange={(event) => setNewCard({ ...newCard, title: event.target.value })} />
-        <Input placeholder={copy.short} value={newCard.short} onChange={(event) => setNewCard({ ...newCard, short: event.target.value })} />
-        <Textarea className="md:col-span-2" placeholder={copy.long} value={newCard.long} onChange={(event) => setNewCard({ ...newCard, long: event.target.value })} />
-        <Textarea className="md:col-span-2" placeholder={copy.specs} value={newCard.specs} onChange={(event) => setNewCard({ ...newCard, specs: event.target.value })} />
-      </div>
-      <fieldset className="my-4"><legend className="mb-2 text-sm font-medium">{copy.packaging}</legend><div className="flex flex-wrap gap-3">{Object.entries(PACKAGES).map(([id, pack]) => <label className="flex items-center gap-2 text-sm" key={id}><input type="checkbox" checked={newCard.pack.includes(id as PackageId)} onChange={(event) => setNewCard((current) => ({ ...current, pack: event.target.checked ? [...current.pack, id as PackageId] : current.pack.filter((value) => value !== id) }))} />{pack.name}</label>)}</div></fieldset>
-      <Button variant="outline" onClick={addCustom}><Plus className="mr-2 h-4 w-4" />{copy.add}</Button>
-      {draft.custom.length > 0 && <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground"><Check className="h-3.5 w-3.5" />{draft.custom.length} {copy.inDraft}</p>}
-    </section>
+     <p className="rounded-lg border p-4"><a href="/category-management" className="text-primary underline">{language === "fa" ? "نام کتگوری‌ها و عکس‌های نمونه فقط در مدیریت کتگوری ویرایش می‌شوند." : language === "ar" ? "تُدار أسماء الفئات وصورها النموذجية من إدارة الفئات فقط." : language === "tr" ? "Kategori adları ve örnek fotoğraflar yalnızca kategori yönetiminde düzenlenir." : "Manage category names and sample photos in Category Management only."}</a></p>
      </fieldset>
    </div>;
 }

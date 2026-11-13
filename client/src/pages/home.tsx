@@ -14,13 +14,13 @@ import { useLandingMotion } from "./landing/useLandingMotion";
 import { useSlideCaptionTransition } from "./landing/useSlideCaptionTransition";
 import AboutPhotoWindow from "./landing/AboutPhotoWindow";
 import { aboutContent } from "./landing/about-content";
-import { categoryCardHeading, categoryCardOrder } from "./landing/category-card-headings";
+import { categorySamples as managedCategorySamples } from "@shared/category-samples";
 import { currentPublicProductLink } from "@shared/retired-product-paths";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import type { ShopCategory, ShopProduct } from "@shared/shop-schema";
 import assets from "./landing/landing-assets.json";
-import { BASE_PRODUCTS, LIQUID_PACKAGES, LOCALIZED_PRODUCTS, PACKAGES, PRODUCT_DETAILS_UI } from "./landing/catalog";
+import { LIQUID_PACKAGES, PACKAGES, PRODUCT_DETAILS_UI, type LandingProduct } from "./landing/catalog";
 import "./landing/landing.css";
 import "./landing/landing-layout.css";
 
@@ -107,7 +107,6 @@ export default function Home() {
   const { language, setLanguage, direction } = useLanguage();
   const locale = (language in translations ? language : "en") as Language;
   const [pageDefaults] = useState(defaultLandingPageSettings);
-  const localizedProducts = LOCALIZED_PRODUCTS[locale];
   const [slide, setSlide] = useState(0);
   const slideRef = useRef(0);
   slideRef.current = slide;
@@ -214,6 +213,9 @@ export default function Home() {
   );
   const { data: categoriesResponse, isLoading, isError, refetch } = useQuery({
     queryKey: ["/api/public/categories"],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
     queryFn: async () => {
       const response = await fetch("/api/public/categories");
       if (!response.ok) throw new Error("Unable to load categories");
@@ -245,36 +247,17 @@ export default function Home() {
     return result;
   }, [shopProducts]);
   const imageFor = useCallback((key: string, assetIndex: number) => landingContent?.images[key] || assetUrl(assetIndex), [landingContent?.images]);
-  const products = useMemo(() => BASE_PRODUCTS.map((product, index) => {
-    const localized = localizedProducts?.[index];
-    const localeOverride = landingContent?.edits?.[locale]?.[product.id];
-    const englishOverride = landingContent?.edits?.en?.[product.id];
-    return {
-      ...product,
-      title: localeOverride?.title ?? englishOverride?.title ?? categoryCardHeading(product.id, locale, localized?.[0] ?? product.title),
-      short: localeOverride?.short ?? englishOverride?.short ?? localized?.[1] ?? product.short,
-      long: localeOverride?.long ?? englishOverride?.long ?? product.long,
-    };
-  }).concat((landingContent?.custom ?? []).map((product) => {
-    const localized = landingContent?.edits?.[locale]?.[product.id];
-    const english = landingContent?.edits?.en?.[product.id];
-    return {
-      ...product,
-      title: localized?.title ?? english?.title ?? product.title,
-      short: localized?.short ?? english?.short ?? product.short,
-      long: localized?.long ?? english?.long ?? product.long,
-      categoryPath: "/contact",
-      custom: true as const,
-    };
-  })).filter(product => product.id !== "logistics" && page.cards[product.id]?.isActive !== false).map(product => ({
-    ...product, pack: page.cards[product.id]?.pack ?? product.pack,
-    specs: page.cards[product.id]?.specs[locale] ?? page.cards[product.id]?.specs.en ?? product.specs,
-  })).sort((a,b) => {
-    const originals = [...BASE_PRODUCTS, ...(landingContent?.custom ?? [])];
-    return (page.cards[a.id]?.order ?? categoryCardOrder(a.id, originals.findIndex(item=>item.id===a.id)))
-      - (page.cards[b.id]?.order ?? categoryCardOrder(b.id, originals.findIndex(item=>item.id===b.id)));
-  }),
-  [landingContent, localizedProducts, locale, page.cards]);
+  const products = useMemo<Array<LandingProduct & { categoryId: number; imageUrl: string }>>(() => categories.flatMap(category =>
+    managedCategorySamples(category).map(sample => ({
+      id: `category-${category.id}-${sample.id}`,
+      categoryId: category.id,
+      imageUrl: sample.imageUrl,
+      title: sample.title || category.name,
+      short: sample.description || category.description || "",
+      long: sample.description || category.description || "",
+      specs: [], pack: [], asset: -1, categoryPath: "/shop",
+    } satisfies LandingProduct & { categoryId: number; imageUrl: string })),
+  ), [categoriesResponse]);
 
   const ensureHeroLoaded = useCallback((index: number): Promise<boolean> => {
     const id = visibleSlides[index]?.id;
@@ -544,11 +527,11 @@ export default function Home() {
         {sections.services && <section data-home-section="services" className="mc-services" id="services"><div className="mc-container"><LayoutElements order={page.layout.elements.services}>
           <div data-home-part="heading" className="mc-section-heading mc-reveal"><div><span className="mc-eyebrow">{c.packaging}</span><h2>{c.packagingTitle}</h2><p>{c.packagingHint}</p></div><a href={effectiveHref(page.actions.shop)} className="mc-text-link">{c.shop}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></a></div>
           {!detached.has("categories")&&categoryBlock}
-          <div data-home-part="cards" className="mc-services-grid">{products.map((product, index) => {
-            const assetIndex = product.asset;
-            const imageKey = product.id;
+          <div data-home-part="cards" className="mc-services-grid mc-category-photo-groups">{categories.map(category => <div className="mc-category-photo-group" key={category.id} data-category-id={category.id}>
+            <h3 className="mc-category-photo-heading"><Link href="/shop">{category.name}</Link></h3>
+            <div className="mc-services-grid">{products.filter(product => product.categoryId === category.id).map((product, index) => {
             return <article className={`mc-service-card mc-reveal mc-delay-${index % 3 + 1}`} key={product.id}>
-              <div className="mc-service-image"><img src={imageFor(imageKey, assetIndex)} alt={product.title} loading="lazy" /></div>
+              <div className="mc-service-image"><img src={product.imageUrl} alt={product.title} loading="lazy" /></div>
               <div className="mc-service-body"><h3>{product.title}</h3><p>{product.short}</p>
                 <div className="mc-card-actions">
                   <button type="button" className="mc-detail-link" dir={direction} onClick={() => openProduct(product.id)}>{c.details}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></button>
@@ -557,6 +540,8 @@ export default function Home() {
               </div>
             </article>;
           })}</div>
+          {!products.some(product => product.categoryId === category.id) && <p className="mc-category-no-samples">{locale === "fa" ? "هنوز تصویر نمونه‌ای برای این دسته‌بندی ثبت نشده است." : locale === "ar" ? "لم تُضف صور نموذجية لهذه الفئة بعد." : locale === "tr" ? "Bu kategori için henüz örnek görsel eklenmedi." : "No sample images have been added to this category yet."}</p>}
+          </div>)}</div>
         </LayoutElements></div></section>}
 
         {sections.process && <section data-home-section="process" className="mc-process" id="process"><div className="mc-container"><LayoutElements order={page.layout.elements.process}><div data-home-part="heading" className="mc-reveal"><span className="mc-eyebrow mc-eyebrow-dark">{c.processEyebrow}</span><h2 className="mc-section-title">{c.processTitle}</h2></div>
@@ -585,17 +570,17 @@ export default function Home() {
       <dialog className="mc-modal" ref={modalRef} aria-labelledby="mc-modal-title" onCancel={() => setActiveProductId(null)} onClick={(event) => { if (event.target === modalRef.current) closeProduct(); }} onClose={() => setActiveProductId(null)}>
         <button className="mc-modal-close" type="button" aria-label={detailLabels.close} onClick={closeProduct}><i className="fa-solid fa-xmark" aria-hidden="true" /></button>
         {activeProduct && <div className="mc-modal-grid">
-          <div className="mc-modal-image"><img src={imageFor(activeProduct.id, activeProduct.asset)} alt={activeProduct.title} /></div>
+          <div className="mc-modal-image"><img src={activeProduct.imageUrl} alt={activeProduct.title} /></div>
           <div className="mc-modal-body"><span className="mc-eyebrow mc-eyebrow-dark">{detailLabels.detail}</span><h2 id="mc-modal-title">{activeProduct.title}</h2><p>{activeProduct.long}</p>
             {activeProduct.specs.length > 0 && <><h3>{detailLabels.specifications}</h3><ul className="mc-specs">{activeProduct.specs.map((spec) => <li key={spec}><i className="fa-solid fa-check" aria-hidden="true" /><span>{spec}</span></li>)}</ul></>}
-            <h3>{detailLabels.packaging}</h3>{detailText("modalPackagingHint","") && <p>{detailText("modalPackagingHint","")}</p>}<div className="mc-packs">{activeProduct.pack.map((packId) => {
+            {activeProduct.pack.length > 0 && <><h3>{detailLabels.packaging}</h3>{detailText("modalPackagingHint","") && <p>{detailText("modalPackagingHint","")}</p>}<div className="mc-packs">{activeProduct.pack.map((packId) => {
               const pack = packages[packId];
               const linked = packageProductIds.has(packId);
               return <button key={packId} className={`mc-pack ${activeProduct.id === packId ? "current" : ""}`} type="button" disabled={!linked || activeProduct.id === packId} onClick={() => linked && openProduct(packId)} title={pack.description}>
                 <span className="mc-pack-icon">{linked ? <img src={imageFor(packId, products.find((item) => item.id === packId)?.asset ?? 9)} alt="" /> : <i className={`fa-solid ${pack.icon}`} aria-hidden="true" />}</span>
                 <span><b>{pack.name}</b><small>{pack.capacity}</small></span>
               </button>;
-            })}</div>
+            })}</div></>}
             <div className="mc-modal-actions">
               <button type="button" className="mc-button mc-button-gold" dir={direction} onClick={() => requestProductQuote(activeProduct.id)}>{detailLabels.request}</button>
               <a href="/shop" className="mc-purchase-button" dir={direction} aria-label={purchaseLabel} title={purchaseLabel} data-testid="modal-purchase"><ShoppingCart size={21} aria-hidden="true" /></a>
