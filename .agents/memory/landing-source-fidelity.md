@@ -159,4 +159,4 @@ Purchase controls use an icon-only shopping cart instead of visible Purchase tex
 
 **Why:** After asking to remove the white square and animate the text, the user chose a shopping-cart icon instead of the text.
 
-**How to apply:** Use an SVG icon rather than a font glyph to avoid missing-icon squares. Keep a localized accessible name and tooltip; the button remains a link to the shop.
+**How to apply:** Use an SVG icon rather than a font glyph to avoid missing-icon squares. Keep a localized accessible name and tooltip; the button remains a link to the shop. The user requested no background or surrounding circle, including on hover; retain a usable invisible touch target and keyboard-focus indicator.

@@ -132,6 +132,22 @@ try {
     assert.ok(!cardHeadings.includes("220L Standard Drums"));
     assert.equal(await page.$$eval(".mc-purchase-button i", nodes => nodes.length), 0);
     assert.equal(await page.$$eval(".mc-purchase-button svg", nodes => nodes.length), 7);
+    async function assertBareCart(selector) {
+      const check = () => page.$eval(selector, node => {
+        const s = getComputedStyle(node);
+        return { background:s.backgroundColor, border:s.borderTopWidth, radius:s.borderTopLeftRadius, shadow:s.boxShadow, width:node.offsetWidth };
+      });
+      for (const hovered of [false, true]) {
+        if (hovered) await page.hover(selector);
+        const style = await check();
+        assert.equal(style.background, "rgba(0, 0, 0, 0)");
+        assert.equal(style.border, "0px");
+        assert.equal(style.radius, "0px");
+        assert.equal(style.shadow, "none");
+        assert.ok(style.width >= 44);
+      }
+    }
+    await assertBareCart('[data-testid^="card-purchase-"]');
     await page.$eval(".mc-services-grid", node => node.scrollIntoView({ block: "start" }));
     await new Promise(resolve => setTimeout(resolve, 1200));
     await page.screenshot({ path: `generated-artifacts/homepage-categories/${language}-cards.jpg` });
@@ -151,6 +167,7 @@ try {
         await page.waitForSelector("dialog[open] [data-testid='modal-purchase']");
         assert.equal(await page.$eval('[data-testid="modal-purchase"]', (node, label) => node.getAttribute("aria-label") === label && !node.textContent.trim() && !node.querySelector("i") && !!node.querySelector("svg"), label), true);
         assert.equal(await page.$eval('[data-testid="modal-purchase"]', node => node.getAttribute("href")), "/shop");
+        if (locale === language && id === ids[0]) await assertBareCart('[data-testid="modal-purchase"]');
         const placement = await page.$eval('[data-testid="modal-purchase"]', node => {
           const box = node.getBoundingClientRect(), row = node.parentElement.getBoundingClientRect();
           return { rightGap: row.right - box.right, fits: box.right <= innerWidth + 1 };
