@@ -2,9 +2,21 @@ import { z } from "zod";
 
 export const faqLanguages = ["en", "fa", "ar", "tr"] as const;
 export type FaqLanguage = typeof faqLanguages[number];
+export const faqMoreDetailsLabels = {
+  en: "More details", fa: "جزئیات بیشتر", ar: "المزيد من التفاصيل", tr: "Daha fazla bilgi",
+};
+export function isSafeFaqLink(value: string): boolean {
+  if (/[\s\\\u0000-\u001f]/u.test(value)) return false;
+  if (/^\/(?!\/)/.test(value)) return true;
+  try {
+    const url = new URL(value);
+    return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password;
+  } catch { return false; }
+}
 const translationSchema = z.object({
   question: z.string().trim().min(1).max(500),
   answer: z.string().trim().min(1).max(10000),
+  moreInfoUrl: z.string().trim().max(2000).refine(value => !value || isSafeFaqLink(value), "Invalid details link.").optional(),
 }).strict();
 export const faqItemSchema = z.object({
   id: z.string().regex(/^[a-zA-Z0-9-]{1,100}$/),

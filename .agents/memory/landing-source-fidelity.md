@@ -161,6 +161,12 @@ Keep Vendor access on the homepage and in its header, including the mobile menu.
 
 **How to apply:** Link to the existing vendor portal, preserve localized labels and the marketplace visibility setting, and support older saved navigation without duplicate entries.
 
+FAQ answers may include an optional destination for further details, managed alongside the answer.
+
+**Why:** The user requested a place to enter a link so visitors can consult further details. Destinations can differ by language, so each translated answer owns its link.
+
+**How to apply:** Keep the existing answer text intact; empty links show no extra control. Allow safe web URLs and internal paths, never script links or raw HTML.
+
 The public `/products` catalog and all category subpages are retired; customers use the shop instead.
 
 **Why:** The user explicitly requested removing the old Products route and its subpages, naming `/products/agricultural-fertilizers` as an example.

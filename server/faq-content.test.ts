@@ -47,6 +47,25 @@ test("localization uses available content; inactive content never appears", () =
   assert.deepEqual(localizedFaqs(content, "tr"), [{ id: "fa-only", question: "پرسش", answer: "پاسخ" }]);
 });
 
+test("optional details links validate, persist, localize and clear without affecting old FAQs", async () => {
+  const content = defaultFaqContent();
+  for (const invalid of ["javascript:alert(1)", "data:text/html,test", "//example.com", "/\\example.com", "https://user:pass@example.com", "not a link"]) {
+    content.items[0].translations.en!.moreInfoUrl = invalid;
+    assert.equal(faqContentSchema.safeParse(content).success, false, invalid);
+  }
+  const db = memoryDatabase();
+  const stored = await readFaqContent(db);
+  stored.items[0].translations.en!.moreInfoUrl = "https://example.com/details";
+  stored.items[0].translations.fa!.moreInfoUrl = "/shop";
+  const saved = await saveFaqContent(stored, db);
+  assert.equal(localizedFaqs(await readFaqContent(db), "fa")[0].moreInfoUrl, "/shop");
+  assert.equal(localizedFaqs(saved, "en")[0].moreInfoUrl, "https://example.com/details");
+  assert.equal(localizedFaqs(saved, "ar")[0].moreInfoUrl, undefined);
+  delete saved.items[0].translations.en!.moreInfoUrl;
+  await saveFaqContent(saved, db);
+  assert.equal(localizedFaqs(await readFaqContent(db), "en")[0].moreInfoUrl, undefined);
+});
+
 test("CRUD persists, reorders, deactivates, deletes and detects concurrent edits", async () => {
   const db = memoryDatabase();
   const first = await readFaqContent(db);

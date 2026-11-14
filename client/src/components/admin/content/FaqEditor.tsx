@@ -16,7 +16,14 @@ const languages = [
   { id: "tr", label: "Türkçe", name: "Türkçe" },
 ] as const;
 type FaqLanguage = typeof languages[number]["id"];
-type Translation = { question: string; answer: string };
+type Translation = { question: string; answer: string; moreInfoUrl?: string };
+
+const linkCopy = {
+  en: { label: "More details link (optional)", hint: "Enter a full http(s) URL or a site path such as /shop. Leave empty to hide the link.", invalid: "Enter a valid details link, such as https://example.com or /shop." },
+  fa: { label: "لینک جزئیات بیشتر (اختیاری)", hint: "آدرس کامل با http یا https، یا مسیر داخلی مانند /shop وارد کنید. برای پنهان شدن لینک، خالی بگذارید.", invalid: "لینک جزئیات معتبر وارد کنید؛ مانند https://example.com یا /shop." },
+  ar: { label: "رابط المزيد من التفاصيل (اختياري)", hint: "أدخل رابط http أو https كاملاً أو مساراً مثل /shop. اتركه فارغاً لإخفائه.", invalid: "أدخل رابط تفاصيل صالحاً مثل https://example.com أو /shop." },
+  tr: { label: "Ayrıntı bağlantısı (isteğe bağlı)", hint: "Tam http(s) adresi veya /shop gibi bir site yolu girin. Gizlemek için boş bırakın.", invalid: "https://example.com veya /shop gibi geçerli bir bağlantı girin." },
+};
 
 const copy = {
   en: { title: "Frequently asked questions", intro: "Manage answers shown to customers. Changes remain a draft until you save.", language: "Edit language", add: "Add question", save: "Save changes", saving: "Saving…", dirty: "Unsaved changes", clean: "Saved revision", active: "Visible to customers", inactive: "Hidden from customers", question: "Question", answer: "Answer", questionHint: "Write a clear, customer-facing question.", answerHint: "Provide a useful answer for customers.", delete: "Delete", deleteConfirm: "Delete this FAQ from the draft?", up: "Move up", down: "Move down", loadError: "FAQ content could not be loaded.", retry: "Try again", saveError: "Changes could not be saved. Please try again.", noItems: "No FAQs yet. Add the first customer question.", max: "You can add up to 100 questions.", complete: "Add at least one complete question and answer language before saving.", validation: "Check the FAQ text and try again.", saved: "FAQ changes saved.", maxQuestion: "500 characters maximum", maxAnswer: "10,000 characters maximum" },
@@ -33,8 +40,8 @@ function normalizeContent(value: FaqContent): FaqContent {
       const translations: FaqContent["items"][number]["translations"] = {};
       for (const language of languages) {
         const source = item.translations[language.id];
-        if (source && (source.question.trim() || source.answer.trim())) {
-          translations[language.id] = { question: source.question.trim(), answer: source.answer.trim() };
+        if (source && (source.question.trim() || source.answer.trim() || source.moreInfoUrl?.trim())) {
+          translations[language.id] = { question: source.question.trim(), answer: source.answer.trim(), ...(source.moreInfoUrl?.trim() ? { moreInfoUrl: source.moreInfoUrl.trim() } : {}) };
         }
       }
       return { ...item, translations };
@@ -51,6 +58,7 @@ async function readFaq(): Promise<FaqContent> {
 export default function FaqEditor({ onDirtyChange }: { onDirtyChange?: (dirty: boolean) => void }) {
   const { language: interfaceLanguage } = useLanguage();
   const text = copy[(interfaceLanguage in copy ? interfaceLanguage : "en") as CopyLocale];
+  const linkText = linkCopy[(interfaceLanguage in linkCopy ? interfaceLanguage : "en") as CopyLocale];
   const rtlUi = interfaceLanguage === "fa" || interfaceLanguage === "ar";
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: faqKey, queryFn: readFaq, staleTime: 0 });
@@ -96,6 +104,7 @@ export default function FaqEditor({ onDirtyChange }: { onDirtyChange?: (dirty: b
         const issue = parsed.error.issues[0];
         const invalidLanguage = issue.path[3];
         if (languages.some(entry => entry.id === invalidLanguage)) setEditLanguage(invalidLanguage as FaqLanguage);
+        if (issue.path.at(-1) === "moreInfoUrl") throw new Error("link");
         throw new Error("validation");
       }
       const response = await apiRequest("/api/content-management/faq", { method: "PUT", body: parsed.data });
@@ -112,7 +121,7 @@ export default function FaqEditor({ onDirtyChange }: { onDirtyChange?: (dirty: b
       ]);
     },
     onError: (error) => {
-      setNotice(error instanceof Error && error.message === "complete" ? text.complete : error instanceof Error && error.message === "validation" ? text.validation : text.saveError);
+      setNotice(error instanceof Error && error.message === "link" ? linkText.invalid : error instanceof Error && error.message === "complete" ? text.complete : error instanceof Error && error.message === "validation" ? text.validation : text.saveError);
     },
   });
 
@@ -198,6 +207,11 @@ export default function FaqEditor({ onDirtyChange }: { onDirtyChange?: (dirty: b
           <div className="grid gap-4">
             <div className="space-y-1.5"><label className="text-sm font-medium" htmlFor={`faq-question-${item.id}`}>{text.question}</label><Input data-testid={`faq-question-${item.id}`} id={`faq-question-${item.id}`} dir={editLanguage === "fa" || editLanguage === "ar" ? "rtl" : "ltr"} value={translation.question} maxLength={500} placeholder={text.questionHint} onChange={(event) => patchTranslation(item.id, "question", event.target.value)} /><p className="text-end text-xs text-muted-foreground">{translation.question.length}/500 · {text.maxQuestion}</p></div>
             <div className="space-y-1.5"><label className="text-sm font-medium" htmlFor={`faq-answer-${item.id}`}>{text.answer}</label><Textarea data-testid={`faq-answer-${item.id}`} id={`faq-answer-${item.id}`} dir={editLanguage === "fa" || editLanguage === "ar" ? "rtl" : "ltr"} value={translation.answer} maxLength={10000} rows={4} placeholder={text.answerHint} onChange={(event) => patchTranslation(item.id, "answer", event.target.value)} /><p className="text-end text-xs text-muted-foreground">{translation.answer.length}/10,000 · {text.maxAnswer}</p></div>
+            <div className="space-y-1.5 rounded-lg border bg-muted/30 p-3">
+              <label className="text-sm font-medium" htmlFor={`faq-link-${item.id}`}>{linkText.label}</label>
+              <Input data-testid={`faq-link-${item.id}`} id={`faq-link-${item.id}`} dir="ltr" inputMode="url" value={translation.moreInfoUrl ?? ""} maxLength={2000} placeholder="https://…" aria-describedby={`faq-link-hint-${item.id}`} onChange={event => patchTranslation(item.id, "moreInfoUrl", event.target.value)} />
+              <p id={`faq-link-hint-${item.id}`} className="text-xs text-muted-foreground">{linkText.hint}</p>
+            </div>
           </div>
         </article>;
       })}

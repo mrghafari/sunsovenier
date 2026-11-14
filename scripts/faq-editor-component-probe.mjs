@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import puppeteer from "puppeteer";
+import { mkdir } from "node:fs/promises";
 
 const base = `https://${process.env.REPLIT_DEV_DOMAIN}`;
 const component = "/src/components/admin/content/FaqEditor.tsx";
@@ -21,12 +22,19 @@ const browser = await puppeteer.launch({
 });
 try {
   const page = await browser.newPage();
+  await page.setBypassServiceWorker(true);
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   page.on("dialog", dialog => dialog.accept());
   await page.setRequestInterception(true);
   page.on("request", request => {
     const url = new URL(request.url());
+    if (url.pathname === "/sw.js") return request.abort();
+    if (url.pathname === "/api/faq") return request.respond({ contentType: "application/json", body: JSON.stringify({
+      success: true, data: Object.fromEntries(["en", "fa", "ar", "tr"].map(language => [language,
+        state.items.filter(item => item.isActive).map(item => ({ id: item.id, ...(item.translations[language] || item.translations.fa) })),
+      ])),
+    }) });
     if (url.pathname === "/__faq-editor-probe") return request.respond({ contentType: "text/html", body: `
       <div id="probe"></div><script type="module">
       localStorage.setItem("language","fa");localStorage.setItem("language-manually-selected","true");
@@ -56,21 +64,29 @@ try {
   async function fill(id, value) {
     await click(id);
     await page.keyboard.down("Control"); await page.keyboard.press("A"); await page.keyboard.up("Control");
+    await page.keyboard.press("Backspace");
     await page.type(selector(id), value);
   }
   async function save() {
     const previous = saves;
     await click("faq-save");
     await page.waitForFunction(() => !document.querySelector('[data-testid="faq-save"]').textContent.includes("ذخیره…"));
-    await page.waitForNetworkIdle({ idleTime: 250 });
+    await page.waitForFunction(() => document.querySelector('[data-testid="faq-save"]').disabled);
     assert.equal(saves, previous + 1);
   }
   await page.goto(base + "/__faq-editor-probe", { waitUntil: "networkidle0", timeout: 60000 });
   await page.waitForSelector(selector("faq-add"), { timeout: 60000 });
   await page.select(selector("faq-language"), "fa");
   await fill("faq-answer-first", "پاسخ ویرایش‌شده");
+  await fill("faq-link-first", "javascript:alert(1)");
+  await click("faq-save");
+  await page.waitForSelector('[role="alert"]');
+  assert.equal(saves, 0, "Unsafe details links must not save");
+  await fill("faq-link-first", "/shop");
   await save();
   assert.equal(state.items[0].translations.fa.answer, "پاسخ ویرایش‌شده");
+  assert.equal(state.items[0].translations.fa.moreInfoUrl, "/shop");
+  console.log("FAQ details link validation and initial save passed");
   await click("faq-add");
   await click("faq-save");
   await page.waitForSelector('[role="alert"]');
@@ -89,6 +105,7 @@ try {
   await page.reload({ waitUntil: "networkidle0", timeout: 60000 });
   await page.waitForSelector(selector(`faq-question-${id}`));
   await page.select(selector("faq-language"), "fa");
+  assert.equal(await page.$eval(selector("faq-link-first"), el => el.value), "/shop");
   assert.equal(await page.$eval(selector(`faq-answer-${id}`), el => el.value), "پاسخ تازه\nخط دوم");
   await click(`faq-delete-${id}`);
   await save();
@@ -101,7 +118,30 @@ try {
   await click("faq-reload");
   await page.waitForFunction(() => document.querySelector('[data-testid="faq-question-first"]').value === "پرسش نخست");
   await page.setViewport({ width: 390, height: 844 });
+  console.log("FAQ editor CRUD and reload checks passed");
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, "No horizontal overflow on mobile");
+  await mkdir("generated-artifacts/faq-links", { recursive: true });
+  await page.screenshot({ path: "generated-artifacts/faq-links/editor.jpg" });
+  await page.goto(base + "/", { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForSelector(".mc-faq-toggle");
+  console.log("Public FAQ loaded");
+  await page.$eval(".mc-faq-toggle", node => node.click());
+  assert.equal(await page.$eval(".mc-faq-details-link", node => node.getAttribute("href")), "/shop");
+  assert.equal(await page.$eval(".mc-faq-details-link", node => node.textContent), "جزئیات بیشتر");
+  assert.equal(await page.$$eval(".mc-faq-details-link", nodes => nodes.length), 1, "No link for FAQ without URL");
+  await page.$eval("#faq", node => node.scrollIntoView());
+  await page.screenshot({ path: "generated-artifacts/faq-links/home.jpg" });
+  await Promise.all([page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 90000 }), page.click(".mc-faq-details-link")]);
+  assert.equal(new URL(page.url()).pathname, "/shop");
+  conflict = false;
+  await page.goto(base + "/__faq-editor-probe", { waitUntil: "networkidle0", timeout: 60000 });
+  await page.waitForSelector(selector("faq-link-first"));
+  await fill("faq-link-first", "");
+  await save();
+  assert.equal(state.items[0].translations.fa.moreInfoUrl, undefined);
+  await page.goto(base + "/", { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForSelector(".mc-faq-toggle");
+  assert.equal(await page.$$eval(".mc-faq-details-link", nodes => nodes.length), 0, "Cleared links must disappear");
   assert.deepEqual(errors, []);
   console.log("FAQ component passed Persian CRUD, validation, order/visibility, reload persistence, conflict retention/recovery and mobile width. Browser-only fixture APIs; no live data changed or authentication bypassed.");
 } finally { await browser.close(); }

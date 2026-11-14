@@ -206,6 +206,7 @@
 .mc-faq-toggle i { flex: none; color: var(--mc-gold); transition: transform .25s ease; }
 .mc-faq-item.is-open .mc-faq-toggle i { transform: rotate(45deg); }
 .mc-faq-answer p { padding: 0 32px 20px 0; margin: 0; color: #64707d; font-size: 13px; }
+.mc-faq-answer .mc-faq-details-link { display:inline-block; margin:0 0 20px; color:#1758c7; font-size:13px; font-weight:700; text-decoration:underline; text-underline-offset:4px; overflow-wrap:anywhere; }
 .mc-footer { position:relative; padding: 78px 0 27px; border-top: 1px solid rgba(255,255,255,.08); color: #fff; background:#111923; }
 .mc-footer::before { position:absolute; content:""; inset:0 0 auto; height:280px; background:radial-gradient(ellipse at 20% 0,rgba(110,163,255,.1),transparent 55%); pointer-events:none; }
 .mc-footer-grid { position:relative; display: grid; grid-template-columns: 1.7fr 1fr 1fr 1fr; gap: 36px 32px; }
