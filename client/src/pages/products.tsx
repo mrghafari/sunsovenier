@@ -208,7 +208,7 @@ export default function ProductsPage() {
       document.querySelectorAll<HTMLDetailsElement>('[data-testid^="kardex-section-"]').forEach((section) => {
         section.open = false;
       });
-      document.querySelectorAll<HTMLDetailsElement>('[data-testid^="packaging-section-"], [data-testid="packaging-editor-panel"]').forEach((section) => {
+      document.querySelectorAll<HTMLDetailsElement>('details[data-testid^="packaging-section-"], details[data-testid="packaging-editor-panel"]').forEach((section) => {
         section.open = false;
       });
     });
@@ -3110,23 +3110,6 @@ export default function ProductsPage() {
                       )}
                     />
                   </div>
-                  <FormField control={form.control} name="packagingSpecifications" render={({ field }) => (
-                    <FormItem className="mt-6 rounded-lg border border-amber-500 bg-amber-200 p-3 text-amber-950 sm:p-4 dark:border-amber-700 dark:bg-amber-900 dark:text-amber-50" data-testid="kardex-packaging-block">
-                      <PackagingSpecificationsEditor
-                        key={editingProduct?.id ?? "new-product"}
-                        language={language} value={field.value} onChange={field.onChange}
-                        disabled={!!((form.watch("inventoryAddition") || 0) > 0 && form.watch("newBatchNumber")?.trim())}
-                      />
-                      {!!((form.watch("inventoryAddition") || 0) > 0 && form.watch("newBatchNumber")?.trim()) && (
-                        <p className="text-sm text-muted-foreground">{language === "fa"
-                          ? "برای تغییر مشخصات ظرف، محصول را ویرایش کنید؛ افزودن بچ فقط موجودی و اطلاعات بچ را ثبت می‌کند."
-                          : language === "ar" ? "لتعديل مواصفات الوعاء، حرر المنتج؛ إضافة دفعة تسجل المخزون وبيانات الدفعة فقط."
-                          : language === "tr" ? "Kap özelliklerini değiştirmek için ürünü düzenleyin; parti eklemek yalnızca stok ve parti bilgilerini kaydeder."
-                          : "Edit the product to change container specifications; adding a batch records stock and batch information only."}</p>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )} />
                   {editingProduct && (
                     <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
                       <p>{t.productManagement.shopGrossWeightHint}</p>
@@ -3142,6 +3125,32 @@ export default function ProductsPage() {
                     </div>
                   )}
                 </div>
+                </KardexFormSection>
+
+                <KardexFormSection
+                  id="packaging"
+                  title={language === "fa" ? "مشخصات بسته‌بندی" : language === "ar" ? "مواصفات العبوة" : language === "tr" ? "Ambalaj özellikleri" : "Packaging specifications"}
+                  icon={<Package className="h-4 w-4 text-amber-800 dark:text-amber-300" />}
+                  className="!border-amber-500 !bg-amber-100 !text-amber-950 dark:!border-amber-700 dark:!bg-amber-950 dark:!text-amber-50"
+                >
+                  <FormField control={form.control} name="packagingSpecifications" render={({ field }) => (
+                    <FormItem data-testid="kardex-packaging-block">
+                      <PackagingSpecificationsEditor
+                        key={editingProduct?.id ?? "new-product"}
+                        embedded
+                        language={language} value={field.value} onChange={field.onChange}
+                        disabled={!!((form.watch("inventoryAddition") || 0) > 0 && form.watch("newBatchNumber")?.trim())}
+                      />
+                      {!!((form.watch("inventoryAddition") || 0) > 0 && form.watch("newBatchNumber")?.trim()) && (
+                        <p className="text-sm">{language === "fa"
+                          ? "برای تغییر مشخصات ظرف، محصول را ویرایش کنید؛ افزودن بچ فقط موجودی و اطلاعات بچ را ثبت می‌کند."
+                          : language === "ar" ? "لتعديل مواصفات الوعاء، حرر المنتج؛ إضافة دفعة تسجل المخزون وبيانات الدفعة فقط."
+                          : language === "tr" ? "Kap özelliklerini değiştirmek için ürünü düzenleyin; parti eklemek yalnızca stok ve parti bilgilerini kaydeder."
+                          : "Edit the product to change container specifications; adding a batch records stock and batch information only."}</p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                 </KardexFormSection>
 
                 {/* Tags and additional settings */}

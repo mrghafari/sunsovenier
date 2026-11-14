@@ -106,20 +106,40 @@ try {
     await page.click('[data-testid="kardex-section-basic"] > summary');
     await open("basic");
     assert.equal(await page.$eval(nameSelector, node => node.value), "Retained edit");
-    await open("inventory");
-    const packing = '[data-testid="packaging-editor-panel"]';
+    const packing = '[data-testid="kardex-section-packaging"]';
+    assert.equal(await page.$eval(packing, node => !!node.closest('[data-testid="kardex-section-inventory"]')), false, "Packing must not be nested in inventory");
+    assert.equal(await page.$eval(packing, node => node.parentElement === document.querySelector('[data-testid="kardex-section-inventory"]').parentElement), true, "Packing must be a peer of the other form sections");
+    assert.equal(await page.$$eval('[data-testid="packaging-editor-panel"] > summary', nodes => nodes.length), 0, "Packing must not repeat its outer dropdown");
+    await open("packaging");
+    assert.equal(await page.$eval('[data-testid="kardex-section-inventory"]', node => node.open), false);
+    await page.click('[data-testid="packaging-section-capacity"] > summary');
+    await page.click("#packaging-nominalCapacityL");
+    await page.keyboard.down("Control"); await page.keyboard.press("A"); await page.keyboard.up("Control");
+    await page.type("#packaging-nominalCapacityL", "250");
+    await page.click(`${packing} > summary`);
+    await open("packaging");
+    assert.equal(await page.$eval("#packaging-nominalCapacityL", node => node.value), "250", "Collapsing packing must retain edits");
+    await page.click('[data-testid="packaging-section-capacity"] > summary');
     for (const dark of [false, true]) {
       await page.evaluate(dark => document.documentElement.classList.toggle("dark", dark), dark);
       await new Promise(resolve => setTimeout(resolve, 250));
       const colors = await page.evaluate(() => {
         const inventory = document.querySelector('[data-testid="kardex-section-inventory"]');
-        const packing = document.querySelector('[data-testid="packaging-editor-panel"]');
+        const packing = document.querySelector('[data-testid="kardex-section-packaging"]');
         return { inventory: getComputedStyle(inventory).backgroundColor, packing: getComputedStyle(packing).backgroundColor };
       });
       assert.notEqual(colors.inventory, colors.packing, "Packing must be different, not another generic block");
       await page.$eval(packing, node => node.scrollIntoView({ block: "center", behavior: "instant" }));
       await page.screenshot({ path: `generated-artifacts/kardex-sections/${language}-${dark ? "dark" : "light"}.jpg` });
     }
+    await page.click(`${packing} > summary`);
+    await page.evaluate(async () => {
+      const { revealKardexSectionForField } = await import("/src/components/products/KardexFormSection.tsx");
+      revealKardexSectionForField("packagingSpecifications.nominalCapacityL");
+    });
+    assert.equal(await page.$eval(packing, node => node.open), true, "Packing validation must reveal the independent section");
+    assert.equal(await page.$eval('[data-testid="packaging-section-capacity"]', node => node.open), true);
+    assert.equal(await page.$eval('[data-testid="kardex-section-inventory"]', node => node.open), false);
     await open("media");
     assert.equal(await page.$eval('[data-testid="kardex-section-catalog"]', node => node.open), false);
     await new Promise(resolve => setTimeout(resolve, 250));

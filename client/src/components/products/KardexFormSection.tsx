@@ -58,7 +58,7 @@ export function revealKardexSectionForField(fieldName: string) {
     netWeight: "inventory",
     grossWeight: "inventory",
     weightUnit: "inventory",
-    packagingSpecifications: "inventory",
+    packagingSpecifications: "packaging",
     tags: "display",
     syncWithShop: "display",
     showWhenOutOfStock: "display",
@@ -93,7 +93,7 @@ export function revealKardexSectionForField(fieldName: string) {
 
   if (fieldName.split(".")[0] === "packagingSpecifications") {
     target.querySelectorAll<HTMLDetailsElement>(
-      '[data-testid="packaging-editor-panel"], [data-testid^="packaging-section-"]',
+      'details[data-testid="packaging-editor-panel"], details[data-testid^="packaging-section-"]',
     ).forEach(section => { section.open = true; });
   }
 

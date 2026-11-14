@@ -338,6 +338,7 @@ interface EditorProps {
   onChange: (value: PackagingSpecifications | null) => void;
   language: string;
   disabled?: boolean;
+  embedded?: boolean;
 }
 
 interface ViewProps {
@@ -504,7 +505,7 @@ export function PackagingSpecificationsView({ value, language }: ViewProps) {
 }
 
 export default function PackagingSpecificationsEditor({
-  value, onChange, language, disabled = false,
+  value, onChange, language, disabled = false, embedded = false,
 }: EditorProps) {
   const { locale, text } = translated(language);
   const current = value ?? emptyValue();
@@ -593,6 +594,7 @@ export default function PackagingSpecificationsEditor({
     }
   };
 
+  const Panel = embedded ? "div" : "details";
   return (
     <div className="space-y-3" dir={locale === "fa" || locale === "ar" ? "rtl" : "ltr"}>
       {errors.length > 0 && (
@@ -604,11 +606,11 @@ export default function PackagingSpecificationsEditor({
         </div>
       )}
 
-      <details
+      <Panel
         data-testid="packaging-editor-panel"
-        className="group/packing-panel rounded-lg border border-amber-500 bg-amber-100 p-2 text-amber-950 shadow-sm transition-colors open:border-amber-600 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-50 sm:p-3"
+        className={embedded ? "text-amber-950 dark:text-amber-50" : "group/packing-panel rounded-lg border border-amber-500 bg-amber-100 p-2 text-amber-950 shadow-sm transition-colors open:border-amber-600 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-50 sm:p-3"}
       >
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md px-2 py-2 outline-none transition-colors hover:bg-amber-200/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden dark:hover:bg-amber-900 sm:px-3">
+        {!embedded && <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md px-2 py-2 outline-none transition-colors hover:bg-amber-200/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden dark:hover:bg-amber-900 sm:px-3">
           <span className="min-w-0">
             <span className="flex items-center gap-2 text-base font-semibold">
               <PackageCheck aria-hidden="true" className="h-4 w-4 shrink-0 text-amber-800 dark:text-amber-300" />
@@ -617,7 +619,7 @@ export default function PackagingSpecificationsEditor({
             <span className="mt-1 block text-xs font-normal text-amber-900/80 dark:text-amber-200">{text.subtitle}</span>
           </span>
           <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-amber-800 transition-transform duration-200 group-open/packing-panel:rotate-180 dark:text-amber-300" />
-        </summary>
+        </summary>}
         <div className="space-y-3 px-1 pb-1 pt-2 sm:px-2 sm:pb-2">
           <div className="flex justify-end">
             <Button type="button" data-testid="packaging-clear" variant="outline" size="sm" disabled={disabled} onClick={clearSpecifications} className="h-8 text-xs">
@@ -692,7 +694,7 @@ export default function PackagingSpecificationsEditor({
       </div>
 
         </div>
-      </details>
+      </Panel>
     </div>
   );
 }
