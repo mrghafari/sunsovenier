@@ -143,6 +143,12 @@ Category Management starts with a thumbnail preview of each category's decorativ
 
 **How to apply:** Keep storage in S3, not local disk or another provider. A storage error must fail visibly rather than silently saving elsewhere.
 
+Each category needs only one decorative photo in its editing form, not a multi-photo gallery or a second cover-image field.
+
+**Why:** The user explicitly said two photos appear when editing a category and one decorative photo is sufficient.
+
+**How to apply:** Show the first legacy photo initially, replace rather than append when uploading or entering a URL, and synchronize the cover when saving. Opening the form must not change saved data or delete S3 files.
+
 The landing header's Customer account entry is replaced by Logistics. The homepage Logistics card is removed, and its photo belongs behind the new localized under-construction page.
 
 **Why:** The user requested this move and said Logistics content would be built later.

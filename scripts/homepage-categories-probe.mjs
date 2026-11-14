@@ -15,7 +15,7 @@ const browser = await puppeteer.launch({ executablePath: execFileSync("which", [
 await mkdir("generated-artifacts/homepage-categories", { recursive: true });
 try {
   for (const [language, width] of [["en", 1440], ["fa", 430]]) {
-    let categories = [{ id: 1, name: "Managed category", slug: "managed-category", description: "Managed description", imageUrl: null, sampleImages: [{ id: "sample-1", imageUrl: "/api/landing-assets/fbbcfa42ad4cf8943bbea5fc.jpg", title: "Managed photo", description: "Managed photo description" }], isActive: true, displayOrder: 0 }];
+    let categories = [{ id: 1, name: "Managed category", slug: "managed-category", description: "Managed description", imageUrl: null, sampleImages: [{ id: "sample-1", imageUrl: "/api/landing-assets/fbbcfa42ad4cf8943bbea5fc.jpg", title: "Managed photo", description: "Managed photo description" }, { id: "legacy-second", imageUrl: "/api/landing-assets/f7d7890b0064971506413cbc.jpg", title: "Legacy second photo", description: "" }], isActive: true, displayOrder: 0 }];
     const context = await browser.createBrowserContext(), page = await context.newPage(), errors = [];
     page.on("pageerror", e => errors.push(e.message));
     await page.setViewport({ width, height: 932 });
@@ -46,7 +46,7 @@ try {
         categories = categories.map(cat => cat.id === id ? { ...cat, ...data } : cat);
         return json({ success: true, category: categories.find(cat => cat.id === id) });
       }
-      if (pathname.endsWith("/image") && request.method() === "POST") return json({ success: true, url: "/api/landing-assets/f7d7890b0064971506413cbc.jpg" });
+      if (pathname.endsWith("/image") && request.method() === "POST") return json({ success: true, url: "/api/landing-assets/fbbcfa42ad4cf8943bbea5fc.jpg" });
       if (!["GET", "HEAD"].includes(request.method())) return json({ message: "Fixture blocked mutation" }, 400);
       if (!pathname.startsWith("/api/") || pathname.startsWith("/api/landing-assets/") || pathname.startsWith("/api/landing-media/")) return request.continue();
       if (pathname === "/api/admin/categories") return json(categories);
@@ -71,31 +71,45 @@ try {
     const editText = language === "fa" ? "ویرایش" : "Edit";
     await page.click('[data-testid="category-photo-preview-1"]');
     await page.waitForSelector('[data-testid="category-samples-editor"]');
+    assert.equal(await page.$$eval('[data-testid="category-sample-row"]', nodes => nodes.length), 1);
+    assert.equal(await page.$$eval('input[name="imageUrl"]', nodes => nodes.length), 0);
+    assert.equal(await page.$eval('[data-testid="category-samples-editor"] input[type="file"]', node => node.multiple), false);
+    assert.equal(categories[0].sampleImages.length, 2, "Opening the form must not persist changes");
     await fill('input[name="name"]', "Renamed category");
     await fill('[data-testid="category-sample-row"] input', "Updated sample");
     await fill('[data-testid="category-samples-editor"] input[placeholder="https://…"]', "/api/landing-assets/f7d7890b0064971506413cbc.jpg");
-    await page.$$eval("button", (nodes, text) => nodes.find(n => n.textContent.trim() === text).click(), language === "fa" ? "افزودن عکس" : "Add image");
-    await page.waitForFunction(() => document.querySelectorAll('[data-testid="category-sample-row"]').length === 2);
+    await page.$$eval("button", (nodes, text) => nodes.find(n => n.textContent.trim() === text).click(), language === "fa" ? "انتخاب عکس" : "Set photo");
+    await page.waitForFunction(() => document.querySelector('[data-testid="category-sample-row"] img')?.getAttribute("src") === "/api/landing-assets/f7d7890b0064971506413cbc.jpg");
+    assert.equal(await page.$$eval('[data-testid="category-sample-row"]', nodes => nodes.length), 1);
     await page.screenshot({ path: `generated-artifacts/homepage-categories/${language}-editor.jpg` });
     await page.click('button[type="submit"]');
     await page.waitForFunction(() => !document.querySelector('[role="dialog"]'));
-    assert.equal(categories[0].name, "Renamed category"); assert.equal(categories[0].sampleImages.length, 2);
+    assert.equal(categories[0].name, "Renamed category"); assert.equal(categories[0].sampleImages.length, 1);
     assert.equal(categories[0].sampleImages[0].title, "Updated sample");
+    assert.equal(categories[0].imageUrl, categories[0].sampleImages[0].imageUrl);
     await page.reload({ waitUntil: "networkidle0" });
     await page.$$eval("tbody button", (nodes, text) => nodes.find(n => n.textContent.trim() === text).click(), editText);
     await page.waitForSelector('[data-testid="category-sample-row"]');
-    assert.equal(await page.$$eval('[data-testid="category-sample-row"]', nodes => nodes.length), 2);
-    await page.click(`[aria-label="${language === "fa" ? "انتقال به پایین" : "Move down"}"]`);
+    assert.equal(await page.$$eval('[data-testid="category-sample-row"]', nodes => nodes.length), 1);
+    await page.$eval('[data-testid="category-samples-editor"] input[type="file"]', input => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File(["fixture image"], "replacement.png", { type: "image/png" }));
+      input.files = transfer.files;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await page.waitForFunction(() => document.querySelector('[data-testid="category-sample-row"] img')?.getAttribute("src") === "/api/landing-assets/fbbcfa42ad4cf8943bbea5fc.jpg" && document.querySelector('button[type="submit"]')?.disabled === false);
+    assert.equal(await page.$$eval('[data-testid="category-sample-row"]', nodes => nodes.length), 1);
     await page.click('button[type="submit"]'); await page.waitForFunction(() => !document.querySelector('[role="dialog"]'));
-    assert.equal(categories[0].sampleImages[1].title, "Updated sample");
+    assert.equal(categories[0].sampleImages.length, 1);
+    assert.equal(categories[0].sampleImages[0].title, "Updated sample");
     await page.goto(base + "/__categories-home-probe", { waitUntil: "networkidle0", timeout: 90000 });
     await page.waitForSelector(".mc-service-card");
     const expectedCount = new Intl.NumberFormat(language).format(2);
     assert.ok((await page.$eval(".mc-category-link > small", node => node.textContent)).startsWith(expectedCount + " "));
-    assert.deepEqual(await page.$$eval('[data-testid="category-photo-product-count"]', nodes => nodes.map(node => node.textContent.split(" ")[0])), [expectedCount, expectedCount]);
+    assert.deepEqual(await page.$$eval('[data-testid="category-photo-product-count"]', nodes => nodes.map(node => node.textContent.split(" ")[0])), [expectedCount]);
     assert.equal(await page.$eval(".mc-category-samples", node => node.textContent.includes("Duplicate inventory batch")), false);
     assert.equal(await page.$eval(".mc-category-photo-heading", node => node.textContent), "Renamed category");
-    assert.equal(await page.$$eval(".mc-service-card", nodes => nodes.length), 2);
+    assert.equal(await page.$$eval(".mc-service-card", nodes => nodes.length), 1);
     const images = await page.$$eval(".mc-service-image img", nodes => nodes.map(node => node.getAttribute("src")));
     assert.deepEqual(images, categories[0].sampleImages.map(sample => sample.imageUrl));
     await page.$eval(".mc-services-grid", node => node.scrollIntoView()); await new Promise(resolve => setTimeout(resolve, 700));
@@ -127,8 +141,20 @@ try {
     await page.screenshot({ path: `generated-artifacts/homepage-categories/${language}-product-carousel.jpg` });
     assert.equal(await page.$eval('[data-testid="modal-purchase"]', node => node.getAttribute("href")), "/shop");
     assert.equal(await page.$eval('[data-testid^="card-purchase-"]', node => node.getAttribute("href")), "/shop");
+    await page.goto(base + "/__categories-editor-probe", { waitUntil: "networkidle0", timeout: 90000 });
+    await page.click('[data-testid="category-photo-preview-1"]');
+    await page.waitForSelector('[data-testid="category-sample-row"]');
+    await page.$$eval("button", (nodes, text) => nodes.find(node => node.textContent.trim() === text).click(), language === "fa" ? "حذف عکس" : "Remove photo");
+    assert.equal(await page.$$eval('[data-testid="category-sample-row"]', nodes => nodes.length), 0);
+    await page.click('button[type="submit"]');
+    await page.waitForFunction(() => !document.querySelector('[role="dialog"]'));
+    assert.deepEqual(categories[0].sampleImages, []);
+    assert.equal(categories[0].imageUrl, "");
+    await page.goto(base + "/__categories-home-probe", { waitUntil: "networkidle0", timeout: 90000 });
+    await page.waitForSelector(".mc-category-photo-heading");
+    assert.equal(await page.$$eval(".mc-service-card", nodes => nodes.length), 0);
     assert.deepEqual(errors, []);
-    console.log(`${language}: actual category form edits, gallery add/reorder/save/reload, grouped homepage photos and details/shop links passed.`);
+    console.log(`${language}: single category photo, URL/file replacement, save/reload, homepage counts and synchronized product details passed.`);
     await context.close();
   }
 } finally { await browser.close(); }

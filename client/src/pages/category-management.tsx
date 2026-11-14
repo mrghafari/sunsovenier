@@ -157,7 +157,7 @@ export default function CategoryManagement() {
     onError: (error: Error) => toast({ title: t.deleteError, description: error.message || t.deleteError, variant: "destructive" }),
   });
   const generateSlug = (name: string) => name.toLowerCase().trim().replace(/[^\p{L}\p{N}\s-]/gu, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
-  const handleEdit = (category: Category) => { setEditingCategory(category); form.reset({ name: category.name, slug: category.slug, description: category.description || "", imageUrl: category.imageUrl || "", sampleImages: categorySamples(category), parentId: category.parentId || undefined, isActive: category.isActive, displayOrder: category.displayOrder, metaTitle: category.metaTitle || "", metaDescription: category.metaDescription || "" }); setIsDialogOpen(true); };
+  const handleEdit = (category: Category) => { setEditingCategory(category); form.reset({ name: category.name, slug: category.slug, description: category.description || "", imageUrl: category.imageUrl || "", sampleImages: categorySamples(category).slice(0, 1), parentId: category.parentId || undefined, isActive: category.isActive, displayOrder: category.displayOrder, metaTitle: category.metaTitle || "", metaDescription: category.metaDescription || "" }); setIsDialogOpen(true); };
   const handleNewCategory = () => { setEditingCategory(null); form.reset(); setIsDialogOpen(true); };
   const handleDelete = (id: number) => { if (confirm(t.deleteConfirm)) deleteCategoryMutation.mutate(id); };
   const pending = createCategoryMutation.isPending || updateCategoryMutation.isPending || uploading;
@@ -186,12 +186,17 @@ export default function CategoryManagement() {
     <div className="mb-6"><Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}><DialogTrigger asChild><Button onClick={handleNewCategory} className="gap-2"><Plus className="h-4 w-4" aria-hidden="true" />{t.newCategory}</Button></DialogTrigger>
       <DialogContent dir={direction} lang={language} aria-describedby={undefined} className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader><DialogTitle>{editingCategory ? t.editCategoryTitle : t.createCategoryTitle}</DialogTitle></DialogHeader>
-        <Form {...form}><form onSubmit={form.handleSubmit((data) => editingCategory ? updateCategoryMutation.mutate({ id: editingCategory.id, data }) : createCategoryMutation.mutate(data))} className="space-y-6">
+        <Form {...form}><form onSubmit={form.handleSubmit((values) => {
+          const sampleImages = (values.sampleImages ?? []).slice(0, 1);
+          const data = { ...values, sampleImages, imageUrl: sampleImages[0]?.imageUrl ?? "" };
+          if (editingCategory) updateCategoryMutation.mutate({ id: editingCategory.id, data });
+          else createCategoryMutation.mutate(data);
+        })} className="space-y-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <FormField control={form.control} name="name" render={({ field: input }) => <FormItem><FormLabel>{t.categoryName}</FormLabel><FormControl><Input {...input} placeholder={t.enterName} onChange={(event) => { input.onChange(event); if (!editingCategory) form.setValue("slug", generateSlug(event.target.value)); }} /></FormControl><FormMessage /></FormItem>} />
             {field("slug", t.slug, t.enterSlug)}
           </div>
-          {field("description", t.description, t.enterDescription, true)}{field("imageUrl", t.imageUrl, t.enterImageUrl)}
+          {field("description", t.description, t.enterDescription, true)}
           <FormField control={form.control} name="sampleImages" render={({ field: input }) => <FormItem><CategorySamplesEditor value={input.value ?? []} onChange={input.onChange} categoryId={editingCategory?.id} language={language} disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending} onBusyChange={setUploading} /><FormMessage /></FormItem>} />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <FormField control={form.control} name="parentId" render={({ field: input }) => <FormItem><FormLabel>{t.parentCategory}</FormLabel><Select onValueChange={(value) => input.onChange(value === "none" ? undefined : parseInt(value))} value={input.value?.toString() || "none"}><FormControl><SelectTrigger aria-label={t.selectParent}><SelectValue placeholder={t.selectParent} /></SelectTrigger></FormControl><SelectContent dir={direction}><SelectItem value="none">{t.none}</SelectItem>{parentCategories.map((category) => <SelectItem key={category.id} value={category.id.toString()}>{category.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
