@@ -5,7 +5,17 @@ export type FaqLanguage = typeof faqLanguages[number];
 export const faqMoreDetailsLabels = {
   en: "More details", fa: "جزئیات بیشتر", ar: "المزيد من التفاصيل", tr: "Daha fazla bilgi",
 };
+export function normalizeFaqLink(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.startsWith("/") || /^[a-z][a-z\d+.-]*:/i.test(trimmed)) return trimmed;
+  try {
+    const url = new URL(`https://${trimmed}`);
+    const domain = /^(?:[a-z\d](?:[a-z\d-]*[a-z\d])?\.)+(?:[a-z]{2,}|xn--[a-z\d-]+)$/i;
+    return domain.test(url.hostname) && !url.username && !url.password ? `https://${trimmed}` : trimmed;
+  } catch { return trimmed; }
+}
 export function isSafeFaqLink(value: string): boolean {
+  value = normalizeFaqLink(value);
   if (/[\s\\\u0000-\u001f]/u.test(value)) return false;
   if (/^\/(?!\/)/.test(value)) return true;
   try {
@@ -16,7 +26,7 @@ export function isSafeFaqLink(value: string): boolean {
 const translationSchema = z.object({
   question: z.string().trim().min(1).max(500),
   answer: z.string().trim().min(1).max(10000),
-  moreInfoUrl: z.string().trim().max(2000).refine(value => !value || isSafeFaqLink(value), "Invalid details link.").optional(),
+  moreInfoUrl: z.string().trim().max(2000).transform(normalizeFaqLink).refine(value => !value || isSafeFaqLink(value), "Invalid details link.").optional(),
 }).strict();
 export const faqItemSchema = z.object({
   id: z.string().regex(/^[a-zA-Z0-9-]{1,100}$/),

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, Image, Type, Globe, Palette, Save, RefreshCw, Trash2, Eye, Edit3, Package, MessageCircle, Settings } from "lucide-react";
+import { ArrowLeft, Upload, Image, Type, Globe, Save, RefreshCw, Trash2, Eye, Edit3, Package, MessageCircle, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -697,10 +697,6 @@ export default function ContentManagement() {
             <TabsTrigger value="translations" className="flex items-center gap-2">
               <Globe className="w-4 h-4" />
               {tx("Translations")}
-            </TabsTrigger>
-            <TabsTrigger value="theme" className="flex items-center gap-2">
-              <Palette className="w-4 h-4" />
-              {tx("Theme Settings")}
             </TabsTrigger>
             <TabsTrigger value="tawk-support" className="flex items-center gap-2">
               <MessageCircle className="w-4 h-4" />
@@ -1637,99 +1633,6 @@ export default function ContentManagement() {
                       </p>
                     </div>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Theme Settings Tab */}
-          <TabsContent value="theme" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>{tx("Theme & Visual Settings")}</CardTitle>
-                <CardDescription>
-                  Customize the appearance and styling of your website
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div>
-                    <Label className="text-base font-medium">{tx("Color Scheme")}</Label>
-                    <div className="grid grid-cols-3 gap-4 mt-2">
-                      <div className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50">
-                        <div className="w-full h-20 bg-gradient-to-r from-blue-500 to-cyan-500 rounded mb-2"></div>
-                        <p className="text-sm font-medium">{tx("Default Blue")}</p>
-                      </div>
-                      <div className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50">
-                        <div className="w-full h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded mb-2"></div>
-                        <p className="text-sm font-medium">{tx("Green Theme")}</p>
-                      </div>
-                      <div className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50">
-                        <div className="w-full h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded mb-2"></div>
-                        <p className="text-sm font-medium">{tx("Purple Theme")}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-base font-medium">{tx("Typography")}</Label>
-                    <div className="space-y-3 mt-2">
-                      <div className="flex items-center justify-between">
-                        <span>{tx("Primary Font Family")}</span>
-                        <Select defaultValue="inter">
-                          <SelectTrigger className="w-40">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="inter">Inter</SelectItem>
-                            <SelectItem value="roboto">Roboto</SelectItem>
-                            <SelectItem value="opensans">Open Sans</SelectItem>
-                            <SelectItem value="lato">Lato</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>{tx("Font Size Scale")}</span>
-                        <Select defaultValue="medium">
-                          <SelectTrigger className="w-40">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="small">{tx("Small")}</SelectItem>
-                            <SelectItem value="medium">{tx("Medium")}</SelectItem>
-                            <SelectItem value="large">{tx("Large")}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-base font-medium">{tx("Layout Settings")}</Label>
-                    <div className="space-y-3 mt-2">
-                      <div className="flex items-center justify-between">
-                        <span>{tx("Container Width")}</span>
-                        <Select defaultValue="xl">
-                          <SelectTrigger className="w-40">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="lg">{tx("Large (1024px)")}</SelectItem>
-                            <SelectItem value="xl">{tx("Extra Large (1280px)")}</SelectItem>
-                            <SelectItem value="2xl">{tx("2X Large (1536px)")}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>{tx("Rounded Corners")}</span>
-                        <Switch />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>{tx("Drop Shadows")}</span>
-                        <Switch defaultChecked />
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>

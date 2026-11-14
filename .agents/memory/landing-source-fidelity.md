@@ -165,7 +165,7 @@ FAQ answers may include an optional destination for further details, managed alo
 
 **Why:** The user requested a place to enter a link so visitors can consult further details. Destinations can differ by language, so each translated answer owns its link.
 
-**How to apply:** Keep the existing answer text intact; empty links show no extra control. Allow safe web URLs and internal paths, never script links or raw HTML.
+**How to apply:** Keep the existing answer text intact; empty links show no extra control. Accept bare domains and `www.` addresses without requiring a scheme, normalizing them to HTTPS when saving and rendering. The user explicitly requested `momtazchem.com` as well as `www.momtazchem.com`. Allow safe web URLs and internal paths, never script links or raw HTML.
 
 The public `/products` catalog and all category subpages are retired; customers use the shop instead.
 

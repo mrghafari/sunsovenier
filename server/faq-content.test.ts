@@ -66,6 +66,23 @@ test("optional details links validate, persist, localize and clear without affec
   assert.equal(localizedFaqs(await readFaqContent(db), "en")[0].moreInfoUrl, undefined);
 });
 
+test("bare and www domains normalize on save while full URLs and internal paths remain intact", async () => {
+  for (const [input, expected] of [
+    [" momtazchem.com ", "https://momtazchem.com"],
+    [" www.momtazchem.com/details?q=faq#more ", "https://www.momtazchem.com/details?q=faq#more"],
+    ["momtazchem.com/details", "https://momtazchem.com/details"],
+    ["https://momtazchem.com", "https://momtazchem.com"],
+    ["http://momtazchem.com", "http://momtazchem.com"],
+    ["/shop", "/shop"],
+  ]) {
+    const db = memoryDatabase();
+    const content = await readFaqContent(db);
+    content.items[0].translations.fa!.moreInfoUrl = input;
+    await saveFaqContent(content, db);
+    assert.equal(localizedFaqs(await readFaqContent(db), "fa")[0].moreInfoUrl, expected);
+  }
+});
+
 test("CRUD persists, reorders, deactivates, deletes and detects concurrent edits", async () => {
   const db = memoryDatabase();
   const first = await readFaqContent(db);

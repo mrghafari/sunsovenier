@@ -19,10 +19,10 @@ type FaqLanguage = typeof languages[number]["id"];
 type Translation = { question: string; answer: string; moreInfoUrl?: string };
 
 const linkCopy = {
-  en: { label: "More details link (optional)", hint: "Enter a full http(s) URL or a site path such as /shop. Leave empty to hide the link.", invalid: "Enter a valid details link, such as https://example.com or /shop." },
-  fa: { label: "لینک جزئیات بیشتر (اختیاری)", hint: "آدرس کامل با http یا https، یا مسیر داخلی مانند /shop وارد کنید. برای پنهان شدن لینک، خالی بگذارید.", invalid: "لینک جزئیات معتبر وارد کنید؛ مانند https://example.com یا /shop." },
-  ar: { label: "رابط المزيد من التفاصيل (اختياري)", hint: "أدخل رابط http أو https كاملاً أو مساراً مثل /shop. اتركه فارغاً لإخفائه.", invalid: "أدخل رابط تفاصيل صالحاً مثل https://example.com أو /shop." },
-  tr: { label: "Ayrıntı bağlantısı (isteğe bağlı)", hint: "Tam http(s) adresi veya /shop gibi bir site yolu girin. Gizlemek için boş bırakın.", invalid: "https://example.com veya /shop gibi geçerli bir bağlantı girin." },
+  en: { label: "More details link (optional)", hint: "Enter a web address such as www.momtazchem.com, a full http(s) URL, or /shop. Leave empty to hide the link.", invalid: "Enter a valid details link, such as www.momtazchem.com or /shop." },
+  fa: { label: "لینک جزئیات بیشتر (اختیاری)", hint: "آدرسی مانند www.momtazchem.com، لینک کامل با http یا https، یا مسیر داخلی مانند /shop وارد کنید. برای پنهان شدن لینک، خالی بگذارید.", invalid: "لینک جزئیات معتبر وارد کنید؛ مانند www.momtazchem.com یا /shop." },
+  ar: { label: "رابط المزيد من التفاصيل (اختياري)", hint: "أدخل عنواناً مثل www.momtazchem.com أو رابط http(s) كاملاً أو /shop. اتركه فارغاً لإخفائه.", invalid: "أدخل رابط تفاصيل صالحاً مثل www.momtazchem.com أو /shop." },
+  tr: { label: "Ayrıntı bağlantısı (isteğe bağlı)", hint: "www.momtazchem.com, tam http(s) adresi veya /shop girin. Gizlemek için boş bırakın.", invalid: "www.momtazchem.com veya /shop gibi geçerli bir bağlantı girin." },
 };
 
 const copy = {
@@ -210,7 +210,7 @@ export default function FaqEditor({ onDirtyChange }: { onDirtyChange?: (dirty: b
             <div className="space-y-1.5 rounded-lg border bg-muted/30 p-3">
               <label className="text-sm font-medium" htmlFor={`faq-link-${item.id}`}>{linkText.label}</label>
               <Input data-testid={`faq-link-${item.id}`} id={`faq-link-${item.id}`} dir="ltr" inputMode="url" value={translation.moreInfoUrl ?? ""} maxLength={2000} placeholder="https://…" aria-describedby={`faq-link-hint-${item.id}`} onChange={event => patchTranslation(item.id, "moreInfoUrl", event.target.value)} />
-              <p id={`faq-link-hint-${item.id}`} className="text-xs text-muted-foreground">{linkText.hint}</p>
+              <p id={`faq-link-hint-${item.id}`} className="text-xs text-muted-foreground">{linkText.hint} <span dir="ltr">(momtazchem.com / www.momtazchem.com)</span></p>
             </div>
           </div>
         </article>;

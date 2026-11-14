@@ -142,6 +142,30 @@ try {
   await page.goto(base + "/", { waitUntil: "networkidle2", timeout: 120000 });
   await page.waitForSelector(".mc-faq-toggle");
   assert.equal(await page.$$eval(".mc-faq-details-link", nodes => nodes.length), 0, "Cleared links must disappear");
+  await page.goto(base + "/__faq-editor-probe", { waitUntil: "networkidle0", timeout: 60000 });
+  await page.waitForSelector(selector("faq-link-first"));
+  await fill("faq-link-first", "momtazchem.com");
+  await save();
+  assert.equal(state.items[0].translations.fa.moreInfoUrl, "https://momtazchem.com");
+  await page.reload({ waitUntil: "networkidle0", timeout: 60000 });
+  await page.waitForSelector(selector("faq-link-first"));
+  assert.equal(await page.$eval(selector("faq-link-first"), node => node.value), "https://momtazchem.com");
+  // Also cover legacy API responses that have not normalized a stored www address.
+  state.items[0].translations.fa.moreInfoUrl = "www.momtazchem.com";
+  await page.goto(base + "/", { waitUntil: "networkidle2", timeout: 120000 });
+  await page.waitForSelector(".mc-faq-toggle");
+  await page.$eval(".mc-faq-toggle", node => node.click());
+  assert.equal(await page.$eval(".mc-faq-details-link", node => node.getAttribute("href")), "https://www.momtazchem.com");
+  await page.$eval(".mc-faq-details-link", node => {
+    document.documentElement.style.scrollBehavior = "auto";
+    node.scrollIntoView({ behavior: "instant", block: "center" });
+  });
+  await new Promise(resolve => setTimeout(resolve, 2500));
+  assert.equal(await page.$eval(".mc-faq-details-link", node => {
+    const rect = node.getBoundingClientRect();
+    return rect.height > 0 && rect.top >= 0 && rect.bottom <= innerHeight;
+  }), true);
+  await page.screenshot({ path: "generated-artifacts/faq-links/www-home.jpg" });
   assert.deepEqual(errors, []);
   console.log("FAQ component passed Persian CRUD, validation, order/visibility, reload persistence, conflict retention/recovery and mobile width. Browser-only fixture APIs; no live data changed or authentication bypassed.");
 } finally { await browser.close(); }

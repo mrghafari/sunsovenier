@@ -15,7 +15,7 @@ import { useSlideCaptionTransition } from "./landing/useSlideCaptionTransition";
 import AboutPhotoWindow from "./landing/AboutPhotoWindow";
 import CategoryProductCarousel from "./landing/CategoryProductCarousel";
 import { aboutContent } from "./landing/about-content";
-import { faqMoreDetailsLabels, isSafeFaqLink } from "@shared/faq-content";
+import { faqMoreDetailsLabels, isSafeFaqLink, normalizeFaqLink } from "@shared/faq-content";
 import { categorySamples as managedCategorySamples } from "@shared/category-samples";
 import { currentPublicProductLink } from "@shared/retired-product-paths";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
@@ -563,7 +563,7 @@ export default function Home() {
           {faqError && <p role="alert"><button type="button" onClick={() => void retryFaq()}>{locale === "fa" ? "دریافت سؤالات متداول ناموفق بود؛ تلاش دوباره" : locale === "ar" ? "تعذر تحميل الأسئلة؛ أعد المحاولة" : locale === "tr" ? "Sorular yüklenemedi; tekrar deneyin" : "Could not load FAQs. Retry"}</button></p>}
           <div className="mc-faq-list">{(publishedFaqs?.[locale] ?? []).map(({id, question, answer, moreInfoUrl}, index) => <div className={`mc-faq-item ${openFaq === index ? "is-open" : ""}`} key={id}>
             <h3><button className="mc-faq-toggle" type="button" aria-expanded={openFaq === index} aria-controls={`mc-faq-${index}`} onClick={() => setOpenFaq((current) => current === index ? null : index)}>{question}<i className="fa-solid fa-plus" aria-hidden="true" /></button></h3>
-            <div className="mc-faq-answer" id={`mc-faq-${index}`} hidden={openFaq !== index}><p style={{whiteSpace: "pre-wrap"}}>{answer}</p>{moreInfoUrl && isSafeFaqLink(moreInfoUrl) && <a className="mc-faq-details-link" href={moreInfoUrl}>{faqMoreDetailsLabels[locale]}</a>}</div>
+            <div className="mc-faq-answer" id={`mc-faq-${index}`} hidden={openFaq !== index}><p style={{whiteSpace: "pre-wrap"}}>{answer}</p>{moreInfoUrl && isSafeFaqLink(moreInfoUrl) && <a className="mc-faq-details-link" href={normalizeFaqLink(moreInfoUrl)}>{faqMoreDetailsLabels[locale]}</a>}</div>
           </div>)}</div></div>
         </LayoutElements></div></section>}
       {sections.footer && <footer data-home-section="footer" className="mc-footer"><div className="mc-container">
