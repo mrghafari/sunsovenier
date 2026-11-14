@@ -1,6 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { productsInCategory, firstProductImage, technicalRows } from "./category-product-slides";
+import { distinctCatalogProducts, productsInCategory, firstProductImage, technicalRows } from "./category-product-slides";
+
+test("homepage categories count products, not batches, using the Kardex representative", () => {
+  const batches = Array.from({ length: 12 }, (_, i) => ({
+    id: 12 - i, barcode: `barcode-${Math.floor(i / 3)}`, category: "Paint & Solvents",
+    syncWithShop: i % 3 === 0,
+  }));
+  const products = distinctCatalogProducts(batches);
+  assert.equal(products.length, 4);
+  assert.ok(products.every(product => product.syncWithShop));
+  assert.equal(productsInCategory(products, { name: "Paint & Solvents", slug: "paint-solvents" }).length, 4);
+  assert.equal(productsInCategory(products, { name: "Other", slug: "other" }).length, 0);
+  assert.equal(distinctCatalogProducts([{ id: 1 }, { id: 2 }, { id: 3, barcode: "" }]).length, 3);
+  assert.equal(distinctCatalogProducts([{ id: 4, barcode: "same" }, { id: 2, barcode: "same" }])[0].id, 2);
+});
 
 test("slides contain only active products from the selected category in stable order", () => {
   const products = [

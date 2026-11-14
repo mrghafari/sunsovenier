@@ -1,3 +1,15 @@
+.mc-landing .mc-category-product-count {
+  display: inline-block;
+  margin: 4px 0 10px;
+  padding: 4px 10px;
+  border: 1px solid #b9d0ed;
+  border-radius: 6px;
+  color: #174879;
+  background: #eef5ff;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
 .mc-landing {
   --mc-gold: #1a56db;
   --mc-gold-hover: #1648b8;

@@ -53,9 +53,10 @@ try {
       if (pathname === "/api/public/categories") return json({ success: true, data: categories.filter(cat => cat.isActive) });
       if (pathname === "/api/landing-content") return json({ success: true, data: landing });
       if (pathname === "/api/products") return json([
-        { id: 101, name: "First category product", category: "Renamed category", description: "First product description", imageUrls: ["/api/landing-assets/fbbcfa42ad4cf8943bbea5fc.jpg", "/wrong-second-image.jpg"], specifications: { Purity: "98%" }, packagingSpecifications: { version: 1, nominalCapacityL: 200 }, isActive: true },
+        { id: 101, barcode: "shared-product-barcode", name: "First category product", category: "Renamed category", description: "First product description", imageUrls: ["/api/landing-assets/fbbcfa42ad4cf8943bbea5fc.jpg", "/wrong-second-image.jpg"], specifications: { Purity: "98%" }, packagingSpecifications: { version: 1, nominalCapacityL: 200 }, isActive: true },
         { id: 102, name: "Second category product", category: "Renamed category", description: "Second product description", imageUrls: ["/api/landing-assets/f7d7890b0064971506413cbc.jpg"], specifications: { Density: "1.2" }, packagingSpecifications: { version: 1, nominalCapacityL: 1000 }, isActive: true },
         { id: 103, name: "Unrelated product", category: "Other category", imageUrls: ["/unrelated.jpg"], isActive: true },
+        { id: 104, barcode: "shared-product-barcode", name: "Duplicate inventory batch", category: "Renamed category", syncWithShop: false, isActive: true },
       ]);
       return json({ success: true, data: [] });
     });
@@ -89,6 +90,10 @@ try {
     assert.equal(categories[0].sampleImages[1].title, "Updated sample");
     await page.goto(base + "/__categories-home-probe", { waitUntil: "networkidle0", timeout: 90000 });
     await page.waitForSelector(".mc-service-card");
+    const expectedCount = new Intl.NumberFormat(language).format(2);
+    assert.ok((await page.$eval(".mc-category-link > small", node => node.textContent)).startsWith(expectedCount + " "));
+    assert.deepEqual(await page.$$eval('[data-testid="category-photo-product-count"]', nodes => nodes.map(node => node.textContent.split(" ")[0])), [expectedCount, expectedCount]);
+    assert.equal(await page.$eval(".mc-category-samples", node => node.textContent.includes("Duplicate inventory batch")), false);
     assert.equal(await page.$eval(".mc-category-photo-heading", node => node.textContent), "Renamed category");
     assert.equal(await page.$$eval(".mc-service-card", nodes => nodes.length), 2);
     const images = await page.$$eval(".mc-service-image img", nodes => nodes.map(node => node.getAttribute("src")));
@@ -98,6 +103,7 @@ try {
     await page.$eval(".mc-detail-link", node => node.click()); await page.waitForSelector("dialog[open]");
     assert.equal(await page.$eval("dialog[open] img", node => node.getAttribute("src")), "/api/landing-assets/fbbcfa42ad4cf8943bbea5fc.jpg");
     assert.equal(await page.$eval('[data-testid="category-slide-name"]', node => node.textContent), "First category product");
+    assert.ok((await page.$eval(".mc-carousel-caption > span", node => node.textContent)).endsWith("/ " + expectedCount));
     assert.match(await page.$eval('[data-testid="category-slide-technical"]', node => node.textContent), /98%/);
     assert.match(await page.$eval('[data-testid="category-slide-packing"]', node => node.textContent), /[2۲٢][0۰٠]{2}/);
     await page.$eval('[data-testid="category-product-next"]', node => node.click());

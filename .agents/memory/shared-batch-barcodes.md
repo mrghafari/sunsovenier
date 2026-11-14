@@ -13,4 +13,4 @@ Product totals and category counters mean distinct product cards, not inventory 
 
 **Why:** The user explicitly distinguished their four actual products from twelve batch records and confirmed that none of those products were hidden.
 
-**How to apply:** Use the same product grouping and representative visibility as the list. Inventory-state counters use each product's combined batch stock; category counters remain product counts rather than batch counts.
+**How to apply:** Use the same product grouping and representative visibility as the list, including homepage category counts, counts under decorative photos, and details-popup slides. Inventory-state counters use each product's combined batch stock; category counters remain product counts rather than batch counts.

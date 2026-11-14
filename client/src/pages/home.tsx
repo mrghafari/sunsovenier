@@ -20,7 +20,7 @@ import { currentPublicProductLink } from "@shared/retired-product-paths";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import type { ShopCategory } from "@shared/shop-schema";
-import type { CategoryCatalogProduct } from "@shared/category-product-slides";
+import { distinctCatalogProducts, productsInCategory, type CategoryCatalogProduct } from "@shared/category-product-slides";
 import assets from "./landing/landing-assets.json";
 import { LIQUID_PACKAGES, PACKAGES, PRODUCT_DETAILS_UI, type LandingProduct } from "./landing/catalog";
 import "./landing/landing.css";
@@ -234,20 +234,20 @@ export default function Home() {
     },
   });
   const categories = Array.isArray(categoriesResponse) ? categoriesResponse : [];
-  const shopProducts = Array.isArray(productsResponse) ? productsResponse : [];
+  const shopProducts = useMemo(() => distinctCatalogProducts(Array.isArray(productsResponse) ? productsResponse : []), [productsResponse]);
   const categoryCounts = useMemo(() => {
     const result: Record<string, number> = {};
-    shopProducts.forEach((product) => { result[product.category] = (result[product.category] ?? 0) + 1; });
+    categories.forEach(category => { result[category.name] = productsInCategory(shopProducts, category).length; });
     return result;
-  }, [shopProducts]);
+  }, [shopProducts, categoriesResponse]);
+  const categoryCountText = (name: string) => `${loadingCatalog || catalogError ? "—" : new Intl.NumberFormat(locale).format(categoryCounts[name] ?? 0)} ${locale === "fa" ? "محصول" : locale === "ar" ? "منتج" : locale === "tr" ? "ürün" : "products"}`;
   const categorySamples = useMemo(() => {
     const result: Record<string, string[]> = {};
-    shopProducts.forEach((product) => {
-      result[product.category] ??= [];
-      if (result[product.category].length < 2) result[product.category].push(product.name);
+    categories.forEach(category => {
+      result[category.name] = productsInCategory(shopProducts, category).slice(0, 2).map(product => product.name);
     });
     return result;
-  }, [shopProducts]);
+  }, [shopProducts, categoriesResponse]);
   const imageFor = useCallback((key: string, assetIndex: number) => landingContent?.images[key] || assetUrl(assetIndex), [landingContent?.images]);
   const products = useMemo<Array<LandingProduct & { categoryId: number; imageUrl: string }>>(() => categories.flatMap(category =>
     managedCategorySamples(category).map(sample => ({
@@ -444,7 +444,7 @@ export default function Home() {
     {isLoading ? <div className="mc-category-row" aria-label="Loading product categories">{[0,1,2].map(item=><div className="mc-category-skeleton" key={item}/>)}</div>
       : isError ? <div className="mc-category-error"><p>{c.noCategories}</p><button type="button" onClick={()=>void refetch()}>{c.retry}</button></div>
       : categories.length ? <div className="mc-category-row" aria-label="Shop product categories">{categories.map(category=>{
-        return <Link className="mc-category-link" key={category.id} href="/shop"><span>{category.name}</span><small>{categoryCounts[category.name]??0} {locale==="fa"?"محصول":locale==="ar"?"منتج":locale==="tr"?"ürün":"products"}</small>{categorySamples[category.name]?.length?<small className="mc-category-samples">{categorySamples[category.name].join(" · ")}</small>:null}<i className="fa-solid fa-arrow-right" aria-hidden="true"/></Link>;
+        return <Link className="mc-category-link" key={category.id} href="/shop"><span>{category.name}</span><small>{categoryCountText(category.name)}</small>{categorySamples[category.name]?.length?<small className="mc-category-samples">{categorySamples[category.name].join(" · ")}</small>:null}<i className="fa-solid fa-arrow-right" aria-hidden="true"/></Link>;
       })}</div>:<div className="mc-category-empty"><span>{c.noCategories}</span><Link href="/shop">{c.browseProducts}</Link></div>}
   </div>;
   return (
@@ -534,7 +534,9 @@ export default function Home() {
             <div className="mc-services-grid">{products.filter(product => product.categoryId === category.id).map((product, index) => {
             return <article className={`mc-service-card mc-reveal mc-delay-${index % 3 + 1}`} key={product.id}>
               <div className="mc-service-image"><img src={product.imageUrl} alt={product.title} loading="lazy" /></div>
-              <div className="mc-service-body"><h3>{product.title}</h3><p>{product.short}</p>
+              <div className="mc-service-body"><h3>{product.title}</h3>
+                <span className="mc-category-product-count" data-testid="category-photo-product-count">{categoryCountText(category.name)}</span>
+                <p>{product.short}</p>
                 <div className="mc-card-actions">
                   <button type="button" className="mc-detail-link" dir={direction} onClick={() => openProduct(product.id)}>{c.details}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></button>
                   <a href="/shop" className="mc-purchase-button" dir={direction} aria-label={purchaseLabel} title={purchaseLabel} data-testid={`card-purchase-${product.id}`}><ShoppingCart size={21} aria-hidden="true" /></a>

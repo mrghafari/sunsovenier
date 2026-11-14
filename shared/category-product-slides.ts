@@ -4,6 +4,8 @@ export interface CategoryCatalogProduct {
   id: number;
   name: string;
   category: string;
+  barcode?: string | null;
+  syncWithShop?: boolean | null;
   description?: string | null;
   technicalName?: string | null;
   specifications?: unknown;
@@ -12,6 +14,21 @@ export interface CategoryCatalogProduct {
   packagingSpecifications?: PackagingSpecifications | null;
   isActive?: boolean | null;
   displayOrder?: number | null;
+}
+
+// Batch records sharing a barcode represent one product, just as in Kardex.
+export function distinctCatalogProducts<T extends { id: number; barcode?: string | null; syncWithShop?: boolean | null }>(products: T[]): T[] {
+  const grouped = new Map<string, T>();
+  for (const product of products) {
+    const key = product.barcode ? `barcode:${product.barcode}` : `id:${product.id}`;
+    const current = grouped.get(key);
+    if (!current ||
+      (current.syncWithShop === false && product.syncWithShop !== false) ||
+      ((current.syncWithShop === false) === (product.syncWithShop === false) && product.id < current.id)) {
+      grouped.set(key, product);
+    }
+  }
+  return Array.from(grouped.values());
 }
 
 export function productsInCategory<T extends { id: number; category: string; isActive?: boolean | null; displayOrder?: number | null }>(
