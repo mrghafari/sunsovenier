@@ -155,6 +155,12 @@ The landing header's Customer account entry is replaced by Logistics. The homepa
 
 **How to apply:** Preserve the existing logistics image and its CMS override. Keep the placeholder in the selected site language; do not invent Logistics content or remove customer-account access elsewhere.
 
+Keep Vendor access on the homepage and in its header, including the mobile menu.
+
+**Why:** The user reported the Vendor button and header link had been lost, required their restoration, and clarified that their visibility must follow the administrator's display setting.
+
+**How to apply:** Link to the existing vendor portal, preserve localized labels and the marketplace visibility setting, and support older saved navigation without duplicate entries.
+
 The public `/products` catalog and all category subpages are retired; customers use the shop instead.
 
 **Why:** The user explicitly requested removing the old Products route and its subpages, naming `/products/agricultural-fertilizers` as an example.

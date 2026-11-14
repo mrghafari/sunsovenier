@@ -7,7 +7,7 @@ import CompanyBrandLogo from "@/components/company-brand-logo";
 import { resolveLandingPhone } from "@shared/landing-phone";
 import { apiRequest } from "@/lib/queryClient";
 import type { LandingContent } from "@shared/landing-content";
-import { defaultLandingPageSettings, landingHeaderNavigation, localizedSetting, type LandingLink } from "@shared/landing-page-settings";
+import { defaultLandingPageSettings, landingHeaderNavigation, vendorNavigationLink, localizedSetting, type LandingLink } from "@shared/landing-page-settings";
 import { effectiveLayoutSections } from "@shared/landing-layout";
 import LandingLayoutRenderer, { LayoutElements } from "./landing/LandingLayoutRenderer";
 import { useLandingMotion } from "./landing/useLandingMotion";
@@ -235,6 +235,10 @@ export default function Home() {
   });
   const categories = useMemo(() => (Array.isArray(categoriesResponse) ? [...categoriesResponse] : [])
     .sort((left, right) => (left.displayOrder ?? 0) - (right.displayOrder ?? 0) || left.id - right.id), [categoriesResponse]);
+  const { data: marketplaceSettings } = useQuery<{ vendorEntryVisible: boolean }>({
+    queryKey: ["/api/marketplace/display-settings"],
+  });
+  const vendorVisible = marketplaceSettings?.vendorEntryVisible !== false;
   const shopProducts = useMemo(() => distinctCatalogProducts(Array.isArray(productsResponse) ? productsResponse : []), [productsResponse]);
   const categoryCounts = useMemo(() => {
     const result: Record<string, number> = {};
@@ -457,7 +461,7 @@ export default function Home() {
         <div className="mc-container mc-nav">
           <Link href="/" className="mc-logo" aria-label={`${page.brandPrimary} ${page.brandAccent}`}><CompanyBrandLogo /><span>{page.brandPrimary}<span>{page.brandAccent}</span></span></Link>
           <nav className={`mc-nav-links ${mobileMenu ? "is-open" : ""}`} aria-label="Main navigation">
-            {landingHeaderNavigation(page.navigation).filter(link => link.isActive && (!sectionForAnchor[link.href] || sections[sectionForAnchor[link.href]])).map(link =>
+            {landingHeaderNavigation(page.navigation).filter(link => link.isActive && (link.href !== "/vendor" || vendorVisible) && (!sectionForAnchor[link.href] || sections[sectionForAnchor[link.href]])).map(link =>
               <a key={link.id} href={effectiveHref(link.href)} onClick={() => setMobileMenu(false)}>{linkLabel(link)}</a>)}
           </nav>
           <div className="mc-nav-actions">
@@ -499,6 +503,7 @@ export default function Home() {
             <div className="mc-hero-buttons">
               <a className="mc-button mc-button-gold" href={effectiveHref(page.actions.heroPrimary)}>{c.viewProducts}</a>
               <a className="mc-button mc-button-outline" href={effectiveHref(page.actions.heroSecondary)}>{c.getQuote}</a>
+              {vendorVisible && <a className="mc-button mc-button-outline" data-testid="landing-vendor-button" href="/vendor">{linkLabel(vendorNavigationLink())}</a>}
             </div>
             <div className="mc-slide-dots" aria-label="Hero slides">{heroImages.map((item, index) => <button key={item.id} type="button" aria-label={`Show slide ${index + 1}`} aria-pressed={slideKey === item.id} onClick={async () => { if (await ensureHeroLoaded(index)) setSlide(index); }} />)}</div>
           </div>}
