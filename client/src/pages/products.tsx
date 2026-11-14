@@ -1343,17 +1343,20 @@ export default function ProductsPage() {
   };
 
   // Get consolidated products by barcode
-  const consolidatedProducts = products ? consolidateProductsByBarcode(products) : [];
+  const consolidatedProducts = (products ? consolidateProductsByBarcode(products) : []).filter(
+    ({ mainProduct }) => !isVendorMode || !vendorSession || mainProduct.vendorId === vendorSession.vendorId
+  );
+  const formatProductCount = (count: number) => new Intl.NumberFormat(language).format(count);
+  const inventoryCounts = {
+    in_stock: consolidatedProducts.filter(group => getActualInventoryStatus(group.totalStock, group.mainProduct.minStockLevel) === "in_stock").length,
+    low_stock: consolidatedProducts.filter(group => getActualInventoryStatus(group.totalStock, group.mainProduct.minStockLevel) === "low_stock").length,
+    out_of_stock: consolidatedProducts.filter(group => getActualInventoryStatus(group.totalStock, group.mainProduct.minStockLevel) === "out_of_stock").length,
+    hidden: consolidatedProducts.filter(group => group.mainProduct.syncWithShop === false).length,
+  };
 
   // Filter consolidated products based on category, inventory status, visibility, search, and vendor
   const filteredProducts = consolidatedProducts.filter((productGroup) => {
     const product = productGroup.mainProduct;
-    
-    // If in vendor mode, only show products belonging to this vendor
-    if (isVendorMode && vendorSession) {
-      const matchesVendor = product.vendorId === vendorSession.vendorId;
-      if (!matchesVendor) return false;
-    }
     
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
     const matchesSearch = !searchQuery || 
@@ -1367,8 +1370,8 @@ export default function ProductsPage() {
     
     // Check visibility status
     const matchesVisibility = selectedVisibilityFilter === "all" || 
-      (selectedVisibilityFilter === "hidden" && !product.syncWithShop) ||
-      (selectedVisibilityFilter === "visible" && product.syncWithShop);
+      (selectedVisibilityFilter === "hidden" && product.syncWithShop === false) ||
+      (selectedVisibilityFilter === "visible" && product.syncWithShop !== false);
     
     return matchesCategory && matchesSearch && matchesInventoryStatus && matchesVisibility;
   });
@@ -1607,7 +1610,7 @@ export default function ProductsPage() {
                 <div>
                   <p className="text-sm font-medium text-green-600">{t.productManagement.inStock}</p>
                   <p className="text-2xl font-bold text-green-800">
-                    {products.filter(p => getActualInventoryStatus(p.stockQuantity, p.minStockLevel) === 'in_stock').length}
+                    <span data-testid="product-count-in-stock">{formatProductCount(inventoryCounts.in_stock)}</span>
                   </p>
                 </div>
                 <CheckCircle className="w-8 h-8 text-green-600" />
@@ -1621,7 +1624,7 @@ export default function ProductsPage() {
                 <div>
                   <p className="text-sm font-medium text-yellow-600">{t.productManagement.lowStock}</p>
                   <p className="text-2xl font-bold text-yellow-800">
-                    {products.filter(p => getActualInventoryStatus(p.stockQuantity, p.minStockLevel) === 'low_stock').length}
+                    <span data-testid="product-count-low-stock">{formatProductCount(inventoryCounts.low_stock)}</span>
                   </p>
                 </div>
                 <AlertTriangle className="w-8 h-8 text-yellow-600" />
@@ -1635,7 +1638,7 @@ export default function ProductsPage() {
                 <div>
                   <p className="text-sm font-medium text-red-600">{t.productManagement.outOfStock}</p>
                   <p className="text-2xl font-bold text-red-800">
-                    {products.filter(p => getActualInventoryStatus(p.stockQuantity, p.minStockLevel) === 'out_of_stock').length}
+                    <span data-testid="product-count-out-of-stock">{formatProductCount(inventoryCounts.out_of_stock)}</span>
                   </p>
                 </div>
                 <XCircle className="w-8 h-8 text-red-600" />
@@ -1649,7 +1652,7 @@ export default function ProductsPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">{t.productManagement.hiddenProducts}</p>
                   <p className="text-2xl font-bold text-gray-800">
-                    {products.filter(p => !p.syncWithShop).length}
+                    <span data-testid="product-count-hidden">{formatProductCount(inventoryCounts.hidden)}</span>
                   </p>
                 </div>
                 <EyeOff className="w-8 h-8 text-gray-600" />
@@ -1662,7 +1665,7 @@ export default function ProductsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-blue-600">{t.productManagement.totalProducts}</p>
-                  <p className="text-2xl font-bold text-blue-800">{products.length}</p>
+                  <p className="text-2xl font-bold text-blue-800" data-testid="product-count-total">{formatProductCount(consolidatedProducts.length)}</p>
                 </div>
                 <Package className="w-8 h-8 text-blue-600" />
               </div>
@@ -1673,13 +1676,17 @@ export default function ProductsPage() {
 
       <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-8">
         <TabsList className="flex flex-wrap w-full gap-1 h-auto min-h-[40px] p-1 bg-muted">
-          <TabsTrigger value="all" className="flex-shrink-0 whitespace-nowrap">{t.productManagement.allProducts}</TabsTrigger>
+          <TabsTrigger value="all" className="flex-shrink-0 whitespace-nowrap gap-2" data-testid="product-category-all">
+            {t.productManagement.allProducts}
+            <Badge variant="secondary" className="tabular-nums">{formatProductCount(consolidatedProducts.length)}</Badge>
+          </TabsTrigger>
           {categories.map((category: CategoryOption) => (
-            <TabsTrigger key={category.value} value={category.value} className="flex-shrink-0 whitespace-nowrap">
+            <TabsTrigger key={category.value} value={category.value} className="flex-shrink-0 whitespace-nowrap" data-testid={`product-category-${category.value}`}>
               <span className="flex items-center gap-1 text-xs sm:text-sm">
                 <span className="w-3 h-3 sm:w-4 sm:h-4">{category.icon}</span>
                 <span className="hidden sm:inline">{category.label}</span>
                 <span className="sm:hidden">{category.label.split(' ')[0]}</span>
+                <Badge variant="secondary" className="tabular-nums ms-1">{formatProductCount(consolidatedProducts.filter(group => group.mainProduct.category === category.value).length)}</Badge>
               </span>
             </TabsTrigger>
           ))}
