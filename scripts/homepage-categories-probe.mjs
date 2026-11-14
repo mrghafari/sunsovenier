@@ -64,6 +64,28 @@ try {
       Object.getOwnPropertyDescriptor(node.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, "value").set.call(node, value);
       node.dispatchEvent(new Event("input", { bubbles: true }));
     }, value);
+    const originalCategories = categories;
+    categories = [
+      ...Array.from({ length: 5 }, (_, index) => ({
+        ...originalCategories[0], id: index + 2, name: `Category ${index + 2}`,
+        slug: `category-${index + 2}`, displayOrder: 5 - index,
+        sampleImages: [{ ...originalCategories[0].sampleImages[0], id: `photo-${index + 2}` }],
+      })),
+      originalCategories[0],
+    ];
+    await page.goto(base + "/__categories-home-probe", { waitUntil: "networkidle0", timeout: 90000 });
+    await page.waitForSelector(".mc-service-card");
+    assert.equal(await page.$$eval(".mc-category-link", nodes => nodes.length), 6);
+    assert.equal(await page.$$eval(".mc-service-card", nodes => nodes.length), 6, "Six categories with seven legacy photos must render only six cards");
+    assert.deepEqual(await page.$$eval(".mc-category-photo-group", nodes => nodes.map(node => Number(node.dataset.categoryId))), [1, 6, 5, 4, 3, 2]);
+    assert.deepEqual(await page.$$eval(".mc-category-link > span", nodes => nodes.map(node => node.textContent)),
+      await page.$$eval(".mc-category-photo-heading", nodes => nodes.map(node => node.textContent)));
+    assert.deepEqual(await page.$$eval(".mc-category-photo-group", nodes => nodes.map(node => node.querySelectorAll(".mc-service-card").length)), [1, 1, 1, 1, 1, 1]);
+    await page.$eval(".mc-services-grid", node => node.scrollIntoView());
+    await new Promise(resolve => setTimeout(resolve, 800));
+    await page.screenshot({ path: `generated-artifacts/homepage-categories/${language}-six-categories.jpg` });
+    assert.equal(categories.find(category => category.id === 1).sampleImages.length, 2, "Rendering must not delete stored legacy photos");
+    categories = originalCategories;
     await page.goto(base + "/__categories-editor-probe", { waitUntil: "networkidle0", timeout: 90000 });
     await page.waitForSelector('[data-testid="category-photo-preview-1"] img');
     assert.equal(await page.$eval('[data-testid="category-photo-preview-1"] img', node => node.getAttribute("src")), categories[0].sampleImages[0].imageUrl);

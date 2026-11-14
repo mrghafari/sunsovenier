@@ -147,7 +147,7 @@ Each category needs only one decorative photo in its editing form, not a multi-p
 
 **Why:** The user explicitly said two photos appear when editing a category and one decorative photo is sufficient.
 
-**How to apply:** Show the first legacy photo initially, replace rather than append when uploading or entering a URL, and synchronize the cover when saving. Opening the form must not change saved data or delete S3 files.
+**How to apply:** Show the first legacy photo initially, replace rather than append when uploading or entering a URL, and synchronize the cover when saving. The homepage also shows only that first photo, even for unsaved legacy galleries, in the same category display order as the navigation. Opening the form or rendering the homepage must not change saved data or delete S3 files.
 
 The landing header's Customer account entry is replaced by Logistics. The homepage Logistics card is removed, and its photo belongs behind the new localized under-construction page.
 

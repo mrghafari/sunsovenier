@@ -233,7 +233,8 @@ export default function Home() {
       return response.json() as Promise<CategoryCatalogProduct[]>;
     },
   });
-  const categories = Array.isArray(categoriesResponse) ? categoriesResponse : [];
+  const categories = useMemo(() => (Array.isArray(categoriesResponse) ? [...categoriesResponse] : [])
+    .sort((left, right) => (left.displayOrder ?? 0) - (right.displayOrder ?? 0) || left.id - right.id), [categoriesResponse]);
   const shopProducts = useMemo(() => distinctCatalogProducts(Array.isArray(productsResponse) ? productsResponse : []), [productsResponse]);
   const categoryCounts = useMemo(() => {
     const result: Record<string, number> = {};
@@ -250,7 +251,7 @@ export default function Home() {
   }, [shopProducts, categoriesResponse]);
   const imageFor = useCallback((key: string, assetIndex: number) => landingContent?.images[key] || assetUrl(assetIndex), [landingContent?.images]);
   const products = useMemo<Array<LandingProduct & { categoryId: number; imageUrl: string }>>(() => categories.flatMap(category =>
-    managedCategorySamples(category).map(sample => ({
+    managedCategorySamples(category).slice(0, 1).map(sample => ({
       id: `category-${category.id}-${sample.id}`,
       categoryId: category.id,
       imageUrl: sample.imageUrl,
