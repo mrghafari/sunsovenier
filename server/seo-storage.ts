@@ -284,8 +284,7 @@ export class SeoStorage implements ISeoStorage {
     for (const language of languages) {
       if (language.isActive) {
         xml += '  <sitemap>\n';
-        xml += `    <loc>/sitemap-${language.code}.xml</loc>\n`;
-        xml += `    <lastmod>${new Date().toISOString()}</lastmod>\n`;
+        xml += `    <loc>https://momtazchem.com/sitemap-${language.code}.xml</loc>\n`;
         xml += '  </sitemap>\n';
       }
     }
