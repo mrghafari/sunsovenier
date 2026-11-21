@@ -12,8 +12,41 @@ export interface CategoryCatalogProduct {
   imageUrls?: unknown;
   imageUrl?: string | null;
   packagingSpecifications?: PackagingSpecifications | null;
+  pdfCatalogUrl?: string | null;
+  catalogFileName?: string | null;
+  showCatalogToCustomers?: boolean | null;
+  msdsUrl?: string | null;
+  msdsFileName?: string | null;
+  showMsdsToCustomers?: boolean | null;
+  contractOnly?: boolean | null;
   isActive?: boolean | null;
   displayOrder?: number | null;
+}
+
+type CategoryDocumentKind = "catalog" | "msds";
+
+function documentHref(value: string | null | undefined): string | null {
+  const url = value?.trim();
+  if (!url || /[\\\u0000-\u001f\u007f]/u.test(url)) return null;
+  if (/^\/(?!\/)/.test(url)) return url;
+  try {
+    const parsed = new URL(url);
+    return (parsed.protocol === "https:" || parsed.protocol === "http:") && !parsed.username && !parsed.password ? parsed.href : null;
+  } catch {
+    return null;
+  }
+}
+
+export function publicCategoryProductDocuments(product: Pick<CategoryCatalogProduct,
+  "pdfCatalogUrl" | "catalogFileName" | "showCatalogToCustomers" | "msdsUrl" | "msdsFileName" | "showMsdsToCustomers" | "contractOnly"
+>): { kind: CategoryDocumentKind; href: string; filename: string }[] {
+  if (product.contractOnly) return [];
+  const catalog = product.showCatalogToCustomers === true && documentHref(product.pdfCatalogUrl);
+  const msds = product.showMsdsToCustomers === true && documentHref(product.msdsUrl);
+  const documents: { kind: CategoryDocumentKind; href: string; filename: string }[] = [];
+  if (catalog) documents.push({ kind: "catalog", href: catalog, filename: product.catalogFileName?.trim() || "Catalog.pdf" });
+  if (msds) documents.push({ kind: "msds", href: msds, filename: product.msdsFileName?.trim() || "MSDS.pdf" });
+  return documents;
 }
 
 // Batch records sharing a barcode represent one product, just as in Kardex.

@@ -53,8 +53,8 @@ try {
       if (pathname === "/api/public/categories") return json({ success: true, data: categories.filter(cat => cat.isActive) });
       if (pathname === "/api/landing-content") return json({ success: true, data: landing });
       if (pathname === "/api/products") return json([
-        { id: 101, barcode: "shared-product-barcode", name: "First category product", category: "Renamed category", description: "First product description", imageUrls: ["/api/landing-assets/fbbcfa42ad4cf8943bbea5fc.jpg", "/wrong-second-image.jpg"], specifications: { Purity: "98%" }, packagingSpecifications: { version: 1, nominalCapacityL: 200 }, isActive: true },
-        { id: 102, name: "Second category product", category: "Renamed category", description: "Second product description", imageUrls: ["/api/landing-assets/f7d7890b0064971506413cbc.jpg"], specifications: { Density: "1.2" }, packagingSpecifications: { version: 1, nominalCapacityL: 1000 }, isActive: true },
+        { id: 101, barcode: "shared-product-barcode", name: "First category product", category: "Renamed category", description: "First product description", imageUrls: ["/api/landing-assets/fbbcfa42ad4cf8943bbea5fc.jpg", "/wrong-second-image.jpg"], specifications: { Purity: "98%" }, packagingSpecifications: { version: 1, nominalCapacityL: 200 }, pdfCatalogUrl: "/uploads/product-catalogs/first.pdf", catalogFileName: "First catalog.pdf", showCatalogToCustomers: true, msdsUrl: "/uploads/product-msds/first.pdf", showMsdsToCustomers: true, isActive: true },
+        { id: 102, name: "Second category product", category: "Renamed category", description: "Second product description", imageUrls: ["/api/landing-assets/f7d7890b0064971506413cbc.jpg"], specifications: { Density: "1.2" }, packagingSpecifications: { version: 1, nominalCapacityL: 1000 }, pdfCatalogUrl: "/uploads/product-catalogs/hidden.pdf", showCatalogToCustomers: false, msdsUrl: "/uploads/product-msds/second.pdf", showMsdsToCustomers: true, isActive: true },
         { id: 103, name: "Unrelated product", category: "Other category", imageUrls: ["/unrelated.jpg"], isActive: true },
         { id: 104, barcode: "shared-product-barcode", name: "Duplicate inventory batch", category: "Renamed category", syncWithShop: false, isActive: true },
       ]);
@@ -136,18 +136,34 @@ try {
     assert.deepEqual(images, categories[0].sampleImages.map(sample => sample.imageUrl));
     await page.$eval(".mc-services-grid", node => node.scrollIntoView()); await new Promise(resolve => setTimeout(resolve, 700));
     await page.screenshot({ path: `generated-artifacts/homepage-categories/${language}-cards.jpg` });
-    await page.$eval(".mc-detail-link", node => node.click()); await page.waitForSelector("dialog[open]");
+    const counter = '[data-testid="category-photo-product-count"]';
+    await page.focus(counter);
+    await page.keyboard.press("Enter");
+    await page.waitForSelector("dialog[open]");
     assert.equal(await page.$eval("dialog[open] img", node => node.getAttribute("src")), "/api/landing-assets/fbbcfa42ad4cf8943bbea5fc.jpg");
     assert.equal(await page.$eval('[data-testid="category-slide-name"]', node => node.textContent), "First category product");
     assert.ok((await page.$eval(".mc-carousel-caption > span", node => node.textContent)).endsWith("/ " + expectedCount));
     assert.match(await page.$eval('[data-testid="category-slide-technical"]', node => node.textContent), /98%/);
     assert.match(await page.$eval('[data-testid="category-slide-packing"]', node => node.textContent), /[2۲٢][0۰٠]{2}/);
+    const catalog = '[data-testid="category-download-catalog"]', msds = '[data-testid="category-download-msds"]';
+    assert.deepEqual(await page.$eval(catalog, node => [node.getAttribute("href"), node.download]),
+      ["/uploads/product-catalogs/first.pdf", "First catalog.pdf"]);
+    assert.deepEqual(await page.$eval(msds, node => [node.getAttribute("href"), node.download]),
+      ["/uploads/product-msds/first.pdf", "MSDS.pdf"]);
+    assert.match(await page.$eval(catalog, node => node.textContent), language === "fa" ? /دانلود کاتالوگ/ : /Download catalog/);
+    assert.equal(await page.$eval('[data-testid="category-slide-downloads"]', node => {
+      const [first, second] = Array.from(node.querySelectorAll("a"), link => link.getBoundingClientRect());
+      const image = node.closest(".mc-carousel-visual").querySelector(".mc-carousel-image").getBoundingClientRect();
+      return image.bottom <= first.top && first.bottom <= second.top;
+    }), true);
     await page.$eval('[data-testid="category-product-next"]', node => node.click());
     await page.waitForFunction(() => document.querySelector('[data-testid="category-slide-name"]')?.textContent === "Second category product");
     assert.equal(await page.$eval("dialog[open] img", node => node.getAttribute("src")), "/api/landing-assets/f7d7890b0064971506413cbc.jpg");
     assert.match(await page.$eval('[data-testid="category-slide-technical"]', node => node.textContent), /1.2/);
     assert.match(await page.$eval('[data-testid="category-slide-packing"]', node => node.textContent), /[1۱١][,.٬]?[0۰٠]{3}/);
     assert.doesNotMatch(await page.$eval('[data-testid="category-slide-details"]', node => node.textContent), /98%|Unrelated/);
+    assert.equal(await page.$(catalog), null);
+    assert.equal(await page.$eval(msds, node => node.getAttribute("href")), "/uploads/product-msds/second.pdf");
     await page.$eval('[data-testid="category-product-prev"]', node => node.click());
     await page.waitForFunction(() => document.querySelector('[data-testid="category-slide-name"]')?.textContent === "First category product");
     const panels = await page.evaluate(() => {
@@ -163,6 +179,11 @@ try {
     await page.screenshot({ path: `generated-artifacts/homepage-categories/${language}-product-carousel.jpg` });
     assert.equal(await page.$eval('[data-testid="modal-purchase"]', node => node.getAttribute("href")), "/shop");
     assert.equal(await page.$eval('[data-testid^="card-purchase-"]', node => node.getAttribute("href")), "/shop");
+    await page.keyboard.press("Escape");
+    await page.waitForSelector("dialog[open]", { hidden: true });
+    await page.$eval(".mc-detail-link", node => node.click());
+    await page.waitForSelector("dialog[open]");
+    assert.equal(await page.$eval('[data-testid="category-slide-name"]', node => node.textContent), "First category product");
     await page.goto(base + "/__categories-editor-probe", { waitUntil: "networkidle0", timeout: 90000 });
     await page.click('[data-testid="category-photo-preview-1"]');
     await page.waitForSelector('[data-testid="category-sample-row"]');
@@ -176,7 +197,7 @@ try {
     await page.waitForSelector(".mc-category-photo-heading");
     assert.equal(await page.$$eval(".mc-service-card", nodes => nodes.length), 0);
     assert.deepEqual(errors, []);
-    console.log(`${language}: single category photo, URL/file replacement, save/reload, homepage counts and synchronized product details passed.`);
+    console.log(`${language}: single category photo, clickable counts, synchronized documents and product details passed.`);
     await context.close();
   }
 } finally { await browser.close(); }

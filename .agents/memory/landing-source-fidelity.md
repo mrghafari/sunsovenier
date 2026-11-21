@@ -190,3 +190,9 @@ The details action under category sample photos opens a carousel of actual produ
 **Why:** The user requested previous/next product navigation inside the same category, synchronized with that product's technical and packaging details, while retaining the other existing popup information.
 
 **How to apply:** Do not cycle through the category's decorative images or mix in another category's products. Keep category/sample information and quote/shop actions. On narrow screens stack the image above the details without horizontal overflow.
+
+The product count on a category's decorative card opens the same details carousel. Under the current product photo, show separate Catalog and MSDS download rows only for existing files authorized for customers in Kardex.
+
+**Why:** The user wants the count to open details and the files to follow the product on each slide. A file can exist in Kardex while deliberately hidden from customers.
+
+**How to apply:** Respect each document's visibility independently, omit missing and private files rather than showing disabled links, and never show contract-only documents in the public carousel.

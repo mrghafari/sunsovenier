@@ -1,5 +1,7 @@
 .mc-landing .mc-category-product-count {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
   margin: 4px 0 10px;
   padding: 4px 10px;
   border: 1px solid #b9d0ed;
@@ -9,7 +11,10 @@
   font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  cursor: pointer;
 }
+.mc-landing .mc-category-product-count:hover { background: #dcecff; border-color: #83aee1; }
+.mc-landing .mc-category-product-count:focus-visible { outline: 2px solid #1a56db; outline-offset: 3px; }
 .mc-landing {
   --mc-gold: #1a56db;
   --mc-gold-hover: #1648b8;
@@ -295,6 +300,11 @@
 .mc-carousel-prev { left:10px; }
 .mc-carousel-next { right:10px; }
 .mc-carousel-caption { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px; padding:16px; color:#19222e; font-size:13px; }
+.mc-carousel-downloads { display:grid; gap:8px; padding:0 16px 16px; }
+.mc-carousel-downloads a { display:flex; align-items:center; gap:10px; min-height:44px; padding:8px 12px; border:1px solid #b9d0ed; border-radius:8px; color:#174879; background:#f5f9ff; font-size:13px; font-weight:700; }
+.mc-carousel-downloads a:hover { background:#e3efff; }
+.mc-carousel-downloads a:focus-visible { outline:2px solid #1a56db; outline-offset:2px; }
+.mc-carousel-downloads svg { flex:none; }
 .mc-modal-body .mc-carousel-product-title { font-size:20px; line-height:1.4; letter-spacing:normal; text-transform:none; }
 .mc-carousel-description { color:#64707d; font-size:13px; white-space:pre-line; }
 .mc-carousel-technical,.mc-carousel-packing { margin-top:18px; padding:16px; border-radius:12px; font-size:13px; overflow-wrap:anywhere; }

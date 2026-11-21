@@ -542,7 +542,7 @@ export default function Home() {
             return <article className={`mc-service-card mc-reveal mc-delay-${index % 3 + 1}`} key={product.id}>
               <div className="mc-service-image"><img src={product.imageUrl} alt={product.title} loading="lazy" /></div>
               <div className="mc-service-body"><h3>{product.title}</h3>
-                <span className="mc-category-product-count" data-testid="category-photo-product-count">{categoryCountText(category.name)}</span>
+                <button type="button" className="mc-category-product-count" data-testid="category-photo-product-count" aria-haspopup="dialog" aria-controls="mc-category-details" aria-label={`${categoryCountText(category.name)} — ${c.details}: ${category.name}`} onClick={() => openProduct(product.id)}>{categoryCountText(category.name)}</button>
                 <p>{product.short}</p>
                 <div className="mc-card-actions">
                   <button type="button" className="mc-detail-link" dir={direction} onClick={() => openProduct(product.id)}>{c.details}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></button>
@@ -578,7 +578,7 @@ export default function Home() {
         </LandingLayoutRenderer>
       </main>
 
-      <dialog className="mc-modal" ref={modalRef} aria-labelledby="mc-modal-title" onCancel={() => setActiveProductId(null)} onClick={(event) => { if (event.target === modalRef.current) closeProduct(); }} onClose={() => setActiveProductId(null)}>
+      <dialog id="mc-category-details" className="mc-modal" ref={modalRef} aria-labelledby="mc-modal-title" onCancel={() => setActiveProductId(null)} onClick={(event) => { if (event.target === modalRef.current) closeProduct(); }} onClose={() => setActiveProductId(null)}>
         <button className="mc-modal-close" type="button" aria-label={detailLabels.close} onClick={closeProduct}><i className="fa-solid fa-xmark" aria-hidden="true" /></button>
         {activeProduct && <CategoryProductCarousel
           key={activeProduct.id}

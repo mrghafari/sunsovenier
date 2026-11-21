@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { distinctCatalogProducts, productsInCategory, firstProductImage, technicalRows } from "./category-product-slides";
+import { distinctCatalogProducts, productsInCategory, firstProductImage, publicCategoryProductDocuments, technicalRows } from "./category-product-slides";
 
 test("homepage categories count products, not batches, using the Kardex representative", () => {
   const batches = Array.from({ length: 12 }, (_, i) => ({
@@ -34,4 +34,18 @@ test("each product uses its own first image and has honest missing-image behavio
 test("technical rows retain zero and false, format units and omit blank values", () => {
   assert.deepEqual(technicalRows({ density: 0, flammable: false, omitted: "" }), [{ name: "density", value: "0" }, { name: "flammable", value: "false" }]);
   assert.deepEqual(technicalRows([{ name: "Purity", value: 98, unit: "%" }, { name: "Empty", value: null }]), [{ name: "Purity", value: "98 %" }]);
+});
+
+test("slide downloads use only the current product's customer-visible documents", () => {
+  const product = { pdfCatalogUrl: "/uploads/product-catalogs/test.pdf", catalogFileName: "Chemical catalog.pdf",
+    showCatalogToCustomers: true, msdsUrl: "https://example.com/safety.pdf", showMsdsToCustomers: true };
+  assert.deepEqual(publicCategoryProductDocuments(product), [
+    { kind: "catalog", href: "/uploads/product-catalogs/test.pdf", filename: "Chemical catalog.pdf" },
+    { kind: "msds", href: "https://example.com/safety.pdf", filename: "MSDS.pdf" },
+  ]);
+  assert.deepEqual(publicCategoryProductDocuments({ ...product, showCatalogToCustomers: false }).map(file => file.kind), ["msds"]);
+  assert.deepEqual(publicCategoryProductDocuments({ ...product, contractOnly: true }), []);
+  assert.deepEqual(publicCategoryProductDocuments({ ...product, pdfCatalogUrl: "javascript:alert(1)", msdsUrl: " " }), []);
+  assert.deepEqual(publicCategoryProductDocuments({ ...product, pdfCatalogUrl: "/\\external.example", msdsUrl: "//external.example" }), []);
+  assert.deepEqual(publicCategoryProductDocuments({}), []);
 });
