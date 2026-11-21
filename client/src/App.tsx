@@ -8,9 +8,11 @@ import ShopSearch from "./components/ShopSearch";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
-import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { hasMobileBottomNav, MobileBottomNav } from "@/components/MobileBottomNav";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
+import { AppVersionFooter } from "@/components/layout/app-version-footer";
+import { releaseNotesPath } from "@/lib/app-version";
 import Home from "@/pages/home";
 import About from "@/pages/about";
 import Logistics from "@/pages/logistics";
@@ -25,6 +27,7 @@ import Payment from "@/pages/payment";
 import CheckoutSuccess from "@/pages/checkout-success";
 import PaymentOptionsPage from "@/pages/payment-options";
 const ShopAdmin = lazy(() => import("@/pages/shop-admin"));
+const ReleaseNotes = lazy(() => import("@/pages/release-notes"));
 const LegalAffairs = lazy(() => import("@/pages/legal-affairs"));
 const InvoiceManagement = lazy(() => import("@/pages/admin/invoice-management"));
 const PaymentSettings = lazy(() => import("@/pages/admin/payment-settings"));
@@ -330,6 +333,7 @@ function Router() {
           <Route path="/mrg/iraqi-geography" component={() => <AdminRoute><IraqiGeography /></AdminRoute>} />
           <Route path="/mrg/ai-settings" component={() => <AdminRoute><AISettings /></AdminRoute>} />
           <Route path="/documentation" component={DocumentationPage} />
+          <Route path={releaseNotesPath} component={ReleaseNotes} />
           
           {/* New Department Order Management Pages */}
           <Route path="/mrg/finance-orders" component={() => <AdminRoute><FinanceOrders /></AdminRoute>} />
@@ -408,6 +412,7 @@ function Router() {
         </PublicAdminSwitch>
       </main>
       {!isLanding && <Footer />}
+      <AppVersionFooter hasMobileNav={hasMobileBottomNav(location)} />
       <MobileBottomNav />
     </div>
     </ShopThemeProvider>

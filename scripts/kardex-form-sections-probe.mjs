@@ -145,7 +145,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 250));
     assert.equal(await page.$eval('[data-testid="kardex-section-catalog"] > summary > svg', node => getComputedStyle(node).transform), "none",
       "Opening media must not mark closed nested groups as expanded");
-    await page.click('form [role="radio"][value="3d_model"]');
+    assert.equal(await page.$eval('[data-testid="kardex-section-images"]', node => node.open), false);
     await page.waitForSelector('[data-testid="kardex-section-model3d"]');
     assert.equal(await page.$eval('[data-testid="kardex-section-model3d"]', node => node.open), false);
     await open("model3d");

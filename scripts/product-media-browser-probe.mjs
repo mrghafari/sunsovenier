@@ -106,15 +106,12 @@ try {
     if (path.includes("/batches/")) return json({ success: true, batches: [] });
     return json({ success: true, data: [] });
   });
-  const mode = '[data-testid="display-mode-images-and-3d"]';
   const section = id => `[data-testid="kardex-section-${id}"]`;
   const open = async id => {
     if (!await page.$eval(section(id), node => node.open)) await page.click(`${section(id)} > summary`);
   };
-  const chooseBoth = async () => {
+  const openMedia = async () => {
     await open("media");
-    await page.click(mode);
-    await page.waitForFunction(selector => document.querySelector(selector)?.getAttribute("aria-checked") === "true", {}, mode);
     await open("images");
     await open("model3d");
   };
@@ -131,12 +128,11 @@ try {
   const go = path => page.goto(base + path, { waitUntil: "domcontentloaded", timeout: 90000 });
   await go("/__media-fixture/kardex");
   await edit();
-  await chooseBoth();
+  await openMedia();
   await upload(`${section("images")} input[type=file]`, photoFile);
   await page.waitForSelector(`${section("images")} img[src="${photoUrl}"]`);
   await upload("#model3d-upload-btn", modelFile);
   await page.waitForFunction(key => document.querySelector('input[name="model3dKey"]')?.value === key, {}, modelKey);
-  assert.equal(await page.$eval(mode, node => node.getAttribute("aria-checked")), "true");
   const save = () => page.$eval('form button[type="submit"]', node => node.click());
   await save();
   await page.waitForSelector("form", { hidden: true });
@@ -146,13 +142,17 @@ try {
   assert.deepEqual(record.imageUrls, [photoUrl]);
   await edit();
   await open("media");
-  assert.equal(await page.$eval(mode, node => node.getAttribute("aria-checked")), "true");
+  await open("images");
+  await page.waitForSelector(`${section("images")} img[src="${photoUrl}"]`);
   await open("model3d");
   assert.equal(await page.$eval('input[name="model3dKey"]', node => node.value), modelKey);
   console.log("Kardex: upload photo and model, save and reopen with both retained.");
 
+  // Legacy store records can contain both assets but still say "images".
+  record.displayMode = "images";
   await go("/shop");
   const button = '[data-testid="shop-card-view-3d"]';
+  const specs = '[data-testid="shop-card-specifications"]';
   await page.waitForSelector(button, {visible: true});
   await page.waitForSelector(`img[src="${photoUrl}"]`, {visible: true});
   assert.equal(await page.$("model-viewer"), null);
@@ -165,11 +165,25 @@ try {
     await page.keyboard.press("Escape");
     await page.waitForSelector(viewer, { hidden: true });
   };
-  await checkDialog(button);
+  const checkSeparateActions = async () => {
+    await page.waitForSelector(specs, { visible: true });
+    const modelBounds = await (await page.$(button)).boundingBox();
+    const specsBounds = await (await page.$(specs)).boundingBox();
+    assert.ok(modelBounds.y + modelBounds.height <= specsBounds.y, "3D and specifications controls must not overlap");
+    await page.click(specs);
+    await page.waitForSelector('[role="dialog"]', { visible: true });
+    assert.equal(await page.$('[role="dialog"] model-viewer'), null, "The specifications button must not open the model");
+    await page.keyboard.press("Escape");
+    await page.waitForSelector('[role="dialog"]', { hidden: true });
+    await checkDialog(button);
+  };
+  await checkSeparateActions();
   const listSelector = "button svg.lucide-list";
   await page.$eval(listSelector, icon => icon.closest("button").click());
-  await checkDialog(button);
+  await checkSeparateActions();
   await page.setViewport({ width: 430, height: 850 });
+  await go("/shop");
+  await checkSeparateActions();
   await go(`/shop/product/${record.id}`);
   await page.waitForSelector(`img[src="${photoUrl}"]`, {visible: true});
   await checkDialog('[data-testid="shop-detail-view-3d"]');
@@ -208,7 +222,7 @@ try {
   await open("inventory");
   await fill("netWeight", "10");
   await fill("grossWeight", "11");
-  await chooseBoth();
+  await openMedia();
   await upload(`${section("images")} input[type=file]`, photoFile);
   await page.waitForSelector(`${section("images")} img[src="${photoUrl}"]`);
   await upload("#model3d-upload-btn", modelFile);

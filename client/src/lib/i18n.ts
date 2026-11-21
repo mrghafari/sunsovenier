@@ -1097,11 +1097,7 @@ export interface Translation {
     productApplicationsPlaceholder: string;
     productApplicationsHelp: string;
     batchInfoNotAvailable: string;
-    displayMode: string;
-    displayModeHelp: string;
-    displayModeImages: string;
-    displayMode3D: string;
-    displayModeImagesAnd3D: string;
+    mediaDisplayHelp: string;
     model3dFile: string;
     uploadModel3d: string;
     viewModel3d: string;
@@ -2278,11 +2274,7 @@ const baseTranslations = {
       productApplicationsPlaceholder: 'Enter product applications (one per line)',
       productApplicationsHelp: 'Common uses and applications - one per line',
       batchInfoNotAvailable: 'Batch information not available',
-      displayMode: 'Product Display Mode',
-      displayModeHelp: 'Choose how customers will view this product in the shop',
-      displayModeImages: 'Image Gallery (3 photos)',
-      displayMode3D: '3D Interactive Model',
-      displayModeImagesAnd3D: 'Image Gallery and 3D Model',
+      mediaDisplayHelp: 'When both photos and a 3D model are saved, the shop shows the photos and a button to open the model.',
       model3dFile: '3D Model File',
       uploadModel3d: 'Upload 3D Model',
       viewModel3d: 'View 3D Model',
@@ -3776,11 +3768,7 @@ const baseTranslations = {
       productApplicationsPlaceholder: 'أدخل تطبيقات المنتج (واحدة في كل سطر)',
       productApplicationsHelp: 'الاستخدامات والتطبيقات الشائعة - واحدة في كل سطر',
       batchInfoNotAvailable: 'معلومات الدفعة غير متاحة',
-      displayMode: 'وضع عرض المنتج',
-      displayModeHelp: 'اختر كيف سيشاهد العملاء هذا المنتج في المتجر',
-      displayModeImages: 'معرض الصور (3 صور)',
-      displayMode3D: 'نموذج ثلاثي الأبعاد تفاعلي',
-      displayModeImagesAnd3D: 'معرض الصور والنموذج ثلاثي الأبعاد',
+      mediaDisplayHelp: 'عند حفظ الصور والنموذج ثلاثي الأبعاد، يعرض المتجر الصور وزرًا لفتح النموذج.',
       model3dFile: 'ملف النموذج ثلاثي الأبعاد',
       uploadModel3d: 'رفع نموذج ثلاثي الأبعاد',
       viewModel3d: 'عرض النموذج ثلاثي الأبعاد',
@@ -5198,11 +5186,7 @@ const baseTranslations = {
       productApplicationsPlaceholder: 'Ürün uygulamalarını girin (her satıra bir tane)',
       productApplicationsHelp: 'Yaygın kullanımlar ve uygulamalar - her satıra bir tane',
       batchInfoNotAvailable: 'Parti bilgisi mevcut değil',
-      displayMode: 'Ürün Görüntüleme Modu',
-      displayModeHelp: 'Müşterilerin bu ürünü mağazada nasıl görüntüleyeceğini seçin',
-      displayModeImages: 'Resim Galerisi (3 fotoğraf)',
-      displayMode3D: '3D Etkileşimli Model',
-      displayModeImagesAnd3D: 'Resim Galerisi ve 3D Model',
+      mediaDisplayHelp: 'Fotoğraflar ve 3D model kaydedildiğinde mağaza, fotoğrafları ve modeli açan bir düğmeyi gösterir.',
       model3dFile: '3D Model Dosyası',
       uploadModel3d: '3D Model Yükle',
       viewModel3d: '3D Model Gör',
@@ -6172,11 +6156,7 @@ export const translations = {
     productApplicationsPlaceholder: 'کاربردهای محصول را وارد کنید (هر مورد در یک خط)',
     productApplicationsHelp: 'کاربردها و موارد استفاده متداول - هر مورد در یک خط',
     batchInfoNotAvailable: 'اطلاعات بچ در دسترس نیست',
-    displayMode: 'حالت نمایش محصول',
-    displayModeHelp: 'نحوه مشاهده این محصول در فروشگاه را توسط مشتری انتخاب کنید',
-    displayModeImages: 'گالری تصاویر (۳ عکس)',
-    displayMode3D: 'مدل تعاملی سه‌بعدی',
-    displayModeImagesAnd3D: 'گالری عکس و مدل سه‌بعدی',
+    mediaDisplayHelp: 'اگر عکس و مدل سه‌بعدی هر دو ذخیره شده باشند، فروشگاه عکس‌ها و دکمهٔ مشاهدهٔ مدل را نشان می‌دهد.',
     model3dFile: 'فایل مدل سه‌بعدی',
     uploadModel3d: 'بارگذاری مدل سه‌بعدی',
     viewModel3d: 'مشاهده مدل سه‌بعدی',

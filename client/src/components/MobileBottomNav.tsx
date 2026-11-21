@@ -5,6 +5,11 @@ import { useCustomer } from '@/hooks/useCustomer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
+export function hasMobileBottomNav(location: string) {
+  return !['/admin', '/financial', '/warehouse', '/logistics', '/vendor/dashboard', '/vendor/products']
+    .some(prefix => location.startsWith(prefix));
+}
+
 export function MobileBottomNav() {
   const [location, setLocation] = useLocation();
   const { getTotalItems } = usePersistentCart();
@@ -13,16 +18,7 @@ export function MobileBottomNav() {
 
   const totalItems = getTotalItems();
 
-  // Hide on admin / department routes
-  const isAdminRoute =
-    location.startsWith('/admin') ||
-    location.startsWith('/financial') ||
-    location.startsWith('/warehouse') ||
-    location.startsWith('/logistics') ||
-    location.startsWith('/vendor/dashboard') ||
-    location.startsWith('/vendor/products');
-
-  if (isAdminRoute) return null;
+  if (!hasMobileBottomNav(location)) return null;
 
   const isActive = (href: string) =>
     href === '/' ? location === '/' : location.startsWith(href);

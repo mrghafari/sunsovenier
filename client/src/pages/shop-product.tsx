@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import StarRating from "@/components/StarRating";
 import ProductModel3DDialog from "@/components/products/ProductModel3DDialog";
-import { productMediaVisibility, productPhotos } from "@shared/product-media";
+import { resolveProductMedia } from "@shared/product-media";
 import type { ShopProduct } from "@shared/shop-schema";
 import {
   ArrowLeft,
@@ -109,8 +109,8 @@ export default function ShopProductPage() {
     );
   }
 
-  const images = productPhotos(product);
-  const { modelKey, showPhotos } = productMediaVisibility(product, images.length > 0);
+  const { photos: images, modelKey } = resolveProductMedia(product);
+  const showPhotos = images.length > 0;
   const features: string[] = parseArr(product.features);
   const applications: string[] = parseArr(product.applications);
   const tags: string[] = parseArr(product.tags);

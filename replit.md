@@ -3,6 +3,9 @@
 ## Overview
 The Momtazchem Chemical Solutions Platform is a comprehensive, multilingual system integrating a public showcase website, e-commerce, and administrative tools for a chemical company. Its primary purpose is to optimize CRM, inventory, sales, logistics, and financial management while expanding market reach. Key capabilities include multi-language support (English, Arabic, Kurdish, Turkish), unified site management, advanced e-commerce, GPS tracking, real-time analytics, email automation, barcode and Kardex-synced inventory, and financial management. The project aims to establish Momtazchem as a digital leader in the chemical industry.
 
+## Software releases
+The footer displays the software version from `package.json`. For a tracked release, bump the version in `package.json` and the root entries of `package-lock.json`, then prepend an entry with the same version, date, and user-visible changes in `client/src/pages/release-notes.tsx`. Preserve existing entries and only backfill past version numbers supported by release records or tags.
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 

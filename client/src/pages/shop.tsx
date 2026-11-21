@@ -36,7 +36,7 @@ import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import ProductModel3DViewer from "@/components/ProductModel3DViewer";
 import ProductModel3DDialog, { type ProductModelSelection } from "@/components/products/ProductModel3DDialog";
-import { productMediaVisibility, productPhotos } from "@shared/product-media";
+import { resolveProductMedia, productPhotos } from "@shared/product-media";
 import ProductPackingDialog from "@/components/products/ProductPackingDialog";
 import type { PackagingSpecifications } from "@shared/product-packaging";
 
@@ -226,7 +226,7 @@ const Shop = () => {
     <Button
       type="button"
       size="sm"
-      className="absolute bottom-2 right-2 z-10 min-h-9 px-2"
+      className="min-h-9 min-w-9 px-2"
       data-testid="shop-card-view-3d"
       aria-label={t.productManagement.viewModel3d}
       title={t.productManagement.viewModel3d}
@@ -1562,7 +1562,8 @@ const Shop = () => {
                 </div>
               ) : (
                 filteredProducts.map((product: any) => {
-                  const { modelKey, inlineModel } = productMediaVisibility(product, productPhotos(product).length > 0);
+                  const { modelKey, inlineModel, photos } = resolveProductMedia(product);
+                  const images = photos.length ? photos : [COMPANY_LOGO];
                   return (
                   <Card key={product.id} className={viewMode === "list" ? "flex" : ""}>
                     {viewMode === "grid" ? (
@@ -1595,11 +1596,6 @@ const Shop = () => {
                             </div>
                           ) : (
                             (() => {
-                              // Use expanded images (minimum 3 images)
-                              const images = getImages(product);
-                              
-
-                              
                               if (images.length > 0) {
                                 const currentIndex = currentImageIndexes[product.id] || 0;
                                 const currentImage = images[currentIndex] || images[0];
@@ -1716,7 +1712,6 @@ const Shop = () => {
                             })()
                           )}
                           
-                          {modelKey && modelButton(modelKey, product.name)}
                           {/* Star Rating Display - Bottom Left Corner - Grid View - Always Show */}
                           <div className="absolute bottom-2 left-2">
                             <div 
@@ -1765,8 +1760,10 @@ const Shop = () => {
                             </Badge>
                           )}
 
-                          {/* Reviews and Specs - Right side */}
-                          <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg p-1 shadow-lg">
+                          {/* Keep the model action above the other image controls. */}
+                          <div className="absolute bottom-2 right-2 z-10 flex flex-col items-end gap-1">
+                            {modelKey && modelButton(modelKey, product.name)}
+                            <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg p-1 shadow-lg">
                             <TooltipProvider>
                               {/* Reviews Button */}
                               <Tooltip>
@@ -1792,6 +1789,8 @@ const Shop = () => {
                                     variant="ghost"
                                     size="sm"
                                     className="p-1 h-7 w-7 hover:bg-blue-50"
+                                    aria-label={t.shop.technicalSpecs}
+                                    data-testid="shop-card-specifications"
                                     onClick={() => handleShowSpecs(product)}
                                   >
                                     <Package className="w-3 h-3 text-blue-600" />
@@ -1802,6 +1801,7 @@ const Shop = () => {
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
+                            </div>
                           </div>
                         </div>
                         <CardContent className="p-3 sm:p-4">
@@ -2183,9 +2183,6 @@ const Shop = () => {
                             </div>
                           ) : (
                             (() => {
-                              // Use expanded images (minimum 3 images)
-                              const images = getImages(product);
-                              
                               if (images.length > 0) {
                                 const currentIndex = currentImageIndexes[product.id] || 0;
                                 const currentImage = images[currentIndex] || images[0];
@@ -2292,7 +2289,6 @@ const Shop = () => {
                             })()
                           )}
                           
-                          {modelKey && modelButton(modelKey, product.name)}
                           {/* Star Rating - Bottom Left Corner - List View - Always Show */}
                           <div className="absolute bottom-2 left-2">
                             <div 
@@ -2353,8 +2349,10 @@ const Shop = () => {
                             </div>
                           )}
 
-                          {/* Reviews and Specs - Right side - List View */}
-                          <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg p-1 shadow-lg">
+                          {/* Keep the model action above the other image controls. */}
+                          <div className="absolute bottom-2 right-2 z-10 flex flex-col items-end gap-1">
+                            {modelKey && modelButton(modelKey, product.name)}
+                            <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg p-1 shadow-lg">
                             <TooltipProvider>
                               {/* Reviews Button */}
                               <Tooltip>
@@ -2380,6 +2378,8 @@ const Shop = () => {
                                     variant="ghost"
                                     size="sm"
                                     className="p-1 h-7 w-7 hover:bg-blue-50"
+                                    aria-label={t.shop.technicalSpecs}
+                                    data-testid="shop-card-specifications"
                                     onClick={() => handleShowSpecs(product)}
                                   >
                                     <Package className="w-3 h-3 text-blue-600" />
@@ -2390,6 +2390,7 @@ const Shop = () => {
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
+                            </div>
                           </div>
                         </div>
                         <CardContent className="p-6 flex-1">

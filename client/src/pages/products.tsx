@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertShowcaseProductSchema, type ShowcaseProduct, type InsertShowcaseProduct } from "@shared/showcase-schema";
@@ -28,11 +27,11 @@ import FIFOBatchDisplay from "@/components/ui/fifo-batch-display";
 import ProductModel3DViewer from "@/components/ProductModel3DViewer";
 import PackagingSpecificationsEditor, { PackagingSpecificationsView, hasPackagingSpecifications } from "@/components/products/PackagingSpecificationsEditor";
 import { KardexFormSection, revealKardexSectionForField } from "@/components/products/KardexFormSection";
-import { normalizeProductDisplayMode, productDisplayModes, productModelUrl, productPhotos } from "@shared/product-media";
+import { productModelUrl, productPhotos, resolveProductMedia } from "@shared/product-media";
 
 // Custom form schema that handles numeric inputs properly  
 // Note: Validation messages will be handled in the form, not in schema
-const formSchema = insertShowcaseProductSchema.extend({
+const formSchema = insertShowcaseProductSchema.omit({ displayMode: true }).extend({
   category: z.string().min(1),
   unitPrice: z.coerce.number().min(0),
   stockQuantity: z.coerce.number().min(0),
@@ -82,8 +81,7 @@ const formSchema = insertShowcaseProductSchema.extend({
   isBulkSale: z.boolean().default(false),
   // Transportation temperature
   transportationTemperature: z.string().optional(),
-  // Display Mode fields
-  displayMode: z.enum(productDisplayModes).default('images'),
+  // 3D file fields
   model3dKey: z.string().optional(),
   model3dFileName: z.string().optional(),
   model3dUploadDate: z.string().nullable().optional(),
@@ -680,7 +678,6 @@ export default function ProductsPage() {
       // Transportation temperature
       transportationTemperature: "none",
       // Display Mode fields
-      displayMode: "images" as const,
       model3dKey: "",
       model3dFileName: "",
       model3dUploadDate: "",
@@ -812,6 +809,7 @@ export default function ProductsPage() {
         : {}),
       imageUrl: data.imageUrl, // Always include images (whether batch addition or not)
       imageUrls: data.imageUrls, // Always include images (whether batch addition or not)
+      displayMode: resolveProductMedia(data).displayMode,
       batchNumber: selectedBatchId === 'new'
         ? (data.newBatchNumber?.trim() || null)
         : (data.batchNumber?.trim() || editingProduct?.batchNumber || null),
@@ -1173,7 +1171,11 @@ export default function ProductsPage() {
         throw new Error(t.productManagement.uploadFailed);
       }
       const model3dUploadDate = new Date();
-      const displayMode = form.getValues('displayMode');
+      const displayMode = resolveProductMedia({
+        imageUrl: form.getValues('imageUrl'),
+        imageUrls: form.getValues('imageUrls'),
+        model3dKey: key,
+      }).displayMode;
       await persistUploadedFields({
         model3dKey: key,
         model3dFileName: originalName,
@@ -1293,7 +1295,6 @@ export default function ProductsPage() {
       showMsdsToCustomers: product.showMsdsToCustomers || false,
       catalogFileName: (product as any).catalogFileName || "",
       showCatalogToCustomers: product.showCatalogToCustomers || false,
-      displayMode: normalizeProductDisplayMode(product.displayMode),
       model3dKey: model3dKeyValue || "",
       model3dFileName: product.model3dFileName || "",
       syncWithShop: product.syncWithShop !== null && product.syncWithShop !== undefined ? product.syncWithShop : true,
@@ -3254,66 +3255,9 @@ export default function ProductsPage() {
                     {t.productManagement.fileManagement}
                   </h3>
                   
-                  {/* Display Mode Selection */}
-                  <div className="mb-6 p-4 bg-white rounded-lg border border-indigo-300 shadow-sm">
-                    <FormField
-                      control={form.control}
-                      name="displayMode"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormLabel className="text-sm font-medium flex items-center gap-2">
-                            <Image className="h-4 w-4" />
-                            {t.productManagement.displayMode}
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <HelpCircle className="h-3 w-3 text-gray-400" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t.productManagement.displayModeHelp}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              value={field.value}
-                              className="flex flex-col space-y-1"
-                              dir={direction}
-                            >
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="images" />
-                                </FormControl>
-                                <FormLabel className="font-normal cursor-pointer">
-                                  {t.productManagement.displayModeImages}
-                                </FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="3d_model" />
-                                </FormControl>
-                                <FormLabel className="font-normal cursor-pointer">
-                                  {t.productManagement.displayMode3D}
-                                </FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center gap-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="images_and_3d" data-testid="display-mode-images-and-3d" />
-                                </FormControl>
-                                <FormLabel className="font-normal cursor-pointer">
-                                  {t.productManagement.displayModeImagesAnd3D}
-                                </FormLabel>
-                              </FormItem>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <p className="mb-4 text-sm text-indigo-900">{t.productManagement.mediaDisplayHelp}</p>
                   
-                  {/* Product images upload (max 3 images) - Conditional rendering based on displayMode */}
-                  {form.watch('displayMode') !== '3d_model' && (
+                  {/* Product images upload (max 3 images) */}
                   <KardexFormSection id="images" title={t.productManagement.productImages} icon={<Image className="h-4 w-4 text-muted-foreground" />}>
                   <div className="space-y-4">
                     <div className="space-y-3">
@@ -3540,10 +3484,8 @@ export default function ProductsPage() {
                     </div>
                   </div>
                   </KardexFormSection>
-                  )}
 
-                  {/* 3D Model upload section - Conditional rendering based on displayMode */}
-                  {form.watch('displayMode') !== 'images' && (
+                  {/* 3D Model upload section */}
                     <KardexFormSection id="model3d" title={t.productManagement.model3dFile} icon={<Package className="h-4 w-4 text-muted-foreground" />}>
                     <div className="space-y-4">
                       <div className="space-y-3">
@@ -3691,7 +3633,6 @@ export default function ProductsPage() {
                       </div>
                     </div>
                     </KardexFormSection>
-                  )}
 
                   <div className="space-y-4">
                     {/* Catalog PDF upload */}

@@ -1,4 +1,4 @@
-import { normalizeProductDisplayMode, productPhotos } from "../shared/product-media";
+import { resolveProductMedia } from "../shared/product-media";
 import type { ShowcaseProduct } from "../shared/showcase-schema";
 
 export function normalizeModelUploadDate(value: unknown): Date | null | undefined {
@@ -10,13 +10,12 @@ export function normalizeModelUploadDate(value: unknown): Date | null | undefine
 }
 
 export function kardexMediaToShop(product: Pick<ShowcaseProduct,
-  "imageUrl" | "imageUrls" | "displayMode" | "model3dKey" | "model3dFileName" | "model3dUploadDate">) {
-  const imageUrls = productPhotos(product);
-  const model3dKey = product.model3dKey?.trim() || null;
+  "imageUrl" | "imageUrls" | "model3dKey" | "model3dFileName" | "model3dUploadDate">) {
+  const { photos: imageUrls, modelKey: model3dKey, displayMode } = resolveProductMedia(product);
   return {
     imageUrls,
     thumbnailUrl: imageUrls[0] ?? null,
-    displayMode: normalizeProductDisplayMode(product.displayMode),
+    displayMode,
     model3dKey,
     model3dFileName: model3dKey ? product.model3dFileName || null : null,
     model3dUploadDate: model3dKey ? product.model3dUploadDate ?? null : null,

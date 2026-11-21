@@ -1,10 +1,6 @@
 export const productDisplayModes = ["images", "3d_model", "images_and_3d"] as const;
 export type ProductDisplayMode = typeof productDisplayModes[number];
 
-export function normalizeProductDisplayMode(mode: unknown): ProductDisplayMode {
-  return mode === "images_and_3d" || mode === "3d_model" ? mode : "images";
-}
-
 export function productPhotos(product: { imageUrl?: unknown; imageUrls?: unknown }): string[] {
   let { imageUrls } = product;
   if (typeof imageUrls === "string") {
@@ -15,14 +11,18 @@ export function productPhotos(product: { imageUrl?: unknown; imageUrls?: unknown
     .map(url => url.trim()))];
 }
 
-export function productMediaVisibility(product: { displayMode?: unknown; model3dKey?: string | null }, hasPhotos: boolean) {
-  const mode = normalizeProductDisplayMode(product.displayMode);
-  const modelKey = mode !== "images" ? product.model3dKey?.trim() || null : null;
-  return {
-    modelKey,
-    showPhotos: hasPhotos && (mode !== "3d_model" || !modelKey),
-    inlineModel: !!modelKey && (mode === "3d_model" || !hasPhotos),
-  };
+export function resolveProductMedia(product: {
+  imageUrl?: unknown;
+  imageUrls?: unknown;
+  model3dKey?: string | null;
+}) {
+  const photos = productPhotos(product);
+  const modelKey = product.model3dKey?.trim() || null;
+  // Older products can have both files saved with a stale exclusive mode.
+  const displayMode: ProductDisplayMode = modelKey
+    ? (photos.length ? "images_and_3d" : "3d_model")
+    : "images";
+  return { photos, modelKey, displayMode, inlineModel: displayMode === "3d_model" };
 }
 
 export function productModelUrl(key: string): string {
