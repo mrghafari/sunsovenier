@@ -1453,14 +1453,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/shop.tsx\",7006,\"Parameter '_' implicitly has an 'any' type.\",\"{images.map((_, index) => (\"]",
-      "count": 3
-    },
-    {
-      "key": "[\"client/src/pages/shop.tsx\",7006,\"Parameter 'index' implicitly has an 'any' type.\",\"{images.map((_, index) => (\"]",
-      "count": 3
-    },
-    {
       "key": "[\"client/src/pages/shop.tsx\",7006,\"Parameter 'p' implicitly has an 'any' type.\",\"const product = currentProducts?.find(p => p.id === item.productId);\"]",
       "count": 1
     },

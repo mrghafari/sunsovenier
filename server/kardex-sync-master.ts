@@ -6,6 +6,7 @@
 import { shopStorage } from "./shop-storage";
 import { storage } from "./storage";
 import type { ShowcaseProduct } from "../shared/showcase-schema";
+import { kardexMediaToShop } from "./product-media-sync";
 import {
   aggregateSyncEnabledProductsByBarcode,
   kardexWeightsDiffer,
@@ -384,9 +385,7 @@ export class KardexSyncMaster {
         sku: uniqueSku,
         barcode: kardexProduct.barcode || '',
         ...kardexWeightsToShop(kardexProduct),
-        // 🖼️ ترکیب تصاویر از هر دو فیلد imageUrl و imageUrls کاردکس
-        imageUrls: this.combineProductImages(kardexProduct),
-        thumbnailUrl: this.getFirstProductImage(kardexProduct),
+        ...kardexMediaToShop(kardexProduct),
         specifications: kardexProduct.specifications || {},
         features: kardexProduct.features || {},
         applications: kardexProduct.applications || {},
@@ -430,9 +429,7 @@ export class KardexSyncMaster {
         sku: kardexProduct.sku || `UP-${kardexProduct.id}-${Date.now().toString().slice(-6)}`,
         barcode: kardexProduct.barcode || '',
         ...kardexWeightsToShop(kardexProduct),
-        // 🖼️ ترکیب تصاویر از هر دو فیلد imageUrl و imageUrls کاردکس
-        imageUrls: this.combineProductImages(kardexProduct),
-        thumbnailUrl: this.getFirstProductImage(kardexProduct),
+        ...kardexMediaToShop(kardexProduct),
         specifications: kardexProduct.specifications || {},
         features: kardexProduct.features || {},
         applications: kardexProduct.applications || {},
@@ -465,6 +462,7 @@ export class KardexSyncMaster {
       return true;
     }
     
+    const media = kardexMediaToShop(kardexProduct);
     // بررسی فیلدهای مهم دیگر
     const needsUpdate = (
       kardexProduct.name !== shopProduct.name ||
@@ -475,8 +473,11 @@ export class KardexSyncMaster {
       kardexProduct.stockQuantity !== shopProduct.stockQuantity ||
       kardexWeightsDiffer(kardexProduct, shopProduct) ||
       kardexWeightUnitsDiffer(kardexProduct, shopProduct) ||
-      // 🖼️ مقایسه کامل تصاویر ترکیب شده به جای فقط imageUrl
-      JSON.stringify(this.combineProductImages(kardexProduct)) !== JSON.stringify(shopProduct.imageUrls || []) ||
+      JSON.stringify(media.imageUrls) !== JSON.stringify(shopProduct.imageUrls || []) ||
+      media.displayMode !== shopProduct.displayMode ||
+      media.model3dKey !== shopProduct.model3dKey ||
+      media.model3dFileName !== shopProduct.model3dFileName ||
+      media.model3dUploadDate?.getTime() !== shopProduct.model3dUploadDate?.getTime() ||
       kardexProduct.isActive !== shopProduct.isActive ||
       // Document fields
       kardexProduct.showCatalogToCustomers !== shopProduct.showCatalogToCustomers ||
@@ -596,43 +597,4 @@ export class KardexSyncMaster {
     }
   }
 
-  /**
-   * 🖼️ ترکیب تصاویر از هر دو فیلد imageUrl و imageUrls کاردکس
-   * تمام تصاویر را در آرایه واحد جمع‌آوری و تکراری‌ها را حذف می‌کند
-   */
-  private static combineProductImages(kardexProduct: ShowcaseProduct): string[] {
-    const images: string[] = [];
-    
-    // اضافه کردن imageUrl (legacy field) اگر موجود باشد
-    if (kardexProduct.imageUrl && kardexProduct.imageUrl.trim() !== '') {
-      images.push(kardexProduct.imageUrl.trim());
-    }
-    
-    // اضافه کردن imageUrls (array field) اگر موجود باشد
-    if (kardexProduct.imageUrls && Array.isArray(kardexProduct.imageUrls)) {
-      for (const imageUrl of kardexProduct.imageUrls) {
-        if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim() !== '') {
-          images.push(imageUrl.trim());
-        }
-      }
-    }
-    
-    // حذف تصاویر تکراری و حفظ ترتیب
-    const uniqueImages = Array.from(new Set(images));
-    
-    console.log(`🖼️ [IMAGE-SYNC] محصول ${kardexProduct.name}: ${images.length} تصویر یافت شد، ${uniqueImages.length} تصویر منحصر به فرد`);
-    if (uniqueImages.length > 0) {
-      console.log(`🖼️ [IMAGE-SYNC] تصاویر محصول ${kardexProduct.name}:`, uniqueImages);
-    }
-    
-    return uniqueImages;
-  }
-
-  /**
-   * 🖼️ انتخاب اولین تصویر محصول برای thumbnail از combined images
-   */
-  private static getFirstProductImage(kardexProduct: ShowcaseProduct): string | null {
-    const combinedImages = this.combineProductImages(kardexProduct);
-    return combinedImages.length > 0 ? combinedImages[0] : null;
-  }
 }

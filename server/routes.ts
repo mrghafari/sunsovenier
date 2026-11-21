@@ -220,6 +220,7 @@ import {
 // Import sync service for automatic table synchronization
 import { globalSyncService } from './sync-service';
 import { generateSitemap } from './sitemap';
+import { kardexMediaToShop, normalizeModelUploadDate } from './product-media-sync';
 import { validateProductPackaging } from "./product-packaging-validation";
 import { incomingCorrespondence, insertIncomingCorrespondenceSchema, outgoingCorrespondence, insertOutgoingCorrespondenceSchema, insertCompanyDocumentSchema, insertBusinessCardSchema, insertCompanyImageSchema } from "@shared/company-info-schema.js";
 import { id } from "date-fns/locale";
@@ -5609,6 +5610,11 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         barcode: barcode,
         weight: productData.weight || 11,
         imageUrl: productData.imageUrl || null,
+        imageUrls: Array.isArray(productData.imageUrls) ? productData.imageUrls : [],
+        displayMode: productData.displayMode,
+        model3dKey: productData.model3dKey || null,
+        model3dFileName: productData.model3dFileName || null,
+        model3dUploadDate: normalizeModelUploadDate(productData.model3dUploadDate),
         specifications: productData.specifications || productData.description || "این یک محصول شیمیایی تولید شرکت ممتاز شیمی است",
         packagingSpecifications: productData.packagingSpecifications ?? null,
         features: productData.features || productData.description || "این یک محصول شیمیایی تولید شرکت ممتاز شیمی است",
@@ -5935,24 +5941,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
         if (existingShopProduct) {
           await shopStorage.updateShopProduct(existingShopProduct.id, {
-            ...(productData.imageUrl !== undefined || productData.imageUrls !== undefined
-              ? {
-                  imageUrls: product.imageUrls ||
-                    (product.imageUrl ? [product.imageUrl] : [])
-                }
-              : {}),
-            ...(productData.displayMode !== undefined
-              ? { displayMode: product.displayMode }
-              : {}),
-            ...(productData.model3dKey !== undefined
-              ? { model3dKey: product.model3dKey }
-              : {}),
-            ...(productData.model3dFileName !== undefined
-              ? { model3dFileName: product.model3dFileName }
-              : {}),
-            ...(productData.model3dUploadDate !== undefined
-              ? { model3dUploadDate: product.model3dUploadDate }
-              : {})
+            ...kardexMediaToShop(product),
           });
         }
       }
@@ -6584,7 +6573,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               priceUnit: product.currency || product.priceUnit || 'IQD',
               description: product.description,
               shortDescription: product.shortDescription || product.description,
-              imageUrls: product.imageUrls || (product.imageUrl ? [product.imageUrl] : (existingShopProduct.imageUrls || [])),
+              ...kardexMediaToShop(product),
               specifications: product.specifications || {},
               features: product.features || [],
               applications: product.applications || [],
@@ -6599,10 +6588,6 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               msdsFileName: product.msdsFileName || existingShopProduct.msdsFileName,
               catalogUploadDate: product.catalogUploadDate || existingShopProduct.catalogUploadDate,
               msdsUploadDate: product.msdsUploadDate || existingShopProduct.msdsUploadDate,
-              displayMode: product.displayMode || existingShopProduct.displayMode,
-              model3dKey: product.model3dKey || existingShopProduct.model3dKey,
-              model3dFileName: product.model3dFileName || existingShopProduct.model3dFileName,
-              model3dUploadDate: product.model3dUploadDate || existingShopProduct.model3dUploadDate
             };
             
             await shopStorage.updateShopProduct(existingShopProduct.id, updateData);

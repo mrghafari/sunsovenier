@@ -28,6 +28,7 @@ import FIFOBatchDisplay from "@/components/ui/fifo-batch-display";
 import ProductModel3DViewer from "@/components/ProductModel3DViewer";
 import PackagingSpecificationsEditor, { PackagingSpecificationsView, hasPackagingSpecifications } from "@/components/products/PackagingSpecificationsEditor";
 import { KardexFormSection, revealKardexSectionForField } from "@/components/products/KardexFormSection";
+import { normalizeProductDisplayMode, productDisplayModes, productModelUrl, productPhotos } from "@shared/product-media";
 
 // Custom form schema that handles numeric inputs properly  
 // Note: Validation messages will be handled in the form, not in schema
@@ -82,10 +83,10 @@ const formSchema = insertShowcaseProductSchema.extend({
   // Transportation temperature
   transportationTemperature: z.string().optional(),
   // Display Mode fields
-  displayMode: z.enum(['images', '3d_model']).default('images'),
+  displayMode: z.enum(productDisplayModes).default('images'),
   model3dKey: z.string().optional(),
   model3dFileName: z.string().optional(),
-  model3dUploadDate: z.string().optional(),
+  model3dUploadDate: z.string().nullable().optional(),
   // Vendor assignment (admin mode only)
   vendorId: z.coerce.number().optional(),
 });
@@ -1168,19 +1169,21 @@ export default function ProductsPage() {
       }
 
       const { key, originalName } = await response.json();
+      if (typeof key !== 'string' || !key.trim() || typeof originalName !== 'string') {
+        throw new Error(t.productManagement.uploadFailed);
+      }
       const model3dUploadDate = new Date();
-      const displayMode = '3d_model' as const;
-      form.setValue('model3dKey', key);
-      form.setValue('model3dFileName', originalName);
-      form.setValue('model3dUploadDate', model3dUploadDate.toISOString());
-      form.setValue('displayMode', displayMode);
-      setModel3dPreview(key);
+      const displayMode = form.getValues('displayMode');
       await persistUploadedFields({
         model3dKey: key,
         model3dFileName: originalName,
         model3dUploadDate,
         displayMode,
       });
+      form.setValue('model3dKey', key);
+      form.setValue('model3dFileName', originalName);
+      form.setValue('model3dUploadDate', model3dUploadDate.toISOString());
+      setModel3dPreview(key);
       
       toast({
         title: t.productManagement.success,
@@ -1197,7 +1200,12 @@ export default function ProductsPage() {
     }
   };
 
-
+  const removeModel3d = () => {
+    setModel3dPreview(null);
+    form.setValue('model3dKey', '');
+    form.setValue('model3dFileName', '');
+    form.setValue('model3dUploadDate', null);
+  };
 
   const openCreateDialog = () => {
     setEditingProduct(null);
@@ -1285,7 +1293,7 @@ export default function ProductsPage() {
       showMsdsToCustomers: product.showMsdsToCustomers || false,
       catalogFileName: (product as any).catalogFileName || "",
       showCatalogToCustomers: product.showCatalogToCustomers || false,
-      displayMode: (product.displayMode as "images" | "3d_model") || "images",
+      displayMode: normalizeProductDisplayMode(product.displayMode),
       model3dKey: model3dKeyValue || "",
       model3dFileName: product.model3dFileName || "",
       syncWithShop: product.syncWithShop !== null && product.syncWithShop !== undefined ? product.syncWithShop : true,
@@ -1737,16 +1745,18 @@ export default function ProductsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProducts.map((productGroup) => {
                 const product = productGroup.mainProduct;
+                const thumbnail = productPhotos(product)[0];
                 return (
                   <Card key={`${product.barcode || product.id}`} className="hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700">
                   <CardHeader className="pb-3">
                     <div className="flex items-start gap-3">
                       {/* Product Thumbnail */}
-                      <div className="flex-shrink-0">
-                        {product.imageUrl ? (
+                      <div key={thumbnail || "no-image"} className="flex-shrink-0">
+                        {thumbnail ? (
                           <img 
-                            src={product.imageUrl} 
+                            src={thumbnail}
                             alt={product.name}
+                            data-testid="kardex-product-thumbnail"
                             className="w-16 h-16 object-cover rounded-lg border border-gray-200 shadow-sm"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
@@ -1758,7 +1768,7 @@ export default function ProductsPage() {
                           />
                         ) : null}
                         <div 
-                          className={`w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center ${product.imageUrl ? 'hidden' : 'flex'}`}
+                          className={`w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 items-center justify-center ${thumbnail ? 'hidden' : 'flex'}`}
                         >
                           <Package className="w-8 h-8 text-gray-400" />
                         </div>
@@ -3266,7 +3276,7 @@ export default function ProductsPage() {
                           <FormControl>
                             <RadioGroup
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
+                              value={field.value}
                               className="flex flex-col space-y-1"
                               dir={direction}
                             >
@@ -3286,6 +3296,14 @@ export default function ProductsPage() {
                                   {t.productManagement.displayMode3D}
                                 </FormLabel>
                               </FormItem>
+                              <FormItem className="flex items-center gap-3 space-y-0">
+                                <FormControl>
+                                  <RadioGroupItem value="images_and_3d" data-testid="display-mode-images-and-3d" />
+                                </FormControl>
+                                <FormLabel className="font-normal cursor-pointer">
+                                  {t.productManagement.displayModeImagesAnd3D}
+                                </FormLabel>
+                              </FormItem>
                             </RadioGroup>
                           </FormControl>
                           <FormMessage />
@@ -3295,7 +3313,7 @@ export default function ProductsPage() {
                   </div>
                   
                   {/* Product images upload (max 3 images) - Conditional rendering based on displayMode */}
-                  {form.watch('displayMode') === 'images' && (
+                  {form.watch('displayMode') !== '3d_model' && (
                   <KardexFormSection id="images" title={t.productManagement.productImages} icon={<Image className="h-4 w-4 text-muted-foreground" />}>
                   <div className="space-y-4">
                     <div className="space-y-3">
@@ -3525,7 +3543,7 @@ export default function ProductsPage() {
                   )}
 
                   {/* 3D Model upload section - Conditional rendering based on displayMode */}
-                  {form.watch('displayMode') === '3d_model' && (
+                  {form.watch('displayMode') !== 'images' && (
                     <KardexFormSection id="model3d" title={t.productManagement.model3dFile} icon={<Package className="h-4 w-4 text-muted-foreground" />}>
                     <div className="space-y-4">
                       <div className="space-y-3">
@@ -3549,6 +3567,7 @@ export default function ProductsPage() {
                               {model3dPreview ? (
                                 <div className="relative">
                                   <ProductModel3DViewer
+                                    key={model3dPreview}
                                     model3dKey={model3dPreview}
                                     productName={form.getValues('name') || t.productManagement.model3dPreview}
                                     className="w-full h-[300px]"
@@ -3559,11 +3578,7 @@ export default function ProductsPage() {
                                     size="sm"
                                     aria-label={t.productManagement.deleteModel3d}
                                     className="absolute top-2 end-2 h-8 w-8 p-0 bg-white/90 hover:bg-white"
-                                    onClick={() => {
-                                      setModel3dPreview(null);
-                                      form.setValue('model3dKey', '');
-                                      form.setValue('model3dFileName', '');
-                                    }}
+                                    onClick={removeModel3d}
                                   >
                                     <X className="h-4 w-4" />
                                   </Button>
@@ -3578,7 +3593,7 @@ export default function ProductsPage() {
                               <input
                                 type="file"
                                 accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                className={model3dPreview ? "hidden" : "absolute inset-0 w-full h-full opacity-0 cursor-pointer"}
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
                                   if (file) handleModel3dUpload(file);
@@ -3621,9 +3636,8 @@ export default function ProductsPage() {
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  aria-label={t.productManagement.deleteModel3d}
                                   className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                                  onClick={() => window.open(form.getValues('model3dKey'), '_blank')}
+                                  onClick={() => window.open(productModelUrl(form.getValues('model3dKey')!), '_blank', 'noopener,noreferrer')}
                                 >
                                   <Eye className="w-4 h-4 me-1" />
                                   {t.productManagement.viewModel3d}
@@ -3665,11 +3679,7 @@ export default function ProductsPage() {
                                   variant="outline"
                                   size="sm"
                                   className="text-red-600 border-red-300 hover:bg-red-50"
-                                  onClick={() => {
-                                    setModel3dPreview(null);
-                                    form.setValue('model3dKey', '');
-                                    form.setValue('model3dFileName', '');
-                                  }}
+                                  onClick={removeModel3d}
                                 >
                                   <X className="w-4 h-4 me-1" />
                                   {t.productManagement.deleteModel3d}
@@ -4089,7 +4099,7 @@ export default function ProductsPage() {
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || uploadingModel3d || uploadingImages.some(Boolean)}
                     className="px-6 bg-blue-600 hover:bg-blue-700"
                   >
                     {isSubmitting && <RefreshCw className="me-2 h-4 w-4 animate-spin" />}

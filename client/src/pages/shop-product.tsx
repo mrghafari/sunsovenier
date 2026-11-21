@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import StarRating from "@/components/StarRating";
+import ProductModel3DDialog from "@/components/products/ProductModel3DDialog";
+import { productMediaVisibility, productPhotos } from "@shared/product-media";
 import type { ShopProduct } from "@shared/shop-schema";
 import {
   ArrowLeft,
@@ -54,6 +56,7 @@ export default function ShopProductPage() {
   const isRtl = direction === "rtl";
 
   const [imgIndex, setImgIndex] = useState(0);
+  const [showModel, setShowModel] = useState(false);
 
   const tx = productDetailCopy[language];
   const { data: rawProduct, isLoading, isError } = useQuery<ShopProduct>({
@@ -106,7 +109,8 @@ export default function ShopProductPage() {
     );
   }
 
-  const images: string[] = parseArr(product.imageUrls);
+  const images = productPhotos(product);
+  const { modelKey, showPhotos } = productMediaVisibility(product, images.length > 0);
   const features: string[] = parseArr(product.features);
   const applications: string[] = parseArr(product.applications);
   const tags: string[] = parseArr(product.tags);
@@ -155,11 +159,11 @@ export default function ShopProductPage() {
         )}
 
         {/* ── Image gallery ──────────────────────────────────────────────── */}
-        {images.length > 0 && (
+        {(showPhotos || modelKey) && (
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border overflow-hidden">
-            <div className="relative">
+            {showPhotos && <div className="relative">
               <img
-                src={images[imgIndex]}
+                src={images[imgIndex] || images[0]}
                 alt={product.name}
                 className="w-full h-72 sm:h-96 object-contain bg-gray-50 dark:bg-gray-800"
               />
@@ -179,9 +183,9 @@ export default function ShopProductPage() {
                   </button>
                 </>
               )}
-            </div>
+            </div>}
             {/* Thumbnails */}
-            {images.length > 1 && (
+            {showPhotos && images.length > 1 && (
               <div className="flex gap-2 p-3 overflow-x-auto">
                 {images.map((img, i) => (
                   <button
@@ -196,8 +200,19 @@ export default function ShopProductPage() {
                 ))}
               </div>
             )}
+            {modelKey && (
+              <div className="p-3">
+                <Button type="button" variant="outline" data-testid="shop-detail-view-3d" onClick={() => setShowModel(true)}>
+                  {t.productManagement.viewModel3d}
+                </Button>
+              </div>
+            )}
           </div>
         )}
+        <ProductModel3DDialog
+          model={showModel && modelKey ? { key: modelKey, name: product.name } : null}
+          onClose={() => setShowModel(false)}
+        />
 
         {/* ── Info cards ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

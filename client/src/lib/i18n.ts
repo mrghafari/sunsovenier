@@ -1101,6 +1101,7 @@ export interface Translation {
     displayModeHelp: string;
     displayModeImages: string;
     displayMode3D: string;
+    displayModeImagesAnd3D: string;
     model3dFile: string;
     uploadModel3d: string;
     viewModel3d: string;
@@ -2281,6 +2282,7 @@ const baseTranslations = {
       displayModeHelp: 'Choose how customers will view this product in the shop',
       displayModeImages: 'Image Gallery (3 photos)',
       displayMode3D: '3D Interactive Model',
+      displayModeImagesAnd3D: 'Image Gallery and 3D Model',
       model3dFile: '3D Model File',
       uploadModel3d: 'Upload 3D Model',
       viewModel3d: 'View 3D Model',
@@ -3778,6 +3780,7 @@ const baseTranslations = {
       displayModeHelp: 'اختر كيف سيشاهد العملاء هذا المنتج في المتجر',
       displayModeImages: 'معرض الصور (3 صور)',
       displayMode3D: 'نموذج ثلاثي الأبعاد تفاعلي',
+      displayModeImagesAnd3D: 'معرض الصور والنموذج ثلاثي الأبعاد',
       model3dFile: 'ملف النموذج ثلاثي الأبعاد',
       uploadModel3d: 'رفع نموذج ثلاثي الأبعاد',
       viewModel3d: 'عرض النموذج ثلاثي الأبعاد',
@@ -5199,6 +5202,7 @@ const baseTranslations = {
       displayModeHelp: 'Müşterilerin bu ürünü mağazada nasıl görüntüleyeceğini seçin',
       displayModeImages: 'Resim Galerisi (3 fotoğraf)',
       displayMode3D: '3D Etkileşimli Model',
+      displayModeImagesAnd3D: 'Resim Galerisi ve 3D Model',
       model3dFile: '3D Model Dosyası',
       uploadModel3d: '3D Model Yükle',
       viewModel3d: '3D Model Gör',
@@ -6172,6 +6176,7 @@ export const translations = {
     displayModeHelp: 'نحوه مشاهده این محصول در فروشگاه را توسط مشتری انتخاب کنید',
     displayModeImages: 'گالری تصاویر (۳ عکس)',
     displayMode3D: 'مدل تعاملی سه‌بعدی',
+    displayModeImagesAnd3D: 'گالری عکس و مدل سه‌بعدی',
     model3dFile: 'فایل مدل سه‌بعدی',
     uploadModel3d: 'بارگذاری مدل سه‌بعدی',
     viewModel3d: 'مشاهده مدل سه‌بعدی',

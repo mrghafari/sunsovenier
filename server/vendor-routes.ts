@@ -23,6 +23,8 @@ import {
   type ProductWeightField,
 } from "./product-weight-sync";
 import { syncCanonicalKardexWeightsToShop } from "./product-weight-shop-sync";
+import { normalizeModelUploadDate } from "./product-media-sync";
+import { productDisplayModes } from "@shared/product-media";
 
 const vendorProductCreateSchema = insertShowcaseProductSchema.pick({
   name: true,
@@ -34,6 +36,12 @@ const vendorProductCreateSchema = insertShowcaseProductSchema.pick({
   stockQuantity: true,
   unitPrice: true,
   transportationTemperature: true,
+  imageUrl: true,
+  imageUrls: true,
+  displayMode: true,
+  model3dKey: true,
+  model3dFileName: true,
+  model3dUploadDate: true,
 }).extend({
   name: z.string().trim().min(3),
   category: z.string().trim().min(1),
@@ -42,6 +50,8 @@ const vendorProductCreateSchema = insertShowcaseProductSchema.pick({
   barcode: z.string().trim().min(8),
   stockQuantity: z.coerce.number().int().min(0),
   unitPrice: z.coerce.number().min(0),
+  displayMode: z.enum(productDisplayModes).optional(),
+  model3dUploadDate: z.coerce.date().nullable().optional(),
   transportationTemperature: z.preprocess(
     (value) => value === "" || value === null ? undefined : value,
     z.enum(["none", "frozen", "chilled", "cool", "dry"]).optional(),
@@ -776,6 +786,7 @@ export function createVendorRouter() {
       // Update the product
       const updateData = {
         ...bodyData,
+        model3dUploadDate: normalizeModelUploadDate(bodyData.model3dUploadDate),
         updatedAt: new Date()
       };
 

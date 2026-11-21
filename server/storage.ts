@@ -3,6 +3,7 @@ import { contacts, showcaseProducts, type Contact, type InsertContact, type Show
 import { db } from "./db";
 import { showcaseDb } from "./showcase-db";
 import { shopStorage } from "./shop-storage";
+import { kardexMediaToShop, normalizeModelUploadDate } from "./product-media-sync";
 import { eq, desc, and, or, like, sql, asc } from "drizzle-orm";
 
 export interface IStorage {
@@ -230,6 +231,7 @@ export class DatabaseStorage implements IStorage {
     // Ensure JSON fields are properly handled for PostgreSQL
     const productData = {
       ...insertProduct,
+      model3dUploadDate: normalizeModelUploadDate(insertProduct.model3dUploadDate),
       category: categoryName, // Store the full category name
       unitPrice: String(insertProduct.unitPrice || 0), // Convert to string for decimal field
       specifications: insertProduct.specifications && typeof insertProduct.specifications === 'object' && !Array.isArray(insertProduct.specifications) && Object.keys(insertProduct.specifications).length > 0 ? insertProduct.specifications : null,
@@ -331,6 +333,7 @@ export class DatabaseStorage implements IStorage {
     // Ensure JSON fields are properly handled for PostgreSQL
     const updateData: any = {
       ...productUpdate,
+      model3dUploadDate: normalizeModelUploadDate(productUpdate.model3dUploadDate),
       updatedAt: new Date(),
     };
 
@@ -522,8 +525,7 @@ export class DatabaseStorage implements IStorage {
           category: showcaseProduct.category,
           stockQuantity: showcaseProduct.stockQuantity || 0,
           lowStockThreshold: showcaseProduct.minStockLevel || 10,
-          imageUrls: showcaseProduct.imageUrl ? [showcaseProduct.imageUrl] : [],
-          thumbnailUrl: showcaseProduct.imageUrl || null,
+          ...kardexMediaToShop(showcaseProduct),
           isActive: showcaseProduct.isActive,
           contractOnly,
           isBulkSale,
@@ -553,8 +555,7 @@ export class DatabaseStorage implements IStorage {
           category: showcaseProduct.category,
           stockQuantity: showcaseProduct.stockQuantity || 0,
           lowStockThreshold: showcaseProduct.minStockLevel || 10,
-          imageUrls: showcaseProduct.imageUrl ? [showcaseProduct.imageUrl] : [],
-          thumbnailUrl: showcaseProduct.imageUrl || null,
+          ...kardexMediaToShop(showcaseProduct),
           isActive: showcaseProduct.isActive,
           contractOnly,
           isBulkSale,

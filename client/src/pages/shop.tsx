@@ -15,7 +15,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ShopProduct, ShopCategory } from "@shared/shop-schema";
 import Checkout from "./checkout";
@@ -36,6 +35,8 @@ import { formatIQDAmount } from "@/lib/currency-utils";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import ProductModel3DViewer from "@/components/ProductModel3DViewer";
+import ProductModel3DDialog, { type ProductModelSelection } from "@/components/products/ProductModel3DDialog";
+import { productMediaVisibility, productPhotos } from "@shared/product-media";
 import ProductPackingDialog from "@/components/products/ProductPackingDialog";
 import type { PackagingSpecifications } from "@shared/product-packaging";
 
@@ -211,17 +212,32 @@ const Shop = () => {
   const [currentImageIndexes, setCurrentImageIndexes] = useState<{ [key: number]: number }>({});
   const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 12;
-  const [selected3DModel, setSelected3DModel] = useState<{ key: string; name: string } | null>(null);
+  const [selected3DModel, setSelected3DModel] = useState<ProductModelSelection | null>(null);
 
   // Helper function to get images array (without artificial expansion)
   const getImages = (product: any) => {
-    const images = Array.isArray(product.imageUrls) && product.imageUrls.length > 0 
-      ? product.imageUrls 
-      : (product.imageUrl ? [product.imageUrl] : []);
+    const images = productPhotos(product);
     
     // If product has no images at all, use company logo as fallback
     return images.length > 0 ? images : [COMPANY_LOGO];
   };
+
+  const modelButton = (key: string, name: string) => (
+    <Button
+      type="button"
+      size="sm"
+      className="absolute bottom-2 right-2 z-10 min-h-9 px-2"
+      data-testid="shop-card-view-3d"
+      aria-label={t.productManagement.viewModel3d}
+      title={t.productManagement.viewModel3d}
+      onClick={event => {
+        event.stopPropagation();
+        setSelected3DModel({ key, name });
+      }}
+    >
+      3D
+    </Button>
+  );
 
   // Debounce search term - only search with 3+ characters
   useEffect(() => {
@@ -1545,18 +1561,20 @@ const Shop = () => {
                   </Button>
                 </div>
               ) : (
-                filteredProducts.map((product: any) => (
+                filteredProducts.map((product: any) => {
+                  const { modelKey, inlineModel } = productMediaVisibility(product, productPhotos(product).length > 0);
+                  return (
                   <Card key={product.id} className={viewMode === "list" ? "flex" : ""}>
                     {viewMode === "grid" ? (
                       <>
                         <div className="aspect-square bg-gray-100 rounded-t-lg overflow-hidden relative group cursor-pointer">
-                          {product.displayMode === '3d_model' && product.model3dKey ? (
+                          {inlineModel && modelKey ? (
                             <div 
                               className="relative w-full h-full"
-                              onClick={() => setSelected3DModel({ key: product.model3dKey, name: product.name })}
+                              onClick={() => setSelected3DModel({ key: modelKey, name: product.name })}
                             >
                               <ProductModel3DViewer 
-                                model3dKey={product.model3dKey}
+                                model3dKey={modelKey}
                                 productName={product.name}
                                 className="w-full h-full"
                               />
@@ -1698,6 +1716,7 @@ const Shop = () => {
                             })()
                           )}
                           
+                          {modelKey && modelButton(modelKey, product.name)}
                           {/* Star Rating Display - Bottom Left Corner - Grid View - Always Show */}
                           <div className="absolute bottom-2 left-2">
                             <div 
@@ -2147,13 +2166,13 @@ const Shop = () => {
                     ) : (
                       <div className="flex">
                         <div className="w-48 h-48 bg-gray-100 flex-shrink-0 relative group cursor-pointer">
-                          {product.displayMode === '3d_model' && product.model3dKey ? (
+                          {inlineModel && modelKey ? (
                             <div 
                               className="relative w-full h-full"
-                              onClick={() => setSelected3DModel({ key: product.model3dKey, name: product.name })}
+                              onClick={() => setSelected3DModel({ key: modelKey, name: product.name })}
                             >
                               <ProductModel3DViewer 
-                                model3dKey={product.model3dKey}
+                                model3dKey={modelKey}
                                 productName={product.name}
                                 className="w-full h-full"
                               />
@@ -2273,6 +2292,7 @@ const Shop = () => {
                             })()
                           )}
                           
+                          {modelKey && modelButton(modelKey, product.name)}
                           {/* Star Rating - Bottom Left Corner - List View - Always Show */}
                           <div className="absolute bottom-2 left-2">
                             <div 
@@ -2735,7 +2755,8 @@ const Shop = () => {
                       </div>
                     )}
                   </Card>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -3066,28 +3087,7 @@ const Shop = () => {
         </div>
       )}
 
-      {/* 3D Model Fullscreen Dialog */}
-      <Dialog open={!!selected3DModel} onOpenChange={() => setSelected3DModel(null)}>
-        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] p-0">
-          <DialogHeader className="p-6 pb-4">
-            <DialogTitle className="text-2xl font-bold" dir={direction}>
-              {selected3DModel?.name}
-            </DialogTitle>
-            <DialogDescription dir={direction}>
-              {direction === 'rtl' ? 'استخدم الماوس للتدوير والتكبير' : 'Use your mouse to rotate and zoom the 3D model'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 p-6 pt-0">
-            {selected3DModel && (
-              <ProductModel3DViewer
-                model3dKey={selected3DModel.key}
-                productName={selected3DModel.name}
-                className="w-full h-full min-h-[600px]"
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ProductModel3DDialog model={selected3DModel} onClose={() => setSelected3DModel(null)} />
 
       {/* Auth Dialog */}
       <CustomerAuth 

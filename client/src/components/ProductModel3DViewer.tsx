@@ -1,6 +1,7 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { productModelUrl } from "@shared/product-media";
 
 interface ProductModel3DViewerProps {
   model3dKey: string;
@@ -28,11 +29,34 @@ declare global {
   }
 }
 
+const viewerScriptUrl = "https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js";
+let viewerReady: Promise<void> | undefined;
+
+function loadViewer(): Promise<void> {
+  if (customElements.get("model-viewer")) return Promise.resolve();
+  viewerReady ??= new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = viewerScriptUrl;
+    script.onload = () => {
+      if (customElements.get("model-viewer")) resolve();
+      else reject(new Error("3D viewer did not register"));
+    };
+    script.onerror = () => reject(new Error("3D viewer did not load"));
+    document.head.appendChild(script);
+  }).catch(error => {
+    viewerReady = undefined;
+    throw error;
+  });
+  return viewerReady;
+}
+
 export default function ProductModel3DViewer({ model3dKey, productName, className = "" }: ProductModel3DViewerProps) {
   const { t, direction } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
+  const viewerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     // Check WebGL/WebXR support before loading model-viewer
@@ -54,47 +78,44 @@ export default function ProductModel3DViewer({ model3dKey, productName, classNam
       return;
     }
 
-    // Load model-viewer script if not already loaded
-    if (!document.querySelector('script[src*="model-viewer"]')) {
-      const script = document.createElement('script');
-      script.type = 'module';
-      script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js';
-      script.onload = () => setScriptLoaded(true);
-      script.onerror = () => {
+    let mounted = true;
+    loadViewer().then(() => {
+      if (mounted) setScriptLoaded(true);
+    }, () => {
+      if (mounted) {
         setError(true);
         setLoading(false);
-      };
-      document.head.appendChild(script);
-    } else {
-      setScriptLoaded(true);
-    }
+      }
+    });
+    return () => { mounted = false; };
   }, []);
 
-  const handleLoad = () => {
-    setLoading(false);
-  };
-
-  const handleError = () => {
-    setLoading(false);
-    setError(true);
-  };
+  useEffect(() => {
+    const viewer = viewerRef.current as (HTMLElement & { loaded?: boolean }) | null;
+    if (!viewer) return;
+    const handleLoad = () => setLoading(false);
+    const handleError = () => {
+      setLoading(false);
+      setError(true);
+    };
+    if (viewer.loaded) handleLoad();
+    viewer.addEventListener("load", handleLoad);
+    viewer.addEventListener("error", handleError);
+    return () => {
+      viewer.removeEventListener("load", handleLoad);
+      viewer.removeEventListener("error", handleError);
+    };
+  }, [scriptLoaded]);
 
   if (!model3dKey) {
     return null;
   }
 
-  // Upload responses store the full S3 key (for example
-  // "3d-models/file.glb"), while the proxy route already includes that
-  // directory. Keep only the filename to avoid requesting
-  // "/uploads/3d-models/3d-models/file.glb", which falls through to HTML.
-  const modelFileName = model3dKey.split('/').filter(Boolean).pop();
-  const modelUrl = `/uploads/3d-models/${encodeURIComponent(modelFileName || model3dKey)}`;
-
   return (
     <div className={`relative ${className}`} dir={direction}>
       {/* Loading State */}
-      {loading && scriptLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
+      {loading && (
+        <div role="status" className="absolute inset-0 z-10 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-blue-600" />
             <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -117,7 +138,8 @@ export default function ProductModel3DViewer({ model3dKey, productName, classNam
       {scriptLoaded && !error && (
         <div className="relative w-full h-full">
           <model-viewer
-            src={modelUrl}
+            ref={viewerRef}
+            src={productModelUrl(model3dKey)}
             alt={productName}
             auto-rotate
             camera-controls
@@ -129,12 +151,9 @@ export default function ProductModel3DViewer({ model3dKey, productName, classNam
             style={{
               width: '100%',
               height: '100%',
-              minHeight: '400px',
               backgroundColor: '#f3f4f6',
               borderRadius: '0.5rem'
             }}
-            onLoad={handleLoad}
-            onError={handleError}
           />
           
           {/* 3D Badge */}

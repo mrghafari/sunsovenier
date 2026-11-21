@@ -134,7 +134,7 @@ export const shopProducts = pgTable("shop_products", {
   // Safety and hazard information
   isFlammable: boolean("is_flammable").default(false), // آتش‌زا بودن کالا
   // 3D Model Fields - For interactive 3D product viewing
-  displayMode: text("display_mode").default("images"), // 'images' or '3d_model' - Controls what customers see in shop
+  displayMode: text("display_mode").default("images"), // images, 3d_model, or images_and_3d
   model3dKey: text("model3d_key"), // S3 key for 3D model file (GLB/GLTF format)
   model3dFileName: text("model3d_file_name"), // Original filename for display
   model3dUploadDate: timestamp("model3d_upload_date"), // When 3D model was uploaded
