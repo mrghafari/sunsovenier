@@ -7,4 +7,4 @@ The existing product translations were generated once without a runtime translat
 
 **Why:** Product descriptions contain technical and safety-sensitive claims. A translation produced before an edit may misrepresent the new description, and the project does not yet have a connected runtime translation provider.
 
-**How to apply:** When adding automatic translation for newly created or edited products, connect a supported provider, save translations against a content version, and replace the one-time translations only after a successful new translation. Do not rely on a static ID match alone.
+**How to apply:** Product detail uses the site's selected language. Use the bundled translation where still current, then the official Google Cloud provider when configured, keyed by source content and language. Send only public catalog copy; never transfer hidden or contract-only products. On failure keep the original/current bundled text, and let visitors open Google Translate for the current language explicitly.

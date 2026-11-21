@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount } from "@/lib/currency-utils";
-import { hasCurrentShopProductTranslation, localizeShopProduct, localizeShopCategory, productDetailCopy } from "@/lib/shop-product-localization";
+import { localizeShopProduct, localizeShopCategory, matchesBundledShopProductSource, productDetailCopy } from "@/lib/shop-product-localization";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import StarRating from "@/components/StarRating";
 import ProductModel3DDialog from "@/components/products/ProductModel3DDialog";
+import { ProductGoogleTranslation } from "@/components/products/ProductGoogleTranslation";
+import { productTranslationText } from "@/lib/google-product-translation";
+import { canTranslatePublicShopProduct, readProductTextList, readProductTextSpecs, shopTranslationSource, type ShopTranslationResult } from "@shared/shop-translation";
 import { resolveProductMedia } from "@shared/product-media";
 import type { ShopProduct } from "@shared/shop-schema";
 import {
@@ -31,22 +34,12 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-// ─── helpers ────────────────────────────────────────────────────────────────
-function parseArr(field: any): string[] {
-  if (!field) return [];
-  if (typeof field === "string") {
-    try { return JSON.parse(field); } catch { return []; }
-  }
-  return Array.isArray(field) ? field : [];
-}
-
-function parseObj(field: any): Record<string, string> {
-  if (!field) return {};
-  if (typeof field === "string") {
-    try { return JSON.parse(field); } catch { return {}; }
-  }
-  return !Array.isArray(field) && typeof field === "object" ? field : {};
-}
+const machineTranslationCopy = {
+  en: { loading: "Translating product text…", notice: "Machine translation. For safety information, refer to the original documents." },
+  fa: { loading: "در حال ترجمهٔ متن محصول…", notice: "ترجمهٔ ماشینی؛ برای اطلاعات ایمنی به مدارک اصلی مراجعه کنید." },
+  ar: { loading: "جارٍ ترجمة نص المنتج…", notice: "ترجمة آلية. لمعلومات السلامة، راجع المستندات الأصلية." },
+  tr: { loading: "Ürün metni çevriliyor…", notice: "Makine çevirisi. Güvenlik bilgileri için orijinal belgelere bakın." },
+};
 
 // ─── component ───────────────────────────────────────────────────────────────
 export default function ShopProductPage() {
@@ -74,11 +67,33 @@ export default function ShopProductPage() {
     enabled: !!id,
   });
 
+  const source = useMemo(() => rawProduct ? shopTranslationSource(rawProduct) : null, [rawProduct]);
+  const sourceKey = source ? JSON.stringify(source) : null;
+  const bundled = !!rawProduct && matchesBundledShopProductSource(rawProduct);
+  const needsTranslation = !!source && (!bundled || (language !== "en" && source.specifications.length > 0));
+  const canTranslate = !!rawProduct && canTranslatePublicShopProduct(rawProduct);
+  const shouldTranslate = needsTranslation && canTranslate;
+  const translation = useQuery<ShopTranslationResult>({
+    queryKey: ["/api/shop/products", id, "translation", language, sourceKey],
+    enabled: !!id && shouldTranslate,
+    queryFn: async ({ signal }) => {
+      const response = await fetch(`/api/shop/products/${encodeURIComponent(id ?? "")}?translationLanguage=${language}`, { signal });
+      if (!response.ok) throw new Error("Product translation unavailable");
+      return response.json();
+    },
+    retry: false,
+    staleTime: query => query.state.data?.status === "translated" ? 24 * 60 * 60 * 1000 : 60 * 1000,
+  });
+  const translatedText = shouldTranslate && translation.data?.status === "translated" && translation.data.source === sourceKey
+    ? translation.data.text
+    : null;
+  const machineCopy = machineTranslationCopy[language];
+
   const reviews: any[] = (reviewsData as any)?.data?.reviews || [];
   const avgRating: number = (reviewsData as any)?.data?.stats?.averageRating || 0;
   const totalReviews: number = (reviewsData as any)?.data?.stats?.totalReviews || 0;
   const previewReviews = reviews.slice(0, 3);
-  const product = rawProduct ? localizeShopProduct(rawProduct, language) : null;
+  const product = rawProduct ? (translatedText ? { ...rawProduct, ...translatedText } : localizeShopProduct(rawProduct, language)) : null;
 
   // ── loading ───────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -97,7 +112,7 @@ export default function ShopProductPage() {
   }
 
   // ── error ─────────────────────────────────────────────────────────────────
-  if (isError || !product) {
+  if (isError || !rawProduct || !product) {
     return (
       <div className={`max-w-4xl mx-auto p-6 text-center ${language === "fa" ? "shop-lang-fa" : ""}`}>
         <p className="text-gray-500 text-lg mb-4">{tx.missing}</p>
@@ -111,10 +126,10 @@ export default function ShopProductPage() {
 
   const { photos: images, modelKey } = resolveProductMedia(product);
   const showPhotos = images.length > 0;
-  const features: string[] = parseArr(product.features);
-  const applications: string[] = parseArr(product.applications);
-  const tags: string[] = parseArr(product.tags);
-  const specs = parseObj(product.specifications);
+  const features = readProductTextList(product.features);
+  const applications = readProductTextList(product.applications);
+  const tags = readProductTextList(product.tags);
+  const specs = translatedText?.specifications ?? Object.entries(readProductTextSpecs(product.specifications));
 
   const prev = () => setImgIndex(i => (i === 0 ? images.length - 1 : i - 1));
   const next = () => setImgIndex(i => (i === images.length - 1 ? 0 : i + 1));
@@ -124,16 +139,19 @@ export default function ShopProductPage() {
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
 
         {/* ── Back button ────────────────────────────────────────────────── */}
-        <Button
-          variant="ghost"
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 -ml-2"
-          onClick={() => navigate("/shop")}
-        >
-          {isRtl
-            ? <ArrowRight className="w-4 h-4" />
-            : <ArrowLeft className="w-4 h-4" />}
-          <span>{tx.back}</span>
-        </Button>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button
+            variant="ghost"
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 -ms-2"
+            onClick={() => navigate("/shop")}
+          >
+            {isRtl
+              ? <ArrowRight className="w-4 h-4" />
+              : <ArrowLeft className="w-4 h-4" />}
+            <span>{tx.back}</span>
+          </Button>
+          {canTranslate && !translatedText && <ProductGoogleTranslation key={rawProduct.id} text={productTranslationText(rawProduct)} />}
+        </div>
 
         {/* ── Title ──────────────────────────────────────────────────────── */}
         <div className={`flex items-start gap-3 ${isRtl ? "flex-row-reverse" : ""}`}>
@@ -152,11 +170,20 @@ export default function ShopProductPage() {
             </div>
           )}
         </div>
-        {!hasCurrentShopProductTranslation(rawProduct!, language) && (
+        {translatedText ? (
+          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+            <a href="https://translate.google.com/" target="_blank" rel="noopener noreferrer" className="inline-flex rounded bg-white px-2 py-1 ring-1 ring-gray-200">
+              <img src="/images/google-translate-attribution.png" width={176} height={16} alt="Translated by Google" />
+            </a>
+            <span>{machineCopy.notice}</span>
+          </div>
+        ) : shouldTranslate && translation.isLoading ? (
+          <p role="status" className="text-sm text-muted-foreground">{machineCopy.loading}</p>
+        ) : language !== "en" && needsTranslation ? (
           <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
             {tx.translationPending}
           </p>
-        )}
+        ) : null}
 
         {/* ── Image gallery ──────────────────────────────────────────────── */}
         {(showPhotos || modelKey) && (
@@ -292,21 +319,21 @@ export default function ShopProductPage() {
         )}
 
         {/* ── Technical specs ────────────────────────────────────────────── */}
-        {Object.keys(specs).length > 0 && (
+        {specs.length > 0 && (
           <div className="bg-white dark:bg-gray-900 rounded-2xl border p-6">
             <h2 className={`flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 text-lg mb-4 ${isRtl ? "flex-row-reverse" : ""}`}>
               <Weight className="w-5 h-5 text-purple-500" />
               {tx.specs}
             </h2>
             <div className="rounded-xl overflow-hidden border">
-              {Object.entries(specs).map(([key, value], i, arr) => (
+              {specs.map(([key, value], i) => (
                 <div
-                  key={key}
+                  key={i}
                   className={`flex justify-between items-center px-4 py-3 text-sm ${
                     i % 2 === 0
                       ? "bg-gray-50 dark:bg-gray-800/50"
                       : "bg-white dark:bg-gray-900"
-                  } ${i < arr.length - 1 ? "border-b" : ""}`}
+                  } ${i < specs.length - 1 ? "border-b" : ""}`}
                 >
                   <span className={`text-gray-500 font-medium ${isRtl ? "text-right" : ""}`}>{key}</span>
                   <span className={`text-gray-900 dark:text-gray-100 font-semibold ${isRtl ? "text-left" : "text-right"}`}>

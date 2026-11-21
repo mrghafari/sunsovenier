@@ -19,13 +19,16 @@ type StoredTranslation = {
 
 const products = catalog as unknown as Record<string, StoredTranslation>;
 
-export function hasCurrentShopProductTranslation(product: ShopProduct, language: Language): boolean {
-  if (language === "en") return true;
+export function matchesBundledShopProductSource(product: ShopProduct): boolean {
   const stored = products[String(product.id)];
   if (!stored) return false;
   return (["name", "description", "shortDescription", "features", "applications", "tags"] as const)
     .every((field) =>
       JSON.stringify(product[field] ?? null) === JSON.stringify(stored.source[field] ?? null));
+}
+
+export function hasCurrentShopProductTranslation(product: ShopProduct, language: Language): boolean {
+  return language === "en" || matchesBundledShopProductSource(product);
 }
 
 // A translation belongs to the exact source field from which it was generated.

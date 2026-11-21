@@ -25172,6 +25172,16 @@ ${procedure.content}
         }
       }
       
+      if (req.query.translationLanguage !== undefined) {
+        const { canTranslatePublicShopProduct, shopTranslationLanguages, shopTranslationSource } = await import("@shared/shop-translation");
+        const target = shopTranslationLanguages.find(language => language === req.query.translationLanguage);
+        if (!target) return res.status(400).json({ success: false, message: "Invalid translation language" });
+        // Only transfer public catalog content to the external translation service.
+        if (!canTranslatePublicShopProduct(product)) return res.json({ status: "unavailable" });
+        const { translateShopProduct } = await import("./shop-translation");
+        return res.json(await translateShopProduct(shopTranslationSource(product), target, process.env.GOOGLE_CLOUD_TRANSLATION_API_KEY));
+      }
+
       // Map database fields to frontend expected format
       const { withShopPackaging } = await import("./shop-packaging");
       const [productWithPackaging] = await withShopPackaging([product]);
