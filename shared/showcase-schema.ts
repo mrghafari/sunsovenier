@@ -2,6 +2,7 @@ import { pgTable, text, serial, timestamp, decimal, boolean, integer, json, json
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { packagingSpecificationsSchema, type PackagingSpecifications } from "./product-packaging";
+import { productLocalizationsSchema, type ProductLocalizations } from "./product-localizations";
 
 // =============================================================================
 // SHOWCASE WEBSITE SCHEMA - For product presentation and company information
@@ -43,6 +44,7 @@ export const showcaseProducts = pgTable("showcase_products", {
   catalogUploadDate: timestamp("catalog_upload_date"), // When catalog was uploaded
   specifications: json("specifications"), // Technical specifications for display
   packagingSpecifications: jsonb("packaging_specifications").$type<PackagingSpecifications | null>(),
+  productLocalizations: jsonb("product_localizations").$type<ProductLocalizations>(),
   features: json("features"), // Product features array
   applications: json("applications"), // Applications array
   technicalDataSheet: text("technical_data_sheet_url"),
@@ -113,6 +115,7 @@ export const insertShowcaseProductSchema = createInsertSchema(showcaseProducts).
 }).extend({
   unitPrice: z.coerce.number().min(0),
   packagingSpecifications: packagingSpecificationsSchema.nullable().optional(),
+  productLocalizations: productLocalizationsSchema.nullable().optional(),
 });
 
 export type InsertShowcaseProduct = z.infer<typeof insertShowcaseProductSchema>;

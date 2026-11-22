@@ -1,4 +1,5 @@
 import type { PackagingSpecifications } from "./product-packaging";
+import type { ProductLocalizations } from "./product-localizations";
 
 export interface CategoryCatalogProduct {
   id: number;
@@ -9,6 +10,7 @@ export interface CategoryCatalogProduct {
   description?: string | null;
   technicalName?: string | null;
   specifications?: unknown;
+  productLocalizations?: ProductLocalizations | null;
   imageUrls?: unknown;
   imageUrl?: string | null;
   packagingSpecifications?: PackagingSpecifications | null;

@@ -222,6 +222,7 @@ import { globalSyncService } from './sync-service';
 import { generateSitemap } from './sitemap';
 import { kardexMediaToShop, normalizeModelUploadDate } from './product-media-sync';
 import { validateProductPackaging } from "./product-packaging-validation";
+import { validateProductLocalizations } from "./product-localization-validation";
 import { incomingCorrespondence, insertIncomingCorrespondenceSchema, outgoingCorrespondence, insertOutgoingCorrespondenceSchema, insertCompanyDocumentSchema, insertBusinessCardSchema, insertCompanyImageSchema } from "@shared/company-info-schema.js";
 import { id } from "date-fns/locale";
 import { SessionData } from "express-session";
@@ -5552,7 +5553,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Protected admin routes for product management (کاردکس)
-  app.post("/api/products", requireProductManagerAuth, validateProductPackaging, async (req, res) => {
+  app.post("/api/products", requireProductManagerAuth, validateProductPackaging, validateProductLocalizations, async (req, res) => {
     try {
       const productData = req.body;
       
@@ -5617,6 +5618,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         model3dUploadDate: normalizeModelUploadDate(productData.model3dUploadDate),
         specifications: productData.specifications || productData.description || "این یک محصول شیمیایی تولید شرکت ممتاز شیمی است",
         packagingSpecifications: productData.packagingSpecifications ?? null,
+        productLocalizations: productData.productLocalizations ?? null,
         features: productData.features || productData.description || "این یک محصول شیمیایی تولید شرکت ممتاز شیمی است",
         applications: productData.applications || productData.description || "این یک محصول شیمیایی تولید شرکت ممتاز شیمی است",
         tags: productData.tags || ["شیمیایی"],
@@ -5702,6 +5704,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       }
       
       // Enrich products with vendor information
+      const signedInProductAdmin = !!(req.session?.isAuthenticated && req.session?.adminId);
       const enrichedProducts = await Promise.all(
         products.map(async (product) => {
           let vendorName = null;
@@ -5727,6 +5730,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           // Return product with vendorName field
           return {
             ...product,
+            productLocalizations: product.contractOnly && !signedInProductAdmin && !(vendorId && product.vendorId === vendorId)
+              ? null : product.productLocalizations,
             vendorName
           };
         })
@@ -5789,7 +5794,12 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         });
       }
 
-      res.json(product);
+      // Eligible customers access contract-only translations through the shop route.
+      const productAdmin = !!(req.session?.isAuthenticated && req.session?.adminId);
+      const owningVendor = product.contractOnly && req.session?.vendorUserId
+        ? await getVendorIdFromSession(req) : null;
+      res.json(product.contractOnly && !productAdmin && !(owningVendor && product.vendorId === owningVendor)
+        ? { ...product, productLocalizations: null } : product);
     } catch (error) {
       console.error(`Error fetching product ${id}:`, error);
       res.status(500).json({ 
@@ -5801,7 +5811,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Update product (PATCH method)
-  app.patch("/api/products/:id", requireProductManagerAuth, validateProductPackaging, async (req, res) => {
+  app.patch("/api/products/:id", requireProductManagerAuth, validateProductPackaging, validateProductLocalizations, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -6243,7 +6253,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Update product (PUT method - for compatibility)
-  app.put("/api/products/:id", requireProductManagerAuth, validateProductPackaging, async (req, res) => {
+  app.put("/api/products/:id", requireProductManagerAuth, validateProductPackaging, validateProductLocalizations, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -25172,21 +25182,16 @@ ${procedure.content}
         }
       }
       
-      if (req.query.translationLanguage !== undefined) {
-        const { canTranslatePublicShopProduct, shopTranslationLanguages, shopTranslationSource } = await import("@shared/shop-translation");
-        const target = shopTranslationLanguages.find(language => language === req.query.translationLanguage);
-        if (!target) return res.status(400).json({ success: false, message: "Invalid translation language" });
-        // Only transfer public catalog content to the external translation service.
-        if (!canTranslatePublicShopProduct(product)) return res.json({ status: "unavailable" });
-        const { translateShopProduct } = await import("./shop-translation");
-        return res.json(await translateShopProduct(shopTranslationSource(product), target, process.env.GOOGLE_CLOUD_TRANSLATION_API_KEY));
-      }
-
       // Map database fields to frontend expected format
       const { withShopPackaging } = await import("./shop-packaging");
-      const [productWithPackaging] = await withShopPackaging([product]);
+      const { getShopProductLocalizations } = await import("./shop-product-localizations");
+      const [[productWithPackaging], productLocalizations] = await Promise.all([
+        withShopPackaging([product]),
+        getShopProductLocalizations(product),
+      ]);
       const mappedProduct = {
         ...productWithPackaging,
+        productLocalizations,
         imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
         imageUrls: product.imageUrls || [], // Include the full array of images
         unitPrice: product.price,

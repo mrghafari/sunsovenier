@@ -3,8 +3,8 @@ name: Shop translation freshness
 description: How to keep localized product text accurate when the source catalog changes.
 ---
 
-The existing product translations were generated once without a runtime translation provider. Display a translated field only while its original source text still matches the product's current field; if it changes, show the original with an explicit notice rather than presenting an outdated translation as current.
+Product text is curated in four Kardex language tabs. Display the selected storefront language automatically; do not put a translation button or call a live translation service. A blank field falls back to the previously bundled translation only if its source still matches, otherwise to the original text.
 
-**Why:** Product descriptions contain technical and safety-sensitive claims. A translation produced before an edit may misrepresent the new description, and the project does not yet have a connected runtime translation provider.
+**Why:** The user prefers maintaining product specifications in the four languages rather than asking customers to run a translator. Bundled historical translations can be stale, especially for technical claims.
 
-**How to apply:** Product detail uses the site's selected language. Use the bundled translation where still current, then the official Google Cloud provider when configured, keyed by source content and language. Send only public catalog copy; never transfer hidden or contract-only products. On failure keep the original/current bundled text, and let visitors open Google Translate for the current language explicitly.
+**How to apply:** Use the canonical Kardex product and keep the four authored versions independent of checkout and inventory identifiers. Apply saved fields over safe fallbacks at render time. Do not overwrite authored translations on unrelated edits. Explicitly clear translation defaults when opening a new product after editing: resetting the form alone can restore the previous product's text.

@@ -1,20 +1,18 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount } from "@/lib/currency-utils";
-import { localizeShopProduct, localizeShopCategory, matchesBundledShopProductSource, productDetailCopy } from "@/lib/shop-product-localization";
+import { hasCurrentShopProductTranslation, localizeShopProduct, localizeShopCategory, productDetailCopy, type ShopProductWithLocalizations } from "@/lib/shop-product-localization";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import StarRating from "@/components/StarRating";
 import ProductModel3DDialog from "@/components/products/ProductModel3DDialog";
-import { ProductGoogleTranslation } from "@/components/products/ProductGoogleTranslation";
-import { productTranslationText } from "@/lib/google-product-translation";
-import { canTranslatePublicShopProduct, readProductTextList, readProductTextSpecs, shopTranslationSource, type ShopTranslationResult } from "@shared/shop-translation";
+import { readProductTextList } from "@shared/product-localizations";
+import { technicalRows } from "@shared/category-product-slides";
 import { resolveProductMedia } from "@shared/product-media";
-import type { ShopProduct } from "@shared/shop-schema";
 import {
   ArrowLeft,
   ArrowRight,
@@ -34,13 +32,6 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-const machineTranslationCopy = {
-  en: { loading: "Translating product text…", notice: "Machine translation. For safety information, refer to the original documents." },
-  fa: { loading: "در حال ترجمهٔ متن محصول…", notice: "ترجمهٔ ماشینی؛ برای اطلاعات ایمنی به مدارک اصلی مراجعه کنید." },
-  ar: { loading: "جارٍ ترجمة نص المنتج…", notice: "ترجمة آلية. لمعلومات السلامة، راجع المستندات الأصلية." },
-  tr: { loading: "Ürün metni çevriliyor…", notice: "Makine çevirisi. Güvenlik bilgileri için orijinal belgelere bakın." },
-};
-
 // ─── component ───────────────────────────────────────────────────────────────
 export default function ShopProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -52,7 +43,7 @@ export default function ShopProductPage() {
   const [showModel, setShowModel] = useState(false);
 
   const tx = productDetailCopy[language];
-  const { data: rawProduct, isLoading, isError } = useQuery<ShopProduct>({
+  const { data: rawProduct, isLoading, isError } = useQuery<ShopProductWithLocalizations>({
     queryKey: ["/api/shop/products", id],
     queryFn: async () => {
       const res = await fetch(`/api/shop/products/${id}`);
@@ -67,33 +58,11 @@ export default function ShopProductPage() {
     enabled: !!id,
   });
 
-  const source = useMemo(() => rawProduct ? shopTranslationSource(rawProduct) : null, [rawProduct]);
-  const sourceKey = source ? JSON.stringify(source) : null;
-  const bundled = !!rawProduct && matchesBundledShopProductSource(rawProduct);
-  const needsTranslation = !!source && (!bundled || (language !== "en" && source.specifications.length > 0));
-  const canTranslate = !!rawProduct && canTranslatePublicShopProduct(rawProduct);
-  const shouldTranslate = needsTranslation && canTranslate;
-  const translation = useQuery<ShopTranslationResult>({
-    queryKey: ["/api/shop/products", id, "translation", language, sourceKey],
-    enabled: !!id && shouldTranslate,
-    queryFn: async ({ signal }) => {
-      const response = await fetch(`/api/shop/products/${encodeURIComponent(id ?? "")}?translationLanguage=${language}`, { signal });
-      if (!response.ok) throw new Error("Product translation unavailable");
-      return response.json();
-    },
-    retry: false,
-    staleTime: query => query.state.data?.status === "translated" ? 24 * 60 * 60 * 1000 : 60 * 1000,
-  });
-  const translatedText = shouldTranslate && translation.data?.status === "translated" && translation.data.source === sourceKey
-    ? translation.data.text
-    : null;
-  const machineCopy = machineTranslationCopy[language];
-
   const reviews: any[] = (reviewsData as any)?.data?.reviews || [];
   const avgRating: number = (reviewsData as any)?.data?.stats?.averageRating || 0;
   const totalReviews: number = (reviewsData as any)?.data?.stats?.totalReviews || 0;
   const previewReviews = reviews.slice(0, 3);
-  const product = rawProduct ? (translatedText ? { ...rawProduct, ...translatedText } : localizeShopProduct(rawProduct, language)) : null;
+  const product = rawProduct ? localizeShopProduct(rawProduct, language) : null;
 
   // ── loading ───────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -129,7 +98,7 @@ export default function ShopProductPage() {
   const features = readProductTextList(product.features);
   const applications = readProductTextList(product.applications);
   const tags = readProductTextList(product.tags);
-  const specs = translatedText?.specifications ?? Object.entries(readProductTextSpecs(product.specifications));
+  const specs = technicalRows(product.specifications);
 
   const prev = () => setImgIndex(i => (i === 0 ? images.length - 1 : i - 1));
   const next = () => setImgIndex(i => (i === images.length - 1 ? 0 : i + 1));
@@ -150,7 +119,6 @@ export default function ShopProductPage() {
               : <ArrowLeft className="w-4 h-4" />}
             <span>{tx.back}</span>
           </Button>
-          {canTranslate && !translatedText && <ProductGoogleTranslation key={rawProduct.id} text={productTranslationText(rawProduct)} />}
         </div>
 
         {/* ── Title ──────────────────────────────────────────────────────── */}
@@ -170,20 +138,11 @@ export default function ShopProductPage() {
             </div>
           )}
         </div>
-        {translatedText ? (
-          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-            <a href="https://translate.google.com/" target="_blank" rel="noopener noreferrer" className="inline-flex rounded bg-white px-2 py-1 ring-1 ring-gray-200">
-              <img src="/images/google-translate-attribution.png" width={176} height={16} alt="Translated by Google" />
-            </a>
-            <span>{machineCopy.notice}</span>
-          </div>
-        ) : shouldTranslate && translation.isLoading ? (
-          <p role="status" className="text-sm text-muted-foreground">{machineCopy.loading}</p>
-        ) : language !== "en" && needsTranslation ? (
+        {!hasCurrentShopProductTranslation(rawProduct, language) && (
           <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
             {tx.translationPending}
           </p>
-        ) : null}
+        )}
 
         {/* ── Image gallery ──────────────────────────────────────────────── */}
         {(showPhotos || modelKey) && (
@@ -326,7 +285,7 @@ export default function ShopProductPage() {
               {tx.specs}
             </h2>
             <div className="rounded-xl overflow-hidden border">
-              {specs.map(([key, value], i) => (
+              {specs.map(({ name, value }, i) => (
                 <div
                   key={i}
                   className={`flex justify-between items-center px-4 py-3 text-sm ${
@@ -335,8 +294,8 @@ export default function ShopProductPage() {
                       : "bg-white dark:bg-gray-900"
                   } ${i < specs.length - 1 ? "border-b" : ""}`}
                 >
-                  <span className={`text-gray-500 font-medium ${isRtl ? "text-right" : ""}`}>{key}</span>
-                  <span className={`text-gray-900 dark:text-gray-100 font-semibold ${isRtl ? "text-left" : "text-right"}`}>
+                  {name && <span className="text-gray-500 font-medium text-start">{name}</span>}
+                  <span className={`whitespace-pre-wrap break-words text-gray-900 dark:text-gray-100 ${name ? "font-semibold text-end" : "text-start"}`}>
                     {String(value)}
                   </span>
                 </div>

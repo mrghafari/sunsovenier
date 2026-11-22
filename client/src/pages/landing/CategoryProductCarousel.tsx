@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Download, Image as ImageIcon } from "lucide-react";
 import { productsInCategory, firstProductImage, publicCategoryProductDocuments, technicalRows, type CategoryCatalogProduct } from "@shared/category-product-slides";
 import { PackagingSpecificationsView } from "@/components/products/PackagingSpecificationsEditor";
+import { productLanguages, withAuthoredProductLocalization } from "@shared/product-localizations";
 
 const words = {
   en: { previous: "Previous product", next: "Next product", technical: "Technical specifications", packing: "Packing specifications", grade: "Technical name / grade", none: "No technical specifications have been recorded.", empty: "No products are available in this category yet.", loading: "Loading category products…", failed: "Could not load category products.", retry: "Try again", noImage: "No product image", product: "Product" },
@@ -28,7 +29,8 @@ export default function CategoryProductCarousel({ category, products, language, 
   const [index, setIndex] = useState(0);
   useEffect(() => setIndex(0), [category.id]);
   useEffect(() => { if (index >= slides.length) setIndex(0); }, [slides.length, index]);
-  const current = slides[index] ?? slides[0];
+  const slide = slides[index] ?? slides[0];
+  const current = slide ? withAuthoredProductLocalization(slide, productLanguages.find(code => code === language) ?? "en") : undefined;
   const image = current ? firstProductImage(current) : null;
   const rows = current ? technicalRows(current.specifications) : [];
   const documents = current ? publicCategoryProductDocuments(current) : [];
@@ -36,7 +38,7 @@ export default function CategoryProductCarousel({ category, products, language, 
   return <div className="mc-modal-grid mc-product-carousel" dir="ltr" data-testid="category-product-carousel">
     <div className="mc-carousel-visual">
       <div className="mc-carousel-image">
-        {image ? <img key={`${current.id}-${image}`} src={image} alt={current.name} /> : <div className="mc-carousel-placeholder" role="img" aria-label={t.noImage}><ImageIcon size={48} aria-hidden="true" /><span>{t.noImage}</span></div>}
+        {image && current ? <img key={`${current.id}-${image}`} src={image} alt={current.name} /> : <div className="mc-carousel-placeholder" role="img" aria-label={t.noImage}><ImageIcon size={48} aria-hidden="true" /><span>{t.noImage}</span></div>}
         {slides.length > 1 && <><button className="mc-carousel-nav mc-carousel-prev" type="button" onClick={() => move(-1)} aria-label={t.previous} data-testid="category-product-prev"><ChevronLeft aria-hidden="true" /></button><button className="mc-carousel-nav mc-carousel-next" type="button" onClick={() => move(1)} aria-label={t.next} data-testid="category-product-next"><ChevronRight aria-hidden="true" /></button></>}
       </div>
       {current && <div className="mc-carousel-caption" dir={dir} aria-live="polite" aria-atomic="true"><strong data-testid="category-slide-name">{current.name}</strong><span>{t.product} {new Intl.NumberFormat(language).format(index + 1)} / {new Intl.NumberFormat(language).format(slides.length)}</span></div>}

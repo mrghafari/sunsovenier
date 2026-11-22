@@ -1,6 +1,9 @@
 import type { ShopProduct } from "@shared/shop-schema";
 import type { Language } from "@/lib/i18n";
 import catalog from "./shop-product-locales.json";
+import { withAuthoredProductLocalization, type ProductLocalizations } from "@shared/product-localizations";
+
+export type ShopProductWithLocalizations = ShopProduct & { productLocalizations?: ProductLocalizations | null };
 
 type ProductText = {
   name: string;
@@ -27,20 +30,21 @@ export function matchesBundledShopProductSource(product: ShopProduct): boolean {
       JSON.stringify(product[field] ?? null) === JSON.stringify(stored.source[field] ?? null));
 }
 
-export function hasCurrentShopProductTranslation(product: ShopProduct, language: Language): boolean {
-  return language === "en" || matchesBundledShopProductSource(product);
+export function hasCurrentShopProductTranslation(product: ShopProductWithLocalizations, language: Language): boolean {
+  const saved = product.productLocalizations?.[language];
+  return language === "en" || (!!saved?.name && !!saved?.description) || matchesBundledShopProductSource(product);
 }
 
 // A translation belongs to the exact source field from which it was generated.
 // An edited product must not keep showing stale specifications or claims.
-export function localizeShopProduct(product: ShopProduct, language: Language): ShopProduct {
-  if (language === "en") return product;
+export function localizeShopProduct(product: ShopProductWithLocalizations, language: Language): ShopProduct {
+  if (language === "en") return withAuthoredProductLocalization(product, language);
   const stored = products[String(product.id)];
-  if (!stored) return product;
+  if (!stored) return withAuthoredProductLocalization(product, language);
   const translated = stored[language];
   const unchanged = (field: keyof StoredTranslation["source"], value: unknown) =>
     JSON.stringify(value ?? null) === JSON.stringify(stored.source[field] ?? null);
-  return {
+  return withAuthoredProductLocalization({
     ...product,
     name: unchanged("name", product.name) ? translated.name : product.name,
     description: unchanged("description", product.description) ? translated.description : product.description,
@@ -49,7 +53,7 @@ export function localizeShopProduct(product: ShopProduct, language: Language): S
     features: unchanged("features", product.features) ? translated.features : product.features,
     applications: unchanged("applications", product.applications) ? translated.applications : product.applications,
     tags: unchanged("tags", product.tags) ? translated.tags : product.tags,
-  };
+  }, language);
 }
 
 export const productDetailCopy = {

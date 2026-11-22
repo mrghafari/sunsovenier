@@ -27,6 +27,7 @@ import FIFOBatchDisplay from "@/components/ui/fifo-batch-display";
 import ProductModel3DViewer from "@/components/ProductModel3DViewer";
 import PackagingSpecificationsEditor, { PackagingSpecificationsView, hasPackagingSpecifications } from "@/components/products/PackagingSpecificationsEditor";
 import { KardexFormSection, revealKardexSectionForField } from "@/components/products/KardexFormSection";
+import { ProductLocalizationsEditor, productLocalizationsSectionTitle } from "@/components/products/ProductLocalizationsEditor";
 import { productModelUrl, productPhotos, resolveProductMedia } from "@shared/product-media";
 
 // Custom form schema that handles numeric inputs properly  
@@ -651,6 +652,7 @@ export default function ProductsPage() {
       grossWeight: 0,
       weightUnit: "kg",
       packagingSpecifications: null,
+      productLocalizations: null,
       batchNumber: "",
       tags: "",
       // Variant fields
@@ -1219,6 +1221,8 @@ export default function ProductsPage() {
     setModel3dPreview(null);
     setManualBarcodeEntered(false); // Reset manual barcode flag
     form.reset();
+    // Editing resets RHF's defaults to that product. Never copy its translations to a new product.
+    form.setValue("productLocalizations", null);
     setDialogOpen(true);
   };
 
@@ -1284,6 +1288,7 @@ export default function ProductsPage() {
       weight: product.weight || "",
       weightUnit: product.weightUnit || "kg",
       packagingSpecifications: product.packagingSpecifications ?? null,
+      productLocalizations: product.productLocalizations ?? null,
       netWeight: Number(product.netWeight) || 0,
       grossWeight: Number(product.grossWeight) || 0,
       batchNumber: product.batchNumber || "",
@@ -2494,6 +2499,15 @@ export default function ProductsPage() {
                   </div>
                 </div>
                 </KardexFormSection>
+
+                {(!editingProduct || consolidatedProducts.some(group => group.mainProduct.id === editingProduct.id)) && <KardexFormSection id="localizations" title={productLocalizationsSectionTitle(language)} icon={<FileText className="h-4 w-4 text-muted-foreground" />}>
+                  <FormField control={form.control} name="productLocalizations" render={({ field }) => (
+                    <FormItem>
+                      <ProductLocalizationsEditor language={language} value={field.value} onChange={field.onChange} />
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </KardexFormSection>}
 
                 <KardexFormSection id="pricing" title={t.productManagement.identificationPricing} icon={<QrCode className="h-4 w-4 text-muted-foreground" />}>
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">

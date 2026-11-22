@@ -25,6 +25,7 @@ import {
 import { syncCanonicalKardexWeightsToShop } from "./product-weight-shop-sync";
 import { normalizeModelUploadDate } from "./product-media-sync";
 import { productDisplayModes } from "@shared/product-media";
+import { validateProductLocalizations } from "./product-localization-validation";
 
 const vendorProductCreateSchema = insertShowcaseProductSchema.pick({
   name: true,
@@ -42,6 +43,7 @@ const vendorProductCreateSchema = insertShowcaseProductSchema.pick({
   model3dKey: true,
   model3dFileName: true,
   model3dUploadDate: true,
+  productLocalizations: true,
 }).extend({
   name: z.string().trim().min(3),
   category: z.string().trim().min(1),
@@ -668,7 +670,7 @@ export function createVendorRouter() {
   });
 
   // Create new product (uses main products table like admin does)
-  router.post("/products", ...vendorProductAuth, async (req, res) => {
+  router.post("/products", ...vendorProductAuth, validateProductLocalizations, async (req, res) => {
     try {
       console.log('🏪 [VENDOR PRODUCT CREATE] Request received');
       console.log('🏪 [VENDOR PRODUCT CREATE] vendorUser:', req.vendorUser);
@@ -729,7 +731,7 @@ export function createVendorRouter() {
   });
 
   // Update product (vendor must own the product)
-  router.patch("/products/:id", ...vendorProductAuth, async (req, res) => {
+  router.patch("/products/:id", ...vendorProductAuth, validateProductLocalizations, async (req, res) => {
     try {
       if (!req.vendorUser) {
         return res.status(401).json({
