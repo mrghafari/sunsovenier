@@ -99,6 +99,14 @@ try {
     };
     await open("basic");
     assert.equal(await page.$eval('[data-testid="kardex-section-pricing"]', node => node.open), false);
+    const textBlock = '[data-testid="kardex-section-basic"] [data-testid="kardex-product-text"]';
+    assert.equal(await page.$$eval(`${textBlock} [role="tab"]`, nodes => nodes.length), 4);
+    const persianTab = `${textBlock} [role="tab"][lang="fa"]`;
+    await page.click(persianTab);
+    assert.equal(await page.$eval('[name="productLocalizations.fa.technicalName"]', node => node.dir), "rtl");
+    assert.equal(await page.$( '[data-testid="kardex-section-localizations"]'), null);
+    await page.$eval(textBlock, node => node.scrollIntoView({ block: "center", behavior: "instant" }));
+    await page.screenshot({ path: `generated-artifacts/kardex-sections/${language}-localized-fields.jpg` });
     const nameSelector = 'form input[name="name"]';
     await page.click(nameSelector);
     await page.keyboard.down("Control"); await page.keyboard.press("A"); await page.keyboard.up("Control");

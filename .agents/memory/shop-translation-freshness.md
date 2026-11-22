@@ -3,7 +3,7 @@ name: Shop translation freshness
 description: How to keep localized product text accurate when the source catalog changes.
 ---
 
-Product text is curated in four Kardex language tabs. Display the selected storefront language automatically; do not put a translation button or call a live translation service. A blank field falls back to the previously bundled translation only if its source still matches, otherwise to the original text.
+The same five existing Kardex fields (technical name/grade, description, technical specifications, features, and applications) must be editable in English, Persian, Arabic, and Turkish within their original block; the user rejected a separate translation section. Do not include the commercial title or short description in these tabs, but preserve previously saved versions. Display the selected storefront language automatically without a translation button or live translation service. A blank field falls back to the previous bundled translation only if its source still matches, otherwise to the original text.
 
 **Why:** The user prefers maintaining product specifications in the four languages rather than asking customers to run a translator. Bundled historical translations can be stale, especially for technical claims.
 

@@ -27,7 +27,7 @@ import FIFOBatchDisplay from "@/components/ui/fifo-batch-display";
 import ProductModel3DViewer from "@/components/ProductModel3DViewer";
 import PackagingSpecificationsEditor, { PackagingSpecificationsView, hasPackagingSpecifications } from "@/components/products/PackagingSpecificationsEditor";
 import { KardexFormSection, revealKardexSectionForField } from "@/components/products/KardexFormSection";
-import { ProductLocalizationsEditor, productLocalizationsSectionTitle } from "@/components/products/ProductLocalizationsEditor";
+import { KardexProductTextFields } from "@/components/products/KardexProductTextFields";
 import { productModelUrl, productPhotos, resolveProductMedia } from "@shared/product-media";
 
 // Custom form schema that handles numeric inputs properly  
@@ -89,6 +89,8 @@ const formSchema = insertShowcaseProductSchema.omit({ displayMode: true }).exten
   // Vendor assignment (admin mode only)
   vendorId: z.coerce.number().optional(),
 });
+
+export type KardexProductForm = z.infer<typeof formSchema>;
 import { useToast } from "@/hooks/use-toast";
 import { getPersonalizedWelcome, getDashboardMotivation } from "@/utils/greetings";
 import { generateEAN13Barcode, validateEAN13 } from "@shared/barcode-utils";
@@ -623,7 +625,7 @@ export default function ProductsPage() {
     generateSKUMutation.mutate(productData);
   };
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<KardexProductForm>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
@@ -1223,6 +1225,11 @@ export default function ProductsPage() {
     form.reset();
     // Editing resets RHF's defaults to that product. Never copy its translations to a new product.
     form.setValue("productLocalizations", null);
+    form.setValue("technicalName", "");
+    form.setValue("description", "");
+    form.setValue("specifications", "");
+    form.setValue("features", "");
+    form.setValue("applications", "");
     setDialogOpen(true);
   };
 
@@ -1270,6 +1277,7 @@ export default function ProductsPage() {
     
     form.reset({
       name: product.name,
+      technicalName: product.technicalName || "",
       description: product.description || "",
       category: product.category,
       shortDescription: product.shortDescription || "",
@@ -2351,163 +2359,13 @@ export default function ProductsPage() {
                     </div>
                   )}
 
-                  <div className="mt-3">
-                    <FormField
-                      control={form.control}
-                      name="technicalName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium flex items-center gap-2">
-                            {t.productManagement.technicalName}
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <HelpCircle className="h-3 w-3 text-gray-400" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t.productManagement.technicalNameHelp}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder={t.productManagement.technicalNamePlaceholder} 
-                              className="h-9"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="mt-3 space-y-3">
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium flex items-center gap-2">
-                            {t.productManagement.description}
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <HelpCircle className="h-3 w-3 text-gray-400" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t.productManagement.descriptionHelp}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder={t.productManagement.descriptionPlaceholder} 
-                              className="min-h-[80px] resize-none"
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="specifications"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium flex items-center gap-2">
-                            {t.productManagement.technicalSpecifications}
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <HelpCircle className="h-3 w-3 text-gray-400" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t.productManagement.technicalSpecificationsHelp}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder={t.productManagement.technicalSpecificationsPlaceholder} 
-                              className="min-h-[80px] resize-none font-mono text-xs"
-                              {...field}
-                              value={typeof field.value === 'string' ? field.value : (field.value ? JSON.stringify(field.value, null, 2) : '')}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="features"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium flex items-center gap-2">
-                            {t.productManagement.productFeatures}
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <HelpCircle className="h-3 w-3 text-gray-400" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t.productManagement.productFeaturesHelp}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder={t.productManagement.productFeaturesPlaceholder} 
-                              className="min-h-[80px] resize-none"
-                              {...field}
-                              value={typeof field.value === 'string' ? field.value : (Array.isArray(field.value) ? (field.value as string[]).join('\n') : '')}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="applications"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium flex items-center gap-2">
-                            {t.productManagement.productApplications}
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <HelpCircle className="h-3 w-3 text-gray-400" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t.productManagement.productApplicationsHelp}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder={t.productManagement.productApplicationsPlaceholder} 
-                              className="min-h-[80px] resize-none"
-                              {...field}
-                              value={typeof field.value === 'string' ? field.value : (Array.isArray(field.value) ? (field.value as string[]).join('\n') : '')}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <KardexProductTextFields
+                    key={editingProduct?.id ?? "new"}
+                    form={form}
+                    multilingual={!editingProduct || consolidatedProducts.some(group => group.mainProduct.id === editingProduct.id)}
+                  />
                 </div>
                 </KardexFormSection>
-
-                {(!editingProduct || consolidatedProducts.some(group => group.mainProduct.id === editingProduct.id)) && <KardexFormSection id="localizations" title={productLocalizationsSectionTitle(language)} icon={<FileText className="h-4 w-4 text-muted-foreground" />}>
-                  <FormField control={form.control} name="productLocalizations" render={({ field }) => (
-                    <FormItem>
-                      <ProductLocalizationsEditor language={language} value={field.value} onChange={field.onChange} />
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </KardexFormSection>}
 
                 <KardexFormSection id="pricing" title={t.productManagement.identificationPricing} icon={<QrCode className="h-4 w-4 text-muted-foreground" />}>
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">

@@ -5598,6 +5598,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       // Create product in showcase_products table (کاردکس)
       const showcaseProductData = {
         name: productData.name,
+        technicalName: productData.technicalName || null,
         vendorId: vendorId,
         category: productData.category,
         description: productData.description || "این یک محصول شیمیایی تولید شرکت ممتاز شیمی است",
@@ -25184,14 +25185,14 @@ ${procedure.content}
       
       // Map database fields to frontend expected format
       const { withShopPackaging } = await import("./shop-packaging");
-      const { getShopProductLocalizations } = await import("./shop-product-localizations");
-      const [[productWithPackaging], productLocalizations] = await Promise.all([
+      const { getShopProductText } = await import("./shop-product-localizations");
+      const [[productWithPackaging], kardexText] = await Promise.all([
         withShopPackaging([product]),
-        getShopProductLocalizations(product),
+        getShopProductText(product),
       ]);
       const mappedProduct = {
         ...productWithPackaging,
-        productLocalizations,
+        ...kardexText,
         imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
         imageUrls: product.imageUrls || [], // Include the full array of images
         unitPrice: product.price,

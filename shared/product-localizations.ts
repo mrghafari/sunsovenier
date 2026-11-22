@@ -3,8 +3,12 @@ import { z } from "zod";
 export const productLanguages = ["en", "fa", "ar", "tr"] as const;
 export type ProductLanguage = typeof productLanguages[number];
 
+export const kardexLocalizedFields = ["technicalName", "description", "specifications", "features", "applications"] as const;
+export type KardexLocalizedField = typeof kardexLocalizedFields[number];
+
 export const productLocalizationFields = {
   name: 300,
+  technicalName: 300,
   description: 12000,
   shortDescription: 3000,
   specifications: 12000,
@@ -14,6 +18,7 @@ export const productLocalizationFields = {
 
 const localizedText = z.object({
   name: z.string().max(productLocalizationFields.name).optional(),
+  technicalName: z.string().max(productLocalizationFields.technicalName).optional(),
   description: z.string().max(productLocalizationFields.description).optional(),
   shortDescription: z.string().max(productLocalizationFields.shortDescription).optional(),
   specifications: z.string().max(productLocalizationFields.specifications).optional(),
@@ -54,6 +59,7 @@ export function normalizeProductLocalizations(value: ProductLocalizations): Prod
 
 type LocalizableProduct = {
   name: string;
+  technicalName?: string | null;
   description?: string | null;
   shortDescription?: string | null;
   specifications?: unknown;
@@ -69,6 +75,7 @@ export function withAuthoredProductLocalization<T extends LocalizableProduct>(pr
   return {
     ...product,
     ...(text.name?.trim() && { name: text.name.trim() }),
+    ...(text.technicalName?.trim() && { technicalName: text.technicalName.trim() }),
     ...(text.description?.trim() && { description: text.description.trim() }),
     ...(text.shortDescription?.trim() && { shortDescription: text.shortDescription.trim() }),
     ...(text.specifications?.trim() && { specifications: text.specifications.trim() }),

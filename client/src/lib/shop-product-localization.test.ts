@@ -46,21 +46,23 @@ test("new products without generated translations retain their original content"
 test("staff-entered translations override only the specified fields of the chosen language", () => {
   const original = sourceProduct("624");
   const edited = {
-    ...original, specifications: { Density: "1.2" },
+    ...original, technicalName: "Original grade", specifications: { Density: "1.2" },
     productLocalizations: {
       en: { name: "English product" },
-      fa: { name: "نام فارسی", description: "توضیح ثبت‌شده", specifications: "چگالی: ۱٫۲\nمشخصات دیگر", features: "ویژگی اول\n\nویژگی دوم" },
+      fa: { name: "نام فارسی", technicalName: "گرید نمونه", description: "توضیح ثبت‌شده", specifications: "چگالی: ۱٫۲\nمشخصات دیگر", features: "ویژگی اول\n\nویژگی دوم" },
       ar: { specifications: "الكثافة: 1.2" },
       tr: { description: "Mağaza açıklaması" },
     },
   };
   const fa = localizeShopProduct(edited, "fa");
   assert.equal(fa.name, "نام فارسی");
+  assert.equal(fa.technicalName, "گرید نمونه");
   assert.equal(fa.description, "توضیح ثبت‌شده");
   assert.equal(fa.specifications, "چگالی: ۱٫۲\nمشخصات دیگر");
   assert.deepEqual(fa.features, ["ویژگی اول", "ویژگی دوم"]);
   assert.equal(fa.shortDescription, catalog["624"].fa.shortDescription);
   assert.equal(localizeShopProduct(edited, "en").name, "English product");
+  assert.equal(localizeShopProduct(edited, "tr").technicalName, "Original grade");
   assert.equal(localizeShopProduct(edited, "ar").specifications, "الكثافة: 1.2");
   assert.deepEqual(localizeShopProduct(edited, "tr").specifications, { Density: "1.2" });
   assert.equal(localizeShopProduct(edited, "tr").description, "Mağaza açıklaması");

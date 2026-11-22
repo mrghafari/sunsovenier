@@ -3,7 +3,10 @@ import type { Language } from "@/lib/i18n";
 import catalog from "./shop-product-locales.json";
 import { withAuthoredProductLocalization, type ProductLocalizations } from "@shared/product-localizations";
 
-export type ShopProductWithLocalizations = ShopProduct & { productLocalizations?: ProductLocalizations | null };
+export type ShopProductWithLocalizations = ShopProduct & {
+  technicalName?: string | null;
+  productLocalizations?: ProductLocalizations | null;
+};
 
 type ProductText = {
   name: string;
@@ -32,12 +35,12 @@ export function matchesBundledShopProductSource(product: ShopProduct): boolean {
 
 export function hasCurrentShopProductTranslation(product: ShopProductWithLocalizations, language: Language): boolean {
   const saved = product.productLocalizations?.[language];
-  return language === "en" || (!!saved?.name && !!saved?.description) || matchesBundledShopProductSource(product);
+  return language === "en" || !!saved?.description?.trim() || matchesBundledShopProductSource(product);
 }
 
 // A translation belongs to the exact source field from which it was generated.
 // An edited product must not keep showing stale specifications or claims.
-export function localizeShopProduct(product: ShopProductWithLocalizations, language: Language): ShopProduct {
+export function localizeShopProduct(product: ShopProductWithLocalizations, language: Language): ShopProductWithLocalizations {
   if (language === "en") return withAuthoredProductLocalization(product, language);
   const stored = products[String(product.id)];
   if (!stored) return withAuthoredProductLocalization(product, language);
@@ -58,6 +61,7 @@ export function localizeShopProduct(product: ShopProductWithLocalizations, langu
 
 export const productDetailCopy = {
   fa: {
+    technicalName: "نام فنی / گرید",
     back: "بازگشت به فروشگاه", missing: "محصول پیدا نشد", flammable: "آتش‌زا",
     translationPending: "ترجمهٔ به‌روز این محصول هنوز آماده نیست؛ بخش‌های ترجمه‌نشده به زبان متن اصلی نمایش داده می‌شوند.",
     category: "دسته‌بندی", price: "قیمت", availability: "موجودی", inStock: "موجود", outOfStock: "ناموجود",
@@ -69,6 +73,7 @@ export const productDetailCopy = {
     documents: "اسناد و مدارک", catalog: "کاتالوگ محصول", msds: "برگه اطلاعات ایمنی (MSDS)",
   },
   en: {
+    technicalName: "Technical name / grade",
     back: "Back to shop", missing: "Product not found", flammable: "Flammable",
     translationPending: "An up-to-date translation is not available yet; untranslated content appears in its original language.",
     category: "Category", price: "Price", availability: "Availability", inStock: "In stock", outOfStock: "Out of stock",
@@ -80,6 +85,7 @@ export const productDetailCopy = {
     documents: "Documents", catalog: "Product catalog", msds: "Safety data sheet (MSDS)",
   },
   ar: {
+    technicalName: "الاسم الفني / الدرجة",
     back: "العودة إلى المتجر", missing: "لم يتم العثور على المنتج", flammable: "قابل للاشتعال",
     translationPending: "الترجمة المحدّثة لهذا المنتج غير متوفرة بعد؛ تُعرض الأجزاء غير المترجمة بلغتها الأصلية.",
     category: "الفئة", price: "السعر", availability: "التوفر", inStock: "متوفر", outOfStock: "غير متوفر",
@@ -91,6 +97,7 @@ export const productDetailCopy = {
     documents: "المستندات", catalog: "كتالوج المنتج", msds: "صحيفة بيانات السلامة (MSDS)",
   },
   tr: {
+    technicalName: "Teknik ad / kalite sınıfı",
     back: "Mağazaya dön", missing: "Ürün bulunamadı", flammable: "Yanıcı",
     translationPending: "Bu ürünün güncel çevirisi henüz hazır değil; çevrilmemiş içerik özgün dilinde gösterilir.",
     category: "Kategori", price: "Fiyat", availability: "Stok durumu", inStock: "Stokta", outOfStock: "Stokta yok",

@@ -25,9 +25,16 @@ const picture = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0l
 const photoUrl = "/__media-fixture/photo.png";
 const modelKey = "3d-models/fixture.glb";
 const modelPath = "/uploads/3d-models/fixture.glb";
-const localizedNames = { en: "English product", fa: "محصول فارسی", ar: "المنتج العربي", tr: "Türkçe ürün" };
 const localizedSpecs = { en: "Density 1.2", fa: "چگالی ۱٫۲", ar: "الكثافة 1.2", tr: "Yoğunluk 1.2" };
 const names = { en: "English", fa: "فارسی", ar: "العربية", tr: "Türkçe" };
+const localizedFields = Object.fromEntries(Object.keys(names).map(locale => [locale, {
+  technicalName: `Grade ${names[locale]}`,
+  description: `Description ${names[locale]}`,
+  specifications: localizedSpecs[locale],
+  features: `Features ${names[locale]}`,
+  applications: `Applications ${names[locale]}`,
+}]));
+const textOnly = process.env.KARDEX_TEXT_ONLY === "1";
 function makeModel() {
   const vertices = Buffer.alloc(36);
   [0, 0, 0, 1, 0, 0, 0, 1, 0].forEach((value, index) => vertices.writeFloatLE(value, index * 4));
@@ -59,6 +66,7 @@ let record = {
 const writes = [];
 try {
   const page = await browser.newPage();
+  page.setDefaultTimeout(15000);
   await page.setViewport({ width: 1280, height: 900 });
   await page.setBypassServiceWorker(true);
   await page.evaluateOnNewDocument(() => {
@@ -113,20 +121,38 @@ try {
   const open = async id => {
     if (!await page.$eval(section(id), node => node.open)) await page.click(`${section(id)} > summary`);
   };
-  const localizedField = (locale, field) => `[name="productLocalizations.${locale}.${field}"]`;
+  const textBlock = `${section("basic")} [data-testid="kardex-product-text"]`;
+  const localizedField = (locale, field) => `[name="${locale === "en" ? field : `productLocalizations.${locale}.${field}`}"]`;
   const selectLocaleTab = async locale => {
-    const tab = await page.waitForSelector(`${section("localizations")} [role="tab"][lang="${locale}"]`, { visible: true });
+    const tab = await page.waitForSelector(`${textBlock} [role="tab"][lang="${locale}"]`, { visible: true });
     assert.equal(await tab.evaluate(node => node.textContent), names[locale]);
     await tab.click();
     await page.waitForSelector(localizedField(locale, "specifications"), { visible: true });
+    const visible = await page.$$eval(`${textBlock} [role="tabpanel"]:not([hidden]) input, ${textBlock} [role="tabpanel"]:not([hidden]) textarea`, fields => fields.map(field => field.name.split(".").at(-1)));
+    assert.deepEqual(visible, Object.keys(localizedFields[locale]));
   };
   const fillLocalizations = async () => {
-    await open("localizations");
-    for (const locale of Object.keys(localizedNames)) {
+    await open("basic");
+    assert.equal(await page.$(section("localizations")), null);
+    for (const locale of Object.keys(names)) {
       await selectLocaleTab(locale);
-      await page.type(localizedField(locale, "name"), localizedNames[locale]);
-      await page.type(localizedField(locale, "specifications"), localizedSpecs[locale]);
+      for (const [field, value] of Object.entries(localizedFields[locale])) {
+        const selector = localizedField(locale, field);
+        await page.click(selector);
+        await page.keyboard.down("Control"); await page.keyboard.press("A"); await page.keyboard.up("Control");
+        await page.type(selector, value);
+      }
     }
+  };
+  const checkLocalizations = (record, edited = false) => {
+    for (const [field, value] of Object.entries(localizedFields.en)) {
+      assert.deepEqual(record[field], field === "features" || field === "applications" ? [value] : value);
+    }
+    for (const locale of ["fa", "ar", "tr"]) {
+      const oldCopy = edited && locale === "fa" ? { name: "نام قبلی", shortDescription: "توضیح کوتاه قبلی" } : {};
+      assert.deepEqual(record.productLocalizations[locale], { ...oldCopy, ...localizedFields[locale] });
+    }
+    if (edited) assert.equal(record.productLocalizations.en?.description, localizedFields.en.description);
   };
   const openMedia = async () => {
     await open("media");
@@ -143,9 +169,15 @@ try {
     await page.$eval(selector, node => node.closest("button").click());
     await page.waitForSelector("form");
   };
-  const go = path => page.goto(base + path, { waitUntil: "domcontentloaded", timeout: 90000 });
+  const go = path => page.goto(base + path, { waitUntil: "domcontentloaded", timeout: 25000 });
+  record.productLocalizations = { en: { description: "Existing English override" }, fa: { name: "نام قبلی", shortDescription: "توضیح کوتاه قبلی" } };
+  record.technicalName = "Existing grade";
   await go("/__media-fixture/kardex");
   await edit();
+  await open("basic");
+  await selectLocaleTab("en");
+  assert.equal(await page.$eval(localizedField("en", "technicalName"), node => node.value), "Existing grade");
+  assert.equal(await page.$eval(localizedField("en", "description"), node => node.value), "Existing English override");
   await fillLocalizations();
   await openMedia();
   await upload(`${section("images")} input[type=file]`, photoFile);
@@ -159,11 +191,9 @@ try {
   assert.equal(record.displayMode, "images_and_3d");
   assert.equal(record.model3dKey, modelKey);
   assert.deepEqual(record.imageUrls, [photoUrl]);
-  for (const locale of Object.keys(localizedNames)) assert.deepEqual(record.productLocalizations[locale], {
-    name: localizedNames[locale], specifications: localizedSpecs[locale],
-  });
+  checkLocalizations(record, true);
   await edit();
-  await open("localizations");
+  await open("basic");
   await selectLocaleTab("fa");
   assert.equal(await page.$eval(localizedField("fa", "specifications"), node => node.value), localizedSpecs.fa);
   await open("media");
@@ -173,6 +203,7 @@ try {
   assert.equal(await page.$eval('input[name="model3dKey"]', node => node.value), modelKey);
   console.log("Kardex: upload photo and model, save and reopen with both retained.");
 
+  if (!textOnly) {
   // Legacy store records can contain both assets but still say "images".
   record.displayMode = "images";
   await go("/shop");
@@ -224,6 +255,9 @@ try {
   assert.equal(record.model3dKey, "");
   assert.equal(record.model3dUploadDate, null);
   assert.deepEqual(record.imageUrls, [photoUrl]);
+  } else {
+    await go("/__media-fixture/kardex");
+  }
 
   const add = "button > svg.lucide-plus";
   await page.waitForSelector(add);
@@ -259,9 +293,8 @@ try {
   assert.equal(record.displayMode, "images_and_3d");
   assert.equal(record.model3dKey, modelKey);
   assert.deepEqual(record.imageUrls, [photoUrl]);
-  for (const locale of Object.keys(localizedNames)) assert.deepEqual(record.productLocalizations[locale], {
-    name: localizedNames[locale], specifications: localizedSpecs[locale],
-  });
+  checkLocalizations(record);
+  console.log("Kardex: all five fields saved from the four inline tabs, with legacy translations preserved on edit.");
   const thumb = '[data-testid="kardex-product-thumbnail"]';
   await page.waitForSelector(thumb, { visible: true });
   assert.equal(await page.$eval(thumb, node => node.getAttribute("src")), photoUrl);
@@ -271,17 +304,24 @@ try {
   await page.waitForSelector(thumb, { visible: true });
   assert.equal(await page.$eval(thumb, node => node.getAttribute("src")), photoUrl);
   assert.equal(await page.$("model-viewer"), null);
-  for (const locale of Object.keys(localizedNames)) {
+  console.log("Kardex: verifying storefront language selection.");
+  for (const locale of Object.keys(names)) {
     const script = await page.evaluateOnNewDocument(language => localStorage.setItem("language", language), locale);
     await go(`/shop/product/${record.id}`);
-    await page.waitForFunction(text => document.querySelector("h1")?.textContent === text, {}, localizedNames[locale]);
-    assert.match(await page.$eval("main", element => element.textContent), new RegExp(localizedSpecs[locale].replace(".", "\\.")));
+    const grade = await page.waitForSelector('[data-testid="shop-product-technical-name"]', { visible: true });
+    assert.equal(await page.$eval("h1", heading => heading.textContent), record.name);
+    assert.equal(await grade.evaluate(node => node.textContent), localizedFields[locale].technicalName);
+    const detail = await page.$eval("main", element => element.textContent);
+    for (const value of Object.values(localizedFields[locale])) assert.ok(detail.includes(value), `Missing ${locale}: ${value}`);
     assert.equal(await page.$('[data-testid="product-translate-google"]'), null);
     await page.removeScriptToEvaluateOnNewDocument(script.identifier);
+    console.log(`Shop: checked ${locale} product text.`);
   }
   assert.deepEqual(errors, []);
-  console.log("Shop: photos and real GLB rendered in grid, list and mobile detail.");
-  console.log("Kardex: removing the model keeps photos; new products submit both media types.");
+  if (!textOnly) {
+    console.log("Shop: photos and real GLB rendered in grid, list and mobile detail.");
+    console.log("Kardex: removing the model keeps photos; new products submit both media types.");
+  }
   console.log("Kardex cards: gallery photos are thumbnails even when a 3D model exists and the legacy main photo is blank.");
   console.log("Kardex localizations: translations persisted on create and edit; shop displayed the matching text for all four languages.");
 } finally {

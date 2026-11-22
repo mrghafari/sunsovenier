@@ -45,7 +45,7 @@ export function revealKardexSectionForField(fieldName: string) {
     specifications: "basic",
     features: "basic",
     applications: "basic",
-    productLocalizations: "localizations",
+    productLocalizations: "basic",
     vendorId: "basic",
     sku: "pricing",
     barcode: "pricing",

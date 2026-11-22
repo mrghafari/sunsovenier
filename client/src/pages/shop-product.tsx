@@ -263,7 +263,7 @@ export default function ShopProductPage() {
               <Info className="w-5 h-5 text-blue-500" />
               {tx.description}
             </h2>
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+            <p className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed">
               {product.description || product.shortDescription}
             </p>
             {product.shortDescription && product.description !== product.shortDescription && (
@@ -278,13 +278,19 @@ export default function ShopProductPage() {
         )}
 
         {/* ── Technical specs ────────────────────────────────────────────── */}
-        {specs.length > 0 && (
+        {(product.technicalName || specs.length > 0) && (
           <div className="bg-white dark:bg-gray-900 rounded-2xl border p-6">
             <h2 className={`flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 text-lg mb-4 ${isRtl ? "flex-row-reverse" : ""}`}>
               <Weight className="w-5 h-5 text-purple-500" />
               {tx.specs}
             </h2>
-            <div className="rounded-xl overflow-hidden border">
+            {product.technicalName && (
+              <dl className="mb-3 flex flex-wrap justify-between gap-2 text-sm">
+                <dt className="font-medium text-gray-600 dark:text-gray-300">{tx.technicalName}</dt>
+                <dd className="font-semibold" data-testid="shop-product-technical-name">{product.technicalName}</dd>
+              </dl>
+            )}
+            {specs.length > 0 && <div className="rounded-xl overflow-hidden border">
               {specs.map(({ name, value }, i) => (
                 <div
                   key={i}
@@ -300,7 +306,7 @@ export default function ShopProductPage() {
                   </span>
                 </div>
               ))}
-            </div>
+            </div>}
           </div>
         )}
 
