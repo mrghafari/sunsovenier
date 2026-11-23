@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +28,7 @@ import ProductModel3DViewer from "@/components/ProductModel3DViewer";
 import PackagingSpecificationsEditor, { PackagingSpecificationsView, hasPackagingSpecifications } from "@/components/products/PackagingSpecificationsEditor";
 import { KardexFormSection, revealKardexSectionForField } from "@/components/products/KardexFormSection";
 import { KardexProductTextFields } from "@/components/products/KardexProductTextFields";
+import { kardexDeleteCopy } from "@/lib/kardex-delete-copy";
 import { productModelUrl, productPhotos, resolveProductMedia } from "@shared/product-media";
 
 // Custom form schema that handles numeric inputs properly  
@@ -193,7 +194,7 @@ export default function ProductsPage() {
   const [uploadingMsds, setUploadingMsds] = useState(false);
   const [uploadingModel3d, setUploadingModel3d] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [deletingProduct, setDeletingProduct] = useState<ShowcaseProduct | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<{ id: number; name: string; ids: number[] } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [availableBatches, setAvailableBatches] = useState<Array<{id: number; batchNumber: string; stockQuantity: number}>>([]);
@@ -319,9 +320,10 @@ export default function ProductsPage() {
       currentSellingBatch: string;
     }>();
 
-    // Group products by barcode
+    // A barcode groups batches only within a single vendor.
     for (const product of products) {
-      if (!product.barcode) {
+      const barcode = product.barcode?.trim();
+      if (!barcode) {
         // Products without barcodes are shown individually
         barcodeMap.set(`no-barcode-${product.id}`, {
           mainProduct: product,
@@ -338,8 +340,9 @@ export default function ProductsPage() {
         continue;
       }
 
-      if (!barcodeMap.has(product.barcode)) {
-        barcodeMap.set(product.barcode, {
+      const groupKey = `${product.vendorId ?? "company"}:${barcode}`;
+      if (!barcodeMap.has(groupKey)) {
+        barcodeMap.set(groupKey, {
           mainProduct: product,
           batches: [],
           totalStock: 0,
@@ -347,7 +350,7 @@ export default function ProductsPage() {
         });
       }
 
-      const group = barcodeMap.get(product.barcode)!;
+      const group = barcodeMap.get(groupKey)!;
       const currentMain = group.mainProduct;
       if (
         (currentMain.syncWithShop === false && product.syncWithShop !== false) ||
@@ -366,7 +369,7 @@ export default function ProductsPage() {
     }
 
     // Determine active batch for each group (FIFO - oldest with stock > 0)
-    for (const [barcode, group] of Array.from(barcodeMap.entries())) {
+    for (const group of Array.from(barcodeMap.values())) {
       // Sort batches by creation date (oldest first - FIFO)
       group.batches.sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       
@@ -511,25 +514,40 @@ export default function ProductsPage() {
     },
   });
 
-  const { mutate: deleteProduct } = useMutation({
-    mutationFn: (id: number) => {
-      console.log(`🗑️ [DELETE] Starting delete for product ID: ${id}`);
-      return apiRequest(`/api/products/${id}`, { method: "DELETE" });
+  const deleteCopy = kardexDeleteCopy[language];
+  const { mutate: deleteProduct, isPending: isDeletingProduct } = useMutation({
+    mutationFn: async ({ id, ids }: NonNullable<typeof deletingProduct>) => {
+      const response = await fetch(`/api/products/${id}`, {
+        credentials: "include",
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmedIds: ids }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || result?.success !== true || !Array.isArray(result.deletedIds) ||
+          result.deletedIds.length !== ids.length || !ids.every(rowId => result.deletedIds.includes(rowId))) {
+        const messages: Record<string, string> = {
+          scope_changed: deleteCopy.scopeChanged,
+          referenced: deleteCopy.referenced,
+          not_found: deleteCopy.notFound,
+        };
+        throw new Error(messages[result?.code] || t.productManagement.productDeleteError);
+      }
+      return result.deletedIds as number[];
     },
-    onSuccess: async () => {
-      console.log(`✅ [DELETE] Product deleted successfully`);
-      queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
-      setDeletingProduct(null); // Close the confirmation dialog
+    onSuccess: async (deletedIds) => {
+      await queryClient.cancelQueries({ queryKey: [productsEndpoint], exact: true });
+      queryClient.setQueryData<ShowcaseProduct[]>([productsEndpoint], rows => rows?.filter(row => !deletedIds.includes(row.id)));
+      void queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
+      void queryClient.invalidateQueries({ queryKey: ["/api/shop/products"] });
+      setDeletingProduct(null);
       toast({
         title: t.productManagement.productDeleted,
-        description: t.productManagement.productDeleted,
       });
-      // Immediate kardex sync after product deletion
-      await triggerKardexSync();
     },
-    onError: (error: any) => {
-      console.error(`❌ [DELETE] Delete failed:`, error);
-      setDeletingProduct(null); // Close the confirmation dialog
+    onError: (error: Error) => {
+      setDeletingProduct(null);
+      void queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       toast({
         title: t.productManagement.productDeleteError,
         description: error.message || t.productManagement.productDeleteError,
@@ -538,20 +556,8 @@ export default function ProductsPage() {
     },
   });
 
-  // Handle delete product with confirmation
-  const handleDeleteProduct = (product: ShowcaseProduct) => {
-    console.log(`🗑️ [DELETE] Opening delete confirmation for product:`, product.name);
-    setDeletingProduct(product);
-  };
-
-  // Confirm delete product
   const confirmDeleteProduct = () => {
-    if (deletingProduct) {
-      console.log(`🗑️ [DELETE] Confirming delete for product:`, deletingProduct.name, `ID: ${deletingProduct.id}`);
-      deleteProduct(deletingProduct.id);
-    } else {
-      console.warn(`⚠️ [DELETE] No product selected for deletion`);
-    }
+    if (deletingProduct && !isDeletingProduct) deleteProduct(deletingProduct);
   };
 
   // Quick sync toggle mutation
@@ -1761,7 +1767,7 @@ export default function ProductsPage() {
                 const product = productGroup.mainProduct;
                 const thumbnail = productPhotos(product)[0];
                 return (
-                  <Card key={`${product.barcode || product.id}`} className="hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700">
+                  <Card key={product.id} className="hover:shadow-lg transition-shadow duration-200 border border-gray-200 dark:border-gray-700">
                   <CardHeader className="pb-3">
                     <div className="flex items-start gap-3">
                       {/* Product Thumbnail */}
@@ -1854,7 +1860,8 @@ export default function ProductsPage() {
                           variant="ghost"
                           size="sm"
                           aria-label={t.delete}
-                          onClick={() => handleDeleteProduct(product)}
+                          data-testid={`delete-kardex-product-${product.id}`}
+                          onClick={() => setDeletingProduct({ id: product.id, name: product.name, ids: productGroup.batches.map(batch => batch.id) })}
                           className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -3926,7 +3933,7 @@ export default function ProductsPage() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingProduct} onOpenChange={() => setDeletingProduct(null)}>
+      <AlertDialog open={!!deletingProduct} onOpenChange={open => { if (!open && !isDeletingProduct) setDeletingProduct(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t.productManagement.confirmDelete}</AlertDialogTitle>
@@ -3936,19 +3943,28 @@ export default function ProductsPage() {
               <span className="text-red-600 font-medium">
                 {t.productManagement.confirmDeleteWarning}
               </span>
+              {deletingProduct && deletingProduct.ids.length > 1 && <>
+                <br />
+                <span className="font-medium" data-testid="kardex-delete-batch-warning">
+                  {deleteCopy.batches.replace("{count}", formatProductCount(deletingProduct.ids.length))}
+                </span>
+              </>}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeletingProduct(null)}>
+            <AlertDialogCancel disabled={isDeletingProduct}>
               {t.productManagement.cancel}
             </AlertDialogCancel>
-            <AlertDialogAction
+            <Button
+              type="button"
+              data-testid="confirm-delete-kardex-product"
+              disabled={isDeletingProduct}
               onClick={confirmDeleteProduct}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               <Trash2 className="w-4 h-4 me-2" />
               {t.productManagement.deleteProduct}
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

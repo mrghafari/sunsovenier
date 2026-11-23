@@ -32,6 +32,10 @@ try {
     const context = await browser.createBrowserContext();
     const page = await context.newPage();
     const errors = [], writes = [];
+    const batch = { ...fixture, id: fixture.id + 1, sku: `${fixture.sku}-BATCH`, batchNumber: "B-1", syncWithShop: false };
+    const otherVendor = { ...fixture, id: fixture.id + 2, vendorId: 55, name: "Other vendor fixture" };
+    let products = [fixture, batch, otherVendor];
+    let deleteResponse = "old_success";
     page.on("pageerror", error => errors.push(error.message));
     await page.setViewport({ width, height: 932 });
     await page.setBypassServiceWorker(true);
@@ -42,7 +46,7 @@ try {
     await page.setRequestInterception(true);
     page.on("request", request => {
       const path = new URL(request.url()).pathname;
-      const json = body => request.respond({ contentType: "application/json", body: JSON.stringify(body) });
+      const json = (body, status = 200) => request.respond({ status, contentType: "application/json", body: JSON.stringify(body) });
       if (path === "/__kardex-form-probe") {
         return request.respond({ contentType: "text/html", body: `<!doctype html><html><body><div id="root"></div><script type="module">
           import RefreshRuntime from "/@react-refresh";RefreshRuntime.injectIntoGlobalHook(window);
@@ -54,19 +58,28 @@ try {
           const {queryClient}=await import("/src/lib/queryClient.ts");
           const {LanguageProvider}=await import("/src/contexts/LanguageContext.tsx");
           const {default:Products}=await import("/src/pages/products.tsx");
+          const {Toaster}=await import("/src/components/ui/toaster.tsx");
           createRoot(document.getElementById("root")).render(React.createElement(QueryClientProvider,{client:queryClient},
-            React.createElement(LanguageProvider,null,React.createElement(Products))));
+            React.createElement(LanguageProvider,null,React.createElement(Products),React.createElement(Toaster))));
         </script></body></html>` });
       }
       if (!path.startsWith("/api/")) return request.continue();
       // All authentication and inventory are isolated browser fixtures.
       // Never forward a mutation to the real application.
       if (!["GET", "HEAD"].includes(request.method())) {
-        writes.push({ path, method: request.method() });
+        const payload = request.postData() ? JSON.parse(request.postData()) : null;
+        writes.push({ path, method: request.method(), payload });
+        if (path === `/api/products/${fixture.id}` && request.method() === "DELETE") {
+          if (deleteResponse === "old_success") return json({ success: true });
+          if (deleteResponse === "blocked") return json({ success: false, code: "referenced" }, 409);
+          const ids = [fixture.id, batch.id];
+          products = products.filter(product => !ids.includes(product.id));
+          return json({ success: true, deletedIds: ids, shopDeletedIds: [10] });
+        }
         return request.respond({ status: 400, contentType: "application/json", body: '{"message":"Probe blocks real mutations"}' });
       }
       if (path === "/api/admin/me") return json({ success: true, user: { id: 1, username: "Fixture admin", role: "admin" } });
-      if (path === "/api/products") return json([fixture]);
+      if (path === "/api/products") return json(products);
       if (path === "/api/admin/categories") return json([{ id: 1, name: "Paint & Solvents" }]);
       if (path === "/api/admin/vendors/approved") return json({ vendors: [] });
       if (path.includes("/batches/")) return json({ success: true, batches: [] });
@@ -169,6 +182,32 @@ try {
     assert.equal(writes.length, 0, "Invalid submissions must not reach the API");
     assert.deepEqual(errors, []);
     console.log(`PASS actual Kardex form ${language} ${width}px: ${initial.length} closed sections, independent toggles, retained edits, contrasting packing light/dark, hidden-field validation revealed; no real writes.`);
+    await page.goto(base + "/__kardex-form-probe", { waitUntil: "domcontentloaded" });
+    const deleteButton = `[data-testid="delete-kardex-product-${fixture.id}"]`;
+    const confirm = '[data-testid="confirm-delete-kardex-product"]';
+    const clickDelete = async () => {
+      await page.waitForSelector(deleteButton, { visible: true });
+      await page.click(deleteButton);
+      const warning = await page.waitForSelector('[data-testid="kardex-delete-batch-warning"]', { visible: true });
+      assert.match(await warning.evaluate(node => node.textContent), /[2۲]/);
+      await page.click(confirm);
+      await page.waitForSelector(confirm, { hidden: true });
+    };
+    for (const response of ["old_success", "blocked"]) {
+      deleteResponse = response;
+      await clickDelete();
+      assert.ok(await page.$(deleteButton), "No acknowledged deletion: keep the card");
+    }
+    const linkedWarning = language === "fa" ? "هیچ ردیفی حذف نشد" : "Nothing was deleted";
+    await page.waitForFunction(text => document.body.textContent.includes(text), {}, linkedWarning);
+    deleteResponse = "acknowledged";
+    await clickDelete();
+    await page.waitForSelector(deleteButton, { hidden: true });
+    assert.ok(await page.$(`[data-testid="delete-kardex-product-${otherVendor.id}"]`), "Another vendor's card must remain");
+    assert.equal(writes.length, 3);
+    assert.ok(writes.every(write => write.path === `/api/products/${fixture.id}` && write.method === "DELETE"));
+    for (const write of writes) assert.deepEqual(write.payload.confirmedIds.sort(), [fixture.id, batch.id]);
+    console.log(`PASS ${language}: confirmation includes both batch rows; fake success and contract conflict leave the card; confirmed deletion removes only the selected vendor's card.`);
     await context.close();
   }
 } finally {

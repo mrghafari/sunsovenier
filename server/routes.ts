@@ -6695,69 +6695,41 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   app.delete("/api/products/:id", requireProductManagerAuth, async (req, res) => {
+    const id = Number(req.params.id);
+    const positiveId = z.number().int().positive().max(2147483647);
+    const selection = z.array(positiveId).min(1).max(2000).safeParse(req.body?.confirmedIds ?? [id]);
+    if (!/^\d+$/.test(req.params.id) || !positiveId.safeParse(id).success ||
+        !selection.success || !selection.data.includes(id) || new Set(selection.data).size !== selection.data.length) {
+      return res.status(400).json({ success: false, message: "Invalid product selection" });
+    }
+
+    const { deleteKardexProduct, KardexDeleteError } = await import("./kardex-product-deletion");
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Invalid product ID" 
-        });
-      }
-
-      // 🔒 SECURITY: Verify vendor owns this product
-      const hasOwnership = await verifyVendorOwnsProduct(req, id);
-      if (!hasOwnership) {
-        console.log(`🚫 [VENDOR SECURITY] Vendor attempted to delete product they dont own: ${id}`);
-        return res.status(403).json({
-          success: false,
-          message: "شما مجاز به حذف این محصول نیستید"
-        });
-      }
-
-      // Get product name before deletion for shop cleanup
-      const productToDelete = await storage.getProductById(id);
-      
-      // Also remove from shop if it exists there (by barcode matching for better accuracy)
-      if (productToDelete) {
-        try {
-          const shopProducts = await shopStorage.getShopProducts();
-          const matchingShopProduct = shopProducts.find(p => 
-            p.barcode === productToDelete.barcode || 
-            p.name === productToDelete.name ||
-            p.sku === productToDelete.sku
-          );
-          if (matchingShopProduct) {
-            await shopStorage.deleteShopProduct(matchingShopProduct.id);
-            console.log(`✅ [DELETE-SYNC] Removed matching shop product: ${matchingShopProduct.name} (barcode: ${matchingShopProduct.barcode})`);
-          } else {
-            console.log(`⚠️ [DELETE-SYNC] No matching shop product found for: ${productToDelete.name} (barcode: ${productToDelete.barcode})`);
-          }
-        } catch (error) {
-          console.log("❌ [DELETE-SYNC] Error removing from shop:", error);
-        }
-      }
-      
-      // *** ACTUALLY DELETE THE PRODUCT FROM SHOWCASE_PRODUCTS (KARDEX) ***
-      await storage.deleteProduct(id);
-      console.log(`🗑️ [DELETE] Product ID ${id} deleted from showcase_products (kardex)`);
-      
-      // Trigger automatic synchronization after deletion
+      const admin = !!(req.session?.isAuthenticated && req.session?.adminId);
+      const vendorId = admin ? null : await getVendorIdFromSession(req);
+      if (!admin && vendorId === null) return res.status(403).json({ success: false, message: "Product access denied" });
+      const client = await pool.connect();
       try {
-        const { KardexSyncMaster } = await import('./kardex-sync-master');
-        const result = await KardexSyncMaster.smartSyncShopFromKardex();
-        console.log(`🔄 Auto-sync completed after deleting product ${id}:`, result.message);
-      } catch (syncError) {
-        console.log("Auto-sync failed after deletion:", syncError);
+        await client.query("BEGIN");
+        const deleted = await deleteKardexProduct(client, id, vendorId, selection.data);
+        await client.query("COMMIT");
+        return res.json({ success: true, ...deleted });
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      } finally {
+        client.release();
       }
-      
-      console.log(`✅ Product ${id} deleted successfully from both showcase and shop with auto-sync`);
-      res.json({ success: true, message: "Product deleted successfully" });
     } catch (error) {
-      console.error("Delete product error:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "Internal server error" 
-      });
+      if (error instanceof KardexDeleteError) {
+        return res.status(error.code === "not_found" ? 404 : 409).json({ success: false, code: error.code, message: error.code === "not_found" ? "Product not found" : "Product batches changed; reload and confirm again" });
+      }
+      const code = (error as { code?: string })?.code;
+      if (code === "23503") {
+        return res.status(409).json({ success: false, code: "referenced", message: "The product is referenced by existing records and cannot be deleted" });
+      }
+      console.error("Kardex product deletion failed", { id, code });
+      return res.status(500).json({ success: false, message: "Product deletion failed" });
     }
   });
 
