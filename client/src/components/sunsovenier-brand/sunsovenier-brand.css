@@ -1,0 +1,29 @@
+.sunsovenier-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.52em;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.sunsovenier-brand__logo {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.sunsovenier-brand__name {
+  display: inline-flex;
+  align-items: center;
+}
+
+.sunsovenier-brand__sun {
+  color: #facc15;
+}
+
+.sunsovenier-brand__suffix {
+  color: #22c55e;
+}

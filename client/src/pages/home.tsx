@@ -4,6 +4,7 @@ import { ShoppingCart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
 import CompanyBrandLogo from "@/components/company-brand-logo";
+import SunsovenierBrand from "@/components/sunsovenier-brand/SunsovenierBrand";
 import { resolveLandingPhone } from "@shared/landing-phone";
 import { apiRequest } from "@/lib/queryClient";
 import type { LandingContent } from "@shared/landing-content";
@@ -460,7 +461,7 @@ export default function Home() {
       {landingError && <div className="mc-category-error" role="alert"><p>{locale === "fa" ? "بارگذاری محتوای به‌روز سایت ناموفق بود؛ ممکن است نسخه ذخیره‌شده قدیمی باشد." : "Could not refresh published site content. Previously loaded content is not being replaced."}</p><button type="button" onClick={() => void retryLanding()}>{c.retry}</button></div>}
       <header className="mc-header">
         <div className="mc-container mc-nav">
-          <Link href="/" className="mc-logo" aria-label="Sunsovenier"><CompanyBrandLogo /><span className="mc-brand-name"><span>Sun</span><span>sovenier</span></span></Link>
+          <Link href="/" className="mc-logo" aria-label="Sunsovenier"><SunsovenierBrand logo={<CompanyBrandLogo />} /></Link>
           <nav className={`mc-nav-links ${mobileMenu ? "is-open" : ""}`} aria-label="Main navigation">
             {landingHeaderNavigation(page.navigation).filter(link => link.isActive && (link.href !== "/vendor" || vendorVisible) && (!sectionForAnchor[link.href] || sections[sectionForAnchor[link.href]])).map(link =>
               <a key={link.id} href={effectiveHref(link.href)} onClick={() => setMobileMenu(false)}>{linkLabel(link)}</a>)}
@@ -568,7 +569,7 @@ export default function Home() {
         </LayoutElements></div></section>}
       {sections.footer && <footer data-home-section="footer" className="mc-footer"><div className="mc-container">
         <div className="mc-footer-grid mc-reveal"><LayoutElements order={page.layout.elements.footer}>
-          <div data-home-part="brand"><Link href="/" className="mc-logo"><CompanyBrandLogo /><span>{page.brandPrimary}<span>{page.brandAccent}</span></span></Link><p className="mc-footer-tagline">{c.tagline}</p><a className="mc-footer-cta" href={effectiveHref(page.actions.shop)}>{c.shop}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></a></div>
+          <div data-home-part="brand"><Link href="/" className="mc-logo mc-footer-logo"><CompanyBrandLogo /><span>{page.brandPrimary}<span>{page.brandAccent}</span></span></Link><p className="mc-footer-tagline">{c.tagline}</p><a className="mc-footer-cta" href={effectiveHref(page.actions.shop)}>{c.shop}<i className="fa-solid fa-arrow-right" aria-hidden="true" /></a></div>
           <div data-home-part="company"><h3>{c.company}</h3><ul>{renderLinks(page.footerCompany)}</ul></div>
           <div data-home-part="packages"><h3>{c.packaging}</h3><ul>{Array.from(new Set(products.flatMap((product) => product.pack))).map((packId) => <li key={packId}><button className="mc-footer-product" type="button" onClick={() => { const target = products.find((product) => product.id === packId) ?? products.find((product) => product.pack.includes(packId)); if (target) openProduct(target.id); }}>{packages[packId].name}</button></li>)}</ul></div>
           <div data-home-part="connect"><h3>{c.connect}</h3><ul>{renderLinks(page.footerConnect)}{renderLinks(page.social)}</ul></div>

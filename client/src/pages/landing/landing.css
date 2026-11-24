@@ -42,9 +42,7 @@
 .mc-nav { height: 100%; display: flex; justify-content: space-between; align-items: center; gap: 24px; }
 .mc-logo { display: inline-flex; align-items: center; gap: 11px; color: #fff; font: 800 21px/1 "Manrope","Vazirmatn",sans-serif; letter-spacing: -.055em; white-space: nowrap; }
 .mc-logo .mc-brand-logo { width: 42px; height: 42px; flex: 0 0 42px; object-fit: contain; }
-.mc-logo > i, .mc-logo span span { color: var(--mc-blue-light); }
-.mc-logo .mc-brand-name > span:first-child { color: #facc15; }
-.mc-logo .mc-brand-name > span:last-child { color: #22c55e; }
+.mc-logo > i, .mc-footer-logo span span { color: var(--mc-blue-light); }
 .mc-nav-links { display: flex; align-items: center; gap: clamp(18px,2.5vw,36px); list-style: none; color: rgba(255,255,255,.69); font-size: 13px; font-weight: 600; }
 .mc-nav-links a { position: relative; transition: color .2s ease; }
 .mc-nav-links a::after { position:absolute; content:""; inset-inline:0; bottom:-9px; height:1px; background:var(--mc-blue-light); transform:scaleX(0); transform-origin:left; transition:transform .25s ease; }
@@ -438,7 +436,7 @@
    new editorial scale, glass surfaces, and sunrise composition. */
 .mc-landing { background:var(--mc-dark); }
 .mc-header { background:rgba(17,25,35,.88); }
-.mc-logo > i,.mc-logo span span,.mc-phone i,.mc-eyebrow,.mc-eyebrow-dark,
+.mc-logo > i,.mc-footer-logo span span,.mc-phone i,.mc-eyebrow,.mc-eyebrow-dark,
 .mc-text-link,.mc-detail-link,.mc-footer-cta,.mc-footer-product:hover,
 .mc-footer-grid li a:hover,.mc-footer-bottom a:hover,.mc-category-link > i,
 .mc-category-empty a,.mc-category-error button,.mc-faq-toggle i,
