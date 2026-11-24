@@ -460,7 +460,7 @@ export default function Home() {
       {landingError && <div className="mc-category-error" role="alert"><p>{locale === "fa" ? "بارگذاری محتوای به‌روز سایت ناموفق بود؛ ممکن است نسخه ذخیره‌شده قدیمی باشد." : "Could not refresh published site content. Previously loaded content is not being replaced."}</p><button type="button" onClick={() => void retryLanding()}>{c.retry}</button></div>}
       <header className="mc-header">
         <div className="mc-container mc-nav">
-          <Link href="/" className="mc-logo" aria-label="Sunsovenier"><CompanyBrandLogo /><span className="mc-brand-name"><span>Sunso</span><span>venier</span></span></Link>
+          <Link href="/" className="mc-logo" aria-label="Sunsovenier"><CompanyBrandLogo /><span className="mc-brand-name"><span>Sun</span><span>sovenier</span></span></Link>
           <nav className={`mc-nav-links ${mobileMenu ? "is-open" : ""}`} aria-label="Main navigation">
             {landingHeaderNavigation(page.navigation).filter(link => link.isActive && (link.href !== "/vendor" || vendorVisible) && (!sectionForAnchor[link.href] || sections[sectionForAnchor[link.href]])).map(link =>
               <a key={link.id} href={effectiveHref(link.href)} onClick={() => setMobileMenu(false)}>{linkLabel(link)}</a>)}
